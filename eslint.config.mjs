@@ -11,6 +11,7 @@ const eslintConfig = defineConfig([
     "**/build/**",
     "**/out/**",
     "website/**",
+    "coverage/**",
   ]),
   {
     files: ["**/*.ts", "**/*.tsx"],
