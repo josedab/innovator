@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ANGLES } from "@innovator/core";
-import type { AngleId } from "@innovator/core";
+import { ANGLES } from "@innovator/core/types";
+import type { AngleId } from "@innovator/core/types";
 
 interface AngleSelectorProps {
   onSubmit: (angles: AngleId[]) => void;
@@ -69,9 +69,7 @@ export function AngleSelector({ onSubmit }: AngleSelectorProps) {
             >
               <div className="text-2xl mb-2">{angle.icon}</div>
               <p className="font-semibold text-sm">{angle.name}</p>
-              <p className="text-xs text-neutral-500 mt-1">
-                {angle.shortDescription}
-              </p>
+              <p className="text-xs text-neutral-500 mt-1">{angle.shortDescription}</p>
             </button>
           );
         })}
