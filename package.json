@@ -3,12 +3,14 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "website"
   ],
   "scripts": {
     "predev": "npm run build --workspace=packages/core",
     "dev": "npm run dev --workspace=apps/web",
-    "build": "npm run build --workspace=packages/core && npm run build --workspace=apps/web",
+    "dev:core": "npm run dev --workspace=packages/core",
+    "build": "npm run build --workspace=packages/core && npm run build --workspace=apps/cli && npm run build --workspace=apps/web",
     "cli": "npx tsx apps/cli/src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -39,5 +41,8 @@
     "*.{json,md,yml,yaml}": [
       "prettier --write"
     ]
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
