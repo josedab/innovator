@@ -35,5 +35,8 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build Website
+        run: npm run build --workspace=website
+
       - name: Test
         run: npm test
