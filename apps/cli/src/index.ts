@@ -15,10 +15,32 @@ import type { AngleId } from "@innovator/core";
 
 const program = new Command();
 
+let verbose = false;
+
+function debugLog(label: string, ...args: unknown[]) {
+  if (!verbose) return;
+  const timestamp = new Date().toISOString();
+  console.error(chalk.dim(`[${timestamp}] ${chalk.bold(label)}`), ...args);
+}
+
+function timeStart(label: string): () => void {
+  if (!verbose) return () => {};
+  const start = performance.now();
+  debugLog("START", label);
+  return () => {
+    const elapsed = (performance.now() - start).toFixed(0);
+    debugLog("END", `${label} (${elapsed}ms)`);
+  };
+}
+
 program
   .name("innovator")
   .description("AI-Powered Innovation Engine — explore any subject from multiple innovation angles")
-  .version("0.1.0");
+  .version("0.1.0")
+  .option("--verbose", "Enable verbose logging (prompts, responses, timing)")
+  .hook("preAction", () => {
+    verbose = program.opts().verbose ?? false;
+  });
 
 // ---- investigate command ----
 program
@@ -28,10 +50,14 @@ program
   .option("-m, --model <model>", "LLM model to use")
   .action(async (subject: string, opts: { model?: string }) => {
     const spinner = ora(`Investigating "${subject}"...`).start();
+    debugLog("COMMAND", "investigate", { subject, model: opts.model });
+    const endTimer = timeStart("investigate");
 
     try {
       const result = await investigate(subject, opts.model);
+      endTimer();
       spinner.succeed("Investigation complete!\n");
+      debugLog("RESPONSE", JSON.stringify(result, null, 2));
 
       console.log(chalk.bold.blue("📋 Summary"));
       console.log(`   ${result.summary}\n`);
@@ -83,58 +109,53 @@ program
     "Comma-separated angle IDs (e.g., scamper,inversion,what-if)"
   )
   .option("-m, --model <model>", "LLM model to use")
-  .action(
-    async (
-      subject: string,
-      opts: { angles: string; model?: string }
-    ) => {
-      const angleIds = opts.angles.split(",").map((a) => a.trim()) as AngleId[];
-      const invalid = angleIds.filter(
-        (a) => !(ANGLE_IDS as readonly string[]).includes(a)
-      );
-      if (invalid.length) {
-        console.error(chalk.red(`Unknown angles: ${invalid.join(", ")}`));
-        console.log(chalk.dim(`Valid angles: ${ANGLE_IDS.join(", ")}`));
-        process.exitCode = 1;
-        return;
-      }
-
-      const spinner = ora(`Investigating "${subject}"...`).start();
-
-      try {
-        const investigation = await investigate(subject, opts.model);
-        spinner.succeed("Investigation complete");
-
-        for (const angleId of angleIds) {
-          const angle = ANGLES.find((a) => a.id === angleId)!;
-          spinner.start(`${angle.icon} Generating: ${angle.name}...`);
-
-          const result = await generateForAngle(
-            subject,
-            investigation,
-            angleId,
-            opts.model
-          );
-          spinner.succeed(`${angle.icon} ${angle.name}`);
-
-          console.log(chalk.dim(`   Reasoning: ${result.reasoning}`));
-          for (const idea of result.ideas) {
-            console.log(`\n   ${chalk.bold.cyan(idea.title)}`);
-            console.log(`   ${idea.description}`);
-            console.log(`   ${chalk.dim("Impact:")} ${idea.potentialImpact}`);
-            console.log(`   ${chalk.dim("How to start:")} ${idea.implementationHint}`);
-          }
-          console.log();
-        }
-      } catch (err) {
-        spinner.fail("Innovation generation failed");
-        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-        process.exitCode = 1;
-      } finally {
-        await stopCopilotClient();
-      }
+  .action(async (subject: string, opts: { angles: string; model?: string }) => {
+    const angleIds = opts.angles.split(",").map((a) => a.trim()) as AngleId[];
+    const invalid = angleIds.filter((a) => !(ANGLE_IDS as readonly string[]).includes(a));
+    if (invalid.length) {
+      console.error(chalk.red(`Unknown angles: ${invalid.join(", ")}`));
+      console.log(chalk.dim(`Valid angles: ${ANGLE_IDS.join(", ")}`));
+      process.exitCode = 1;
+      return;
     }
-  );
+
+    const spinner = ora(`Investigating "${subject}"...`).start();
+    debugLog("COMMAND", "innovate", { subject, angles: angleIds, model: opts.model });
+
+    try {
+      const endInvestigate = timeStart("investigate");
+      const investigation = await investigate(subject, opts.model);
+      endInvestigate();
+      spinner.succeed("Investigation complete");
+      debugLog("RESPONSE", "investigation", JSON.stringify(investigation, null, 2));
+
+      for (const angleId of angleIds) {
+        const angle = ANGLES.find((a) => a.id === angleId)!;
+        spinner.start(`${angle.icon} Generating: ${angle.name}...`);
+
+        const endAngle = timeStart(`generate:${angleId}`);
+        const result = await generateForAngle(subject, investigation, angleId, opts.model);
+        endAngle();
+        spinner.succeed(`${angle.icon} ${angle.name}`);
+        debugLog("RESPONSE", angleId, JSON.stringify(result, null, 2));
+
+        console.log(chalk.dim(`   Reasoning: ${result.reasoning}`));
+        for (const idea of result.ideas) {
+          console.log(`\n   ${chalk.bold.cyan(idea.title)}`);
+          console.log(`   ${idea.description}`);
+          console.log(`   ${chalk.dim("Impact:")} ${idea.potentialImpact}`);
+          console.log(`   ${chalk.dim("How to start:")} ${idea.implementationHint}`);
+        }
+        console.log();
+      }
+    } catch (err) {
+      spinner.fail("Innovation generation failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    } finally {
+      await stopCopilotClient();
+    }
+  });
 
 // ---- auto command ----
 program
@@ -144,13 +165,19 @@ program
   .option("-m, --model <model>", "LLM model to use")
   .action(async (subject: string, opts: { model?: string }) => {
     const spinner = ora("Starting auto pipeline...").start();
+    debugLog("COMMAND", "auto", { subject, model: opts.model });
+    const endTimer = timeStart("auto-pipeline");
 
     try {
       const result = await runAutoPipeline(
         subject,
         (progress) => {
+          debugLog("PIPELINE", progress.stage, {
+            completedAngles: progress.completedAngles.length,
+            totalAngles: progress.totalAngles,
+          });
           if (progress.stage === "investigating") {
-            spinner.text = '🔍 Investigating subject...';
+            spinner.text = "🔍 Investigating subject...";
           } else if (progress.stage === "generating") {
             const done = progress.completedAngles.length;
             const total = progress.totalAngles;
@@ -163,13 +190,19 @@ program
       );
 
       if (result.stage === "error") {
+        endTimer();
         spinner.fail("Pipeline failed");
         console.error(chalk.red(result.error));
         process.exitCode = 1;
         return;
       }
 
+      endTimer();
       spinner.succeed("Pipeline complete!\n");
+      debugLog("RESPONSE", "pipeline complete", {
+        anglesCompleted: result.angleResults.length,
+        hasSynthesis: !!result.synthesis,
+      });
 
       // Print angle results
       for (const angle of result.angleResults) {
@@ -197,9 +230,7 @@ program
               : idea.feasibility === "medium"
                 ? chalk.yellow
                 : chalk.red;
-          console.log(
-            `  ${chalk.bold(idea.title)} ${feasColor(`[${idea.feasibility}]`)}`
-          );
+          console.log(`  ${chalk.bold(idea.title)} ${feasColor(`[${idea.feasibility}]`)}`);
           console.log(`  ${idea.description}`);
           console.log(
             `  ${chalk.dim("From:")} ${idea.sourceAngle} • ${chalk.dim("Impact:")} ${idea.potentialImpact}\n`
