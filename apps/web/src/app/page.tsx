@@ -6,50 +6,7 @@ import { InvestigationView } from "@/components/InvestigationView";
 import { AngleSelector } from "@/components/AngleSelector";
 import { InnovationResults } from "@/components/InnovationResults";
 import { AutoModePanel } from "@/components/AutoModePanel";
-
-interface Investigation {
-  summary: string;
-  keyAspects: { title: string; description: string }[];
-  currentState: string;
-  challenges: string[];
-  opportunities: string[];
-}
-
-interface InnovationIdea {
-  title: string;
-  description: string;
-  potentialImpact: string;
-  implementationHint: string;
-}
-
-interface AngleResult {
-  angleId: string;
-  angleName: string;
-  ideas: InnovationIdea[];
-  reasoning: string;
-}
-
-interface Synthesis {
-  topIdeas: {
-    title: string;
-    description: string;
-    sourceAngle: string;
-    potentialImpact: string;
-    feasibility: "low" | "medium" | "high";
-  }[];
-  themes: string[];
-  recommendation: string;
-}
-
-type AngleId =
-  | "scamper"
-  | "first-principles"
-  | "cross-domain"
-  | "constraints"
-  | "inversion"
-  | "perspectives"
-  | "what-if"
-  | "trend-collision";
+import type { Investigation, AngleResult, Synthesis, AngleId } from "@innovator/core";
 
 type AppStage =
   | "input"

@@ -1,32 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-interface InnovationIdea {
-  title: string;
-  description: string;
-  potentialImpact: string;
-  implementationHint: string;
-}
-
-interface AngleResult {
-  angleId: string;
-  angleName: string;
-  ideas: InnovationIdea[];
-  reasoning: string;
-}
-
-interface Synthesis {
-  topIdeas: {
-    title: string;
-    description: string;
-    sourceAngle: string;
-    potentialImpact: string;
-    feasibility: "low" | "medium" | "high";
-  }[];
-  themes: string[];
-  recommendation: string;
-}
+import type { AngleResult, Synthesis } from "@innovator/core";
 
 interface InnovationResultsProps {
   angleResults: AngleResult[];

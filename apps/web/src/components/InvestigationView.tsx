@@ -1,10 +1,4 @@
-interface Investigation {
-  summary: string;
-  keyAspects: { title: string; description: string }[];
-  currentState: string;
-  challenges: string[];
-  opportunities: string[];
-}
+import type { Investigation } from "@innovator/core";
 
 interface InvestigationViewProps {
   investigation: Investigation;
