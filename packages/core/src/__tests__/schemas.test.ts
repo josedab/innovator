@@ -27,12 +27,12 @@ describe("InvestigationSchema", () => {
   });
 
   it("rejects missing summary", () => {
-    const { summary, ...incomplete } = validInvestigation;
+    const { summary: _summary, ...incomplete } = validInvestigation;
     expect(() => InvestigationSchema.parse(incomplete)).toThrow();
   });
 
   it("rejects missing keyAspects", () => {
-    const { keyAspects, ...incomplete } = validInvestigation;
+    const { keyAspects: _keyAspects, ...incomplete } = validInvestigation;
     expect(() => InvestigationSchema.parse(incomplete)).toThrow();
   });
 
@@ -63,9 +63,7 @@ describe("InnovationIdeaSchema", () => {
   });
 
   it("rejects missing fields", () => {
-    expect(() =>
-      InnovationIdeaSchema.parse({ title: "only title" })
-    ).toThrow();
+    expect(() => InnovationIdeaSchema.parse({ title: "only title" })).toThrow();
   });
 });
 
