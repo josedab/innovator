@@ -4,5 +4,16 @@ export default defineConfig({
   test: {
     globals: true,
     include: ["packages/*/src/**/*.test.ts", "apps/*/src/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      include: ["packages/*/src/**/*.ts", "apps/*/src/**/*.ts"],
+      exclude: [
+        "**/__tests__/**",
+        "**/*.test.ts",
+        "**/*.d.ts",
+        "**/node_modules/**",
+      ],
+    },
   },
 });
