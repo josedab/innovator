@@ -1,5 +1,7 @@
 # 💡 Innovator — AI-Powered Innovation Engine
 
+[![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+
 Explore any subject from multiple innovation angles using AI. Built with Next.js, the GitHub Copilot SDK, and TypeScript.
 
 ## Features
@@ -13,7 +15,7 @@ Explore any subject from multiple innovation angles using AI. Built with Next.js
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - GitHub Copilot subscription
 - GitHub CLI authenticated (`gh auth login`)
 
@@ -23,10 +25,7 @@ Explore any subject from multiple innovation angles using AI. Built with Next.js
 # Install dependencies
 npm install
 
-# Build the core package
-npm run build --workspace=packages/core
-
-# Start the web app
+# Start the web app (automatically builds core first)
 npm run dev
 
 # Open http://localhost:3000
