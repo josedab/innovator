@@ -1,4 +1,4 @@
-import { investigate, InvestigationSchema } from "@innovator/core";
+import { investigate } from "@innovator/core";
 import { z } from "zod";
 
 const RequestSchema = z.object({
