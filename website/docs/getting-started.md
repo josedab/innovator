@@ -10,7 +10,7 @@ Get Innovator running and generate your first innovation ideas in under 5 minute
 
 ## Prerequisites
 
-- **Node.js 18+**
+- **Node.js 20+** (see `.nvmrc`)
 - **GitHub Copilot subscription** (Free, Pro, or Enterprise)
 - **GitHub CLI** authenticated (`gh auth login`)
 
