@@ -144,7 +144,13 @@ export async function runAutoPipeline(
     const raw = await generateText({ prompt: synthesisPrompt, model, serverMode: true });
 
     const jsonStr = extractJson(raw);
-    progress.synthesis = SynthesisSchema.parse(JSON.parse(jsonStr));
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(jsonStr);
+    } catch {
+      throw new Error(`Failed to parse LLM response as JSON: ${jsonStr.slice(0, 200)}`);
+    }
+    progress.synthesis = SynthesisSchema.parse(parsedJson);
   } catch (err) {
     progress.stage = "error";
     progress.error = `Synthesis failed: ${err instanceof Error ? err.message : String(err)}`;
