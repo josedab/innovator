@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 
-vi.mock("@innovator/core", () => {
-  const { z: zod } = require("zod");
+vi.mock("@innovator/core", async () => {
+  const { z: zod } = await import("zod");
   const ANGLE_IDS = [
     "scamper",
     "first-principles",
@@ -36,9 +36,6 @@ vi.mock("@innovator/core", () => {
 
 import { generateForAngle, generateText, extractJson, buildSynthesisPrompt } from "@innovator/core";
 const mockGenerateForAngle = vi.mocked(generateForAngle);
-const mockGenerateText = vi.mocked(generateText);
-const mockExtractJson = vi.mocked(extractJson);
-const mockBuildSynthesisPrompt = vi.mocked(buildSynthesisPrompt);
 
 const ANGLE_IDS_CONST = [
   "scamper",
@@ -66,7 +63,17 @@ const SynthesisSchema = z.object({
 });
 
 type AngleId = (typeof ANGLE_IDS_CONST)[number];
-type AngleResult = { angleId: string; angleName: string; ideas: unknown[]; reasoning: string };
+type AngleResult = {
+  angleId: string;
+  angleName: string;
+  ideas: {
+    title: string;
+    description: string;
+    potentialImpact: string;
+    implementationHint: string;
+  }[];
+  reasoning: string;
+};
 
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
@@ -92,9 +99,7 @@ async function POST(request: Request) {
     for (let i = 0; i < angles.length; i += MAX_CONCURRENCY) {
       const batch = angles.slice(i, i + MAX_CONCURRENCY);
       const batchResults = await Promise.all(
-        batch.map((angleId) =>
-          generateForAngle(subject, investigation, angleId as AngleId, model)
-        )
+        batch.map((angleId) => generateForAngle(subject, investigation, angleId as AngleId, model))
       );
       results.push(...batchResults);
     }
