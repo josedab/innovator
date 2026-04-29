@@ -1,4 +1,4 @@
-import { runAutoPipeline } from "@innovator/core";
+import { runAutoPipeline, ANGLE_IDS } from "@innovator/core";
 import type { PipelineProgress } from "@innovator/core";
 import { z } from "zod";
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
             const errorProgress: PipelineProgress = {
               stage: "error",
               completedAngles: [],
-              totalAngles: 8,
+              totalAngles: ANGLE_IDS.length,
               angleResults: [],
               error: err instanceof Error ? err.message : "Pipeline failed",
             };
