@@ -42,6 +42,12 @@ innovator/
 3. **Run checks locally** before pushing:
 
 ```bash
+npm run check
+```
+
+This runs lint, typecheck, format check, and tests. You can also run them individually:
+
+```bash
 npm run lint
 npm run typecheck
 npm run format
@@ -60,12 +66,14 @@ All commands are run from the monorepo root.
 | Command                    | Description                               |
 | -------------------------- | ----------------------------------------- |
 | `npm run dev`              | Build core, then start Next.js dev server |
+| `npm run dev:all`          | Run core watch + web dev in parallel      |
 | `npm run cli -- <command>` | Run the CLI in development mode via tsx   |
 
 ### Quality
 
 | Command                | Description                                      |
 | ---------------------- | ------------------------------------------------ |
+| `npm run check`        | Run all quality gates (lint, typecheck, format, test) |
 | `npm run lint`         | Run ESLint across all packages                   |
 | `npm run typecheck`    | Run TypeScript type checking across all packages |
 | `npm run format`       | Format all files with Prettier                   |

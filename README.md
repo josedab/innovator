@@ -25,6 +25,9 @@ Explore any subject from multiple innovation angles using AI. Built with Next.js
 # Install dependencies
 npm install
 
+# Verify prerequisites (Node 20+, gh CLI, Copilot auth)
+npm run doctor
+
 # Start the web app (automatically builds core first)
 npm run dev
 
