@@ -61,6 +61,24 @@ graph TB
 
 ## Monorepo Structure
 
+### Workspace Dependency Graph
+
+```mermaid
+graph LR
+    core["packages/core"]
+    web["apps/web"]
+    cli["apps/cli"]
+    website["website"]
+    root["root (workspace)"]
+
+    web --> core
+    cli --> core
+    root --> web
+    root --> cli
+    root --> core
+    root --> website
+```
+
 The project uses **npm workspaces** with three packages:
 
 | Package | Purpose | Dependencies |
