@@ -58,6 +58,11 @@ export async function generateForAngle(
   const raw = await generateText({ prompt, model, serverMode: true });
 
   const jsonStr = extractJson(raw);
-  const parsed = JSON.parse(jsonStr);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    throw new Error(`Failed to parse ${angleId} response as JSON: ${jsonStr.slice(0, 200)}`);
+  }
   return AngleResultSchema.parse(parsed);
 }
