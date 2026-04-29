@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     include: ["packages/*/src/**/*.test.ts", "apps/*/src/**/*.test.{ts,tsx}"],
+    environmentMatchGlobs: [["apps/web/**", "jsdom"]],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
@@ -12,6 +13,7 @@ export default defineConfig({
       thresholds: {
         lines: 25,
         functions: 25,
+        branches: 25,
       },
     },
   },
