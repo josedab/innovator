@@ -4,10 +4,31 @@ The Next.js 16 web frontend for the Innovator AI-Powered Innovation Engine.
 
 ## App Flow
 
-1. **Subject Input** — User enters a topic to innovate on
-2. **Investigation** — AI analyzes the subject (key aspects, challenges, opportunities)
-3. **Angle Selection** — User picks which innovation angles to apply (or uses Auto Mode for all 8)
-4. **Results** — Generated ideas displayed per angle, with optional synthesis
+The main page (`page.tsx`) manages a state machine that controls which component renders:
+
+```mermaid
+stateDiagram-v2
+    [*] --> input
+    input --> investigating: Investigate clicked
+    input --> auto: Auto Mode clicked
+    investigating --> explored: Investigation complete
+    explored --> innovating: Angles submitted
+    innovating --> results: Innovation complete
+    auto --> results: Pipeline complete
+    results --> input: Start over
+    auto --> input: Error → reset
+```
+
+### Component by Stage
+
+| Stage           | Component                             | Description                                    |
+| --------------- | ------------------------------------- | ---------------------------------------------- |
+| `input`         | `SubjectInput`                        | Text input + Investigate/Auto Mode buttons     |
+| `investigating` | _(loading state)_                     | Waiting for `/api/investigate` response        |
+| `explored`      | `InvestigationView` + `AngleSelector` | Shows investigation, user picks angles         |
+| `innovating`    | _(loading state)_                     | Waiting for `/api/innovate` response           |
+| `results`       | `InnovationResults`                   | Angle results + optional synthesis display     |
+| `auto`          | `AutoModePanel`                       | SSE-powered progress UI for full auto pipeline |
 
 ## API Routes
 
