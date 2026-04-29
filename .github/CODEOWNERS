@@ -1,0 +1,8 @@
+# Default owner for everything
+* @josedab
+
+# Core library
+packages/core/ @josedab
+
+# Applications
+apps/ @josedab
