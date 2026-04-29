@@ -1,0 +1,47 @@
+/**
+ * Sanitize user-supplied text before interpolation into LLM prompts.
+ * Strips patterns commonly used in prompt-injection attacks while
+ * preserving legitimate content.
+ */
+export function sanitizeUserInput(input: string): string {
+  let sanitized = input;
+
+  // Strip attempts to override system/role instructions
+  sanitized = sanitized.replace(
+    /\b(ignore|disregard|forget)\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?|context)\b/gi,
+    ""
+  );
+  // Strip role-assumption patterns
+  sanitized = sanitized.replace(
+    /\b(you\s+are\s+now|act\s+as|pretend\s+to\s+be|new\s+instructions?)\b/gi,
+    ""
+  );
+  // Strip markdown/XML-style tags that could mimic system delimiters
+  sanitized = sanitized.replace(/<\/?(?:system|assistant|user|prompt|instructions?)>/gi, "");
+
+  return sanitized.trim();
+}
+
+/**
+ * Wrap user-supplied text in clear delimiters so the LLM can distinguish
+ * user content from system instructions.
+ */
+export function wrapUserInput(label: string, value: string): string {
+  const sanitized = sanitizeUserInput(value);
+  return `${label}: """${sanitized}"""`;
+}
+
+const MAX_LLM_OUTPUT_LENGTH = 50_000;
+
+/**
+ * Sanitize LLM-generated output before re-inclusion in subsequent prompts.
+ * Prevents multi-hop prompt injection by stripping injection patterns and
+ * truncating overly long outputs.
+ */
+export function sanitizeLlmOutput(output: string): string {
+  let sanitized = sanitizeUserInput(output);
+  if (sanitized.length > MAX_LLM_OUTPUT_LENGTH) {
+    sanitized = sanitized.slice(0, MAX_LLM_OUTPUT_LENGTH) + "\n[truncated]";
+  }
+  return sanitized;
+}
