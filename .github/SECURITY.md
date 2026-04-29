@@ -1,0 +1,37 @@
+# Security Policy
+
+## Reporting a Vulnerability
+
+If you discover a security vulnerability in this project, please report it responsibly.
+
+**Do NOT open a public GitHub issue for security vulnerabilities.**
+
+Instead, please use one of the following methods:
+
+### GitHub Private Security Advisories (Preferred)
+
+1. Go to the [Security Advisories](../../security/advisories) tab of this repository
+2. Click **"Report a vulnerability"**
+3. Fill in the details of the vulnerability
+
+GitHub will notify the maintainers privately, and we can collaborate on a fix before public disclosure.
+
+### Email
+
+If you prefer email, contact the maintainers at the email address listed in the repository's profile.
+
+## Response Timeline
+
+- **Acknowledgment**: Within 48 hours of the report
+- **Initial assessment**: Within 1 week
+- **Fix and disclosure**: We aim to release a fix within 30 days of confirmed vulnerabilities
+
+## Supported Versions
+
+| Version | Supported |
+| ------- | --------- |
+| Latest  | ✅        |
+
+## Scope
+
+This policy applies to the Innovator codebase and its official distributions. Third-party dependencies should be reported to their respective maintainers.
