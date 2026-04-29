@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AutoModePanel } from "../AutoModePanel";
 
@@ -17,13 +17,17 @@ beforeEach(() => {
 });
 
 describe("AutoModePanel", () => {
-  it("renders without crashing", () => {
-    render(<AutoModePanel subject="test subject" onComplete={vi.fn()} onReset={vi.fn()} />);
+  it("renders without crashing", async () => {
+    await act(async () => {
+      render(<AutoModePanel subject="test subject" onComplete={vi.fn()} onReset={vi.fn()} />);
+    });
     expect(screen.getByText("🚀 Auto Mode")).toBeDefined();
   });
 
-  it("displays the subject", () => {
-    render(<AutoModePanel subject="code review" onComplete={vi.fn()} onReset={vi.fn()} />);
+  it("displays the subject", async () => {
+    await act(async () => {
+      render(<AutoModePanel subject="code review" onComplete={vi.fn()} onReset={vi.fn()} />);
+    });
     expect(screen.getByText(/code review/)).toBeDefined();
   });
 });
