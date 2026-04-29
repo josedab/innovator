@@ -78,6 +78,7 @@ All commands are run from the monorepo root.
 | `npm run dev`              | Build core, then start Next.js dev server |
 | `npm run dev:all`          | Run core watch + web dev in parallel      |
 | `npm run dev:cli`          | Run CLI in development mode via tsx       |
+| `npm run dev:docs`         | Start Docusaurus documentation dev server |
 | `npm run cli -- <command>` | Run the CLI in development mode via tsx   |
 
 ### Quality

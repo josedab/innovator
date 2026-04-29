@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help install dev dev-all build clean test test-coverage check lint typecheck format doctor
+.PHONY: help install dev dev-all dev-docs build build-check clean clean-all test test-ci test-coverage check lint lint-fix typecheck format doctor dev-cli
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -13,6 +13,9 @@ dev: ## Start web dev server (builds core first)
 
 dev-all: ## Run core watch + web dev in parallel (labeled output)
 	npm run dev:all
+
+dev-docs: ## Start Docusaurus documentation dev server
+	npm run dev:docs
 
 build: ## Build all packages for production
 	npm run build
@@ -40,3 +43,18 @@ format: ## Format all files with Prettier
 
 doctor: ## Check prerequisites (Node, gh CLI, auth, core build)
 	npm run doctor
+
+dev-cli: ## Run CLI in development mode via tsx
+	npm run dev:cli
+
+build-check: ## Verify all expected build outputs exist
+	npm run build:check
+
+test-ci: ## Simulate full CI pipeline (format, lint, typecheck, build, test)
+	npm run test:ci
+
+lint-fix: ## Auto-fix linting and formatting issues
+	npm run lint:fix
+
+clean-all: ## Clean build artifacts and all node_modules
+	npm run clean:all
