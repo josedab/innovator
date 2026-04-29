@@ -5,6 +5,7 @@ Thank you for your interest in contributing! This guide will help you get starte
 ## Prerequisites
 
 - **Node.js 20+** (see `.nvmrc`)
+- **npm** as package manager — do not use yarn or pnpm
 - **GitHub Copilot subscription** (for running the AI-powered features)
 - **GitHub CLI** authenticated (`gh auth login`)
 
@@ -48,7 +49,13 @@ innovator/
 npm run check
 ```
 
-This runs lint, typecheck, format check, and tests. You can also run them individually:
+This runs lint, typecheck, format check, and tests. To simulate the **full CI pipeline** (including build and coverage):
+
+```bash
+npm run test:ci
+```
+
+You can also run them individually:
 
 ```bash
 npm run lint
@@ -75,16 +82,17 @@ All commands are run from the monorepo root.
 
 ### Quality
 
-| Command                | Description                                           |
-| ---------------------- | ----------------------------------------------------- |
-| `npm run check`        | Run all quality gates (lint, typecheck, format, test) |
-| `npm run lint`         | Run ESLint across all packages                        |
-| `npm run lint:fix`     | Auto-fix all linting and formatting issues            |
-| `npm run typecheck`    | Run TypeScript type checking across all packages      |
-| `npm run format`       | Format all files with Prettier                        |
-| `npm run format:check` | Check formatting without writing changes              |
-| `npm test`             | Run all tests with vitest                             |
-| `npm run test:watch`   | Run tests in watch mode                               |
+| Command                | Description                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `npm run check`        | Run all quality gates (lint, typecheck, format, test)                          |
+| `npm run test:ci`      | Simulate full CI pipeline (format, lint, typecheck, build, test with coverage) |
+| `npm run lint`         | Run ESLint across all packages                                                 |
+| `npm run lint:fix`     | Auto-fix all linting and formatting issues                                     |
+| `npm run typecheck`    | Run TypeScript type checking across all packages                               |
+| `npm run format`       | Format all files with Prettier                                                 |
+| `npm run format:check` | Check formatting without writing changes                                       |
+| `npm test`             | Run all tests with vitest                                                      |
+| `npm run test:watch`   | Run tests in watch mode                                                        |
 
 ### Build
 
