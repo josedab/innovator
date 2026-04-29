@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { AngleResult, Synthesis, PipelineProgress } from "@innovator/core";
+import type { AngleResult, Synthesis, PipelineProgress } from "@innovator/core/types";
 
 interface AutoModePanelProps {
   subject: string;
@@ -139,9 +139,7 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
       </p>
 
       <div className="p-6 rounded-xl border border-neutral-200 dark:border-neutral-700 space-y-4">
-        <div className="text-lg font-semibold">
-          {stageLabels[progress.stage] || progress.stage}
-        </div>
+        <div className="text-lg font-semibold">{stageLabels[progress.stage] || progress.stage}</div>
 
         <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-3 overflow-hidden">
           <div

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { AngleResult, Synthesis } from "@innovator/core";
+import type { AngleResult, Synthesis } from "@innovator/core/types";
 
 interface InnovationResultsProps {
   angleResults: AngleResult[];
@@ -10,15 +10,11 @@ interface InnovationResultsProps {
 
 const FEASIBILITY_COLORS = {
   low: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-  medium:
-    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+  medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
   high: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 };
 
-export function InnovationResults({
-  angleResults,
-  synthesis,
-}: InnovationResultsProps) {
+export function InnovationResults({ angleResults, synthesis }: InnovationResultsProps) {
   const [expandedAngle, setExpandedAngle] = useState<string | null>(null);
   const [showSynthesis, setShowSynthesis] = useState(!!synthesis);
 
@@ -26,10 +22,7 @@ export function InnovationResults({
     <div className="space-y-8">
       {synthesis && (
         <div>
-          <button
-            onClick={() => setShowSynthesis(!showSynthesis)}
-            className="w-full text-left"
-          >
+          <button onClick={() => setShowSynthesis(!showSynthesis)} className="w-full text-left">
             <div className="p-5 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800">
               <h3 className="text-xl font-bold flex items-center gap-2">
                 🏆 Synthesis & Top Ideas
@@ -46,10 +39,7 @@ export function InnovationResults({
                 <h4 className="font-semibold mb-3">💡 Top Ideas</h4>
                 <div className="space-y-4">
                   {synthesis.topIdeas.map((idea, i) => (
-                    <div
-                      key={i}
-                      className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900"
-                    >
+                    <div key={i} className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900">
                       <div className="flex items-start justify-between gap-2">
                         <h5 className="font-semibold">{idea.title}</h5>
                         <span
@@ -99,9 +89,7 @@ export function InnovationResults({
       )}
 
       <div>
-        <h3 className="text-xl font-bold mb-4">
-          📊 Results by Angle ({angleResults.length})
-        </h3>
+        <h3 className="text-xl font-bold mb-4">📊 Results by Angle ({angleResults.length})</h3>
         <div className="space-y-3">
           {angleResults.map((result) => {
             const isExpanded = expandedAngle === result.angleId;
@@ -111,9 +99,7 @@ export function InnovationResults({
                 className="rounded-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden"
               >
                 <button
-                  onClick={() =>
-                    setExpandedAngle(isExpanded ? null : result.angleId)
-                  }
+                  onClick={() => setExpandedAngle(isExpanded ? null : result.angleId)}
                   className="w-full p-4 text-left flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-900 transition"
                 >
                   <div>
@@ -122,9 +108,7 @@ export function InnovationResults({
                       {result.ideas.length} ideas generated
                     </p>
                   </div>
-                  <span className="text-neutral-400">
-                    {isExpanded ? "▼" : "▶"}
-                  </span>
+                  <span className="text-neutral-400">{isExpanded ? "▼" : "▶"}</span>
                 </button>
 
                 {isExpanded && (
@@ -136,24 +120,23 @@ export function InnovationResults({
                     </div>
 
                     {result.ideas.map((idea, i) => (
-                      <div key={i} className="p-4 rounded-lg border border-neutral-100 dark:border-neutral-800">
+                      <div
+                        key={i}
+                        className="p-4 rounded-lg border border-neutral-100 dark:border-neutral-800"
+                      >
                         <h5 className="font-semibold">{idea.title}</h5>
                         <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
                           {idea.description}
                         </p>
                         <div className="grid sm:grid-cols-2 gap-2 mt-3">
                           <div className="text-xs">
-                            <span className="font-medium text-neutral-500">
-                              Impact:{" "}
-                            </span>
+                            <span className="font-medium text-neutral-500">Impact: </span>
                             <span className="text-neutral-700 dark:text-neutral-300">
                               {idea.potentialImpact}
                             </span>
                           </div>
                           <div className="text-xs">
-                            <span className="font-medium text-neutral-500">
-                              How to start:{" "}
-                            </span>
+                            <span className="font-medium text-neutral-500">How to start: </span>
                             <span className="text-neutral-700 dark:text-neutral-300">
                               {idea.implementationHint}
                             </span>
