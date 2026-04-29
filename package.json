@@ -6,11 +6,35 @@
     "packages/*"
   ],
   "scripts": {
+    "predev": "npm run build --workspace=packages/core",
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=packages/core && npm run build --workspace=apps/web",
-    "cli": "npx tsx apps/cli/src/index.ts"
+    "cli": "npx tsx apps/cli/src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . && npm run lint --workspace=apps/web",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "typescript": "^5.6.0"
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.3",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.5"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }
