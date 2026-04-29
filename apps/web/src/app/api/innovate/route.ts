@@ -51,7 +51,13 @@ export async function POST(request: Request) {
       const prompt = buildSynthesisPrompt(subject, investigation, angleResultsJson);
       const raw = await generateText({ prompt, model, serverMode: true });
       const jsonStr = extractJson(raw);
-      synthesis = SynthesisSchema.parse(JSON.parse(jsonStr));
+      let parsedJson;
+      try {
+        parsedJson = JSON.parse(jsonStr);
+      } catch {
+        throw new Error(`Failed to parse LLM response as JSON: ${jsonStr.slice(0, 200)}`);
+      }
+      synthesis = SynthesisSchema.parse(parsedJson);
     }
 
     return Response.json({ angleResults: results, synthesis });
