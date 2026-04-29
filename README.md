@@ -22,6 +22,9 @@ Explore any subject from multiple innovation angles using AI. Built with Next.js
 ## Quick Start
 
 ```bash
+# Use the correct Node.js version (see .nvmrc)
+nvm use  # or fnm use
+
 # Install dependencies
 npm install
 
