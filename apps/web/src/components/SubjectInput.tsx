@@ -51,8 +51,8 @@ export function SubjectInput({ onSubmit, onAutoMode }: SubjectInputProps) {
         </button>
       </div>
       <p className="text-center text-sm text-neutral-500 mt-3">
-        <strong>Investigate</strong> lets you choose angles •{" "}
-        <strong>Auto Mode</strong> runs all angles automatically
+        <strong>Investigate</strong> lets you choose angles • <strong>Auto Mode</strong> runs all
+        angles automatically
       </p>
     </form>
   );

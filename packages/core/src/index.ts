@@ -20,7 +20,4 @@ export {
 } from "./innovation/index.js";
 
 // Prompts (for advanced usage)
-export {
-  buildInvestigationPrompt,
-  buildSynthesisPrompt,
-} from "./prompts/investigation.js";
+export { buildInvestigationPrompt, buildSynthesisPrompt } from "./prompts/investigation.js";

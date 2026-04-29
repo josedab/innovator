@@ -78,12 +78,7 @@ export const SynthesisSchema = z.object({
 
 export type Synthesis = z.infer<typeof SynthesisSchema>;
 
-export type PipelineStage =
-  | "investigating"
-  | "generating"
-  | "synthesizing"
-  | "complete"
-  | "error";
+export type PipelineStage = "investigating" | "generating" | "synthesizing" | "complete" | "error";
 
 export interface PipelineProgress {
   stage: PipelineStage;

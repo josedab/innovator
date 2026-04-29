@@ -39,9 +39,7 @@ export async function POST(request: Request) {
     for (let i = 0; i < angles.length; i += MAX_CONCURRENCY) {
       const batch = angles.slice(i, i + MAX_CONCURRENCY);
       const batchResults = await Promise.all(
-        batch.map((angleId) =>
-          generateForAngle(subject, investigation, angleId as AngleId, model)
-        )
+        batch.map((angleId) => generateForAngle(subject, investigation, angleId as AngleId, model))
       );
       results.push(...batchResults);
     }
@@ -60,7 +58,9 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("Innovation error:", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Innovation generation failed" }),
+      JSON.stringify({
+        error: err instanceof Error ? err.message : "Innovation generation failed",
+      }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
