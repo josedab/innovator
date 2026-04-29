@@ -9,6 +9,7 @@ import {
 } from "@innovator/core";
 import type { AngleId, AngleResult } from "@innovator/core";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
@@ -62,7 +63,10 @@ export async function POST(request: Request) {
 
     return Response.json({ angleResults: results, synthesis });
   } catch (err) {
-    console.error("Innovation error:", err);
+    logger.error("Innovation error", {
+      error: err instanceof Error ? err.message : String(err),
+      route: "/api/innovate",
+    });
     return new Response(
       JSON.stringify({
         error: err instanceof Error ? err.message : "Innovation generation failed",

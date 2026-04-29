@@ -1,5 +1,6 @@
 import { investigate } from "@innovator/core";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
@@ -22,7 +23,10 @@ export async function POST(request: Request) {
     const investigation = await investigate(subject, model);
     return Response.json(investigation);
   } catch (err) {
-    console.error("Investigation error:", err);
+    logger.error("Investigation error", {
+      error: err instanceof Error ? err.message : String(err),
+      route: "/api/investigate",
+    });
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Investigation failed" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
