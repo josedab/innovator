@@ -3,6 +3,7 @@ dist
 .next
 build
 out
-website
+website/build
+website/.docusaurus
 package-lock.json
 coverage

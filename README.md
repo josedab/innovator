@@ -34,7 +34,7 @@ npm run doctor
 # Start the web app (automatically builds core first)
 npm run dev
 
-# Open http://localhost:3000
+# Open http://localhost:3000 (customize with PORT=3001)
 ```
 
 ## CLI Usage
