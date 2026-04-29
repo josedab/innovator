@@ -13,8 +13,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint . && npm run lint --workspace=apps/web",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p apps/cli && tsc --noEmit -p apps/web",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "clean": "rm -rf packages/core/dist apps/web/.next apps/cli/dist && find . -name '*.tsbuildinfo' -not -path './node_modules/*' -delete",
+    "clean:all": "npm run clean && rm -rf node_modules packages/core/node_modules apps/web/node_modules apps/cli/node_modules",
     "prepare": "husky"
   },
   "devDependencies": {
