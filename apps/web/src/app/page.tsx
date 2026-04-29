@@ -99,7 +99,10 @@ export default function Home() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {error && (
-        <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
+        <div
+          role="alert"
+          className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200"
+        >
           <p className="font-medium">Error</p>
           <p className="text-sm mt-1">{error}</p>
           <p className="text-xs mt-2 text-red-600 dark:text-red-400">
@@ -124,7 +127,12 @@ export default function Home() {
       )}
 
       {stage === "investigating" && (
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div
+          role="status"
+          aria-live="polite"
+          aria-busy={true}
+          className="flex flex-col items-center justify-center min-h-[60vh]"
+        >
           <div className="animate-pulse text-center">
             <div className="text-5xl mb-4">🔍</div>
             <h2 className="text-2xl font-semibold mb-2">Investigating...</h2>
@@ -141,6 +149,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold">Investigation: {subject}</h2>
             <button
               onClick={handleReset}
+              aria-label="Start over"
               className="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 underline"
             >
               Start over
@@ -154,7 +163,12 @@ export default function Home() {
       )}
 
       {stage === "innovating" && (
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div
+          role="status"
+          aria-live="polite"
+          aria-busy={true}
+          className="flex flex-col items-center justify-center min-h-[60vh]"
+        >
           <div className="animate-pulse text-center">
             <div className="text-5xl mb-4">⚡</div>
             <h2 className="text-2xl font-semibold mb-2">Generating Innovations...</h2>
@@ -172,6 +186,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold">Innovation Results: {subject}</h2>
             <button
               onClick={handleReset}
+              aria-label="Start over"
               className="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 underline"
             >
               Start over
