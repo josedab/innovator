@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Innovator Web App
 
-## Getting Started
+The Next.js 16 web frontend for the Innovator AI-Powered Innovation Engine.
 
-First, run the development server:
+## App Flow
+
+1. **Subject Input** — User enters a topic to innovate on
+2. **Investigation** — AI analyzes the subject (key aspects, challenges, opportunities)
+3. **Angle Selection** — User picks which innovation angles to apply (or uses Auto Mode for all 8)
+4. **Results** — Generated ideas displayed per angle, with optional synthesis
+
+## API Routes
+
+| Route              | Method | Description                                                      |
+| ------------------ | ------ | ---------------------------------------------------------------- |
+| `/api/investigate` | POST   | Analyze a subject and return structured investigation            |
+| `/api/innovate`    | POST   | Generate innovations for selected angles with optional synthesis |
+| `/api/auto`        | POST   | Run full pipeline (all angles + synthesis) as an SSE stream      |
+
+### Request Examples
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Investigate
+curl -X POST http://localhost:3000/api/investigate \
+  -H "Content-Type: application/json" \
+  -d '{"subject": "code review processes"}'
+
+# Innovate with specific angles
+curl -X POST http://localhost:3000/api/innovate \
+  -H "Content-Type: application/json" \
+  -d '{"subject": "code review", "investigation": {...}, "angles": ["scamper"], "synthesize": true}'
+
+# Auto mode (SSE stream)
+curl -X POST http://localhost:3000/api/auto \
+  -H "Content-Type: application/json" \
+  -d '{"subject": "code review processes"}'
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Component Tree
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+app/
+├── layout.tsx              # Root layout with header/footer
+├── page.tsx                # Main page — manages app stage state machine
+└── api/
+    ├── investigate/route.ts
+    ├── innovate/route.ts
+    └── auto/route.ts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+components/
+├── SubjectInput.tsx        # Text input + Investigate/Auto Mode buttons
+├── InvestigationView.tsx   # Displays investigation results
+├── AngleSelector.tsx       # Grid of selectable innovation angles
+├── InnovationResults.tsx   # Angle results + synthesis display
+└── AutoModePanel.tsx       # SSE-powered progress UI for auto mode
+```
 
-## Learn More
+## Local Development
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# From the monorepo root:
+npm run dev          # Builds core, then starts Next.js dev server
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Or run just the web app (requires core to be built first):
+npm run dev --workspace=apps/web
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The dev server runs at [http://localhost:3000](http://localhost:3000).
 
-## Deploy on Vercel
+## Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Next.js 16** with App Router and Turbopack
+- **React 19** with client/server component separation
+- **Tailwind CSS 4** for styling
+- **@innovator/core** for types (client) and SDK logic (server API routes)
+- **Zod** for request validation in API routes
