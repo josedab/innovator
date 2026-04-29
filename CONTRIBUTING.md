@@ -12,8 +12,11 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/josedab/innovator.git
 cd innovator
+
+# Use the correct Node.js version
+nvm use  # or fnm use
 
 # Install dependencies
 npm install
@@ -76,6 +79,7 @@ All commands are run from the monorepo root.
 | ---------------------- | ----------------------------------------------------- |
 | `npm run check`        | Run all quality gates (lint, typecheck, format, test) |
 | `npm run lint`         | Run ESLint across all packages                        |
+| `npm run lint:fix`     | Auto-fix all linting and formatting issues            |
 | `npm run typecheck`    | Run TypeScript type checking across all packages      |
 | `npm run format`       | Format all files with Prettier                        |
 | `npm run format:check` | Check formatting without writing changes              |
@@ -120,6 +124,10 @@ npx vitest -t "extractJson"
 
 # Run tests in watch mode for a specific file
 npx vitest packages/core/src/__tests__/angles.test.ts
+
+# Run all tests for a specific workspace
+npx vitest run packages/core/
+npx vitest run apps/web/
 ```
 
 ## Making Changes
