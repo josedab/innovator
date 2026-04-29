@@ -51,13 +51,19 @@ export async function POST(request: Request) {
         try {
           await runAutoPipeline(subject, sendProgress, model);
         } catch (err) {
+          logger.error("Auto pipeline error", {
+            error: err instanceof Error ? err.message : String(err),
+            stack: err instanceof Error ? err.stack : undefined,
+            subject,
+            route: "/api/auto",
+          });
           if (!streamClosed) {
             const errorProgress: PipelineProgress = {
               stage: "error",
               completedAngles: [],
               totalAngles: ANGLE_IDS.length,
               angleResults: [],
-              error: err instanceof Error ? err.message : "Pipeline failed",
+              error: "Pipeline encountered an error. Please try again.",
             };
             sendProgress(errorProgress);
           }
