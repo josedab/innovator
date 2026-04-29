@@ -17,9 +17,13 @@ import { InvestigationSchema, type Investigation } from "../types.js";
  * console.log(result.challenges);
  * ```
  */
-export async function investigate(subject: string, model?: string): Promise<Investigation> {
+export async function investigate(
+  subject: string,
+  model?: string,
+  signal?: AbortSignal
+): Promise<Investigation> {
   const prompt = buildInvestigationPrompt(subject);
-  const raw = await generateText({ prompt, model, serverMode: true });
+  const raw = await generateText({ prompt, model, serverMode: true, signal });
 
   const jsonStr = extractJson(raw);
   let parsed: unknown;
