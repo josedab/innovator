@@ -55,16 +55,16 @@ npm run cli -- investigate "code review processes"
 
 ## Innovation Angles
 
-| Angle | Description |
-|---|---|
-| 🔄 **SCAMPER** | Substitute, Combine, Adapt, Modify, Put to other use, Eliminate, Reverse |
-| 🧱 **First Principles** | Decompose to fundamental truths, then rebuild novel solutions |
-| 🌐 **Cross-Domain Analogy** | Map concepts from unrelated fields to spark unexpected ideas |
-| 🔒 **Constraint Injection** | Add provocative constraints to force creative breakthroughs |
-| 🔃 **Problem Inversion** | Flip the problem upside down, then reverse the insights |
-| 👥 **Role-Based Perspectives** | View through different stakeholder lenses |
-| 💭 **What-If Scenarios** | Explore provocative hypotheticals to push boundaries |
-| ⚡ **Trend Collision** | Combine with emerging technology and social trends |
+| Angle                          | Description                                                              |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| 🔄 **SCAMPER**                 | Substitute, Combine, Adapt, Modify, Put to other use, Eliminate, Reverse |
+| 🧱 **First Principles**        | Decompose to fundamental truths, then rebuild novel solutions            |
+| 🌐 **Cross-Domain Analogy**    | Map concepts from unrelated fields to spark unexpected ideas             |
+| 🔒 **Constraint Injection**    | Add provocative constraints to force creative breakthroughs              |
+| 🔃 **Problem Inversion**       | Flip the problem upside down, then reverse the insights                  |
+| 👥 **Role-Based Perspectives** | View through different stakeholder lenses                                |
+| 💭 **What-If Scenarios**       | Explore provocative hypotheticals to push boundaries                     |
+| ⚡ **Trend Collision**         | Combine with emerging technology and social trends                       |
 
 ## Project Structure
 
