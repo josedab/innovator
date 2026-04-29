@@ -60,7 +60,11 @@ export interface GenerateOptions {
   model?: string;
   /** Use restricted permissions (for server/API routes) */
   serverMode?: boolean;
+  /** Timeout in milliseconds for the LLM call (default: 90000) */
+  timeoutMs?: number;
 }
+
+const DEFAULT_TIMEOUT_MS = 90_000;
 
 /**
  * Send a prompt and wait for the complete response.
@@ -72,10 +76,18 @@ export async function generateText(options: GenerateOptions): Promise<string> {
     onPermissionRequest: options.serverMode ? serverPermissionHandler : approveAll,
   });
 
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+
   try {
-    const response = await session.sendAndWait({
-      prompt: options.prompt,
-    });
+    const response = await Promise.race([
+      session.sendAndWait({ prompt: options.prompt }),
+      new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error(`LLM request timed out after ${timeoutMs / 1000}s`)),
+          timeoutMs
+        );
+      }),
+    ]);
     return response?.data?.content ?? "";
   } finally {
     await session.disconnect();
