@@ -2,6 +2,7 @@ import { runAutoPipeline, ANGLE_IDS } from "@innovator/core";
 import type { PipelineProgress } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { KNOWN_MODELS } from "@/lib/env";
 
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
@@ -21,6 +22,16 @@ export async function POST(request: Request) {
     }
 
     const { subject, model } = parsed.data;
+
+    if (model && !(KNOWN_MODELS as readonly string[]).includes(model)) {
+      return new Response(
+        JSON.stringify({
+          error: `Unknown model "${model}". Allowed models: ${KNOWN_MODELS.join(", ")}`,
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const encoder = new TextEncoder();
     let streamClosed = false;
 
@@ -71,6 +82,7 @@ export async function POST(request: Request) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (err) {
@@ -78,9 +90,9 @@ export async function POST(request: Request) {
       error: err instanceof Error ? err.message : String(err),
       route: "/api/auto",
     });
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Auto mode failed" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Auto mode failed. Please try again." }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
