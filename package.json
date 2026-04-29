@@ -10,12 +10,13 @@
     "predev": "npm run build --workspace=packages/core || (echo '❌ Core build failed — fix errors in packages/core/ before starting dev' && exit 1)",
     "dev": "npm run dev --workspace=apps/web",
     "dev:core": "npm run dev --workspace=packages/core",
-    "dev:all": "concurrently -n core,web -c blue,green \"npm run dev:core\" \"npm run dev --workspace=apps/web\"",
+    "dev:all": "concurrently --kill-others-on-fail -n core,web -c blue,green \"npm run dev:core\" \"npm run dev --workspace=apps/web\"",
     "build": "npm run build --workspace=packages/core && npm run build --workspace=apps/cli && npm run build --workspace=apps/web",
     "build:check": "node -e \"const fs = require('fs'); const files = ['packages/core/dist/index.js', 'packages/core/dist/client.js', 'apps/cli/dist/index.js']; const missing = files.filter(f => !fs.existsSync(f)); if (missing.length) { console.error('Missing build outputs:', missing.join(', ')); process.exit(1); } console.log('All build outputs verified.')\"",
     "dev:cli": "npm run start --workspace=@innovator/cli",
     "cli": "npx tsx apps/cli/src/index.ts",
     "test": "vitest run",
+    "test:ci": "npm run format:check && npm run lint && npm run typecheck && npm run build && npm run build:check && npm run build --workspace=website && npm run test:coverage",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "check": "npm run lint && npm run typecheck && npm run format:check && npm test && npm run build --workspace=website",
@@ -27,7 +28,8 @@
     "clean": "rm -rf packages/core/dist apps/web/.next apps/cli/dist && find . -name '*.tsbuildinfo' -not -path './node_modules/*' -delete",
     "clean:all": "npm run clean && rm -rf node_modules packages/core/node_modules apps/web/node_modules apps/cli/node_modules",
     "doctor": "node scripts/doctor.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "preinstall": "npx only-allow npm"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.3",
