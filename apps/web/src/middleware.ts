@@ -56,13 +56,16 @@ export function middleware(request: NextRequest) {
 
   cleanup();
 
+  const requestId = crypto.randomUUID();
   const ip = getClientIp(request);
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
 
   if (!entry || now > entry.resetTime) {
     rateLimitMap.set(ip, { count: 1, resetTime: now + WINDOW_MS });
-    return NextResponse.next();
+    const response = NextResponse.next();
+    response.headers.set("X-Request-ID", requestId);
+    return response;
   }
 
   entry.count++;
@@ -76,12 +79,15 @@ export function middleware(request: NextRequest) {
         headers: {
           "Content-Type": "application/json",
           "Retry-After": String(retryAfter),
+          "X-Request-ID": requestId,
         },
       }
     );
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set("X-Request-ID", requestId);
+  return response;
 }
 
 export const config = {
