@@ -7,7 +7,7 @@
     "website"
   ],
   "scripts": {
-    "predev": "npm run build --workspace=packages/core",
+    "predev": "npm run build --workspace=packages/core || (echo '❌ Core build failed — fix errors in packages/core/ before starting dev' && exit 1)",
     "dev": "npm run dev --workspace=apps/web",
     "dev:core": "npm run dev --workspace=packages/core",
     "dev:all": "concurrently -n core,web -c blue,green \"npm run dev:core\" \"npm run dev --workspace=apps/web\"",
@@ -20,6 +20,7 @@
     "test:watch": "vitest",
     "check": "npm run lint && npm run typecheck && npm run format:check && npm test && npm run build --workspace=website",
     "lint": "eslint . && npm run lint --workspace=apps/web",
+    "lint:fix": "eslint --fix . && prettier --write .",
     "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p apps/cli && tsc --noEmit -p apps/web",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
