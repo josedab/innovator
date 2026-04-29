@@ -25,18 +25,19 @@ export interface AngleDefinition {
 // ---- Investigation ----
 
 export const InvestigationSchema = z.object({
-  summary: z.string().describe("A concise summary of the subject"),
+  summary: z.string().max(5000).describe("A concise summary of the subject"),
   keyAspects: z
     .array(
       z.object({
-        title: z.string(),
-        description: z.string(),
+        title: z.string().max(500),
+        description: z.string().max(2000),
       })
     )
+    .max(20)
     .describe("Key aspects or components of the subject"),
-  currentState: z.string().describe("Current state of the art or practice"),
-  challenges: z.array(z.string()).describe("Main challenges or pain points"),
-  opportunities: z.array(z.string()).describe("Potential opportunity areas"),
+  currentState: z.string().max(5000).describe("Current state of the art or practice"),
+  challenges: z.array(z.string().max(2000)).max(20).describe("Main challenges or pain points"),
+  opportunities: z.array(z.string().max(2000)).max(20).describe("Potential opportunity areas"),
 });
 
 export type Investigation = z.infer<typeof InvestigationSchema>;
