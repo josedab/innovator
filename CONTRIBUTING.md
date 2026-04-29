@@ -42,20 +42,53 @@ innovator/
 3. **Run checks locally** before pushing:
 
 ```bash
-# Lint
 npm run lint
-
-# Format
+npm run typecheck
 npm run format
-
-# Test
 npm test
-
-# Build
 npm run build
 ```
 
 4. **Open a Pull Request** against `main`
+
+## Available Commands
+
+All commands are run from the monorepo root.
+
+### Development
+
+| Command                    | Description                               |
+| -------------------------- | ----------------------------------------- |
+| `npm run dev`              | Build core, then start Next.js dev server |
+| `npm run cli -- <command>` | Run the CLI in development mode via tsx   |
+
+### Quality
+
+| Command                | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| `npm run lint`         | Run ESLint across all packages                   |
+| `npm run typecheck`    | Run TypeScript type checking across all packages |
+| `npm run format`       | Format all files with Prettier                   |
+| `npm run format:check` | Check formatting without writing changes         |
+| `npm test`             | Run all tests with vitest                        |
+| `npm run test:watch`   | Run tests in watch mode                          |
+
+### Build
+
+| Command             | Description                                                 |
+| ------------------- | ----------------------------------------------------------- |
+| `npm run build`     | Build core package and web app for production               |
+| `npm run clean`     | Remove build artifacts (`dist/`, `.next/`, `*.tsbuildinfo`) |
+| `npm run clean:all` | Clean build artifacts and all `node_modules/` directories   |
+
+### CLI
+
+| Command                                         | Description                                     |
+| ----------------------------------------------- | ----------------------------------------------- |
+| `npm run cli -- investigate <subject>`          | Investigate a subject                           |
+| `npm run cli -- innovate <subject> -a <angles>` | Generate innovations for specific angles        |
+| `npm run cli -- auto <subject>`                 | Run full auto pipeline (all angles + synthesis) |
+| `npm run cli -- angles`                         | List all available innovation angles            |
 
 ## Coding Standards
 
