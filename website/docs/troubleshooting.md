@@ -33,6 +33,7 @@ Do **not** use `node apps/cli/dist/index.js` directly.
 **Possible causes:**
 
 1. **Not authenticated with GitHub CLI**
+
    ```bash
    gh auth login
    gh auth status  # verify
@@ -50,6 +51,7 @@ Do **not** use `node apps/cli/dist/index.js` directly.
 **Cause:** The LLM returned a response that doesn't contain valid JSON.
 
 This can happen with certain models or when the subject is very short or ambiguous. Try:
+
 - A more descriptive subject ("machine learning in healthcare" instead of "ML")
 - A different model (`--model gpt-5`)
 - Running the same command again (LLM responses are non-deterministic)
@@ -59,6 +61,7 @@ This can happen with certain models or when the subject is very short or ambiguo
 **Cause:** The request body doesn't match the expected schema.
 
 Check the error response for details:
+
 ```json
 {
   "error": "Invalid request",
@@ -77,6 +80,7 @@ Ensure your request includes all required fields. See the [API Reference](/docs/
 **Cause:** The API route failed. Check the terminal running `npm run dev` for the full error.
 
 Common issues:
+
 - Copilot SDK not authenticated
 - Rate limiting (too many rapid requests)
 - Network connectivity issues
@@ -84,6 +88,7 @@ Common issues:
 ## Auto Mode progress bar stuck
 
 **Possible causes:**
+
 - A long-running LLM call (some models take 30-60 seconds per angle)
 - Network timeout — the SSE stream may have been interrupted
 

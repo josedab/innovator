@@ -81,11 +81,11 @@ graph LR
 
 The project uses **npm workspaces** with three packages:
 
-| Package | Purpose | Dependencies |
-|---------|---------|-------------|
-| `packages/core` | Shared innovation engine | `@github/copilot-sdk`, `zod` |
-| `apps/web` | Next.js web application | `@innovator/core`, `next`, `react`, `zod` |
-| `apps/cli` | Command-line interface | `@innovator/core`, `commander`, `chalk`, `ora` |
+| Package         | Purpose                  | Dependencies                                   |
+| --------------- | ------------------------ | ---------------------------------------------- |
+| `packages/core` | Shared innovation engine | `@github/copilot-sdk`, `zod`                   |
+| `apps/web`      | Next.js web application  | `@innovator/core`, `next`, `react`, `zod`      |
+| `apps/cli`      | Command-line interface   | `@innovator/core`, `commander`, `chalk`, `ora` |
 
 The core package is built with `tsc` and consumed by both apps. The web app uses `transpilePackages` in `next.config.ts` for seamless workspace resolution.
 
@@ -120,6 +120,7 @@ Each prompt template follows a composition pattern:
 The **investigation context** is shared across all angles via a helper function, ensuring consistent grounding. Each angle then adds its unique creative framework.
 
 All prompts request **JSON-only output** with a specified schema. The response is parsed using a **brace-balanced extractor** (not regex) that handles:
+
 - Raw JSON responses
 - JSON wrapped in markdown fenced blocks
 - JSON with trailing text or commentary
@@ -146,6 +147,7 @@ gantt
 ```
 
 The `runWithConcurrency` function:
+
 1. Launches tasks up to the concurrency limit
 2. Waits for any task to finish before starting the next
 3. Stores results by index to preserve **input order**
@@ -161,6 +163,7 @@ Client ←── SSE ←── ReadableStream ←── Pipeline.onProgress()
 ```
 
 Safety guards:
+
 - A `streamClosed` flag prevents writes after `controller.close()`
 - The `cancel()` callback sets the flag when the client disconnects
 - All `controller.enqueue()` calls are wrapped in try/catch
@@ -169,6 +172,7 @@ Safety guards:
 ## Stateless Design
 
 V1 is deliberately **stateless** — no database, no sessions, no persistence. All state lives in:
+
 - The browser (React state during a session)
 - The terminal (CLI output)
 

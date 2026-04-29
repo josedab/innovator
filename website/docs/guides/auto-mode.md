@@ -40,14 +40,18 @@ Auto Mode runs **2 angles in parallel** to balance speed against LLM rate limits
 ## Progress tracking
 
 ### Web App
+
 The Auto Mode panel shows:
+
 - Current pipeline stage with descriptive labels
 - A progress bar (10% → 85% across angles → 90% for synthesis → 100%)
 - Green badges for completed angles
 - Error messages with retry guidance
 
 ### CLI
+
 The CLI shows a spinner with real-time stage and count:
+
 ```
 ⠋ ⚡ Generating innovations... (5/8)
 ```
@@ -57,15 +61,19 @@ The CLI shows a spinner with real-time stage and count:
 The synthesis step produces three outputs:
 
 ### Top Ideas (5-7)
+
 Each idea is ranked with:
+
 - **Feasibility**: low / medium / high
 - **Source angle**: which framework generated it
 - **Potential impact**: what difference it makes
 
 ### Cross-Cutting Themes (3-5)
+
 Patterns that appeared across multiple angles — these are often the most valuable insights because they were independently validated.
 
 ### Strategic Recommendation
+
 A single actionable paragraph summarizing where to focus first.
 
 ## Error handling
