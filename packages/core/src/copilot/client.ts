@@ -119,30 +119,39 @@ export async function generateTextStream(
   });
 
   let fullText = "";
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
-  return new Promise<string>((resolve, reject) => {
-    session.on("assistant.message_delta", (event) => {
-      const chunk = event.data.deltaContent;
-      fullText += chunk;
-      onChunk(chunk);
-    });
+  return Promise.race([
+    new Promise<string>((resolve, reject) => {
+      session.on("assistant.message_delta", (event) => {
+        const chunk = event.data.deltaContent;
+        fullText += chunk;
+        onChunk(chunk);
+      });
 
-    session.on("session.idle", () => {
-      session
-        .disconnect()
-        .then(() => resolve(fullText))
-        .catch(reject);
-    });
+      session.on("session.idle", () => {
+        session
+          .disconnect()
+          .then(() => resolve(fullText))
+          .catch(reject);
+      });
 
-    session.on("session.error", (err) => {
-      session
-        .disconnect()
-        .then(() => reject(new Error(err.data.message)))
-        .catch(reject);
-    });
+      session.on("session.error", (err) => {
+        session
+          .disconnect()
+          .then(() => reject(new Error(err.data.message)))
+          .catch(reject);
+      });
 
-    session.send({ prompt: options.prompt }).catch(reject);
-  });
+      session.send({ prompt: options.prompt }).catch(reject);
+    }),
+    new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        session.disconnect().catch(() => {});
+        reject(new Error(`LLM streaming request timed out after ${timeoutMs / 1000}s`));
+      }, timeoutMs);
+    }),
+  ]);
 }
 
 /**
