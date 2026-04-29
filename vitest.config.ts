@@ -8,12 +8,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "lcov"],
       include: ["packages/*/src/**/*.ts", "apps/*/src/**/*.ts"],
-      exclude: [
-        "**/__tests__/**",
-        "**/*.test.ts",
-        "**/*.d.ts",
-        "**/node_modules/**",
-      ],
+      exclude: ["**/__tests__/**", "**/*.test.ts", "**/*.d.ts", "**/node_modules/**"],
     },
   },
 });
