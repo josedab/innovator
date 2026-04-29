@@ -102,6 +102,11 @@ export default function Home() {
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
           <p className="font-medium">Error</p>
           <p className="text-sm mt-1">{error}</p>
+          <p className="text-xs mt-2 text-red-600 dark:text-red-400">
+            Common causes: check that{" "}
+            <code className="bg-red-100 dark:bg-red-900 px-1 rounded">gh auth login</code> is active
+            and your Copilot subscription is valid.
+          </p>
         </div>
       )}
 
