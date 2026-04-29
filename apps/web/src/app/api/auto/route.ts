@@ -3,6 +3,7 @@ import type { PipelineProgress } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { KNOWN_MODELS } from "@/lib/env";
+import { validateJsonContentType } from "@/lib/validate-request";
 
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
@@ -11,7 +12,19 @@ const RequestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const parsed = RequestSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -34,6 +47,7 @@ export async function POST(request: Request) {
 
     const encoder = new TextEncoder();
     let streamClosed = false;
+    const abortController = new AbortController();
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -49,7 +63,7 @@ export async function POST(request: Request) {
         };
 
         try {
-          await runAutoPipeline(subject, sendProgress, model);
+          await runAutoPipeline(subject, sendProgress, model, undefined, abortController.signal);
         } catch (err) {
           logger.error("Auto pipeline error", {
             error: err instanceof Error ? err.message : String(err),
@@ -80,6 +94,7 @@ export async function POST(request: Request) {
       },
       cancel() {
         streamClosed = true;
+        abortController.abort();
       },
     });
 
