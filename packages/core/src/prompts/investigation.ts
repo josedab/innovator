@@ -1,4 +1,5 @@
 import type { Investigation } from "../types.js";
+import { wrapUserInput, sanitizeLlmOutput } from "./sanitize.js";
 
 /**
  * Build the LLM prompt for investigating a subject.
@@ -15,9 +16,9 @@ import type { Investigation } from "../types.js";
 export function buildInvestigationPrompt(subject: string): string {
   return `You are an expert innovation analyst. Investigate the following subject thoroughly.
 
-SUBJECT: "${subject}"
+${wrapUserInput("SUBJECT", subject)}
 
-Analyze this subject and provide a structured investigation. You MUST respond with valid JSON only — no markdown, no explanation outside the JSON.
+Analyze the subject above and provide a structured investigation. You MUST respond with valid JSON only — no markdown, no explanation outside the JSON.
 
 Respond with this exact JSON structure:
 {
@@ -34,7 +35,7 @@ Provide 4-6 key aspects, 3-5 challenges, and 3-5 opportunities. Be specific, ins
 }
 
 function investigationContext(subject: string, investigation: Investigation): string {
-  return `SUBJECT: "${subject}"
+  return `${wrapUserInput("SUBJECT", subject)}
 
 INVESTIGATION CONTEXT:
 Summary: ${investigation.summary}
@@ -68,7 +69,9 @@ export function buildSynthesisPrompt(
 ${investigationContext(subject, investigation)}
 
 ANGLE RESULTS:
-${angleResultsJson}
+"""
+${sanitizeLlmOutput(angleResultsJson)}
+"""
 
 Synthesize these results. You MUST respond with valid JSON only.
 
