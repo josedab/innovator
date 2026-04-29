@@ -5,6 +5,13 @@ const DEFAULT_MODEL = process.env.INNOVATOR_DEFAULT_MODEL || "gpt-4.1";
 
 let clientPromise: Promise<CopilotClient> | null = null;
 
+/**
+ * Get or create the shared {@link CopilotClient} singleton.
+ * The client is lazily initialized on first call and reused for subsequent calls.
+ *
+ * @returns A started CopilotClient instance
+ * @throws If the client fails to start (e.g. missing GitHub CLI auth)
+ */
 export async function getCopilotClient(): Promise<CopilotClient> {
   if (!clientPromise) {
     clientPromise = (async () => {
@@ -22,6 +29,10 @@ export async function getCopilotClient(): Promise<CopilotClient> {
   return clientPromise;
 }
 
+/**
+ * Stop the shared CopilotClient and release resources.
+ * Safe to call even if no client has been created.
+ */
 export async function stopCopilotClient(): Promise<void> {
   if (clientPromise) {
     try {
@@ -54,9 +65,7 @@ export interface GenerateOptions {
 /**
  * Send a prompt and wait for the complete response.
  */
-export async function generateText(
-  options: GenerateOptions
-): Promise<string> {
+export async function generateText(options: GenerateOptions): Promise<string> {
   const client = await getCopilotClient();
   const session = await client.createSession({
     model: options.model || DEFAULT_MODEL,
@@ -96,11 +105,17 @@ export async function generateTextStream(
     });
 
     session.on("session.idle", () => {
-      session.disconnect().then(() => resolve(fullText)).catch(reject);
+      session
+        .disconnect()
+        .then(() => resolve(fullText))
+        .catch(reject);
     });
 
     session.on("session.error", (err) => {
-      session.disconnect().then(() => reject(new Error(err.data.message))).catch(reject);
+      session
+        .disconnect()
+        .then(() => reject(new Error(err.data.message)))
+        .catch(reject);
     });
 
     session.send({ prompt: options.prompt }).catch(reject);

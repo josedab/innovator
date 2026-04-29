@@ -1,5 +1,17 @@
 import type { Investigation } from "../types.js";
 
+/**
+ * Build the LLM prompt for investigating a subject.
+ *
+ * @param subject - The topic to investigate
+ * @returns A formatted prompt string requesting structured JSON analysis
+ *
+ * @example
+ * ```ts
+ * const prompt = buildInvestigationPrompt("home automation");
+ * const raw = await generateText({ prompt });
+ * ```
+ */
 export function buildInvestigationPrompt(subject: string): string {
   return `You are an expert innovation analyst. Investigate the following subject thoroughly.
 
@@ -32,6 +44,20 @@ Challenges: ${investigation.challenges.join("; ")}
 Opportunities: ${investigation.opportunities.join("; ")}`;
 }
 
+/**
+ * Build the LLM prompt for synthesizing results from multiple innovation angles.
+ *
+ * @param subject - The original topic
+ * @param investigation - The investigation context
+ * @param angleResultsJson - JSON-serialized array of angle results
+ * @returns A formatted prompt string requesting a synthesis JSON response
+ *
+ * @example
+ * ```ts
+ * const prompt = buildSynthesisPrompt(subject, investigation, JSON.stringify(results));
+ * const raw = await generateText({ prompt });
+ * ```
+ */
 export function buildSynthesisPrompt(
   subject: string,
   investigation: Investigation,

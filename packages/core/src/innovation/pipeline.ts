@@ -45,14 +45,30 @@ async function runWithConcurrency<T>(
   await Promise.all(executing);
 
   if (errors.length > 0) {
-    throw new Error(
-      `${errors.length} angle(s) failed: ${errors.map((e) => e.message).join("; ")}`
-    );
+    throw new Error(`${errors.length} angle(s) failed: ${errors.map((e) => e.message).join("; ")}`);
   }
 
   return results as T[];
 }
 
+/**
+ * Run the full innovation pipeline: investigate → generate for all angles → synthesize.
+ *
+ * @param subject - The topic to innovate on
+ * @param onProgress - Callback invoked on each stage transition with the current {@link PipelineProgress}
+ * @param model - Optional LLM model override
+ * @param angles - Optional subset of angle IDs to use (defaults to all 8 angles)
+ * @returns The final {@link PipelineProgress} including all angle results and synthesis
+ *
+ * @example
+ * ```ts
+ * const result = await runAutoPipeline(
+ *   "code review processes",
+ *   (progress) => console.log(progress.stage),
+ * );
+ * console.log(result.synthesis?.recommendation);
+ * ```
+ */
 export async function runAutoPipeline(
   subject: string,
   onProgress: (progress: PipelineProgress) => void,
@@ -99,15 +115,13 @@ export async function runAutoPipeline(
 
   const tasks = selectedAngles.map(
     (angleId) => () =>
-      generateForAngle(subject, investigation, angleId, model).then(
-        (result) => {
-          progress.angleResults.push(result);
-          progress.completedAngles.push(angleId);
-          progress.currentAngle = angleId;
-          safeProgress(progress);
-          return result;
-        }
-      )
+      generateForAngle(subject, investigation, angleId, model).then((result) => {
+        progress.angleResults.push(result);
+        progress.completedAngles.push(angleId);
+        progress.currentAngle = angleId;
+        safeProgress(progress);
+        return result;
+      })
   );
 
   try {
@@ -128,11 +142,7 @@ export async function runAutoPipeline(
 
   try {
     const angleResultsJson = JSON.stringify(progress.angleResults, null, 2);
-    const synthesisPrompt = buildSynthesisPrompt(
-      subject,
-      investigation,
-      angleResultsJson
-    );
+    const synthesisPrompt = buildSynthesisPrompt(subject, investigation, angleResultsJson);
     const raw = await generateText({ prompt: synthesisPrompt, model, serverMode: true });
 
     const jsonStr = extractJson(raw);
