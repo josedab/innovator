@@ -105,6 +105,10 @@ INNOVATOR_DEFAULT_MODEL=gpt-4.1
 
 Supported models include `gpt-4.1`, `gpt-5`, `claude-sonnet-4.5`, and others available through your Copilot subscription.
 
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, coding standards, and PR guidelines.
+
 ## Tech Stack
 
 - **Next.js 16** — Full-stack React framework
