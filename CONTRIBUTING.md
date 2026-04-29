@@ -71,15 +71,15 @@ All commands are run from the monorepo root.
 
 ### Quality
 
-| Command                | Description                                      |
-| ---------------------- | ------------------------------------------------ |
+| Command                | Description                                           |
+| ---------------------- | ----------------------------------------------------- |
 | `npm run check`        | Run all quality gates (lint, typecheck, format, test) |
-| `npm run lint`         | Run ESLint across all packages                   |
-| `npm run typecheck`    | Run TypeScript type checking across all packages |
-| `npm run format`       | Format all files with Prettier                   |
-| `npm run format:check` | Check formatting without writing changes         |
-| `npm test`             | Run all tests with vitest                        |
-| `npm run test:watch`   | Run tests in watch mode                          |
+| `npm run lint`         | Run ESLint across all packages                        |
+| `npm run typecheck`    | Run TypeScript type checking across all packages      |
+| `npm run format`       | Format all files with Prettier                        |
+| `npm run format:check` | Check formatting without writing changes              |
+| `npm test`             | Run all tests with vitest                             |
+| `npm run test:watch`   | Run tests in watch mode                               |
 
 ### Build
 
