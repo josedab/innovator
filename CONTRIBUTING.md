@@ -67,6 +67,7 @@ All commands are run from the monorepo root.
 | -------------------------- | ----------------------------------------- |
 | `npm run dev`              | Build core, then start Next.js dev server |
 | `npm run dev:all`          | Run core watch + web dev in parallel      |
+| `npm run dev:cli`          | Run CLI in development mode via tsx       |
 | `npm run cli -- <command>` | Run the CLI in development mode via tsx   |
 
 ### Quality
@@ -105,6 +106,21 @@ All commands are run from the monorepo root.
 - **Linting** — ESLint is configured; pre-commit hooks run automatically via husky
 - **Types** — Shared types live in `packages/core/src/types.ts`; import from `@innovator/core` — do not re-declare types locally
 - **Tests** — Write tests for new utilities and logic using vitest (`npm test`)
+
+### Running Specific Tests
+
+You can run a single test file or filter tests by name:
+
+```bash
+# Run a specific test file
+npx vitest run packages/core/src/__tests__/angles.test.ts
+
+# Run tests matching a name pattern
+npx vitest -t "extractJson"
+
+# Run tests in watch mode for a specific file
+npx vitest packages/core/src/__tests__/angles.test.ts
+```
 
 ## Making Changes
 
