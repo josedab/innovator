@@ -48,6 +48,7 @@ npx tsx apps/cli/src/index.ts investigate "code review processes"
 ```
 
 Options:
+
 - `-m, --model <model>` — specify the LLM model (default: `gpt-4.1`)
 
 Output includes summary, key aspects, current state, challenges, opportunities, and a suggestion for which angles to try next.
@@ -60,6 +61,7 @@ npx tsx apps/cli/src/index.ts innovate "code review processes" \
 ```
 
 Options:
+
 - `-a, --angles <list>` — **(required)** comma-separated angle IDs
 - `-m, --model <model>` — specify the LLM model
 
@@ -72,6 +74,7 @@ npx tsx apps/cli/src/index.ts auto "home automation"
 ```
 
 Options:
+
 - `-m, --model <model>` — specify the LLM model
 
 Runs the complete pipeline: investigate → all 8 angles → synthesis. Shows a spinner with progress updates. Outputs all ideas plus the synthesized top picks.
@@ -80,16 +83,16 @@ Runs the complete pipeline: investigate → all 8 angles → synthesis. Shows a 
 
 Use these IDs with the `--angles` flag:
 
-| ID | Name |
-|----|------|
-| `scamper` | SCAMPER |
-| `first-principles` | First Principles |
-| `cross-domain` | Cross-Domain Analogy |
-| `constraints` | Constraint Injection |
-| `inversion` | Problem Inversion |
-| `perspectives` | Role-Based Perspectives |
-| `what-if` | What-If Scenarios |
-| `trend-collision` | Trend Collision |
+| ID                 | Name                    |
+| ------------------ | ----------------------- |
+| `scamper`          | SCAMPER                 |
+| `first-principles` | First Principles        |
+| `cross-domain`     | Cross-Domain Analogy    |
+| `constraints`      | Constraint Injection    |
+| `inversion`        | Problem Inversion       |
+| `perspectives`     | Role-Based Perspectives |
+| `what-if`          | What-If Scenarios       |
+| `trend-collision`  | Trend Collision         |
 
 ## Examples
 

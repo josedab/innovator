@@ -23,11 +23,11 @@ If not set, it defaults to `gpt-4.1`.
 
 Models available depend on your Copilot subscription tier:
 
-| Model | ID | Notes |
-|-------|-----|-------|
-| GPT-4.1 | `gpt-4.1` | Default, good balance of speed and quality |
-| GPT-5 | `gpt-5` | Highest quality, slower |
-| Claude Sonnet 4.5 | `claude-sonnet-4.5` | Anthropic model via Copilot |
+| Model             | ID                  | Notes                                      |
+| ----------------- | ------------------- | ------------------------------------------ |
+| GPT-4.1           | `gpt-4.1`           | Default, good balance of speed and quality |
+| GPT-5             | `gpt-5`             | Highest quality, slower                    |
+| Claude Sonnet 4.5 | `claude-sonnet-4.5` | Anthropic model via Copilot                |
 
 ## Specifying models at runtime
 
@@ -54,9 +54,9 @@ curl -X POST http://localhost:3000/api/investigate \
 When using the core package directly:
 
 ```typescript
-import { investigate, generateForAngle } from '@innovator/core';
+import { investigate, generateForAngle } from "@innovator/core";
 
-const result = await investigate('quantum computing', 'gpt-5');
+const result = await investigate("quantum computing", "gpt-5");
 ```
 
 ## Model selection tips

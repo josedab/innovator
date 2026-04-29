@@ -15,17 +15,17 @@ Complete reference for the `@innovator/core` package and web API routes.
 Analyze a subject and return structured findings.
 
 ```typescript
-import { investigate } from '@innovator/core';
+import { investigate } from "@innovator/core";
 
-const result = await investigate('remote work tools');
+const result = await investigate("remote work tools");
 ```
 
 **Parameters:**
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `subject` | `string` | Yes | The topic to investigate |
-| `model` | `string` | No | LLM model ID (default: `gpt-4.1`) |
+| Param     | Type     | Required | Description                       |
+| --------- | -------- | -------- | --------------------------------- |
+| `subject` | `string` | Yes      | The topic to investigate          |
+| `model`   | `string` | No       | LLM model ID (default: `gpt-4.1`) |
 
 **Returns:** `Promise<Investigation>`
 
@@ -46,23 +46,19 @@ interface Investigation {
 Generate innovations for a single angle.
 
 ```typescript
-import { generateForAngle } from '@innovator/core';
+import { generateForAngle } from "@innovator/core";
 
-const result = await generateForAngle(
-  'remote work tools',
-  investigation,
-  'scamper'
-);
+const result = await generateForAngle("remote work tools", investigation, "scamper");
 ```
 
 **Parameters:**
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `subject` | `string` | Yes | The original subject |
-| `investigation` | `Investigation` | Yes | Result from `investigate()` |
-| `angleId` | `AngleId` | Yes | One of the 8 angle IDs |
-| `model` | `string` | No | LLM model ID |
+| Param           | Type            | Required | Description                 |
+| --------------- | --------------- | -------- | --------------------------- |
+| `subject`       | `string`        | Yes      | The original subject        |
+| `investigation` | `Investigation` | Yes      | Result from `investigate()` |
+| `angleId`       | `AngleId`       | Yes      | One of the 8 angle IDs      |
+| `model`         | `string`        | No       | LLM model ID                |
 
 **Returns:** `Promise<AngleResult>`
 
@@ -89,28 +85,27 @@ interface InnovationIdea {
 Run the full automatic pipeline with progress callbacks.
 
 ```typescript
-import { runAutoPipeline } from '@innovator/core';
+import { runAutoPipeline } from "@innovator/core";
 
-const result = await runAutoPipeline(
-  'remote work tools',
-  (progress) => console.log(progress.stage, progress.completedAngles.length),
+const result = await runAutoPipeline("remote work tools", (progress) =>
+  console.log(progress.stage, progress.completedAngles.length)
 );
 ```
 
 **Parameters:**
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `subject` | `string` | Yes | The topic to innovate on |
-| `onProgress` | `(progress: PipelineProgress) => void` | Yes | Called on each stage transition |
-| `model` | `string` | No | LLM model ID |
-| `angles` | `AngleId[]` | No | Subset of angles (default: all 8) |
+| Param        | Type                                   | Required | Description                       |
+| ------------ | -------------------------------------- | -------- | --------------------------------- |
+| `subject`    | `string`                               | Yes      | The topic to innovate on          |
+| `onProgress` | `(progress: PipelineProgress) => void` | Yes      | Called on each stage transition   |
+| `model`      | `string`                               | No       | LLM model ID                      |
+| `angles`     | `AngleId[]`                            | No       | Subset of angles (default: all 8) |
 
 **Returns:** `Promise<PipelineProgress>`
 
 ```typescript
 interface PipelineProgress {
-  stage: 'investigating' | 'generating' | 'synthesizing' | 'complete' | 'error';
+  stage: "investigating" | "generating" | "synthesizing" | "complete" | "error";
   currentAngle?: string;
   completedAngles: string[];
   totalAngles: number;
@@ -132,7 +127,7 @@ interface Synthesis {
     description: string;
     sourceAngle: string;
     potentialImpact: string;
-    feasibility: 'low' | 'medium' | 'high';
+    feasibility: "low" | "medium" | "high";
   }[];
   themes: string[];
   recommendation: string;
@@ -145,14 +140,14 @@ interface Synthesis {
 
 ```typescript
 type AngleId =
-  | 'scamper'
-  | 'first-principles'
-  | 'cross-domain'
-  | 'constraints'
-  | 'inversion'
-  | 'perspectives'
-  | 'what-if'
-  | 'trend-collision';
+  | "scamper"
+  | "first-principles"
+  | "cross-domain"
+  | "constraints"
+  | "inversion"
+  | "perspectives"
+  | "what-if"
+  | "trend-collision";
 ```
 
 ---
@@ -162,9 +157,9 @@ type AngleId =
 Array of all angle definitions with metadata:
 
 ```typescript
-import { ANGLES } from '@innovator/core';
+import { ANGLES } from "@innovator/core";
 
-ANGLES.forEach(angle => {
+ANGLES.forEach((angle) => {
   console.log(`${angle.icon} ${angle.name}: ${angle.shortDescription}`);
 });
 ```
@@ -182,16 +177,16 @@ import {
   extractJson,
   getCopilotClient,
   stopCopilotClient,
-} from '@innovator/core';
+} from "@innovator/core";
 ```
 
-| Function | Description |
-|----------|-------------|
-| `generateText(options)` | Send a prompt, wait for complete response |
-| `generateTextStream(options, onChunk)` | Stream response chunks |
-| `extractJson(raw)` | Extract JSON from LLM response (brace-balanced) |
-| `getCopilotClient()` | Get or create the singleton CopilotClient |
-| `stopCopilotClient()` | Shut down the CopilotClient gracefully |
+| Function                               | Description                                     |
+| -------------------------------------- | ----------------------------------------------- |
+| `generateText(options)`                | Send a prompt, wait for complete response       |
+| `generateTextStream(options, onChunk)` | Stream response chunks                          |
+| `extractJson(raw)`                     | Extract JSON from LLM response (brace-balanced) |
+| `getCopilotClient()`                   | Get or create the singleton CopilotClient       |
+| `stopCopilotClient()`                  | Shut down the CopilotClient gracefully          |
 
 ---
 

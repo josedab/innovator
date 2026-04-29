@@ -67,6 +67,7 @@ innovator/
 ## Adding a new innovation angle
 
 1. **Define the angle** in `packages/core/src/innovation/angles.ts`:
+
    ```typescript
    {
      id: "your-angle",
@@ -79,6 +80,7 @@ innovator/
 2. **Add the ID** to `ANGLE_IDS` in `packages/core/src/types.ts`
 
 3. **Write the prompt** in `packages/core/src/prompts/angles/index.ts`:
+
    ```typescript
    export function buildYourAnglePrompt(subject: string, investigation: Investigation): string {
      return `You are an innovation expert applying Your Angle...
@@ -88,6 +90,7 @@ innovator/
    ```
 
 4. **Register it** in `packages/core/src/innovation/generate.ts`:
+
    ```typescript
    const ANGLE_PROMPT_MAP: Record<AngleId, PromptBuilder> = {
      // ... existing angles
