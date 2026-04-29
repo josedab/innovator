@@ -1,35 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-
-interface AngleResult {
-  angleId: string;
-  angleName: string;
-  ideas: { title: string; description: string; potentialImpact: string; implementationHint: string }[];
-  reasoning: string;
-}
-
-interface Synthesis {
-  topIdeas: {
-    title: string;
-    description: string;
-    sourceAngle: string;
-    potentialImpact: string;
-    feasibility: "low" | "medium" | "high";
-  }[];
-  themes: string[];
-  recommendation: string;
-}
-
-interface PipelineProgress {
-  stage: string;
-  currentAngle?: string;
-  completedAngles: string[];
-  totalAngles: number;
-  angleResults: AngleResult[];
-  synthesis?: Synthesis;
-  error?: string;
-}
+import type { AngleResult, Synthesis, PipelineProgress } from "@innovator/core";
 
 interface AutoModePanelProps {
   subject: string;
