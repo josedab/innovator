@@ -4,10 +4,8 @@ import {
   ANGLE_IDS,
   SynthesisSchema,
   type AngleId,
-  type AngleResult,
   type Investigation,
   type PipelineProgress,
-  type Synthesis,
 } from "../types.js";
 import { investigate } from "./investigate.js";
 import { generateForAngle } from "./generate.js";
