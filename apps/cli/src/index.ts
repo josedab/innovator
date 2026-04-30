@@ -13,6 +13,7 @@ import {
   KNOWN_MODELS,
 } from "@innovator/core";
 import type { AngleId } from "@innovator/core";
+import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
 
 const program = new Command();
 
@@ -25,15 +26,8 @@ for (const sig of ["SIGINT", "SIGTERM"] as const) {
   });
 }
 
-const MAX_SUBJECT_LENGTH = 500;
-
-// Strip ANSI escape sequences from untrusted LLM output
-function stripAnsi(text: string): string {
-  return text.replace(/\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07]*\x07/g, "");
-}
-
-function validateSubject(subject: string): boolean {
-  if (subject.length > MAX_SUBJECT_LENGTH) {
+function validateSubjectWithLog(subject: string): boolean {
+  if (!validateSubjectWithLog(subject)) {
     console.error(
       chalk.red(
         `Subject too long (${subject.length} chars). Maximum is ${MAX_SUBJECT_LENGTH} characters.`
@@ -45,9 +39,8 @@ function validateSubject(subject: string): boolean {
   return true;
 }
 
-function validateModel(model: string | undefined): boolean {
-  if (!model) return true;
-  if (!(KNOWN_MODELS as readonly string[]).includes(model)) {
+function validateModelWithLog(model: string | undefined): boolean {
+  if (!validateModel(model, KNOWN_MODELS)) {
     console.error(chalk.red(`Unknown model. Allowed models: ${KNOWN_MODELS.join(", ")}`));
     process.exitCode = 1;
     return false;
@@ -93,8 +86,8 @@ program
   .argument("<subject>", "The subject to investigate")
   .option("-m, --model <model>", "LLM model to use")
   .action(async (subject: string, opts: { model?: string }) => {
-    if (!validateSubject(subject)) return;
-    if (!validateModel(opts.model)) return;
+    if (!validateSubjectWithLog(subject)) return;
+    if (!validateModelWithLog(opts.model)) return;
     const spinner = ora(`Investigating "${subject}"...`).start();
     debugLog("COMMAND", "investigate", { subject, model: opts.model });
     const endTimer = timeStart("investigate");
@@ -160,8 +153,8 @@ program
   )
   .option("-m, --model <model>", "LLM model to use")
   .action(async (subject: string, opts: { angles: string; model?: string }) => {
-    if (!validateSubject(subject)) return;
-    if (!validateModel(opts.model)) return;
+    if (!validateSubjectWithLog(subject)) return;
+    if (!validateModelWithLog(opts.model)) return;
     const angleIds = opts.angles.split(",").map((a) => a.trim()) as AngleId[];
     const invalid = angleIds.filter((a) => !(ANGLE_IDS as readonly string[]).includes(a));
     if (invalid.length) {
@@ -220,8 +213,8 @@ program
   .argument("<subject>", "The subject to innovate on")
   .option("-m, --model <model>", "LLM model to use")
   .action(async (subject: string, opts: { model?: string }) => {
-    if (!validateSubject(subject)) return;
-    if (!validateModel(opts.model)) return;
+    if (!validateSubjectWithLog(subject)) return;
+    if (!validateModelWithLog(opts.model)) return;
     const spinner = ora("Starting auto pipeline...").start();
     debugLog("COMMAND", "auto", { subject, model: opts.model });
     const endTimer = timeStart("auto-pipeline");
