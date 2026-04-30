@@ -28,6 +28,11 @@ for (const sig of ["SIGINT", "SIGTERM"] as const) {
 
 const MAX_SUBJECT_LENGTH = 500;
 
+// Strip ANSI escape sequences from untrusted LLM output
+function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07]*\x07/g, "");
+}
+
 function validateSubject(subject: string): boolean {
   if (subject.length > MAX_SUBJECT_LENGTH) {
     console.error(
@@ -102,26 +107,26 @@ program
       debugLog("RESPONSE", JSON.stringify(result, null, 2));
 
       console.log(chalk.bold.blue("📋 Summary"));
-      console.log(`   ${result.summary}\n`);
+      console.log(`   ${stripAnsi(result.summary)}\n`);
 
       console.log(chalk.bold.blue("🔑 Key Aspects"));
       for (const aspect of result.keyAspects) {
-        console.log(`   ${chalk.bold(aspect.title)}: ${aspect.description}`);
+        console.log(`   ${chalk.bold(stripAnsi(aspect.title))}: ${stripAnsi(aspect.description)}`);
       }
       console.log();
 
       console.log(chalk.bold.blue("🎯 Current State"));
-      console.log(`   ${result.currentState}\n`);
+      console.log(`   ${stripAnsi(result.currentState)}\n`);
 
       console.log(chalk.bold.yellow("⚠️  Challenges"));
       for (const c of result.challenges) {
-        console.log(`   ${chalk.yellow("•")} ${c}`);
+        console.log(`   ${chalk.yellow("•")} ${stripAnsi(c)}`);
       }
       console.log();
 
       console.log(chalk.bold.green("✨ Opportunities"));
       for (const o of result.opportunities) {
-        console.log(`   ${chalk.green("•")} ${o}`);
+        console.log(`   ${chalk.green("•")} ${stripAnsi(o)}`);
       }
       console.log();
 
@@ -187,12 +192,12 @@ program
         spinner.succeed(`${angle.icon} ${angle.name}`);
         debugLog("RESPONSE", angleId, JSON.stringify(result, null, 2));
 
-        console.log(chalk.dim(`   Reasoning: ${result.reasoning}`));
+        console.log(chalk.dim(`   Reasoning: ${stripAnsi(result.reasoning)}`));
         for (const idea of result.ideas) {
-          console.log(`\n   ${chalk.bold.cyan(idea.title)}`);
-          console.log(`   ${idea.description}`);
-          console.log(`   ${chalk.dim("Impact:")} ${idea.potentialImpact}`);
-          console.log(`   ${chalk.dim("How to start:")} ${idea.implementationHint}`);
+          console.log(`\n   ${chalk.bold.cyan(stripAnsi(idea.title))}`);
+          console.log(`   ${stripAnsi(idea.description)}`);
+          console.log(`   ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}`);
+          console.log(`   ${chalk.dim("How to start:")} ${stripAnsi(idea.implementationHint)}`);
         }
         console.log();
       }
@@ -261,14 +266,14 @@ program
       // Print angle results
       for (const angle of result.angleResults) {
         console.log(chalk.bold(`\n${"═".repeat(60)}`));
-        console.log(chalk.bold.blue(`${angle.angleName}`));
-        console.log(chalk.dim(angle.reasoning));
+        console.log(chalk.bold.blue(`${stripAnsi(angle.angleName)}`));
+        console.log(chalk.dim(stripAnsi(angle.reasoning)));
 
         for (const idea of angle.ideas) {
-          console.log(`\n  ${chalk.bold.cyan(idea.title)}`);
-          console.log(`  ${idea.description}`);
-          console.log(`  ${chalk.dim("Impact:")} ${idea.potentialImpact}`);
-          console.log(`  ${chalk.dim("Start:")} ${idea.implementationHint}`);
+          console.log(`\n  ${chalk.bold.cyan(stripAnsi(idea.title))}`);
+          console.log(`  ${stripAnsi(idea.description)}`);
+          console.log(`  ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}`);
+          console.log(`  ${chalk.dim("Start:")} ${stripAnsi(idea.implementationHint)}`);
         }
       }
 
@@ -284,20 +289,22 @@ program
               : idea.feasibility === "medium"
                 ? chalk.yellow
                 : chalk.red;
-          console.log(`  ${chalk.bold(idea.title)} ${feasColor(`[${idea.feasibility}]`)}`);
-          console.log(`  ${idea.description}`);
           console.log(
-            `  ${chalk.dim("From:")} ${idea.sourceAngle} • ${chalk.dim("Impact:")} ${idea.potentialImpact}\n`
+            `  ${chalk.bold(stripAnsi(idea.title))} ${feasColor(`[${idea.feasibility}]`)}`
+          );
+          console.log(`  ${stripAnsi(idea.description)}`);
+          console.log(
+            `  ${chalk.dim("From:")} ${stripAnsi(idea.sourceAngle)} • ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}\n`
           );
         }
 
         console.log(chalk.bold("\n🔗 Themes:"));
         for (const theme of result.synthesis.themes) {
-          console.log(`  ${chalk.magenta("•")} ${theme}`);
+          console.log(`  ${chalk.magenta("•")} ${stripAnsi(theme)}`);
         }
 
         console.log(chalk.bold("\n📌 Recommendation:"));
-        console.log(`  ${result.synthesis.recommendation}`);
+        console.log(`  ${stripAnsi(result.synthesis.recommendation)}`);
       }
     } catch (err) {
       spinner.fail("Auto mode failed");
