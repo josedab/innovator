@@ -12,6 +12,7 @@ const AUTO_MAX_REQUESTS = 3; // Stricter limit for /api/auto (triggers 10+ LLM c
 const INNOVATE_MAX_REQUESTS = 5; // Stricter limit for /api/innovate (triggers up to 9 LLM calls per request)
 const MAX_CONCURRENT_PER_IP = 2; // Max simultaneous in-flight requests per IP
 const MAX_BODY_SIZE = 100 * 1024; // 100KB max request body size
+const INFLIGHT_TIMEOUT_MS = 3 * 60_000;
 const MAX_RATE_LIMIT_ENTRIES = 10_000;
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -80,6 +81,36 @@ function getClientIp(request: NextRequest): string {
   );
 }
 
+function checkRouteRateLimit(
+  map: Map<string, RateLimitEntry>,
+  key: string,
+  maxRequests: number,
+  now: number,
+  requestId: string,
+  errorMessage: string
+): NextResponse | null {
+  const entry = map.get(key);
+
+  if (!entry || now > entry.resetTime) {
+    map.set(key, { count: 1, resetTime: now + WINDOW_MS });
+  } else {
+    entry.count++;
+    if (entry.count > maxRequests) {
+      const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
+      return new NextResponse(JSON.stringify({ error: errorMessage }), {
+        status: 429,
+        headers: {
+          ...SECURITY_HEADERS,
+          "Retry-After": String(retryAfter),
+          "X-Request-ID": requestId,
+        },
+      });
+    }
+  }
+
+  return null;
+}
+
 // CORS Policy: This middleware intentionally does not set any CORS headers,
 // enforcing same-origin access only. Do not add Access-Control-Allow-Origin
 // or other CORS headers without a security review.
@@ -141,54 +172,28 @@ export function middleware(request: NextRequest) {
 
   // Stricter per-route rate limit for /api/auto
   if (request.nextUrl.pathname === "/api/auto") {
-    const autoKey = `auto:${ip}`;
-    const autoEntry = autoRateLimitMap.get(autoKey);
-
-    if (!autoEntry || now > autoEntry.resetTime) {
-      autoRateLimitMap.set(autoKey, { count: 1, resetTime: now + WINDOW_MS });
-    } else {
-      autoEntry.count++;
-      if (autoEntry.count > AUTO_MAX_REQUESTS) {
-        const retryAfter = Math.ceil((autoEntry.resetTime - now) / 1000);
-        return new NextResponse(
-          JSON.stringify({ error: "Too many auto requests. Please try again later." }),
-          {
-            status: 429,
-            headers: {
-              ...SECURITY_HEADERS,
-              "Retry-After": String(retryAfter),
-              "X-Request-ID": requestId,
-            },
-          }
-        );
-      }
-    }
+    const rateLimitResponse = checkRouteRateLimit(
+      autoRateLimitMap,
+      `auto:${ip}`,
+      AUTO_MAX_REQUESTS,
+      now,
+      requestId,
+      "Too many auto requests. Please try again later."
+    );
+    if (rateLimitResponse) return rateLimitResponse;
   }
 
   // Stricter per-route rate limit for /api/innovate (triggers up to 9 LLM calls per request)
   if (request.nextUrl.pathname === "/api/innovate") {
-    const innovateKey = `innovate:${ip}`;
-    const innovateEntry = innovateRateLimitMap.get(innovateKey);
-
-    if (!innovateEntry || now > innovateEntry.resetTime) {
-      innovateRateLimitMap.set(innovateKey, { count: 1, resetTime: now + WINDOW_MS });
-    } else {
-      innovateEntry.count++;
-      if (innovateEntry.count > INNOVATE_MAX_REQUESTS) {
-        const retryAfter = Math.ceil((innovateEntry.resetTime - now) / 1000);
-        return new NextResponse(
-          JSON.stringify({ error: "Too many innovate requests. Please try again later." }),
-          {
-            status: 429,
-            headers: {
-              ...SECURITY_HEADERS,
-              "Retry-After": String(retryAfter),
-              "X-Request-ID": requestId,
-            },
-          }
-        );
-      }
-    }
+    const rateLimitResponse = checkRouteRateLimit(
+      innovateRateLimitMap,
+      `innovate:${ip}`,
+      INNOVATE_MAX_REQUESTS,
+      now,
+      requestId,
+      "Too many innovate requests. Please try again later."
+    );
+    if (rateLimitResponse) return rateLimitResponse;
   }
 
   // Concurrent in-flight request limit per IP
@@ -227,7 +232,7 @@ export function middleware(request: NextRequest) {
       }
     }
   };
-  setTimeout(decrementInFlight, 3 * 60_000);
+  setTimeout(decrementInFlight, INFLIGHT_TIMEOUT_MS);
 
   return response;
 }
