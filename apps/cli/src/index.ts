@@ -27,7 +27,7 @@ for (const sig of ["SIGINT", "SIGTERM"] as const) {
 }
 
 function validateSubjectWithLog(subject: string): boolean {
-  if (!validateSubjectWithLog(subject)) {
+  if (!validateSubject(subject)) {
     console.error(
       chalk.red(
         `Subject too long (${subject.length} chars). Maximum is ${MAX_SUBJECT_LENGTH} characters.`
