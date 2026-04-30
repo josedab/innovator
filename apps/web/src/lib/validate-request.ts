@@ -10,11 +10,7 @@ export function validateJsonContentType(request: Request): Response | null {
   if (!contentType.includes("application/json")) {
     return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
       status: 415,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store",
-        "X-Content-Type-Options": "nosniff",
-      },
+      headers: API_RESPONSE_HEADERS,
     });
   }
   return null;
