@@ -1,9 +1,11 @@
 import { generateText, extractJson } from "../copilot/client.js";
 import { buildSynthesisPrompt } from "../prompts/investigation.js";
+import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 import {
   ANGLE_IDS,
   SynthesisSchema,
   type AngleId,
+  type AngleResult,
   type Investigation,
   type PipelineProgress,
 } from "../types.js";
@@ -17,13 +19,18 @@ function sanitizeErrorMessage(stage: string): string {
   return `${stage} encountered an internal error. Please try again.`;
 }
 
+interface ConcurrencyResult<T> {
+  results: (T | undefined)[];
+  errors: { index: number; error: Error }[];
+}
+
 async function runWithConcurrency<T>(
   tasks: (() => Promise<T>)[],
   concurrency: number,
   signal?: AbortSignal
-): Promise<T[]> {
+): Promise<ConcurrencyResult<T>> {
   const results: (T | undefined)[] = new Array(tasks.length);
-  const errors: Error[] = [];
+  const errors: { index: number; error: Error }[] = [];
   const executing: Set<Promise<void>> = new Set();
 
   for (let i = 0; i < tasks.length; i++) {
@@ -35,7 +42,10 @@ async function runWithConcurrency<T>(
         results[index] = result;
       })
       .catch((err) => {
-        errors.push(err instanceof Error ? err : new Error(String(err)));
+        errors.push({
+          index,
+          error: err instanceof Error ? err : new Error(String(err)),
+        });
       });
     const wrapped = p.then(() => {
       executing.delete(wrapped);
@@ -50,11 +60,7 @@ async function runWithConcurrency<T>(
   // Wait for all in-flight tasks to settle
   await Promise.all(executing);
 
-  if (errors.length > 0) {
-    throw new Error(`${errors.length} angle(s) failed: ${errors.map((e) => e.message).join("; ")}`);
-  }
-
-  return results as T[];
+  return { results, errors };
 }
 
 /**
@@ -146,9 +152,27 @@ export async function runAutoPipeline(
   );
 
   try {
-    const orderedResults = await runWithConcurrency(tasks, MAX_CONCURRENCY, signal);
-    // Replace with ordered results
-    progress.angleResults = orderedResults;
+    const { results: orderedResults, errors: angleErrors } = await runWithConcurrency(
+      tasks,
+      MAX_CONCURRENCY,
+      signal
+    );
+    // Keep successfully generated results
+    progress.angleResults = orderedResults.filter((r): r is AngleResult => r !== undefined);
+    if (angleErrors.length > 0) {
+      progress.failedAngles = angleErrors.map((e) => ({
+        angleId: selectedAngles[e.index],
+        error: sanitizeErrorMessage(`Angle "${selectedAngles[e.index]}"`),
+      }));
+    }
+    // If all angles failed, treat as error
+    if (progress.angleResults.length === 0) {
+      progress.stage = "error";
+      progress.error = sanitizeErrorMessage("Generation");
+      terminated = true;
+      safeProgress(progress);
+      return progress;
+    }
   } catch (err) {
     progress.stage = "error";
     progress.error = sanitizeErrorMessage("Generation");
@@ -169,7 +193,7 @@ export async function runAutoPipeline(
   }
 
   try {
-    const angleResultsJson = JSON.stringify(progress.angleResults, null, 2);
+    const angleResultsJson = sanitizeLlmOutput(JSON.stringify(progress.angleResults, null, 2));
     const synthesisPrompt = buildSynthesisPrompt(subject, investigation, angleResultsJson);
     const raw = await generateText({ prompt: synthesisPrompt, model, serverMode: true, signal });
 
