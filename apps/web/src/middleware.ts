@@ -169,28 +169,16 @@ export function middleware(request: NextRequest) {
   const requestId = crypto.randomUUID();
   const ip = getClientIp(request);
   const now = Date.now();
-  const entry = rateLimitMap.get(ip);
 
-  if (!entry || now > entry.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + WINDOW_MS });
-  } else {
-    entry.count++;
-
-    if (entry.count > MAX_REQUESTS) {
-      const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
-      return new NextResponse(
-        JSON.stringify({ error: "Too many requests. Please try again later." }),
-        {
-          status: 429,
-          headers: {
-            ...SECURITY_HEADERS,
-            "Retry-After": String(retryAfter),
-            "X-Request-ID": requestId,
-          },
-        }
-      );
-    }
-  }
+  const globalRateLimitResponse = checkRouteRateLimit(
+    rateLimitMap,
+    ip,
+    MAX_REQUESTS,
+    now,
+    requestId,
+    "Too many requests. Please try again later."
+  );
+  if (globalRateLimitResponse) return globalRateLimitResponse;
 
   // Stricter per-route rate limit for /api/auto
   if (request.nextUrl.pathname === "/api/auto") {
