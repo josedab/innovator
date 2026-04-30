@@ -1,4 +1,4 @@
-import { CopilotClient, approveAll } from "@github/copilot-sdk";
+import { CopilotClient } from "@github/copilot-sdk";
 import type { PermissionRequest } from "@github/copilot-sdk";
 
 const DEFAULT_MODEL = process.env.INNOVATOR_DEFAULT_MODEL || "gpt-4.1";
@@ -55,6 +55,17 @@ const serverPermissionHandler = (request: PermissionRequest) => {
   return { kind: "denied-by-rules" as const, rules: [`Server mode: ${request.kind} not allowed`] };
 };
 
+/**
+ * Restricted permission handler for CLI use.
+ * Approves read operations but denies shell, write, and custom-tool requests.
+ */
+const cliPermissionHandler = (request: PermissionRequest) => {
+  if (request.kind === "read") {
+    return { kind: "approved" as const };
+  }
+  return { kind: "denied-by-rules" as const, rules: [`CLI mode: ${request.kind} not allowed`] };
+};
+
 export interface GenerateOptions {
   prompt: string;
   model?: string;
@@ -73,7 +84,7 @@ export async function generateText(options: GenerateOptions): Promise<string> {
   const client = await getCopilotClient();
   const session = await client.createSession({
     model: options.model || DEFAULT_MODEL,
-    onPermissionRequest: options.serverMode ? serverPermissionHandler : approveAll,
+    onPermissionRequest: options.serverMode ? serverPermissionHandler : cliPermissionHandler,
   });
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -104,7 +115,7 @@ export async function generateTextStream(
   const client = await getCopilotClient();
   const session = await client.createSession({
     model: options.model || DEFAULT_MODEL,
-    onPermissionRequest: options.serverMode ? serverPermissionHandler : approveAll,
+    onPermissionRequest: options.serverMode ? serverPermissionHandler : cliPermissionHandler,
   });
 
   let fullText = "";
