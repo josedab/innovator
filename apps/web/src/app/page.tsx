@@ -24,7 +24,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject: subjectText }),
-        signal: abortControllerRef.current.signal,
+        signal: AbortSignal.any([abortControllerRef.current.signal, AbortSignal.timeout(60_000)]),
       });
 
       if (!res.ok) {
@@ -58,7 +58,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject, investigation, angles, synthesize: true }),
-        signal: abortControllerRef.current.signal,
+        signal: AbortSignal.any([abortControllerRef.current.signal, AbortSignal.timeout(60_000)]),
       });
 
       if (!res.ok) {
