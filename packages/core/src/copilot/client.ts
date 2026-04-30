@@ -108,18 +108,6 @@ export async function generateText(options: GenerateOptions): Promise<string> {
           timeoutMs
         );
       }),
-      ...(options.signal
-        ? [
-            new Promise<never>((_, reject) => {
-              if (options.signal!.aborted) reject(new Error("Request was aborted"));
-              options.signal!.addEventListener(
-                "abort",
-                () => reject(new Error("Request was aborted")),
-                { once: true }
-              );
-            }),
-          ]
-        : []),
     ]);
     return response?.data?.content ?? "";
   } finally {
@@ -201,18 +189,6 @@ export async function generateTextStream(
           reject(new Error(`LLM streaming request timed out after ${timeoutMs / 1000}s`));
         }, timeoutMs);
       }),
-      ...(options.signal
-        ? [
-            new Promise<never>((_, reject) => {
-              if (options.signal!.aborted) reject(new Error("Request was aborted"));
-              options.signal!.addEventListener(
-                "abort",
-                () => reject(new Error("Request was aborted")),
-                { once: true }
-              );
-            }),
-          ]
-        : []),
     ]);
   } finally {
     unsubDelta?.();
