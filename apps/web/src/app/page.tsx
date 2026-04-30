@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useReducer, useRef } from "react";
+import { useReducer, useRef } from "react";
 import { SubjectInput } from "@/components/SubjectInput";
 import { InvestigationView } from "@/components/InvestigationView";
 import { AngleSelector } from "@/components/AngleSelector";
