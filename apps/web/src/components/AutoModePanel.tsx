@@ -1,12 +1,37 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { AngleResult, Synthesis, PipelineProgress } from "@innovator/core/types";
+import type {
+  AngleResult,
+  Synthesis,
+  PipelineProgress,
+  PipelineStage,
+} from "@innovator/core/types";
 
 interface AutoModePanelProps {
   subject: string;
   onComplete: (results: AngleResult[], synthesis: Synthesis | null) => void;
   onReset: () => void;
+}
+
+const VALID_STAGES: readonly PipelineStage[] = [
+  "investigating",
+  "generating",
+  "synthesizing",
+  "complete",
+  "error",
+];
+
+function isValidPipelineProgress(data: unknown): data is PipelineProgress {
+  if (typeof data !== "object" || data === null) return false;
+  const d = data as Record<string, unknown>;
+  return (
+    typeof d.stage === "string" &&
+    (VALID_STAGES as readonly string[]).includes(d.stage) &&
+    Array.isArray(d.completedAngles) &&
+    typeof d.totalAngles === "number" &&
+    Array.isArray(d.angleResults)
+  );
 }
 
 export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelProps) {
@@ -61,7 +86,11 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             try {
-              const data: PipelineProgress = JSON.parse(line.slice(6));
+              const parsed = JSON.parse(line.slice(6));
+              if (!isValidPipelineProgress(parsed)) {
+                continue; // skip invalid SSE data
+              }
+              const data: PipelineProgress = parsed;
               setProgress(data);
 
               if (data.stage === "complete") {
