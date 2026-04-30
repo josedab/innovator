@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     if (model && !isKnownModel(model)) {
       return new Response(
         JSON.stringify({
-          error: `Unknown model "${model}". Allowed models: ${KNOWN_MODELS.join(", ")}`,
+          error: `Unknown model. Allowed models: ${KNOWN_MODELS.join(", ")}`,
         }),
         { status: 400, headers: { "Content-Type": "application/json", ...CACHE_HEADERS } }
       );
