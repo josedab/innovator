@@ -1,5 +1,5 @@
 import type { Investigation } from "../types.js";
-import { wrapUserInput, sanitizeLlmOutput } from "./sanitize.js";
+import { wrapUserInput, sanitizeLlmOutput, sanitizeUserInput } from "./sanitize.js";
 
 /**
  * Build the LLM prompt for investigating a subject.
@@ -38,11 +38,11 @@ function investigationContext(subject: string, investigation: Investigation): st
   return `${wrapUserInput("SUBJECT", subject)}
 
 INVESTIGATION CONTEXT:
-Summary: ${investigation.summary}
-Key Aspects: ${investigation.keyAspects.map((a) => `${a.title}: ${a.description}`).join("; ")}
-Current State: ${investigation.currentState}
-Challenges: ${investigation.challenges.join("; ")}
-Opportunities: ${investigation.opportunities.join("; ")}`;
+Summary: ${sanitizeUserInput(investigation.summary)}
+Key Aspects: ${investigation.keyAspects.map((a) => `${sanitizeUserInput(a.title)}: ${sanitizeUserInput(a.description)}`).join("; ")}
+Current State: ${sanitizeUserInput(investigation.currentState)}
+Challenges: ${investigation.challenges.map((c) => sanitizeUserInput(c)).join("; ")}
+Opportunities: ${investigation.opportunities.map((o) => sanitizeUserInput(o)).join("; ")}`;
 }
 
 /**
