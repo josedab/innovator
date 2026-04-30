@@ -45,26 +45,23 @@ export async function stopCopilotClient(): Promise<void> {
 }
 
 /**
- * Restricted permission handler for server-side use.
- * Only allows read operations — denies shell, write, and custom-tool requests.
+ * Create a restricted permission handler that only allows read operations.
+ * Denies shell, write, and custom-tool requests with a contextual error message.
  */
-const serverPermissionHandler = (request: PermissionRequest) => {
-  if (request.kind === "read") {
-    return { kind: "approved" as const };
-  }
-  return { kind: "denied-by-rules" as const, rules: [`Server mode: ${request.kind} not allowed`] };
-};
+function createPermissionHandler(mode: string) {
+  return (request: PermissionRequest) => {
+    if (request.kind === "read") {
+      return { kind: "approved" as const };
+    }
+    return {
+      kind: "denied-by-rules" as const,
+      rules: [`${mode} mode: ${request.kind} not allowed`],
+    };
+  };
+}
 
-/**
- * Restricted permission handler for CLI use.
- * Approves read operations but denies shell, write, and custom-tool requests.
- */
-const cliPermissionHandler = (request: PermissionRequest) => {
-  if (request.kind === "read") {
-    return { kind: "approved" as const };
-  }
-  return { kind: "denied-by-rules" as const, rules: [`CLI mode: ${request.kind} not allowed`] };
-};
+const serverPermissionHandler = createPermissionHandler("Server");
+const cliPermissionHandler = createPermissionHandler("CLI");
 
 export interface GenerateOptions {
   prompt: string;
