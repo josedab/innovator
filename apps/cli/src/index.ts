@@ -227,6 +227,11 @@ program
     debugLog("COMMAND", "auto", { subject, model: opts.model });
     const endTimer = timeStart("auto-pipeline");
 
+    const controller = new AbortController();
+    const onAbort = () => controller.abort();
+    process.on("SIGINT", onAbort);
+    process.on("SIGTERM", onAbort);
+
     try {
       const result = await runAutoPipeline(
         subject,
@@ -245,7 +250,9 @@ program
             spinner.text = "🧪 Synthesizing results...";
           }
         },
-        opts.model
+        opts.model,
+        undefined,
+        controller.signal
       );
 
       if (result.stage === "error") {
@@ -315,6 +322,8 @@ program
       }
       process.exitCode = 1;
     } finally {
+      process.removeListener("SIGINT", onAbort);
+      process.removeListener("SIGTERM", onAbort);
       await stopCopilotClient();
     }
   });
