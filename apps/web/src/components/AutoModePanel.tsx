@@ -36,6 +36,17 @@ function isValidPipelineProgress(data: unknown): data is PipelineProgress {
 
 const SSE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
+/**
+ * Auto mode panel that streams the full innovation pipeline via SSE.
+ *
+ * Connects to `/api/auto`, displays a progress bar with stage labels,
+ * and lists completed angles in real time. Calls `onComplete` when the
+ * pipeline finishes successfully.
+ *
+ * @param props.subject - The subject to run the pipeline on
+ * @param props.onComplete - Called with angle results and optional synthesis on success
+ * @param props.onReset - Called when the user clicks "Start over" after an error
+ */
 export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelProps) {
   const [progress, setProgress] = useState<PipelineProgress>({
     stage: "investigating",
