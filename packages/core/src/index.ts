@@ -24,3 +24,7 @@ export {
 
 // Prompts (for advanced usage)
 export { buildInvestigationPrompt, buildSynthesisPrompt } from "./prompts/investigation.js";
+
+// Retry utility
+export { withRetry } from "./copilot/retry.js";
+export type { RetryOptions } from "./copilot/retry.js";
