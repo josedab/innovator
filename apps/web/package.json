@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@innovator/core": "*",
@@ -25,6 +27,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "jsdom": "^29.1.1",
+    "@playwright/test": "^1.52.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
