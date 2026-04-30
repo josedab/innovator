@@ -5,7 +5,7 @@ import type { PipelineProgress } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType, validateModel } from "@/lib/validate-request";
-import { CACHE_HEADERS, SECURITY_HEADERS } from "@/lib/api-headers";
+import { SECURITY_HEADERS, API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const HEARTBEAT_MS = 15_000;
 const MAX_SUBJECT_LENGTH = 500;
@@ -21,7 +21,12 @@ export async function POST(request: Request) {
   try {
     const contentTypeError = validateJsonContentType(request);
     if (contentTypeError) {
-      logger.warn("Request rejected", { route: "/api/auto", requestId, status: 400, durationMs: Date.now() - startTime });
+      logger.warn("Request rejected", {
+        route: "/api/auto",
+        requestId,
+        status: 400,
+        durationMs: Date.now() - startTime,
+      });
       return contentTypeError;
     }
 
@@ -31,7 +36,7 @@ export async function POST(request: Request) {
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
-        headers: { "Content-Type": "application/json", ...CACHE_HEADERS, ...SECURITY_HEADERS },
+        headers: API_RESPONSE_HEADERS,
       });
     }
 
@@ -48,7 +53,7 @@ export async function POST(request: Request) {
         JSON.stringify({ error: "Invalid request. Please check your input and try again." }),
         {
           status: 400,
-          headers: { "Content-Type": "application/json", ...CACHE_HEADERS, ...SECURITY_HEADERS },
+          headers: API_RESPONSE_HEADERS,
         }
       );
     }
@@ -57,7 +62,12 @@ export async function POST(request: Request) {
 
     const modelError = validateModel(model);
     if (modelError) {
-      logger.warn("Invalid model", { route: "/api/auto", requestId, status: 400, durationMs: Date.now() - startTime });
+      logger.warn("Invalid model", {
+        route: "/api/auto",
+        requestId,
+        status: 400,
+        durationMs: Date.now() - startTime,
+      });
       return modelError;
     }
 
@@ -156,7 +166,7 @@ export async function POST(request: Request) {
     });
     return new Response(JSON.stringify({ error: "Auto mode failed. Please try again." }), {
       status: 500,
-      headers: { "Content-Type": "application/json", ...CACHE_HEADERS, ...SECURITY_HEADERS },
+      headers: API_RESPONSE_HEADERS,
     });
   }
 }
