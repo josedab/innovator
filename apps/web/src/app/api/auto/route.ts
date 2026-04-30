@@ -17,9 +17,18 @@ const RequestSchema = z.object({
 
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
+  const startTime = Date.now();
   try {
     const contentTypeError = validateJsonContentType(request);
-    if (contentTypeError) return contentTypeError;
+    if (contentTypeError) {
+      logger.warn("Request rejected", {
+        route: "/api/auto",
+        requestId,
+        status: 400,
+        durationMs: Date.now() - startTime,
+      });
+      return contentTypeError;
+    }
 
     let body: unknown;
     try {
@@ -37,6 +46,7 @@ export async function POST(request: Request) {
       logger.warn("Invalid request", {
         route: "/api/auto",
         requestId,
+        durationMs: Date.now() - startTime,
         details: parsed.error.flatten(),
       });
       return new Response(
@@ -51,7 +61,15 @@ export async function POST(request: Request) {
     const { subject, model } = parsed.data;
 
     const modelError = validateModel(model);
-    if (modelError) return modelError;
+    if (modelError) {
+      logger.warn("Invalid model", {
+        route: "/api/auto",
+        requestId,
+        status: 400,
+        durationMs: Date.now() - startTime,
+      });
+      return modelError;
+    }
 
     const encoder = new TextEncoder();
     let streamClosed = false;
