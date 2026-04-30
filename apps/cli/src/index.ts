@@ -258,7 +258,11 @@ program
       if (result.stage === "error") {
         endTimer();
         spinner.fail("Pipeline failed");
-        console.error(chalk.red(result.error));
+        if (verbose) {
+          console.error(chalk.red(result.error));
+        } else {
+          console.error(chalk.red("Pipeline failed. Use --verbose for details."));
+        }
         process.exitCode = 1;
         return;
       }
