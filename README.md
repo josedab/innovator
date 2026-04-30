@@ -1,6 +1,8 @@
 # 💡 Innovator — AI-Powered Innovation Engine
 
 [![CI](https://github.com/josedab/innovator/actions/workflows/ci.yml/badge.svg)](https://github.com/josedab/innovator/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Coverage](https://img.shields.io/badge/coverage-v8-brightgreen)](https://github.com/josedab/innovator/actions/workflows/ci.yml)
 
 Explore any subject from multiple innovation angles using AI. Built with Next.js, the GitHub Copilot SDK, and TypeScript.
 
