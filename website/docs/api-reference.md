@@ -168,6 +168,82 @@ Each entry has: `id`, `name`, `shortDescription`, `icon`.
 
 ---
 
+### `withRetry(fn, options?)`
+
+Retry an async function with exponential backoff on transient failures.
+
+```typescript
+import { withRetry } from "@innovator/core";
+
+const result = await withRetry(() => fetchData(), {
+  maxAttempts: 3,
+  initialDelayMs: 1000,
+});
+```
+
+**Parameters:**
+
+| Param     | Type               | Required | Description                     |
+| --------- | ------------------ | -------- | ------------------------------- |
+| `fn`      | `() => Promise<T>` | Yes      | The async function to retry     |
+| `options` | `RetryOptions`     | No       | Retry configuration (see below) |
+
+**Returns:** `Promise<T>`
+
+```typescript
+interface RetryOptions {
+  /** Maximum number of attempts (including the first). Default: 3 */
+  maxAttempts?: number;
+  /** Initial delay in ms before first retry. Default: 1000 */
+  initialDelayMs?: number;
+  /** Multiplier applied to delay after each retry. Default: 2 */
+  backoffMultiplier?: number;
+  /** Maximum delay cap in ms. Default: 30000 */
+  maxDelayMs?: number;
+  /** Predicate to decide if an error is retryable */
+  isRetryable?: (error: unknown) => boolean;
+  /** AbortSignal to cancel retries early */
+  signal?: AbortSignal;
+}
+```
+
+---
+
+### Prompt Sanitization Utilities
+
+```typescript
+import { sanitizeUserInput, wrapUserInput, sanitizeLlmOutput } from "@innovator/core";
+```
+
+| Function                      | Description                                                         |
+| ----------------------------- | ------------------------------------------------------------------- |
+| `sanitizeUserInput(input)`    | Strip prompt-injection patterns from user text before LLM prompts   |
+| `wrapUserInput(label, value)` | Sanitize and wrap user text in delimiters for safe prompt inclusion |
+| `sanitizeLlmOutput(output)`   | Sanitize LLM output before re-inclusion in subsequent prompts       |
+
+---
+
+### `getAngleById(id)`
+
+Look up an angle definition by its ID.
+
+```typescript
+import { getAngleById } from "@innovator/core";
+
+const angle = getAngleById("scamper");
+console.log(angle?.name); // "SCAMPER"
+```
+
+**Parameters:**
+
+| Param | Type     | Required | Description                             |
+| ----- | -------- | -------- | --------------------------------------- |
+| `id`  | `string` | Yes      | The angle identifier (e.g. `"scamper"`) |
+
+**Returns:** `AngleDefinition | undefined`
+
+---
+
 ### Copilot Client Utilities
 
 ```typescript
@@ -187,6 +263,42 @@ import {
 | `extractJson(raw)`                     | Extract JSON from LLM response (brace-balanced) |
 | `getCopilotClient()`                   | Get or create the singleton CopilotClient       |
 | `stopCopilotClient()`                  | Shut down the CopilotClient gracefully          |
+
+```typescript
+interface GenerateOptions {
+  prompt: string;
+  model?: string;
+  /** Use restricted permissions (for server/API routes) */
+  serverMode?: boolean;
+  /** Timeout in milliseconds for the LLM call (default: 90000) */
+  timeoutMs?: number;
+  /** AbortSignal to cancel the request early */
+  signal?: AbortSignal;
+}
+```
+
+---
+
+### Request / Response Types
+
+```typescript
+interface InvestigateRequest {
+  subject: string;
+  model?: string;
+}
+
+interface InnovateRequest {
+  subject: string;
+  investigation: Investigation;
+  angles: AngleId[];
+  model?: string;
+}
+
+interface AutoRequest {
+  subject: string;
+  model?: string;
+}
+```
 
 ---
 
