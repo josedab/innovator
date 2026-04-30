@@ -21,12 +21,7 @@ export async function POST(request: Request) {
   try {
     const contentTypeError = validateJsonContentType(request);
     if (contentTypeError) {
-      logger.warn("Request rejected", {
-        route: "/api/auto",
-        requestId,
-        status: 400,
-        durationMs: Date.now() - startTime,
-      });
+      logger.warn("Request rejected", { route: "/api/auto", requestId, status: 400, durationMs: Date.now() - startTime });
       return contentTypeError;
     }
 
@@ -62,18 +57,15 @@ export async function POST(request: Request) {
 
     const modelError = validateModel(model);
     if (modelError) {
-      logger.warn("Invalid model", {
-        route: "/api/auto",
-        requestId,
-        status: 400,
-        durationMs: Date.now() - startTime,
-      });
+      logger.warn("Invalid model", { route: "/api/auto", requestId, status: 400, durationMs: Date.now() - startTime });
       return modelError;
     }
 
     const encoder = new TextEncoder();
     let streamClosed = false;
     const abortController = new AbortController();
+    const onRequestAbort = () => abortController.abort();
+    request.signal.addEventListener("abort", onRequestAbort, { once: true });
     const pipelineStartTime = Date.now();
 
     const stream = new ReadableStream({
@@ -144,6 +136,7 @@ export async function POST(request: Request) {
       cancel() {
         streamClosed = true;
         abortController.abort();
+        request.signal.removeEventListener("abort", onRequestAbort);
       },
     });
 
