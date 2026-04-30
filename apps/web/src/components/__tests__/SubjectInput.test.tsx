@@ -13,8 +13,8 @@ describe("SubjectInput", () => {
 
   it("renders Investigate and Auto Mode buttons", () => {
     render(<SubjectInput onSubmit={vi.fn()} onAutoMode={vi.fn()} />);
-    expect(screen.getByRole("button", { name: /Investigate/ })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Auto Mode/ })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Investigate subject/ })).toBeDefined();
+    expect(screen.getByRole("button", { name: /auto mode on subject/ })).toBeDefined();
   });
 
   it("disables buttons when input is empty", () => {
@@ -30,8 +30,8 @@ describe("SubjectInput", () => {
     const input = screen.getByPlaceholderText(/code review/i);
     fireEvent.change(input, { target: { value: "test subject" } });
 
-    const investigateBtn = screen.getByRole("button", { name: /Investigate/ });
-    const autoBtn = screen.getByRole("button", { name: /Auto Mode/ });
+    const investigateBtn = screen.getByRole("button", { name: /Investigate subject/ });
+    const autoBtn = screen.getByRole("button", { name: /auto mode on subject/ });
     expect(investigateBtn).toHaveProperty("disabled", false);
     expect(autoBtn).toHaveProperty("disabled", false);
   });
@@ -41,7 +41,7 @@ describe("SubjectInput", () => {
     render(<SubjectInput onSubmit={onSubmit} onAutoMode={vi.fn()} />);
     const input = screen.getByPlaceholderText(/code review/i);
     fireEvent.change(input, { target: { value: "  test subject  " } });
-    fireEvent.submit(screen.getByRole("button", { name: /Investigate/ }).closest("form")!);
+    fireEvent.submit(screen.getByRole("button", { name: /Investigate subject/ }).closest("form")!);
 
     expect(onSubmit).toHaveBeenCalledWith("test subject");
   });
@@ -49,7 +49,7 @@ describe("SubjectInput", () => {
   it("does not call onSubmit when input is empty", () => {
     const onSubmit = vi.fn();
     render(<SubjectInput onSubmit={onSubmit} onAutoMode={vi.fn()} />);
-    fireEvent.submit(screen.getByRole("button", { name: /Investigate/ }).closest("form")!);
+    fireEvent.submit(screen.getByRole("button", { name: /Investigate subject/ }).closest("form")!);
 
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -59,7 +59,7 @@ describe("SubjectInput", () => {
     render(<SubjectInput onSubmit={onSubmit} onAutoMode={vi.fn()} />);
     const input = screen.getByPlaceholderText(/code review/i);
     fireEvent.change(input, { target: { value: "   " } });
-    fireEvent.submit(screen.getByRole("button", { name: /Investigate/ }).closest("form")!);
+    fireEvent.submit(screen.getByRole("button", { name: /Investigate subject/ }).closest("form")!);
 
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -69,7 +69,7 @@ describe("SubjectInput", () => {
     render(<SubjectInput onSubmit={vi.fn()} onAutoMode={onAutoMode} />);
     const input = screen.getByPlaceholderText(/code review/i);
     fireEvent.change(input, { target: { value: "  auto test  " } });
-    fireEvent.click(screen.getByRole("button", { name: /Auto Mode/ }));
+    fireEvent.click(screen.getByRole("button", { name: /auto mode on subject/ }));
 
     expect(onAutoMode).toHaveBeenCalledWith("auto test");
   });
@@ -77,7 +77,7 @@ describe("SubjectInput", () => {
   it("does not call onAutoMode when input is empty", () => {
     const onAutoMode = vi.fn();
     render(<SubjectInput onSubmit={vi.fn()} onAutoMode={onAutoMode} />);
-    fireEvent.click(screen.getByRole("button", { name: /Auto Mode/ }));
+    fireEvent.click(screen.getByRole("button", { name: /auto mode on subject/ }));
 
     expect(onAutoMode).not.toHaveBeenCalled();
   });
