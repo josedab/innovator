@@ -20,4 +20,9 @@ export const logger = {
   info(message: string, context?: LogContext) {
     console.info(formatMessage("info", message, context));
   },
+  debug(message: string, context?: LogContext) {
+    if (isDev) {
+      console.debug(formatMessage("debug", message, context));
+    }
+  },
 };
