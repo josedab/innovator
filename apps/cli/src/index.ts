@@ -36,9 +36,7 @@ function validateSubject(subject: string): boolean {
 function validateModel(model: string | undefined): boolean {
   if (!model) return true;
   if (!(KNOWN_MODELS as readonly string[]).includes(model)) {
-    console.error(
-      chalk.red(`Unknown model "${model}". Allowed models: ${KNOWN_MODELS.join(", ")}`)
-    );
+    console.error(chalk.red(`Unknown model. Allowed models: ${KNOWN_MODELS.join(", ")}`));
     process.exitCode = 1;
     return false;
   }
