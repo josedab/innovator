@@ -1,0 +1,36 @@
+title: "Ideas"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share your ideas for new features, innovation angles, or improvements to the Innovator project.
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea Description
+      description: Describe your idea in detail. What problem does it solve? How would it work?
+      placeholder: "I'd love to see..."
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: How would you use this feature?
+      placeholder: "When I'm using Innovator to..."
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the project does this relate to?
+      options:
+        - Core library
+        - Web app
+        - CLI
+        - Documentation
+        - Other
+    validations:
+      required: false
