@@ -57,16 +57,24 @@ export async function generateForAngle(
   }
 
   const prompt = buildPrompt(subject, investigation);
-  const raw = await withRetry(() => generateText({ prompt, model, serverMode: true, signal }), {
-    signal,
-  });
-
-  const jsonStr = extractJson(raw);
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonStr);
-  } catch {
-    throw new Error(`Failed to parse ${angleId} response as JSON: ${jsonStr.slice(0, 200)}`);
-  }
+  const parsed = await withRetry(
+    async () => {
+      const raw = await generateText({ prompt, model, serverMode: true, signal });
+      const jsonStr = extractJson(raw);
+      try {
+        return JSON.parse(jsonStr) as unknown;
+      } catch {
+        throw new Error(`Failed to parse ${angleId} response as JSON: ${jsonStr.slice(0, 200)}`);
+      }
+    },
+    {
+      signal,
+      isRetryable: (err) =>
+        err instanceof Error &&
+        (err.message.includes("Failed to parse") ||
+          err.message.includes("No JSON object found") ||
+          err.message.includes("Unbalanced JSON braces")),
+    }
+  );
   return AngleResultSchema.parse(parsed);
 }
