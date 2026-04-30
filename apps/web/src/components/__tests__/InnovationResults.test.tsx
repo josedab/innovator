@@ -52,4 +52,19 @@ describe("InnovationResults", () => {
     render(<InnovationResults angleResults={mockAngleResults} synthesis={mockSynthesis} />);
     expect(screen.getByText(/Synthesis & Top Ideas/)).toBeDefined();
   });
+
+  it("shows angle details when expanded", async () => {
+    render(<InnovationResults angleResults={mockAngleResults} synthesis={null} />);
+    const angleButton = screen.getByRole("button", { name: /SCAMPER/i });
+    expect(screen.queryByText("Applied SCAMPER methodology")).toBeNull();
+
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.click(angleButton);
+
+    expect(screen.getByText("Applied SCAMPER methodology")).toBeDefined();
+    expect(screen.getByText("Test Idea 1")).toBeDefined();
+    expect(screen.getByText("Description of idea 1")).toBeDefined();
+    expect(screen.getByText("High impact")).toBeDefined();
+    expect(screen.getByText("Start here")).toBeDefined();
+  });
 });
