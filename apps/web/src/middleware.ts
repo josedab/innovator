@@ -236,6 +236,19 @@ export function middleware(request: NextRequest) {
   }
   if (inFlightMap.size < MAX_RATE_LIMIT_ENTRIES || inFlightMap.has(ip)) {
     inFlightMap.set(ip, currentInFlight + 1);
+  } else {
+    // Map is full and this is a new IP — reject to prevent untracked requests
+    return new NextResponse(
+      JSON.stringify({ error: "Server is at capacity. Please try again later." }),
+      {
+        status: 503,
+        headers: {
+          ...SECURITY_HEADERS,
+          "Retry-After": "30",
+          "X-Request-ID": requestId,
+        },
+      }
+    );
   }
 
   const response = NextResponse.next();
