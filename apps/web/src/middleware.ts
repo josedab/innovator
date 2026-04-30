@@ -10,6 +10,7 @@ const WINDOW_MS = 60_000; // 1 minute
 const MAX_REQUESTS = 10;
 const AUTO_MAX_REQUESTS = 3; // Stricter limit for /api/auto (triggers 10+ LLM calls per request)
 const MAX_CONCURRENT_PER_IP = 2; // Max simultaneous in-flight requests per IP
+const MAX_BODY_SIZE = 100 * 1024; // 100KB max request body size
 const MAX_RATE_LIMIT_ENTRIES = 10_000;
 
 // NOTE: This in-memory Map-based rate limiting only works for single-instance
@@ -66,6 +67,15 @@ export function middleware(request: NextRequest) {
   }
 
   cleanup();
+
+  // Reject oversized request bodies before they consume parsing resources
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
+    return new NextResponse(JSON.stringify({ error: "Request body too large." }), {
+      status: 413,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   const requestId = crypto.randomUUID();
   const ip = getClientIp(request);
