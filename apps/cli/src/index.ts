@@ -128,7 +128,11 @@ program
       );
     } catch (err) {
       spinner.fail("Investigation failed");
-      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      if (verbose) {
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      } else {
+        console.error(chalk.red("Investigation failed. Use --verbose for details."));
+      }
       process.exitCode = 1;
     } finally {
       await stopCopilotClient();
@@ -188,7 +192,11 @@ program
       }
     } catch (err) {
       spinner.fail("Innovation generation failed");
-      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      if (verbose) {
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      } else {
+        console.error(chalk.red("Innovation generation failed. Use --verbose for details."));
+      }
       process.exitCode = 1;
     } finally {
       await stopCopilotClient();
@@ -287,7 +295,11 @@ program
       }
     } catch (err) {
       spinner.fail("Auto mode failed");
-      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      if (verbose) {
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      } else {
+        console.error(chalk.red("Auto mode failed. Use --verbose for details."));
+      }
       process.exitCode = 1;
     } finally {
       await stopCopilotClient();
