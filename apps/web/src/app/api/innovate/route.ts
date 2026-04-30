@@ -29,12 +29,7 @@ export async function POST(request: Request) {
   try {
     const contentTypeError = validateJsonContentType(request);
     if (contentTypeError) {
-      logger.warn("Request rejected", {
-        route: "/api/innovate",
-        requestId,
-        status: 400,
-        durationMs: Date.now() - startTime,
-      });
+      logger.warn("Request rejected", { route: "/api/innovate", requestId, status: 400, durationMs: Date.now() - startTime });
       return contentTypeError;
     }
 
@@ -67,12 +62,7 @@ export async function POST(request: Request) {
 
     const modelError = validateModel(model);
     if (modelError) {
-      logger.warn("Invalid model", {
-        route: "/api/innovate",
-        requestId,
-        status: 400,
-        durationMs: Date.now() - startTime,
-      });
+      logger.warn("Invalid model", { route: "/api/innovate", requestId, status: 400, durationMs: Date.now() - startTime });
       return modelError;
     }
 
@@ -84,8 +74,10 @@ export async function POST(request: Request) {
     const MAX_CONCURRENCY = 2;
 
     try {
+
       // Process angles with bounded concurrency
       for (let i = 0; i < angles.length; i += MAX_CONCURRENCY) {
+        if (abortController.signal.aborted) break;
         const batch = angles.slice(i, i + MAX_CONCURRENCY);
         const batchResults = await Promise.all(
           batch.map((angleId) =>
