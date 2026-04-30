@@ -2,6 +2,7 @@ import { investigate } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { KNOWN_MODELS } from "@/lib/env";
+import { validateJsonContentType } from "@/lib/validate-request";
 
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
@@ -14,7 +15,19 @@ function isKnownModel(model: string): boolean {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const parsed = RequestSchema.safeParse(body);
 
     if (!parsed.success) {
