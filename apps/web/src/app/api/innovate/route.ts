@@ -25,6 +25,13 @@ const RequestSchema = z.object({
   synthesize: z.boolean().optional(),
 });
 
+/**
+ * Generate innovations for a subject using selected angles, with optional synthesis.
+ *
+ * @param request - JSON body: `{ subject: string, investigation: Investigation, angles: AngleId[], model?: string, synthesize?: boolean }`
+ * @returns JSON response with `{ angleResults: AngleResult[], synthesis?: Synthesis }` on success (200),
+ *          or `{ error: string }` on validation failure (400) or server error (500).
+ */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   const startTime = Date.now();

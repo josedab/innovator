@@ -11,6 +11,13 @@ const RequestSchema = z.object({
   model: z.string().optional(),
 });
 
+/**
+ * Investigate a subject by analyzing it with AI to identify key aspects, challenges, and opportunities.
+ *
+ * @param request - JSON body: `{ subject: string, model?: string }`
+ * @returns JSON response with an {@link Investigation} object on success (200),
+ *          or `{ error: string }` on validation failure (400) or server error (500).
+ */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   const startTime = Date.now();
