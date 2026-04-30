@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import {
   generateForAngle,
   generateText,

@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { investigate } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
