@@ -15,6 +15,7 @@
     "build:check": "node -e \"const fs = require('fs'); const files = ['packages/core/dist/index.js', 'packages/core/dist/client.js', 'apps/cli/dist/index.js']; const missing = files.filter(f => !fs.existsSync(f)); if (missing.length) { console.error('Missing build outputs:', missing.join(', ')); process.exit(1); } console.log('All build outputs verified.')\"",
     "dev:cli": "npm run start --workspace=@innovator/cli",
     "dev:docs": "npm run start --workspace=website",
+    "docs:api": "npm run docs:api --workspace=packages/core",
     "cli": "npx tsx apps/cli/src/index.ts",
     "test": "vitest run",
     "test:ci": "npm run format:check && npm run lint && npm run typecheck && npm run build && npm run build:check && npm run build --workspace=website && npm run test:coverage",
