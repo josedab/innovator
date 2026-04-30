@@ -139,6 +139,10 @@ export async function generateTextStream(
   options: GenerateOptions,
   onChunk: (chunk: string) => void
 ): Promise<string> {
+  if (options.signal?.aborted) {
+    throw new Error("Request was aborted");
+  }
+
   const client = await getCopilotClient();
   const session = await client.createSession({
     model: options.model || DEFAULT_MODEL,
@@ -149,7 +153,13 @@ export async function generateTextStream(
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
+  const abortHandler = () => {
+    session.disconnect().catch(() => {});
+  };
+
   try {
+    options.signal?.addEventListener("abort", abortHandler, { once: true });
+
     return await Promise.race([
       new Promise<string>((resolve, reject) => {
         session.on("assistant.message_delta", (event) => {
@@ -180,9 +190,23 @@ export async function generateTextStream(
           reject(new Error(`LLM streaming request timed out after ${timeoutMs / 1000}s`));
         }, timeoutMs);
       }),
+      ...(options.signal
+        ? [
+            new Promise<never>((_, reject) => {
+              if (options.signal!.aborted) reject(new Error("Request was aborted"));
+              options.signal!.addEventListener(
+                "abort",
+                () => reject(new Error("Request was aborted")),
+                { once: true }
+              );
+            }),
+          ]
+        : []),
     ]);
   } finally {
     if (timeoutId !== undefined) clearTimeout(timeoutId);
+    options.signal?.removeEventListener("abort", abortHandler);
+    await session.disconnect();
   }
 }
 
