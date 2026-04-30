@@ -6,6 +6,8 @@ import { validateJsonContentType } from "@/lib/validate-request";
 
 const CACHE_HEADERS = {
   "Cache-Control": "no-store, no-cache, must-revalidate, private",
+  Vary: "Accept-Encoding",
+  "X-Robots-Tag": "noindex, nofollow",
 } as const;
 
 const RequestSchema = z.object({
