@@ -18,6 +18,21 @@ const program = new Command();
 
 let verbose = false;
 
+const MAX_SUBJECT_LENGTH = 500;
+
+function validateSubject(subject: string): boolean {
+  if (subject.length > MAX_SUBJECT_LENGTH) {
+    console.error(
+      chalk.red(
+        `Subject too long (${subject.length} chars). Maximum is ${MAX_SUBJECT_LENGTH} characters.`
+      )
+    );
+    process.exitCode = 1;
+    return false;
+  }
+  return true;
+}
+
 function validateModel(model: string | undefined): boolean {
   if (!model) return true;
   if (!(KNOWN_MODELS as readonly string[]).includes(model)) {
@@ -68,6 +83,7 @@ program
   .argument("<subject>", "The subject to investigate")
   .option("-m, --model <model>", "LLM model to use")
   .action(async (subject: string, opts: { model?: string }) => {
+    if (!validateSubject(subject)) return;
     if (!validateModel(opts.model)) return;
     const spinner = ora(`Investigating "${subject}"...`).start();
     debugLog("COMMAND", "investigate", { subject, model: opts.model });
@@ -130,6 +146,7 @@ program
   )
   .option("-m, --model <model>", "LLM model to use")
   .action(async (subject: string, opts: { angles: string; model?: string }) => {
+    if (!validateSubject(subject)) return;
     if (!validateModel(opts.model)) return;
     const angleIds = opts.angles.split(",").map((a) => a.trim()) as AngleId[];
     const invalid = angleIds.filter((a) => !(ANGLE_IDS as readonly string[]).includes(a));
@@ -185,6 +202,7 @@ program
   .argument("<subject>", "The subject to innovate on")
   .option("-m, --model <model>", "LLM model to use")
   .action(async (subject: string, opts: { model?: string }) => {
+    if (!validateSubject(subject)) return;
     if (!validateModel(opts.model)) return;
     const spinner = ora("Starting auto pipeline...").start();
     debugLog("COMMAND", "auto", { subject, model: opts.model });
