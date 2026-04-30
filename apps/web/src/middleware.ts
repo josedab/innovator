@@ -1,0 +1,74 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+
+const WINDOW_MS = 60_000; // 1 minute
+const MAX_REQUESTS = 10;
+
+const rateLimitMap = new Map<string, RateLimitEntry>();
+
+// Periodically clean up expired entries to prevent memory leaks
+const CLEANUP_INTERVAL_MS = 5 * 60_000;
+let lastCleanup = Date.now();
+
+function cleanup() {
+  const now = Date.now();
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+  lastCleanup = now;
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetTime) {
+      rateLimitMap.delete(key);
+    }
+  }
+}
+
+function getClientIp(request: NextRequest): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
+export function middleware(request: NextRequest) {
+  if (!request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
+  cleanup();
+
+  const ip = getClientIp(request);
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + WINDOW_MS });
+    return NextResponse.next();
+  }
+
+  entry.count++;
+
+  if (entry.count > MAX_REQUESTS) {
+    const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
+    return new NextResponse(
+      JSON.stringify({ error: "Too many requests. Please try again later." }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(retryAfter),
+        },
+      }
+    );
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: "/api/:path*",
+};
