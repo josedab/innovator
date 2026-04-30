@@ -5,6 +5,7 @@ import {
   generateText,
   extractJson,
   buildSynthesisPrompt,
+  sanitizeLlmOutput,
   InvestigationSchema,
   ANGLE_IDS,
   SynthesisSchema,
@@ -29,7 +30,12 @@ export async function POST(request: Request) {
   try {
     const contentTypeError = validateJsonContentType(request);
     if (contentTypeError) {
-      logger.warn("Request rejected", { route: "/api/innovate", requestId, status: 400, durationMs: Date.now() - startTime });
+      logger.warn("Request rejected", {
+        route: "/api/innovate",
+        requestId,
+        status: 400,
+        durationMs: Date.now() - startTime,
+      });
       return contentTypeError;
     }
 
@@ -62,7 +68,12 @@ export async function POST(request: Request) {
 
     const modelError = validateModel(model);
     if (modelError) {
-      logger.warn("Invalid model", { route: "/api/innovate", requestId, status: 400, durationMs: Date.now() - startTime });
+      logger.warn("Invalid model", {
+        route: "/api/innovate",
+        requestId,
+        status: 400,
+        durationMs: Date.now() - startTime,
+      });
       return modelError;
     }
 
@@ -74,7 +85,6 @@ export async function POST(request: Request) {
     const MAX_CONCURRENCY = 2;
 
     try {
-
       // Process angles with bounded concurrency
       for (let i = 0; i < angles.length; i += MAX_CONCURRENCY) {
         if (abortController.signal.aborted) break;
@@ -96,7 +106,7 @@ export async function POST(request: Request) {
       // Optionally synthesize results
       let synthesis = undefined;
       if (synthesize && results.length >= 2) {
-        const angleResultsJson = JSON.stringify(results, null, 2);
+        const angleResultsJson = sanitizeLlmOutput(JSON.stringify(results, null, 2));
         const prompt = buildSynthesisPrompt(subject, investigation, angleResultsJson);
         const raw = await generateText({
           prompt,
