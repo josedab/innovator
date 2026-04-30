@@ -5,12 +5,17 @@ import { logger } from "@/lib/logger";
 import { KNOWN_MODELS } from "@/lib/env";
 import { validateJsonContentType } from "@/lib/validate-request";
 
+const CACHE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, private",
+} as const;
+
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
   model: z.string().optional(),
 });
 
 export async function POST(request: Request) {
+  const requestId = request.headers.get("x-request-id") ?? undefined;
   try {
     const contentTypeError = validateJsonContentType(request);
     if (contentTypeError) return contentTypeError;
@@ -21,16 +26,21 @@ export async function POST(request: Request) {
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...CACHE_HEADERS },
       });
     }
 
     const parsed = RequestSchema.safeParse(body);
 
     if (!parsed.success) {
+      logger.warn("Invalid request", {
+        route: "/api/auto",
+        requestId,
+        details: parsed.error.flatten(),
+      });
       return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Invalid request. Please check your input and try again." }),
+        { status: 400, headers: { "Content-Type": "application/json", ...CACHE_HEADERS } }
       );
     }
 
@@ -41,7 +51,7 @@ export async function POST(request: Request) {
         JSON.stringify({
           error: `Unknown model "${model}". Allowed models: ${KNOWN_MODELS.join(", ")}`,
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json", ...CACHE_HEADERS } }
       );
     }
 
@@ -70,6 +80,7 @@ export async function POST(request: Request) {
             stack: err instanceof Error ? err.stack : undefined,
             subject,
             route: "/api/auto",
+            requestId,
           });
           if (!streamClosed) {
             const errorProgress: PipelineProgress = {
@@ -104,16 +115,22 @@ export async function POST(request: Request) {
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
         "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'",
+        "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
       },
     });
   } catch (err) {
     logger.error("Auto mode error", {
       error: err instanceof Error ? err.message : String(err),
       route: "/api/auto",
+      requestId,
     });
     return new Response(JSON.stringify({ error: "Auto mode failed. Please try again." }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...CACHE_HEADERS },
     });
   }
 }
