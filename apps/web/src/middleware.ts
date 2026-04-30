@@ -55,6 +55,9 @@ function getClientIp(request: NextRequest): string {
   );
 }
 
+// CORS Policy: This middleware intentionally does not set any CORS headers,
+// enforcing same-origin access only. Do not add Access-Control-Allow-Origin
+// or other CORS headers without a security review.
 export function middleware(request: NextRequest) {
   if (!request.nextUrl.pathname.startsWith("/api/")) {
     return NextResponse.next();
