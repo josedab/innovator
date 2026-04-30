@@ -35,4 +35,4 @@ Browser UI → Next.js API route → @innovator/core → GitHub Copilot SDK → 
 
 ## Full Documentation
 
-See the [Docusaurus docs site](website/docs/architecture.md) for detailed architecture documentation.
+See the [Docusaurus docs site](./website/docs/architecture.md) for detailed architecture documentation.

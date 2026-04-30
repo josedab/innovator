@@ -8,10 +8,7 @@ Explore any subject from multiple innovation angles using AI. Built with Next.js
 
 ## Demo
 
-<!-- TODO: Replace with an actual screenshot or GIF of the investigate → angle select → results flow -->
-<!-- To generate: run the web app, perform a full investigation, and capture the flow as a GIF using a tool like LICEcap, Kap, or macOS screen recording -->
-
-> 📸 _Screenshot or GIF coming soon — run `npm run dev` and try it yourself!_
+> 📸 _Run `npm run dev` and open http://localhost:3000 to try the investigate → angle select → results flow._
 
 ## Features
 
