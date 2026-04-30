@@ -123,6 +123,7 @@ export async function POST(request: Request) {
           });
           if (!streamClosed) {
             const errorProgress: PipelineProgress = {
+          request.signal.removeEventListener("abort", onRequestAbort);
               stage: "error",
               completedAngles: [],
               totalAngles: ANGLE_IDS.length,
