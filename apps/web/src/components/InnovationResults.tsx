@@ -22,7 +22,11 @@ export function InnovationResults({ angleResults, synthesis }: InnovationResults
     <div className="space-y-8">
       {synthesis && (
         <div>
-          <button onClick={() => setShowSynthesis(!showSynthesis)} className="w-full text-left">
+          <button
+            onClick={() => setShowSynthesis(!showSynthesis)}
+            aria-expanded={showSynthesis}
+            className="w-full text-left"
+          >
             <div className="p-5 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800">
               <h3 className="text-xl font-bold flex items-center gap-2">
                 🏆 Synthesis & Top Ideas
@@ -100,6 +104,7 @@ export function InnovationResults({ angleResults, synthesis }: InnovationResults
               >
                 <button
                   onClick={() => setExpandedAngle(isExpanded ? null : result.angleId)}
+                  aria-expanded={isExpanded}
                   className="w-full p-4 text-left flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-900 transition"
                 >
                   <div>
