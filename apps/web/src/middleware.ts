@@ -9,6 +9,7 @@ interface RateLimitEntry {
 const WINDOW_MS = 60_000; // 1 minute
 const MAX_REQUESTS = 10;
 const AUTO_MAX_REQUESTS = 3; // Stricter limit for /api/auto (triggers 10+ LLM calls per request)
+const MAX_CONCURRENT_PER_IP = 2; // Max simultaneous in-flight requests per IP
 const MAX_RATE_LIMIT_ENTRIES = 10_000;
 
 // NOTE: This in-memory Map-based rate limiting only works for single-instance
@@ -17,6 +18,7 @@ const MAX_RATE_LIMIT_ENTRIES = 10_000;
 // For production, use Redis/Upstash or Vercel's built-in rate limiting.
 const rateLimitMap = new Map<string, RateLimitEntry>();
 const autoRateLimitMap = new Map<string, RateLimitEntry>();
+const inFlightMap = new Map<string, number>();
 
 // Periodically clean up expired entries to prevent memory leaks
 const CLEANUP_INTERVAL_MS = 5 * 60_000;
@@ -117,8 +119,42 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Concurrent in-flight request limit per IP
+  const currentInFlight = inFlightMap.get(ip) ?? 0;
+  if (currentInFlight >= MAX_CONCURRENT_PER_IP) {
+    return new NextResponse(
+      JSON.stringify({
+        error: "Too many concurrent requests. Please wait for existing requests to complete.",
+      }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-ID": requestId,
+        },
+      }
+    );
+  }
+  inFlightMap.set(ip, currentInFlight + 1);
+
   const response = NextResponse.next();
   response.headers.set("X-Request-ID", requestId);
+
+  // Decrement in-flight count after response completes.
+  // Note: Next.js middleware cannot hook into response completion, so we
+  // decrement after a generous timeout to prevent permanent counter leaks.
+  const decrementInFlight = () => {
+    const count = inFlightMap.get(ip);
+    if (count !== undefined) {
+      if (count <= 1) {
+        inFlightMap.delete(ip);
+      } else {
+        inFlightMap.set(ip, count - 1);
+      }
+    }
+  };
+  setTimeout(decrementInFlight, 10 * 60_000);
+
   return response;
 }
 
