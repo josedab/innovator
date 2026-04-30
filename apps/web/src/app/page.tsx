@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { SubjectInput } from "@/components/SubjectInput";
 import { InvestigationView } from "@/components/InvestigationView";
 import { AngleSelector } from "@/components/AngleSelector";
@@ -18,8 +18,11 @@ export default function Home() {
   const [angleResults, setAngleResults] = useState<AngleResult[]>([]);
   const [synthesis, setSynthesis] = useState<Synthesis | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleInvestigate = async (subjectText: string) => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
     setSubject(subjectText);
     setStage("investigating");
     setError(null);
@@ -29,6 +32,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject: subjectText }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!res.ok) {
@@ -36,7 +40,12 @@ export default function Home() {
         throw new Error(text || "Investigation failed");
       }
 
-      const data: Investigation = await res.json();
+      let data: Investigation;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Invalid response from server");
+      }
       setInvestigation(data);
       setStage("explored");
     } catch (err) {
@@ -47,6 +56,8 @@ export default function Home() {
 
   const handleInnovate = async (angles: AngleId[]) => {
     if (!investigation) return;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
     setSelectedAngles(angles);
     setStage("innovating");
     setAngleResults([]);
@@ -57,6 +68,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject, investigation, angles, synthesize: true }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!res.ok) {
@@ -64,7 +76,12 @@ export default function Home() {
         throw new Error(text || "Innovation generation failed");
       }
 
-      const data = await res.json();
+      let data: { angleResults: AngleResult[]; synthesis?: Synthesis };
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Invalid response from server");
+      }
       setAngleResults(data.angleResults);
       setSynthesis(data.synthesis ?? null);
       setStage("results");
@@ -87,6 +104,8 @@ export default function Home() {
   };
 
   const handleReset = () => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     setStage("input");
     setSubject("");
     setInvestigation(null);
