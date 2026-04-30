@@ -30,6 +30,7 @@ export function SubjectInput({ onSubmit, onAutoMode }: SubjectInputProps) {
           onChange={(e) => setValue(e.target.value)}
           maxLength={500}
           placeholder='e.g., "Code review processes" or "Home automation"'
+          aria-label="Subject to investigate or innovate on"
           className="w-full px-5 py-4 text-lg rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition placeholder:text-neutral-400"
           autoFocus
         />
@@ -38,6 +39,7 @@ export function SubjectInput({ onSubmit, onAutoMode }: SubjectInputProps) {
         <button
           type="submit"
           disabled={!value.trim()}
+          aria-label="Investigate subject"
           className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
         >
           🔍 Investigate
@@ -46,6 +48,7 @@ export function SubjectInput({ onSubmit, onAutoMode }: SubjectInputProps) {
           type="button"
           onClick={handleAuto}
           disabled={!value.trim()}
+          aria-label="Run auto mode on subject"
           className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
         >
           🚀 Auto Mode
