@@ -61,6 +61,8 @@ export function AngleSelector({ onSubmit }: AngleSelectorProps) {
             <button
               key={angle.id}
               onClick={() => toggle(angle.id)}
+              aria-label={`Toggle ${angle.name}`}
+              aria-pressed={isSelected}
               className={`p-4 rounded-xl border-2 text-left transition-all ${
                 isSelected
                   ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-sm"
