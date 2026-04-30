@@ -115,10 +115,10 @@ function checkRouteRateLimit(
 // enforcing same-origin access only. Do not add Access-Control-Allow-Origin
 // or other CORS headers without a security review.
 //
-// AUTHENTICATION: These API endpoints have no authentication mechanism by design.
-// The app relies on the server operator's GitHub Copilot subscription (via `gh auth`).
-// For public-facing deployments, add an API key check, OAuth, or session-based auth
-// to prevent unauthorized consumption of the Copilot subscription quota.
+// AUTHENTICATION: When INNOVATOR_API_KEY is set, all /api/* requests must
+// include a matching X-API-Key header. For public-facing deployments without
+// the env var, consider adding OAuth or session-based auth to prevent
+// unauthorized consumption of the Copilot subscription quota.
 export function middleware(request: NextRequest) {
   // For non-API routes, apply nonce-based CSP
   if (!request.nextUrl.pathname.startsWith("/api/")) {
@@ -147,6 +147,18 @@ export function middleware(request: NextRequest) {
   }
 
   cleanup();
+
+  // API key authentication: if INNOVATOR_API_KEY is set, require it on all /api/* routes
+  const apiKey = process.env.INNOVATOR_API_KEY;
+  if (apiKey) {
+    const providedKey = request.headers.get("x-api-key");
+    if (!providedKey || providedKey !== apiKey) {
+      return new NextResponse(JSON.stringify({ error: "Invalid or missing API key." }), {
+        status: 401,
+        headers: { ...SECURITY_HEADERS },
+      });
+    }
+  }
 
   // Reject oversized request bodies before they consume parsing resources
   const contentLength = request.headers.get("content-length");
