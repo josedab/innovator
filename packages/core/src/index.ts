@@ -10,6 +10,9 @@ export {
   extractJson,
 } from "./copilot/client.js";
 
+// Re-export GenerateOptions for consumers that need the type
+export type { GenerateOptions } from "./copilot/client.js";
+
 // Innovation engine
 export {
   ANGLES,

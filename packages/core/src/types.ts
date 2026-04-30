@@ -1,5 +1,19 @@
 import { z } from "zod";
 
+// ---- Known Models ----
+
+/** Advisory list of known models. Unknown models produce a warning, not a hard error. */
+export const KNOWN_MODELS = [
+  "gpt-4.1",
+  "gpt-4.1-mini",
+  "gpt-5",
+  "gpt-5-mini",
+  "claude-sonnet-4.5",
+  "claude-sonnet-4",
+] as const;
+
+export type KnownModel = (typeof KNOWN_MODELS)[number];
+
 // ---- Angles ----
 
 export const ANGLE_IDS = [
