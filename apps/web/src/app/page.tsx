@@ -32,7 +32,7 @@ export default function Home() {
       });
 
       if (!res.ok) {
-        const text = await res.text();
+        const text = await res.text().then((t) => t.slice(0, 1000));
         throw new Error(text || "Investigation failed");
       }
 
@@ -60,7 +60,7 @@ export default function Home() {
       });
 
       if (!res.ok) {
-        const text = await res.text();
+        const text = await res.text().then((t) => t.slice(0, 1000));
         throw new Error(text || "Innovation generation failed");
       }
 
