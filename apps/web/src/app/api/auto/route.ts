@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { runAutoPipeline, ANGLE_IDS } from "@innovator/core";
 import type { PipelineProgress } from "@innovator/core";
 import { z } from "zod";
