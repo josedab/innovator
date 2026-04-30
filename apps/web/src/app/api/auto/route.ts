@@ -13,6 +13,16 @@ const CACHE_HEADERS = {
   "X-Robots-Tag": "noindex, nofollow",
 } as const;
 
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "Content-Security-Policy": "default-src 'none'",
+  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy":
+    "camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()",
+} as const;
+
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
   model: z.string().optional(),
@@ -134,12 +144,7 @@ export async function POST(request: Request) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
-        "X-Content-Type-Options": "nosniff",
-        "Content-Security-Policy": "default-src 'none'",
-        "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
-        "X-Frame-Options": "DENY",
-        "Referrer-Policy": "strict-origin-when-cross-origin",
-        "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+        ...SECURITY_HEADERS,
       },
     });
   } catch (err) {
@@ -150,7 +155,7 @@ export async function POST(request: Request) {
     });
     return new Response(JSON.stringify({ error: "Auto mode failed. Please try again." }), {
       status: 500,
-      headers: { "Content-Type": "application/json", ...CACHE_HEADERS },
+      headers: { "Content-Type": "application/json", ...CACHE_HEADERS, ...SECURITY_HEADERS },
     });
   }
 }
