@@ -22,6 +22,11 @@ export async function investigate(subject: string, model?: string): Promise<Inve
   const raw = await generateText({ prompt, model, serverMode: true });
 
   const jsonStr = extractJson(raw);
-  const parsed = JSON.parse(jsonStr);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    throw new Error(`Failed to parse investigation response as JSON: ${jsonStr.slice(0, 200)}`);
+  }
   return InvestigationSchema.parse(parsed);
 }
