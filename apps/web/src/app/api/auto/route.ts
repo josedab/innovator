@@ -7,8 +7,11 @@ import { logger } from "@/lib/logger";
 import { validateJsonContentType, validateModel } from "@/lib/validate-request";
 import { CACHE_HEADERS, SECURITY_HEADERS } from "@/lib/api-headers";
 
+const HEARTBEAT_MS = 15_000;
+const MAX_SUBJECT_LENGTH = 500;
+
 const RequestSchema = z.object({
-  subject: z.string().min(1).max(500),
+  subject: z.string().min(1).max(MAX_SUBJECT_LENGTH),
   model: z.string().optional(),
 });
 
@@ -65,7 +68,7 @@ export async function POST(request: Request) {
           } catch {
             streamClosed = true;
           }
-        }, 15_000);
+        }, HEARTBEAT_MS);
 
         const sendProgress = (progress: PipelineProgress) => {
           if (streamClosed) return;
