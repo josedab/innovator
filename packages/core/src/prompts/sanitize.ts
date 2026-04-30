@@ -4,7 +4,14 @@
  * preserving legitimate content.
  */
 export function sanitizeUserInput(input: string): string {
-  let sanitized = input;
+  // Normalize Unicode to NFC to prevent homoglyph bypass
+  let sanitized = input.normalize("NFC");
+
+  // Strip zero-width and invisible characters
+  sanitized = sanitized.replace(/[\u200B-\u200F\u2028-\u202F\u2060\uFEFF]/g, "");
+
+  // Normalize unicode whitespace to regular spaces
+  sanitized = sanitized.replace(/\p{Zs}/gu, " ");
 
   // Strip attempts to override system/role instructions
   sanitized = sanitized.replace(
@@ -27,7 +34,9 @@ export function sanitizeUserInput(input: string): string {
  * user content from system instructions.
  */
 export function wrapUserInput(label: string, value: string): string {
-  const sanitized = sanitizeUserInput(value);
+  let sanitized = sanitizeUserInput(value);
+  // Strip triple-quote delimiters to prevent delimiter injection
+  sanitized = sanitized.replace(/"{3,}/g, '"');
   return `${label}: """${sanitized}"""`;
 }
 
