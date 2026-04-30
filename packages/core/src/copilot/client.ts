@@ -73,6 +73,8 @@ export interface GenerateOptions {
   serverMode?: boolean;
   /** Timeout in milliseconds for the LLM call (default: 90000) */
   timeoutMs?: number;
+  /** AbortSignal to cancel the request early */
+  signal?: AbortSignal;
 }
 
 const DEFAULT_TIMEOUT_MS = 90_000;
@@ -81,6 +83,10 @@ const DEFAULT_TIMEOUT_MS = 90_000;
  * Send a prompt and wait for the complete response.
  */
 export async function generateText(options: GenerateOptions): Promise<string> {
+  if (options.signal?.aborted) {
+    throw new Error("Request was aborted");
+  }
+
   const client = await getCopilotClient();
   const session = await client.createSession({
     model: options.model || DEFAULT_MODEL,
@@ -89,18 +95,39 @@ export async function generateText(options: GenerateOptions): Promise<string> {
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const abortHandler = () => {
+    session.disconnect().catch(() => {});
+  };
+
   try {
+    options.signal?.addEventListener("abort", abortHandler, { once: true });
+
     const response = await Promise.race([
       session.sendAndWait({ prompt: options.prompt }),
       new Promise<never>((_, reject) => {
-        setTimeout(
+        timeoutId = setTimeout(
           () => reject(new Error(`LLM request timed out after ${timeoutMs / 1000}s`)),
           timeoutMs
         );
       }),
+      ...(options.signal
+        ? [
+            new Promise<never>((_, reject) => {
+              if (options.signal!.aborted) reject(new Error("Request was aborted"));
+              options.signal!.addEventListener(
+                "abort",
+                () => reject(new Error("Request was aborted")),
+                { once: true }
+              );
+            }),
+          ]
+        : []),
     ]);
     return response?.data?.content ?? "";
   } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+    options.signal?.removeEventListener("abort", abortHandler);
     await session.disconnect();
   }
 }
@@ -120,38 +147,43 @@ export async function generateTextStream(
 
   let fullText = "";
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-  return Promise.race([
-    new Promise<string>((resolve, reject) => {
-      session.on("assistant.message_delta", (event) => {
-        const chunk = event.data.deltaContent;
-        fullText += chunk;
-        onChunk(chunk);
-      });
+  try {
+    return await Promise.race([
+      new Promise<string>((resolve, reject) => {
+        session.on("assistant.message_delta", (event) => {
+          const chunk = event.data.deltaContent;
+          fullText += chunk;
+          onChunk(chunk);
+        });
 
-      session.on("session.idle", () => {
-        session
-          .disconnect()
-          .then(() => resolve(fullText))
-          .catch(reject);
-      });
+        session.on("session.idle", () => {
+          session
+            .disconnect()
+            .then(() => resolve(fullText))
+            .catch(reject);
+        });
 
-      session.on("session.error", (err) => {
-        session
-          .disconnect()
-          .then(() => reject(new Error(err.data.message)))
-          .catch(reject);
-      });
+        session.on("session.error", (err) => {
+          session
+            .disconnect()
+            .then(() => reject(new Error(err.data.message)))
+            .catch(reject);
+        });
 
-      session.send({ prompt: options.prompt }).catch(reject);
-    }),
-    new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        session.disconnect().catch(() => {});
-        reject(new Error(`LLM streaming request timed out after ${timeoutMs / 1000}s`));
-      }, timeoutMs);
-    }),
-  ]);
+        session.send({ prompt: options.prompt }).catch(reject);
+      }),
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          session.disconnect().catch(() => {});
+          reject(new Error(`LLM streaming request timed out after ${timeoutMs / 1000}s`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
 }
 
 /**
