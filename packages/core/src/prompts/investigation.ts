@@ -34,8 +34,10 @@ Respond with this exact JSON structure:
 Provide 4-6 key aspects, 3-5 challenges, and 3-5 opportunities. Be specific, insightful, and actionable.`;
 }
 
+const MAX_CONTEXT_LENGTH = 10_000;
+
 function investigationContext(subject: string, investigation: Investigation): string {
-  return `${wrapUserInput("SUBJECT", subject)}
+  const raw = `${wrapUserInput("SUBJECT", subject)}
 
 INVESTIGATION CONTEXT:
 Summary: ${sanitizeUserInput(investigation.summary)}
@@ -43,6 +45,10 @@ Key Aspects: ${investigation.keyAspects.map((a) => `${sanitizeUserInput(a.title)
 Current State: ${sanitizeUserInput(investigation.currentState)}
 Challenges: ${investigation.challenges.map((c) => sanitizeUserInput(c)).join("; ")}
 Opportunities: ${investigation.opportunities.map((o) => sanitizeUserInput(o)).join("; ")}`;
+  if (raw.length > MAX_CONTEXT_LENGTH) {
+    return raw.slice(0, MAX_CONTEXT_LENGTH) + "\n[truncated]";
+  }
+  return raw;
 }
 
 /**
