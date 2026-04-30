@@ -120,8 +120,30 @@ function checkRouteRateLimit(
 // For public-facing deployments, add an API key check, OAuth, or session-based auth
 // to prevent unauthorized consumption of the Copilot subscription quota.
 export function middleware(request: NextRequest) {
+  // For non-API routes, apply nonce-based CSP
   if (!request.nextUrl.pathname.startsWith("/api/")) {
-    return NextResponse.next();
+    const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+    const csp = [
+      `default-src 'self'`,
+      `script-src 'self' 'nonce-${nonce}'`,
+      `style-src 'self' 'unsafe-inline'`,
+      `img-src 'self' data:`,
+      `font-src 'self'`,
+      `connect-src 'self'`,
+      `frame-ancestors 'none'`,
+      `base-uri 'self'`,
+      `form-action 'self'`,
+      `object-src 'none'`,
+      `upgrade-insecure-requests`,
+    ].join("; ");
+
+    const response = NextResponse.next({
+      request: {
+        headers: new Headers({ ...Object.fromEntries(request.headers), "x-nonce": nonce }),
+      },
+    });
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
   }
 
   cleanup();
@@ -238,5 +260,8 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  matcher: [
+    "/api/:path*",
+    "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
