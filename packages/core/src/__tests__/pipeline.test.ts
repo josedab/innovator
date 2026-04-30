@@ -126,7 +126,7 @@ describe("runAutoPipeline", () => {
     ]);
 
     expect(result.stage).toBe("error");
-    expect(result.error).toContain("Investigation failed");
+    expect(result.error).toContain("Investigation encountered an internal error");
   });
 
   it("reports error stage when generation fails", async () => {
@@ -135,7 +135,7 @@ describe("runAutoPipeline", () => {
     const result = await runAutoPipeline("test", () => {}, undefined, ["scamper"]);
 
     expect(result.stage).toBe("error");
-    expect(result.error).toContain("Gen failed");
+    expect(result.error).toContain("Generation encountered an internal error");
   });
 
   it("reports error stage when synthesis fails", async () => {
@@ -144,7 +144,7 @@ describe("runAutoPipeline", () => {
     const result = await runAutoPipeline("test", () => {}, undefined, ["scamper"]);
 
     expect(result.stage).toBe("error");
-    expect(result.error).toContain("Synthesis failed");
+    expect(result.error).toContain("Synthesis encountered an internal error");
   });
 
   it("tracks completed angles in progress", async () => {
