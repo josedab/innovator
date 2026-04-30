@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type {
   AngleResult,
   Synthesis,
@@ -34,6 +34,8 @@ function isValidPipelineProgress(data: unknown): data is PipelineProgress {
   );
 }
 
+const SSE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
 export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelProps) {
   const [progress, setProgress] = useState<PipelineProgress>({
     stage: "investigating",
@@ -42,93 +44,108 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
     angleResults: [],
   });
   const [started, setStarted] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const runPipeline = useCallback(async () => {
-    try {
-      const res = await fetch("/api/auto", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject }),
-      });
+  const runPipeline = useCallback(
+    async (signal: AbortSignal) => {
+      try {
+        const res = await fetch("/api/auto", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject }),
+          signal,
+        });
 
-      if (!res.ok) {
-        const text = await res.text();
-        setProgress((prev) => ({
-          ...prev,
-          stage: "error",
-          error: text || "Auto mode failed",
-        }));
-        return;
-      }
+        if (!res.ok) {
+          const text = await res.text().then((t) => t.slice(0, 1000));
+          setProgress((prev) => ({
+            ...prev,
+            stage: "error",
+            error: text || "Auto mode failed",
+          }));
+          return;
+        }
 
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
+        const reader = res.body?.getReader();
+        const decoder = new TextDecoder();
 
-      if (!reader) {
-        setProgress((prev) => ({
-          ...prev,
-          stage: "error",
-          error: "No response stream",
-        }));
-        return;
-      }
+        if (!reader) {
+          setProgress((prev) => ({
+            ...prev,
+            stage: "error",
+            error: "No response stream",
+          }));
+          return;
+        }
 
-      let buffer = "";
-      let receivedComplete = false;
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        let buffer = "";
+        let receivedComplete = false;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n\n");
-        buffer = lines.pop() || "";
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop() || "";
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const parsed = JSON.parse(line.slice(6));
-              if (!isValidPipelineProgress(parsed)) {
-                continue; // skip invalid SSE data
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const parsed = JSON.parse(line.slice(6));
+                if (!isValidPipelineProgress(parsed)) {
+                  continue; // skip invalid SSE data
+                }
+                const data: PipelineProgress = parsed;
+                setProgress(data);
+
+                if (data.stage === "complete") {
+                  receivedComplete = true;
+                  onComplete(data.angleResults, data.synthesis ?? null);
+                  return;
+                }
+                if (data.stage === "error") {
+                  return;
+                }
+              } catch {
+                // ignore parse errors in SSE stream
               }
-              const data: PipelineProgress = parsed;
-              setProgress(data);
-
-              if (data.stage === "complete") {
-                receivedComplete = true;
-                onComplete(data.angleResults, data.synthesis ?? null);
-                return;
-              }
-              if (data.stage === "error") {
-                return;
-              }
-            } catch {
-              // ignore parse errors in SSE stream
             }
           }
         }
-      }
 
-      // Stream ended without a complete/error event
-      if (!receivedComplete) {
+        // Stream ended without a complete/error event
+        if (!receivedComplete) {
+          setProgress((prev) => ({
+            ...prev,
+            stage: "error",
+            error: "Connection lost before pipeline completed. Please try again.",
+          }));
+        }
+      } catch (err) {
+        if (signal.aborted) return;
         setProgress((prev) => ({
           ...prev,
           stage: "error",
-          error: "Connection lost before pipeline completed. Please try again.",
+          error: err instanceof Error ? err.message : "Auto mode failed",
         }));
       }
-    } catch (err) {
-      setProgress((prev) => ({
-        ...prev,
-        stage: "error",
-        error: err instanceof Error ? err.message : "Auto mode failed",
-      }));
-    }
-  }, [subject, onComplete]);
+    },
+    [subject, onComplete]
+  );
 
   useEffect(() => {
     if (!started) {
       setStarted(true);
-      runPipeline();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      const timeout = setTimeout(() => controller.abort(), SSE_TIMEOUT_MS);
+      runPipeline(controller.signal).finally(() => clearTimeout(timeout));
+
+      return () => {
+        clearTimeout(timeout);
+        controller.abort();
+      };
     }
   }, [started, runPipeline]);
 
