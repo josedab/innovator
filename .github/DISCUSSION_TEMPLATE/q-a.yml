@@ -1,0 +1,24 @@
+title: "Q&A"
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask questions about using Innovator, setting it up, or understanding how it works.
+        Please check the [documentation](https://josedab.github.io/innovator/docs/getting-started) first.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What would you like to know?
+      placeholder: "How do I..."
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any relevant details about your setup or what you've tried.
+      placeholder: "I'm running Node 20 on..."
+    validations:
+      required: false
