@@ -154,6 +154,10 @@ export async function generateTextStream(
     session.disconnect().catch(() => {});
   };
 
+  let unsubDelta: (() => void) | undefined;
+  let unsubIdle: (() => void) | undefined;
+  let unsubError: (() => void) | undefined;
+
   try {
     options.signal?.addEventListener("abort", abortHandler, { once: true });
 
@@ -179,10 +183,6 @@ export async function generateTextStream(
 
     let idleResolve: (value: string) => void;
     let idleReject: (reason: unknown) => void;
-
-    let unsubDelta: (() => void) | undefined;
-    let unsubIdle: (() => void) | undefined;
-    let unsubError: (() => void) | undefined;
 
     return await Promise.race([
       new Promise<string>((resolve, reject) => {
@@ -215,6 +215,9 @@ export async function generateTextStream(
         : []),
     ]);
   } finally {
+    unsubDelta?.();
+    unsubIdle?.();
+    unsubError?.();
     if (timeoutId !== undefined) clearTimeout(timeoutId);
     options.signal?.removeEventListener("abort", abortHandler);
     await session.disconnect();
