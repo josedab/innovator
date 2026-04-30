@@ -8,6 +8,7 @@ interface RateLimitEntry {
 
 const WINDOW_MS = 60_000; // 1 minute
 const MAX_REQUESTS = 10;
+const AUTO_MAX_REQUESTS = 3; // Stricter limit for /api/auto (triggers 10+ LLM calls per request)
 const MAX_RATE_LIMIT_ENTRIES = 10_000;
 
 // NOTE: This in-memory Map-based rate limiting only works for single-instance
@@ -15,6 +16,7 @@ const MAX_RATE_LIMIT_ENTRIES = 10_000;
 // maintains its own map, making the rate limit trivially bypassable.
 // For production, use Redis/Upstash or Vercel's built-in rate limiting.
 const rateLimitMap = new Map<string, RateLimitEntry>();
+const autoRateLimitMap = new Map<string, RateLimitEntry>();
 
 // Periodically clean up expired entries to prevent memory leaks
 const CLEANUP_INTERVAL_MS = 5 * 60_000;
@@ -24,17 +26,18 @@ function cleanup() {
   const now = Date.now();
   if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
   lastCleanup = now;
-  for (const [key, entry] of rateLimitMap) {
-    if (now > entry.resetTime) {
-      rateLimitMap.delete(key);
+  for (const map of [rateLimitMap, autoRateLimitMap]) {
+    for (const [key, entry] of map) {
+      if (now > entry.resetTime) {
+        map.delete(key);
+      }
     }
-  }
-  // Evict oldest entries if map exceeds size cap
-  if (rateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
-    const entries = [...rateLimitMap.entries()].sort((a, b) => a[1].resetTime - b[1].resetTime);
-    const toRemove = entries.slice(0, rateLimitMap.size - MAX_RATE_LIMIT_ENTRIES);
-    for (const [key] of toRemove) {
-      rateLimitMap.delete(key);
+    if (map.size > MAX_RATE_LIMIT_ENTRIES) {
+      const entries = [...map.entries()].sort((a, b) => a[1].resetTime - b[1].resetTime);
+      const toRemove = entries.slice(0, map.size - MAX_RATE_LIMIT_ENTRIES);
+      for (const [key] of toRemove) {
+        map.delete(key);
+      }
     }
   }
 }
@@ -66,26 +69,49 @@ export function middleware(request: NextRequest) {
 
   if (!entry || now > entry.resetTime) {
     rateLimitMap.set(ip, { count: 1, resetTime: now + WINDOW_MS });
-    const response = NextResponse.next();
-    response.headers.set("X-Request-ID", requestId);
-    return response;
+  } else {
+    entry.count++;
+
+    if (entry.count > MAX_REQUESTS) {
+      const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
+      return new NextResponse(
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(retryAfter),
+            "X-Request-ID": requestId,
+          },
+        }
+      );
+    }
   }
 
-  entry.count++;
+  // Stricter per-route rate limit for /api/auto
+  if (request.nextUrl.pathname === "/api/auto") {
+    const autoKey = `auto:${ip}`;
+    const autoEntry = autoRateLimitMap.get(autoKey);
 
-  if (entry.count > MAX_REQUESTS) {
-    const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
-    return new NextResponse(
-      JSON.stringify({ error: "Too many requests. Please try again later." }),
-      {
-        status: 429,
-        headers: {
-          "Content-Type": "application/json",
-          "Retry-After": String(retryAfter),
-          "X-Request-ID": requestId,
-        },
+    if (!autoEntry || now > autoEntry.resetTime) {
+      autoRateLimitMap.set(autoKey, { count: 1, resetTime: now + WINDOW_MS });
+    } else {
+      autoEntry.count++;
+      if (autoEntry.count > AUTO_MAX_REQUESTS) {
+        const retryAfter = Math.ceil((autoEntry.resetTime - now) / 1000);
+        return new NextResponse(
+          JSON.stringify({ error: "Too many auto requests. Please try again later." }),
+          {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+              "Retry-After": String(retryAfter),
+              "X-Request-ID": requestId,
+            },
+          }
+        );
       }
-    );
+    }
   }
 
   const response = NextResponse.next();
