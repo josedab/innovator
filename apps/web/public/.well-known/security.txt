@@ -1,0 +1,5 @@
+Contact: https://github.com/josedab/innovator/security/advisories/new
+Expires: 2027-05-03T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://josedab.github.io/innovator/.well-known/security.txt
+Policy: https://github.com/josedab/innovator/security/policy
