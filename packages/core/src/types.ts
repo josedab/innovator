@@ -10,9 +10,18 @@ export const KNOWN_MODELS = [
   "gpt-5-mini",
   "claude-sonnet-4.5",
   "claude-sonnet-4",
-] as const;
+  ...(process.env.INNOVATOR_EXTRA_MODELS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+] as string[];
 
-export type KnownModel = (typeof KNOWN_MODELS)[number];
+export type KnownModel = string;
+
+// ---- Concurrency ----
+
+/** Maximum number of concurrent LLM requests for batch angle generation. */
+export const MAX_CONCURRENCY = 2;
 
 // ---- Angles ----
 
