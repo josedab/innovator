@@ -25,9 +25,18 @@ const RequestSchema = z.object({
 
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
+  const startTime = Date.now();
   try {
     const contentTypeError = validateJsonContentType(request);
-    if (contentTypeError) return contentTypeError;
+    if (contentTypeError) {
+      logger.warn("Request rejected", {
+        route: "/api/innovate",
+        requestId,
+        status: 400,
+        durationMs: Date.now() - startTime,
+      });
+      return contentTypeError;
+    }
 
     let body: unknown;
     try {
@@ -45,6 +54,7 @@ export async function POST(request: Request) {
       logger.warn("Invalid request", {
         route: "/api/innovate",
         requestId,
+        durationMs: Date.now() - startTime,
         details: parsed.error.flatten(),
       });
       return new Response(
@@ -56,7 +66,15 @@ export async function POST(request: Request) {
     const { subject, investigation, angles, model, synthesize } = parsed.data;
 
     const modelError = validateModel(model);
-    if (modelError) return modelError;
+    if (modelError) {
+      logger.warn("Invalid model", {
+        route: "/api/innovate",
+        requestId,
+        status: 400,
+        durationMs: Date.now() - startTime,
+      });
+      return modelError;
+    }
 
     const abortController = new AbortController();
     const onAbort = () => abortController.abort();
@@ -66,8 +84,6 @@ export async function POST(request: Request) {
     const MAX_CONCURRENCY = 2;
 
     try {
-      const startTime = Date.now();
-
       // Process angles with bounded concurrency
       for (let i = 0; i < angles.length; i += MAX_CONCURRENCY) {
         const batch = angles.slice(i, i + MAX_CONCURRENCY);
