@@ -12,6 +12,11 @@ import { generateForAngle } from "./generate.js";
 
 const MAX_CONCURRENCY = 2;
 
+/** Replace internal error details with a generic user-facing message. */
+function sanitizeErrorMessage(stage: string): string {
+  return `${stage} encountered an internal error. Please try again.`;
+}
+
 async function runWithConcurrency<T>(
   tasks: (() => Promise<T>)[],
   concurrency: number
@@ -109,7 +114,7 @@ export async function runAutoPipeline(
     progress.investigation = investigation;
   } catch (err) {
     progress.stage = "error";
-    progress.error = `Investigation failed: ${err instanceof Error ? err.message : String(err)}`;
+    progress.error = sanitizeErrorMessage("Investigation");
     terminated = true;
     safeProgress(progress);
     return progress;
@@ -143,7 +148,7 @@ export async function runAutoPipeline(
     progress.angleResults = orderedResults;
   } catch (err) {
     progress.stage = "error";
-    progress.error = `Generation failed: ${err instanceof Error ? err.message : String(err)}`;
+    progress.error = sanitizeErrorMessage("Generation");
     terminated = true;
     safeProgress(progress);
     return progress;
@@ -175,7 +180,7 @@ export async function runAutoPipeline(
     progress.synthesis = SynthesisSchema.parse(parsedJson);
   } catch (err) {
     progress.stage = "error";
-    progress.error = `Synthesis failed: ${err instanceof Error ? err.message : String(err)}`;
+    progress.error = sanitizeErrorMessage("Synthesis");
     terminated = true;
     safeProgress(progress);
     return progress;
