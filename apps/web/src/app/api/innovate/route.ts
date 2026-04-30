@@ -10,6 +10,7 @@ import {
 import type { AngleId, AngleResult } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { KNOWN_MODELS } from "@/lib/env";
 
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
@@ -32,6 +33,15 @@ export async function POST(request: Request) {
     }
 
     const { subject, investigation, angles, model, synthesize } = parsed.data;
+
+    if (model && !(KNOWN_MODELS as readonly string[]).includes(model)) {
+      return new Response(
+        JSON.stringify({
+          error: `Unknown model "${model}". Allowed models: ${KNOWN_MODELS.join(", ")}`,
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     const results: AngleResult[] = [];
     const MAX_CONCURRENCY = 2;
@@ -69,7 +79,7 @@ export async function POST(request: Request) {
     });
     return new Response(
       JSON.stringify({
-        error: err instanceof Error ? err.message : "Innovation generation failed",
+        error: "Innovation generation failed. Please try again.",
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
