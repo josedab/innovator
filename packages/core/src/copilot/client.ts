@@ -74,7 +74,14 @@ export interface GenerateOptions {
   signal?: AbortSignal;
 }
 
-const DEFAULT_TIMEOUT_MS = 90_000;
+const DEFAULT_TIMEOUT_MS = (() => {
+  const env = process.env.INNOVATOR_LLM_TIMEOUT_MS;
+  if (env) {
+    const parsed = Number(env);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return 90_000;
+})();
 
 /**
  * Send a prompt and wait for the complete response.
