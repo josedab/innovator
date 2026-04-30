@@ -20,9 +20,8 @@ let verbose = false;
 
 // Graceful shutdown on SIGINT/SIGTERM
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
-  process.on(sig, async () => {
-    await stopCopilotClient();
-    process.exit(0);
+  process.on(sig, () => {
+    stopCopilotClient().finally(() => process.exit(0));
   });
 }
 
