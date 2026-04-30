@@ -81,7 +81,7 @@ describe("runAutoPipeline", () => {
   it("calls investigate with subject and model", async () => {
     await runAutoPipeline("test", () => {}, "gpt-5", ["scamper"]);
 
-    expect(mockInvestigate).toHaveBeenCalledWith("test", "gpt-5");
+    expect(mockInvestigate).toHaveBeenCalledWith("test", "gpt-5", undefined);
   });
 
   it("calls generateForAngle for each selected angle", async () => {
@@ -92,12 +92,14 @@ describe("runAutoPipeline", () => {
       "test",
       MOCK_INVESTIGATION,
       "scamper",
+      undefined,
       undefined
     );
     expect(mockGenerateForAngle).toHaveBeenCalledWith(
       "test",
       MOCK_INVESTIGATION,
       "inversion",
+      undefined,
       undefined
     );
   });

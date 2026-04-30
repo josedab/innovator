@@ -47,7 +47,8 @@ export async function generateForAngle(
   subject: string,
   investigation: Investigation,
   angleId: AngleId,
-  model?: string
+  model?: string,
+  signal?: AbortSignal
 ): Promise<AngleResult> {
   const buildPrompt = ANGLE_PROMPT_MAP[angleId];
   if (!buildPrompt) {
@@ -55,7 +56,7 @@ export async function generateForAngle(
   }
 
   const prompt = buildPrompt(subject, investigation);
-  const raw = await generateText({ prompt, model, serverMode: true });
+  const raw = await generateText({ prompt, model, serverMode: true, signal });
 
   const jsonStr = extractJson(raw);
   let parsed: unknown;

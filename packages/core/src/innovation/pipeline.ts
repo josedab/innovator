@@ -71,7 +71,8 @@ export async function runAutoPipeline(
   subject: string,
   onProgress: (progress: PipelineProgress) => void,
   model?: string,
-  angles?: AngleId[]
+  angles?: AngleId[],
+  signal?: AbortSignal
 ): Promise<PipelineProgress> {
   const selectedAngles = angles ?? [...ANGLE_IDS];
   let terminated = false;
@@ -95,9 +96,16 @@ export async function runAutoPipeline(
   safeProgress(progress);
 
   // Step 1: Investigate
+  if (signal?.aborted) {
+    progress.stage = "error";
+    progress.error = "Request was aborted";
+    terminated = true;
+    return progress;
+  }
+
   let investigation: Investigation;
   try {
-    investigation = await investigate(subject, model);
+    investigation = await investigate(subject, model, signal);
     progress.investigation = investigation;
   } catch (err) {
     progress.stage = "error";
@@ -111,9 +119,16 @@ export async function runAutoPipeline(
   progress.stage = "generating";
   safeProgress(progress);
 
+  if (signal?.aborted) {
+    progress.stage = "error";
+    progress.error = "Request was aborted";
+    terminated = true;
+    return progress;
+  }
+
   const tasks = selectedAngles.map(
     (angleId) => () =>
-      generateForAngle(subject, investigation, angleId, model).then((result) => {
+      generateForAngle(subject, investigation, angleId, model, signal).then((result) => {
         progress.angleResults.push(result);
         progress.completedAngles.push(angleId);
         progress.currentAngle = angleId;
@@ -138,10 +153,17 @@ export async function runAutoPipeline(
   progress.stage = "synthesizing";
   safeProgress(progress);
 
+  if (signal?.aborted) {
+    progress.stage = "error";
+    progress.error = "Request was aborted";
+    terminated = true;
+    return progress;
+  }
+
   try {
     const angleResultsJson = JSON.stringify(progress.angleResults, null, 2);
     const synthesisPrompt = buildSynthesisPrompt(subject, investigation, angleResultsJson);
-    const raw = await generateText({ prompt: synthesisPrompt, model, serverMode: true });
+    const raw = await generateText({ prompt: synthesisPrompt, model, serverMode: true, signal });
 
     const jsonStr = extractJson(raw);
     let parsedJson;
