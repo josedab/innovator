@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useReducer, useRef } from "react";
 import { SubjectInput } from "@/components/SubjectInput";
 import { InvestigationView } from "@/components/InvestigationView";
 import { AngleSelector } from "@/components/AngleSelector";
@@ -10,22 +10,87 @@ import type { Investigation, AngleResult, Synthesis, AngleId } from "@innovator/
 
 type AppStage = "input" | "investigating" | "explored" | "innovating" | "results" | "auto";
 
+interface AppState {
+  stage: AppStage;
+  subject: string;
+  investigation: Investigation | null;
+  selectedAngles: AngleId[];
+  angleResults: AngleResult[];
+  synthesis: Synthesis | null;
+  error: string | null;
+}
+
+type AppAction =
+  | { type: "START_INVESTIGATE"; subject: string }
+  | { type: "INVESTIGATION_SUCCESS"; investigation: Investigation }
+  | { type: "INVESTIGATION_ERROR"; error: string }
+  | { type: "START_INNOVATE"; angles: AngleId[] }
+  | { type: "INNOVATION_SUCCESS"; angleResults: AngleResult[]; synthesis: Synthesis | null }
+  | { type: "INNOVATION_ERROR"; error: string }
+  | { type: "START_AUTO"; subject: string }
+  | { type: "AUTO_COMPLETE"; angleResults: AngleResult[]; synthesis: Synthesis | null }
+  | { type: "RESET" };
+
+const initialState: AppState = {
+  stage: "input",
+  subject: "",
+  investigation: null,
+  selectedAngles: [],
+  angleResults: [],
+  synthesis: null,
+  error: null,
+};
+
+function appReducer(state: AppState, action: AppAction): AppState {
+  switch (action.type) {
+    case "START_INVESTIGATE":
+      return { ...initialState, stage: "investigating", subject: action.subject };
+    case "INVESTIGATION_SUCCESS":
+      return { ...state, stage: "explored", investigation: action.investigation, error: null };
+    case "INVESTIGATION_ERROR":
+      return { ...state, stage: "input", error: action.error };
+    case "START_INNOVATE":
+      return {
+        ...state,
+        stage: "innovating",
+        selectedAngles: action.angles,
+        angleResults: [],
+        error: null,
+      };
+    case "INNOVATION_SUCCESS":
+      return {
+        ...state,
+        stage: "results",
+        angleResults: action.angleResults,
+        synthesis: action.synthesis,
+      };
+    case "INNOVATION_ERROR":
+      return { ...state, stage: "explored", error: action.error };
+    case "START_AUTO":
+      return { ...initialState, stage: "auto", subject: action.subject };
+    case "AUTO_COMPLETE":
+      return {
+        ...state,
+        stage: "results",
+        angleResults: action.angleResults,
+        synthesis: action.synthesis,
+      };
+    case "RESET":
+      return initialState;
+    default:
+      return state;
+  }
+}
+
 export default function Home() {
-  const [stage, setStage] = useState<AppStage>("input");
-  const [subject, setSubject] = useState("");
-  const [investigation, setInvestigation] = useState<Investigation | null>(null);
-  const [selectedAngles, setSelectedAngles] = useState<AngleId[]>([]);
-  const [angleResults, setAngleResults] = useState<AngleResult[]>([]);
-  const [synthesis, setSynthesis] = useState<Synthesis | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(appReducer, initialState);
+  const { stage, subject, investigation, selectedAngles, angleResults, synthesis, error } = state;
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleInvestigate = async (subjectText: string) => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
-    setSubject(subjectText);
-    setStage("investigating");
-    setError(null);
+    dispatch({ type: "START_INVESTIGATE", subject: subjectText });
 
     try {
       const res = await fetch("/api/investigate", {
@@ -46,11 +111,12 @@ export default function Home() {
       } catch {
         throw new Error("Invalid response from server");
       }
-      setInvestigation(data);
-      setStage("explored");
+      dispatch({ type: "INVESTIGATION_SUCCESS", investigation: data });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Investigation failed");
-      setStage("input");
+      dispatch({
+        type: "INVESTIGATION_ERROR",
+        error: err instanceof Error ? err.message : "Investigation failed",
+      });
     }
   };
 
@@ -58,10 +124,7 @@ export default function Home() {
     if (!investigation) return;
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
-    setSelectedAngles(angles);
-    setStage("innovating");
-    setAngleResults([]);
-    setError(null);
+    dispatch({ type: "START_INNOVATE", angles });
 
     try {
       const res = await fetch("/api/innovate", {
@@ -82,37 +145,31 @@ export default function Home() {
       } catch {
         throw new Error("Invalid response from server");
       }
-      setAngleResults(data.angleResults);
-      setSynthesis(data.synthesis ?? null);
-      setStage("results");
+      dispatch({
+        type: "INNOVATION_SUCCESS",
+        angleResults: data.angleResults,
+        synthesis: data.synthesis ?? null,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Innovation generation failed");
-      setStage("explored");
+      dispatch({
+        type: "INNOVATION_ERROR",
+        error: err instanceof Error ? err.message : "Innovation generation failed",
+      });
     }
   };
 
   const handleAutoMode = (subjectText: string) => {
-    setSubject(subjectText);
-    setStage("auto");
-    setError(null);
+    dispatch({ type: "START_AUTO", subject: subjectText });
   };
 
   const handleAutoComplete = (results: AngleResult[], synth: Synthesis | null) => {
-    setAngleResults(results);
-    setSynthesis(synth);
-    setStage("results");
+    dispatch({ type: "AUTO_COMPLETE", angleResults: results, synthesis: synth });
   };
 
   const handleReset = () => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
-    setStage("input");
-    setSubject("");
-    setInvestigation(null);
-    setSelectedAngles([]);
-    setAngleResults([]);
-    setSynthesis(null);
-    setError(null);
+    dispatch({ type: "RESET" });
   };
 
   return (
