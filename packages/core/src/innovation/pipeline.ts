@@ -19,13 +19,16 @@ function sanitizeErrorMessage(stage: string): string {
 
 async function runWithConcurrency<T>(
   tasks: (() => Promise<T>)[],
-  concurrency: number
+  concurrency: number,
+  signal?: AbortSignal
 ): Promise<T[]> {
   const results: (T | undefined)[] = new Array(tasks.length);
   const errors: Error[] = [];
   const executing: Set<Promise<void>> = new Set();
 
   for (let i = 0; i < tasks.length; i++) {
+    if (signal?.aborted) break;
+
     const index = i;
     const p = tasks[index]()
       .then((result) => {
@@ -143,7 +146,7 @@ export async function runAutoPipeline(
   );
 
   try {
-    const orderedResults = await runWithConcurrency(tasks, MAX_CONCURRENCY);
+    const orderedResults = await runWithConcurrency(tasks, MAX_CONCURRENCY, signal);
     // Replace with ordered results
     progress.angleResults = orderedResults;
   } catch (err) {
