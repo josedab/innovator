@@ -44,6 +44,7 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
     angleResults: [],
   });
   const [started, setStarted] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const runPipeline = useCallback(
@@ -202,15 +203,27 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
             </p>
           )}
           {progress.completedAngles.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {progress.completedAngles.map((angle) => (
-                <span
-                  key={angle}
-                  className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full"
-                >
-                  ✓ {angle}
-                </span>
-              ))}
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => setShowCompleted(!showCompleted)}
+                aria-expanded={showCompleted}
+                className="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition"
+              >
+                Completed angles {showCompleted ? "▼" : "▶"}
+              </button>
+              {showCompleted && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {progress.completedAngles.map((angle) => (
+                    <span
+                      key={angle}
+                      className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full"
+                    >
+                      ✓ {angle}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
