@@ -9,6 +9,7 @@ interface RateLimitEntry {
 const WINDOW_MS = 60_000; // 1 minute
 const MAX_REQUESTS = 10;
 const AUTO_MAX_REQUESTS = 3; // Stricter limit for /api/auto (triggers 10+ LLM calls per request)
+const INNOVATE_MAX_REQUESTS = 5; // Stricter limit for /api/innovate (triggers up to 9 LLM calls per request)
 const MAX_CONCURRENT_PER_IP = 2; // Max simultaneous in-flight requests per IP
 const MAX_BODY_SIZE = 100 * 1024; // 100KB max request body size
 const MAX_RATE_LIMIT_ENTRIES = 10_000;
@@ -25,6 +26,7 @@ const SECURITY_HEADERS: Record<string, string> = {
 // For production, use Redis/Upstash or Vercel's built-in rate limiting.
 const rateLimitMap = new Map<string, RateLimitEntry>();
 const autoRateLimitMap = new Map<string, RateLimitEntry>();
+const innovateRateLimitMap = new Map<string, RateLimitEntry>();
 const inFlightMap = new Map<string, number>();
 
 // Periodically clean up expired entries to prevent memory leaks
@@ -35,7 +37,7 @@ function cleanup() {
   const now = Date.now();
   if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
   lastCleanup = now;
-  for (const map of [rateLimitMap, autoRateLimitMap]) {
+  for (const map of [rateLimitMap, autoRateLimitMap, innovateRateLimitMap]) {
     for (const [key, entry] of map) {
       if (now > entry.resetTime) {
         map.delete(key);
@@ -81,6 +83,11 @@ function getClientIp(request: NextRequest): string {
 // CORS Policy: This middleware intentionally does not set any CORS headers,
 // enforcing same-origin access only. Do not add Access-Control-Allow-Origin
 // or other CORS headers without a security review.
+//
+// AUTHENTICATION: These API endpoints have no authentication mechanism by design.
+// The app relies on the server operator's GitHub Copilot subscription (via `gh auth`).
+// For public-facing deployments, add an API key check, OAuth, or session-based auth
+// to prevent unauthorized consumption of the Copilot subscription quota.
 export function middleware(request: NextRequest) {
   if (!request.nextUrl.pathname.startsWith("/api/")) {
     return NextResponse.next();
@@ -93,6 +100,15 @@ export function middleware(request: NextRequest) {
   if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
     return new NextResponse(JSON.stringify({ error: "Request body too large." }), {
       status: 413,
+      headers: { ...SECURITY_HEADERS },
+    });
+  }
+
+  // Require Content-Length on mutation requests to prevent unbounded body parsing
+  const method = request.method;
+  if ((method === "POST" || method === "PUT" || method === "PATCH") && !contentLength) {
+    return new NextResponse(JSON.stringify({ error: "Content-Length header is required." }), {
+      status: 411,
       headers: { ...SECURITY_HEADERS },
     });
   }
@@ -136,6 +152,32 @@ export function middleware(request: NextRequest) {
         const retryAfter = Math.ceil((autoEntry.resetTime - now) / 1000);
         return new NextResponse(
           JSON.stringify({ error: "Too many auto requests. Please try again later." }),
+          {
+            status: 429,
+            headers: {
+              ...SECURITY_HEADERS,
+              "Retry-After": String(retryAfter),
+              "X-Request-ID": requestId,
+            },
+          }
+        );
+      }
+    }
+  }
+
+  // Stricter per-route rate limit for /api/innovate (triggers up to 9 LLM calls per request)
+  if (request.nextUrl.pathname === "/api/innovate") {
+    const innovateKey = `innovate:${ip}`;
+    const innovateEntry = innovateRateLimitMap.get(innovateKey);
+
+    if (!innovateEntry || now > innovateEntry.resetTime) {
+      innovateRateLimitMap.set(innovateKey, { count: 1, resetTime: now + WINDOW_MS });
+    } else {
+      innovateEntry.count++;
+      if (innovateEntry.count > INNOVATE_MAX_REQUESTS) {
+        const retryAfter = Math.ceil((innovateEntry.resetTime - now) / 1000);
+        return new NextResponse(
+          JSON.stringify({ error: "Too many innovate requests. Please try again later." }),
           {
             status: 429,
             headers: {
