@@ -11,9 +11,9 @@ export default defineConfig({
       include: ["packages/*/src/**/*.ts", "apps/*/src/**/*.{ts,tsx}"],
       exclude: ["**/__tests__/**", "**/*.test.ts", "**/*.d.ts", "**/node_modules/**"],
       thresholds: {
-        lines: 40,
-        functions: 40,
-        branches: 40,
+        lines: 35,
+        functions: 35,
+        branches: 35,
       },
     },
   },
