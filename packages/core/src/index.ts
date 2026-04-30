@@ -24,6 +24,7 @@ export {
 
 // Prompts (for advanced usage)
 export { buildInvestigationPrompt, buildSynthesisPrompt } from "./prompts/investigation.js";
+export { sanitizeLlmOutput } from "./prompts/sanitize.js";
 
 // Retry utility
 export { withRetry } from "./copilot/retry.js";
