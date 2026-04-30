@@ -104,6 +104,7 @@ export interface PipelineProgress {
   totalAngles: number;
   investigation?: Investigation;
   angleResults: AngleResult[];
+  failedAngles?: { angleId: string; error: string }[];
   synthesis?: Synthesis;
   error?: string;
 }
