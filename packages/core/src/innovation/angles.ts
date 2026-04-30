@@ -1,5 +1,21 @@
 import type { AngleDefinition } from "../types.js";
 
+/**
+ * All available innovation angles with their display metadata.
+ *
+ * This is the canonical source of angle definitions used throughout the application.
+ * For looking up a single angle by ID, prefer {@link getAngleById} over filtering this array directly.
+ *
+ * @example
+ * ```ts
+ * import { ANGLES } from "./angles.js";
+ *
+ * // List all angle names
+ * for (const angle of ANGLES) {
+ *   console.log(`${angle.icon} ${angle.name}: ${angle.shortDescription}`);
+ * }
+ * ```
+ */
 export const ANGLES: AngleDefinition[] = [
   {
     id: "scamper",
