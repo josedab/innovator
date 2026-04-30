@@ -4,24 +4,8 @@ import { runAutoPipeline, ANGLE_IDS } from "@innovator/core";
 import type { PipelineProgress } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import { KNOWN_MODELS } from "@/lib/env";
-import { validateJsonContentType } from "@/lib/validate-request";
-
-const CACHE_HEADERS = {
-  "Cache-Control": "no-store, no-cache, must-revalidate, private",
-  Vary: "Accept-Encoding",
-  "X-Robots-Tag": "noindex, nofollow",
-} as const;
-
-const SECURITY_HEADERS = {
-  "X-Content-Type-Options": "nosniff",
-  "Content-Security-Policy": "default-src 'none'",
-  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
-  "X-Frame-Options": "DENY",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy":
-    "camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()",
-} as const;
+import { validateJsonContentType, validateModel } from "@/lib/validate-request";
+import { CACHE_HEADERS, SECURITY_HEADERS } from "@/lib/api-headers";
 
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
@@ -40,7 +24,7 @@ export async function POST(request: Request) {
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
-        headers: { "Content-Type": "application/json", ...CACHE_HEADERS },
+        headers: { "Content-Type": "application/json", ...CACHE_HEADERS, ...SECURITY_HEADERS },
       });
     }
 
@@ -54,24 +38,22 @@ export async function POST(request: Request) {
       });
       return new Response(
         JSON.stringify({ error: "Invalid request. Please check your input and try again." }),
-        { status: 400, headers: { "Content-Type": "application/json", ...CACHE_HEADERS } }
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...CACHE_HEADERS, ...SECURITY_HEADERS },
+        }
       );
     }
 
     const { subject, model } = parsed.data;
 
-    if (model && !(KNOWN_MODELS as readonly string[]).includes(model)) {
-      return new Response(
-        JSON.stringify({
-          error: `Unknown model. Allowed models: ${KNOWN_MODELS.join(", ")}`,
-        }),
-        { status: 400, headers: { "Content-Type": "application/json", ...CACHE_HEADERS } }
-      );
-    }
+    const modelError = validateModel(model);
+    if (modelError) return modelError;
 
     const encoder = new TextEncoder();
     let streamClosed = false;
     const abortController = new AbortController();
+    const pipelineStartTime = Date.now();
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -98,6 +80,11 @@ export async function POST(request: Request) {
 
         try {
           await runAutoPipeline(subject, sendProgress, model, undefined, abortController.signal);
+          logger.info("Auto pipeline completed", {
+            route: "/api/auto",
+            requestId,
+            durationMs: Date.now() - pipelineStartTime,
+          });
         } catch (err) {
           logger.error("Auto pipeline error", {
             error: err instanceof Error ? err.message : String(err),

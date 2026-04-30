@@ -12,14 +12,8 @@ import {
 import type { AngleId, AngleResult } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import { KNOWN_MODELS } from "@/lib/env";
-import { validateJsonContentType } from "@/lib/validate-request";
-
-const CACHE_HEADERS = {
-  "Cache-Control": "no-store, no-cache, must-revalidate, private",
-  Vary: "Accept-Encoding",
-  "X-Robots-Tag": "noindex, nofollow",
-} as const;
+import { validateJsonContentType, validateModel } from "@/lib/validate-request";
+import { CACHE_HEADERS, API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
@@ -41,7 +35,7 @@ export async function POST(request: Request) {
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
-        headers: { "Content-Type": "application/json", ...CACHE_HEADERS },
+        headers: API_RESPONSE_HEADERS,
       });
     }
 
@@ -55,20 +49,14 @@ export async function POST(request: Request) {
       });
       return new Response(
         JSON.stringify({ error: "Invalid request. Please check your input and try again." }),
-        { status: 400, headers: { "Content-Type": "application/json", ...CACHE_HEADERS } }
+        { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
 
     const { subject, investigation, angles, model, synthesize } = parsed.data;
 
-    if (model && !(KNOWN_MODELS as readonly string[]).includes(model)) {
-      return new Response(
-        JSON.stringify({
-          error: `Unknown model. Allowed models: ${KNOWN_MODELS.join(", ")}`,
-        }),
-        { status: 400, headers: { "Content-Type": "application/json", ...CACHE_HEADERS } }
-      );
-    }
+    const modelError = validateModel(model);
+    if (modelError) return modelError;
 
     const abortController = new AbortController();
     const onAbort = () => abortController.abort();
@@ -78,6 +66,8 @@ export async function POST(request: Request) {
     const MAX_CONCURRENCY = 2;
 
     try {
+      const startTime = Date.now();
+
       // Process angles with bounded concurrency
       for (let i = 0; i < angles.length; i += MAX_CONCURRENCY) {
         const batch = angles.slice(i, i + MAX_CONCURRENCY);
@@ -116,7 +106,17 @@ export async function POST(request: Request) {
         synthesis = SynthesisSchema.parse(parsedJson);
       }
 
-      return Response.json({ angleResults: results, synthesis }, { headers: CACHE_HEADERS });
+      logger.info("Innovation completed", {
+        route: "/api/innovate",
+        requestId,
+        angles: angles.length,
+        synthesized: !!synthesis,
+        durationMs: Date.now() - startTime,
+      });
+      return Response.json(
+        { angleResults: results, synthesis },
+        { headers: { ...CACHE_HEADERS, ...API_RESPONSE_HEADERS } }
+      );
     } finally {
       request.signal.removeEventListener("abort", onAbort);
     }
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
       JSON.stringify({
         error: "Innovation generation failed. Please try again.",
       }),
-      { status: 500, headers: { "Content-Type": "application/json", ...CACHE_HEADERS } }
+      { status: 500, headers: API_RESPONSE_HEADERS }
     );
   }
 }
