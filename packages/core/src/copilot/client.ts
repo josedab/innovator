@@ -157,27 +157,41 @@ export async function generateTextStream(
   try {
     options.signal?.addEventListener("abort", abortHandler, { once: true });
 
+    const deltaListener = (event: { data: { deltaContent: string } }) => {
+      const chunk = event.data.deltaContent;
+      fullText += chunk;
+      onChunk(chunk);
+    };
+
+    const idleListener = () => {
+      session
+        .disconnect()
+        .then(() => idleResolve(fullText))
+        .catch(idleReject);
+    };
+
+    const errorListener = (err: { data: { message: string } }) => {
+      session
+        .disconnect()
+        .then(() => idleReject(new Error(err.data.message)))
+        .catch(idleReject);
+    };
+
+    let idleResolve: (value: string) => void;
+    let idleReject: (reason: unknown) => void;
+
+    let unsubDelta: (() => void) | undefined;
+    let unsubIdle: (() => void) | undefined;
+    let unsubError: (() => void) | undefined;
+
     return await Promise.race([
       new Promise<string>((resolve, reject) => {
-        session.on("assistant.message_delta", (event) => {
-          const chunk = event.data.deltaContent;
-          fullText += chunk;
-          onChunk(chunk);
-        });
+        idleResolve = resolve;
+        idleReject = reject;
 
-        session.on("session.idle", () => {
-          session
-            .disconnect()
-            .then(() => resolve(fullText))
-            .catch(reject);
-        });
-
-        session.on("session.error", (err) => {
-          session
-            .disconnect()
-            .then(() => reject(new Error(err.data.message)))
-            .catch(reject);
-        });
+        unsubDelta = session.on("assistant.message_delta", deltaListener);
+        unsubIdle = session.on("session.idle", idleListener);
+        unsubError = session.on("session.error", errorListener);
 
         session.send({ prompt: options.prompt }).catch(reject);
       }),
