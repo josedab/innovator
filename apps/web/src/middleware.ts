@@ -31,9 +31,7 @@ function cleanup() {
   }
   // Evict oldest entries if map exceeds size cap
   if (rateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
-    const entries = [...rateLimitMap.entries()].sort(
-      (a, b) => a[1].resetTime - b[1].resetTime
-    );
+    const entries = [...rateLimitMap.entries()].sort((a, b) => a[1].resetTime - b[1].resetTime);
     const toRemove = entries.slice(0, rateLimitMap.size - MAX_RATE_LIMIT_ENTRIES);
     for (const [key] of toRemove) {
       rateLimitMap.delete(key);
@@ -41,7 +39,12 @@ function cleanup() {
   }
 }
 
+// Use request.ip as the primary source (set by the platform, e.g. Vercel,
+// and not spoofable by clients). Fall back to headers only when the platform
+// does not provide it.
 function getClientIp(request: NextRequest): string {
+  const platformIp = (request as NextRequest & { ip?: string }).ip;
+  if (platformIp) return platformIp;
   return (
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
