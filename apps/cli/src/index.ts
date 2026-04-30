@@ -10,6 +10,7 @@ import {
   stopCopilotClient,
   ANGLES,
   ANGLE_IDS,
+  KNOWN_MODELS,
 } from "@innovator/core";
 import type { AngleId } from "@innovator/core";
 
@@ -17,10 +18,28 @@ const program = new Command();
 
 let verbose = false;
 
+function validateModel(model: string | undefined): boolean {
+  if (!model) return true;
+  if (!(KNOWN_MODELS as readonly string[]).includes(model)) {
+    console.error(
+      chalk.red(`Unknown model "${model}". Allowed models: ${KNOWN_MODELS.join(", ")}`)
+    );
+    process.exitCode = 1;
+    return false;
+  }
+  return true;
+}
+
 function debugLog(label: string, ...args: unknown[]) {
   if (!verbose) return;
   const timestamp = new Date().toISOString();
-  console.error(chalk.dim(`[${timestamp}] ${chalk.bold(label)}`), ...args);
+  const truncatedArgs = args.map((arg) => {
+    if (typeof arg === "string" && arg.length > 500) {
+      return arg.slice(0, 500) + `... [truncated, ${arg.length} chars total]`;
+    }
+    return arg;
+  });
+  console.error(chalk.dim(`[${timestamp}] ${chalk.bold(label)}`), ...truncatedArgs);
 }
 
 function timeStart(label: string): () => void {
@@ -49,6 +68,7 @@ program
   .argument("<subject>", "The subject to investigate")
   .option("-m, --model <model>", "LLM model to use")
   .action(async (subject: string, opts: { model?: string }) => {
+    if (!validateModel(opts.model)) return;
     const spinner = ora(`Investigating "${subject}"...`).start();
     debugLog("COMMAND", "investigate", { subject, model: opts.model });
     const endTimer = timeStart("investigate");
@@ -110,6 +130,7 @@ program
   )
   .option("-m, --model <model>", "LLM model to use")
   .action(async (subject: string, opts: { angles: string; model?: string }) => {
+    if (!validateModel(opts.model)) return;
     const angleIds = opts.angles.split(",").map((a) => a.trim()) as AngleId[];
     const invalid = angleIds.filter((a) => !(ANGLE_IDS as readonly string[]).includes(a));
     if (invalid.length) {
@@ -164,6 +185,7 @@ program
   .argument("<subject>", "The subject to innovate on")
   .option("-m, --model <model>", "LLM model to use")
   .action(async (subject: string, opts: { model?: string }) => {
+    if (!validateModel(opts.model)) return;
     const spinner = ora("Starting auto pipeline...").start();
     debugLog("COMMAND", "auto", { subject, model: opts.model });
     const endTimer = timeStart("auto-pipeline");
