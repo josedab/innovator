@@ -163,7 +163,7 @@ export function middleware(request: NextRequest) {
       }
     }
   };
-  setTimeout(decrementInFlight, 10 * 60_000);
+  setTimeout(decrementInFlight, 3 * 60_000);
 
   return response;
 }
