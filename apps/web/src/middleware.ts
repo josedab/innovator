@@ -13,6 +13,12 @@ const MAX_CONCURRENT_PER_IP = 2; // Max simultaneous in-flight requests per IP
 const MAX_BODY_SIZE = 100 * 1024; // 100KB max request body size
 const MAX_RATE_LIMIT_ENTRIES = 10_000;
 
+const SECURITY_HEADERS: Record<string, string> = {
+  "Content-Type": "application/json",
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+};
+
 // NOTE: This in-memory Map-based rate limiting only works for single-instance
 // deployments. In multi-instance environments (Vercel, K8s), each instance
 // maintains its own map, making the rate limit trivially bypassable.
@@ -73,7 +79,7 @@ export function middleware(request: NextRequest) {
   if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
     return new NextResponse(JSON.stringify({ error: "Request body too large." }), {
       status: 413,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...SECURITY_HEADERS },
     });
   }
 
@@ -94,7 +100,7 @@ export function middleware(request: NextRequest) {
         {
           status: 429,
           headers: {
-            "Content-Type": "application/json",
+            ...SECURITY_HEADERS,
             "Retry-After": String(retryAfter),
             "X-Request-ID": requestId,
           },
@@ -119,7 +125,7 @@ export function middleware(request: NextRequest) {
           {
             status: 429,
             headers: {
-              "Content-Type": "application/json",
+              ...SECURITY_HEADERS,
               "Retry-After": String(retryAfter),
               "X-Request-ID": requestId,
             },
@@ -139,7 +145,7 @@ export function middleware(request: NextRequest) {
       {
         status: 429,
         headers: {
-          "Content-Type": "application/json",
+          ...SECURITY_HEADERS,
           "X-Request-ID": requestId,
         },
       }
