@@ -28,6 +28,7 @@ export function SubjectInput({ onSubmit, onAutoMode }: SubjectInputProps) {
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          maxLength={500}
           placeholder='e.g., "Code review processes" or "Home automation"'
           className="w-full px-5 py-4 text-lg rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition placeholder:text-neutral-400"
           autoFocus
