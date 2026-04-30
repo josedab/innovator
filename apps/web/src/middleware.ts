@@ -49,6 +49,20 @@ function cleanup() {
       }
     }
   }
+
+  // Clean up stale inFlightMap entries and enforce size cap
+  for (const [key, count] of inFlightMap) {
+    if (count <= 0) {
+      inFlightMap.delete(key);
+    }
+  }
+  if (inFlightMap.size > MAX_RATE_LIMIT_ENTRIES) {
+    const excess = inFlightMap.size - MAX_RATE_LIMIT_ENTRIES;
+    const keys = [...inFlightMap.keys()];
+    for (let i = 0; i < excess; i++) {
+      inFlightMap.delete(keys[i]);
+    }
+  }
 }
 
 // Use request.ip as the primary source (set by the platform, e.g. Vercel,
@@ -151,7 +165,9 @@ export function middleware(request: NextRequest) {
       }
     );
   }
-  inFlightMap.set(ip, currentInFlight + 1);
+  if (inFlightMap.size < MAX_RATE_LIMIT_ENTRIES || inFlightMap.has(ip)) {
+    inFlightMap.set(ip, currentInFlight + 1);
+  }
 
   const response = NextResponse.next();
   response.headers.set("X-Request-ID", requestId);
