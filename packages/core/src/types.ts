@@ -45,17 +45,17 @@ export type Investigation = z.infer<typeof InvestigationSchema>;
 // ---- Innovation ----
 
 export const InnovationIdeaSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-  potentialImpact: z.string(),
-  implementationHint: z.string(),
+  title: z.string().max(500),
+  description: z.string().max(5000),
+  potentialImpact: z.string().max(2000),
+  implementationHint: z.string().max(2000),
 });
 
 export const AngleResultSchema = z.object({
-  angleId: z.string(),
-  angleName: z.string(),
-  ideas: z.array(InnovationIdeaSchema),
-  reasoning: z.string().describe("How this angle was applied"),
+  angleId: z.string().max(100),
+  angleName: z.string().max(200),
+  ideas: z.array(InnovationIdeaSchema).max(50),
+  reasoning: z.string().max(5000).describe("How this angle was applied"),
 });
 
 export type InnovationIdea = z.infer<typeof InnovationIdeaSchema>;
@@ -64,17 +64,19 @@ export type AngleResult = z.infer<typeof AngleResultSchema>;
 // ---- Auto-Mode Pipeline ----
 
 export const SynthesisSchema = z.object({
-  topIdeas: z.array(
-    z.object({
-      title: z.string(),
-      description: z.string(),
-      sourceAngle: z.string(),
-      potentialImpact: z.string(),
-      feasibility: z.enum(["low", "medium", "high"]),
-    })
-  ),
-  themes: z.array(z.string()).describe("Cross-cutting themes found"),
-  recommendation: z.string().describe("Overall strategic recommendation"),
+  topIdeas: z
+    .array(
+      z.object({
+        title: z.string().max(500),
+        description: z.string().max(5000),
+        sourceAngle: z.string().max(200),
+        potentialImpact: z.string().max(2000),
+        feasibility: z.enum(["low", "medium", "high"]),
+      })
+    )
+    .max(50),
+  themes: z.array(z.string().max(500)).max(30).describe("Cross-cutting themes found"),
+  recommendation: z.string().max(5000).describe("Overall strategic recommendation"),
 });
 
 export type Synthesis = z.infer<typeof SynthesisSchema>;
