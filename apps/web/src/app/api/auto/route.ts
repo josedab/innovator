@@ -78,7 +78,7 @@ export async function POST(request: Request) {
           logger.error("Auto pipeline error", {
             error: err instanceof Error ? err.message : String(err),
             stack: err instanceof Error ? err.stack : undefined,
-            subject,
+            subject: subject.length > 30 ? subject.slice(0, 30) + "..." : subject,
             route: "/api/auto",
             requestId,
           });
