@@ -76,6 +76,7 @@ export async function POST(request: Request) {
       error: err instanceof Error ? err.message : String(err),
       route: "/api/investigate",
       requestId,
+      durationMs: Date.now() - startTime,
     });
     return new Response(JSON.stringify({ error: "Investigation failed. Please try again." }), {
       status: 500,
