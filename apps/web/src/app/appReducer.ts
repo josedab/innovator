@@ -69,7 +69,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
     case "RESET":
       return initialState;
-    default:
+    default: {
+      const _exhaustive: never = action;
       return state;
+    }
   }
 }
