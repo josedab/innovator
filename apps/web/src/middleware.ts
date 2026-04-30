@@ -34,6 +34,7 @@ const inFlightMap = new Map<string, number>();
 const CLEANUP_INTERVAL_MS = 5 * 60_000;
 let lastCleanup = Date.now();
 
+/** Remove expired entries and cap map sizes to prevent memory leaks. */
 function cleanup() {
   const now = Date.now();
   if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
@@ -71,6 +72,7 @@ function cleanup() {
 // Use request.ip as the primary source (set by the platform, e.g. Vercel,
 // and not spoofable by clients). Fall back to headers only when the platform
 // does not provide it.
+/** Extract the client IP from the request, preferring platform-provided values. */
 function getClientIp(request: NextRequest): string {
   const platformIp = (request as NextRequest & { ip?: string }).ip;
   if (platformIp) return platformIp;
@@ -81,6 +83,7 @@ function getClientIp(request: NextRequest): string {
   );
 }
 
+/** Check and enforce a per-route rate limit, returning a 429 response if exceeded. */
 function checkRouteRateLimit(
   map: Map<string, RateLimitEntry>,
   key: string,
@@ -119,6 +122,17 @@ function checkRouteRateLimit(
 // include a matching X-API-Key header. For public-facing deployments without
 // the env var, consider adding OAuth or session-based auth to prevent
 // unauthorized consumption of the Copilot subscription quota.
+/**
+ * Next.js middleware for API security and rate limiting.
+ *
+ * For non-API routes: applies nonce-based Content-Security-Policy headers.
+ * For API routes: enforces rate limiting (global + per-route), API key
+ * authentication (when `INNOVATOR_API_KEY` is set), body size limits,
+ * concurrent request caps, and request ID tracking.
+ *
+ * @param request - The incoming Next.js request
+ * @returns A NextResponse with security headers, or a 4xx/5xx error response
+ */
 export function middleware(request: NextRequest) {
   // For non-API routes, apply nonce-based CSP
   if (!request.nextUrl.pathname.startsWith("/api/")) {
