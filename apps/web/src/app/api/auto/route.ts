@@ -63,6 +63,16 @@ export async function POST(request: Request) {
 
     const stream = new ReadableStream({
       async start(controller) {
+        // Send periodic keepalive comments to prevent proxy/CDN timeout
+        const heartbeat = setInterval(() => {
+          if (streamClosed) return;
+          try {
+            controller.enqueue(encoder.encode(": keepalive\n\n"));
+          } catch {
+            streamClosed = true;
+          }
+        }, 15_000);
+
         const sendProgress = (progress: PipelineProgress) => {
           if (streamClosed) return;
           try {
@@ -100,6 +110,7 @@ export async function POST(request: Request) {
             sendProgress(errorProgress);
           }
         } finally {
+          clearInterval(heartbeat);
           if (!streamClosed) {
             try {
               controller.close();
