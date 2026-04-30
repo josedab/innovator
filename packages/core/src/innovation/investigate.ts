@@ -1,4 +1,5 @@
 import { generateText, extractJson } from "../copilot/client.js";
+import { withRetry } from "../copilot/retry.js";
 import { buildInvestigationPrompt } from "../prompts/investigation.js";
 import { InvestigationSchema, type Investigation } from "../types.js";
 
@@ -23,7 +24,9 @@ export async function investigate(
   signal?: AbortSignal
 ): Promise<Investigation> {
   const prompt = buildInvestigationPrompt(subject);
-  const raw = await generateText({ prompt, model, serverMode: true, signal });
+  const raw = await withRetry(() => generateText({ prompt, model, serverMode: true, signal }), {
+    signal,
+  });
 
   const jsonStr = extractJson(raw);
   let parsed: unknown;
