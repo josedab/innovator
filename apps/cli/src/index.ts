@@ -29,6 +29,7 @@ for (const sig of ["SIGINT", "SIGTERM"] as const) {
   });
 }
 
+/** Validate subject length and log an error message to stderr on failure. */
 function validateSubjectWithLog(subject: string): boolean {
   if (!validateSubject(subject)) {
     console.error(
@@ -42,6 +43,7 @@ function validateSubjectWithLog(subject: string): boolean {
   return true;
 }
 
+/** Validate that the model is in the known list and log an error on failure. */
 function validateModelWithLog(model: string | undefined): boolean {
   if (!validateModel(model, KNOWN_MODELS)) {
     console.error(chalk.red(`Unknown model. Allowed models: ${KNOWN_MODELS.join(", ")}`));
@@ -51,6 +53,7 @@ function validateModelWithLog(model: string | undefined): boolean {
   return true;
 }
 
+/** Log a debug message to stderr when verbose mode is enabled. Long strings are truncated to 500 chars. */
 function debugLog(label: string, ...args: unknown[]) {
   if (!verbose) return;
   const timestamp = new Date().toISOString();
@@ -63,6 +66,7 @@ function debugLog(label: string, ...args: unknown[]) {
   console.error(chalk.dim(`[${timestamp}] ${chalk.bold(label)}`), ...truncatedArgs);
 }
 
+/** Start a named timer and return a function that logs the elapsed time when called. No-op when verbose is off. */
 function timeStart(label: string): () => void {
   if (!verbose) return () => {};
   const start = performance.now();
