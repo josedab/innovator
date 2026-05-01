@@ -37,6 +37,8 @@ sequenceDiagram
 
 Auto Mode runs **2 angles in parallel** to balance speed against LLM rate limits. Results are collected in the original angle order regardless of completion order.
 
+This parallelism is controlled by the `MAX_CONCURRENCY` constant (exported from `@innovator/core/types`, default: `2`). Both the web API and CLI use this value to limit how many angles are processed simultaneously.
+
 ## Progress tracking
 
 ### Web App
