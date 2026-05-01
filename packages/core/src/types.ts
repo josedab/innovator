@@ -131,7 +131,59 @@ export interface PipelineProgress {
   failedAngles?: { angleId: string; error: string }[];
   synthesis?: Synthesis;
   error?: string;
+  /** Partial idea being streamed in real-time (before full angle result is available). */
+  partialIdea?: {
+    angleId: string;
+    angleName: string;
+    ideaIndex: number;
+    content: string;
+    complete: boolean;
+  };
+  /** Whether the pipeline was stopped early by the user. */
+  stoppedEarly?: boolean;
 }
+
+// ---- Custom Angles ----
+
+/** A custom innovation angle defined by the user with a prompt template. */
+export interface CustomAngle {
+  id: string;
+  name: string;
+  description: string;
+  /** Prompt template with {{subject}} and {{investigation}} placeholders. */
+  promptTemplate: string;
+  icon?: string;
+  author?: string;
+  version?: string;
+  tags?: string[];
+}
+
+/** Zod schema for validating custom angle definitions. */
+export const CustomAngleSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, "ID must be lowercase alphanumeric with hyphens"),
+  name: z.string().min(1).max(200),
+  description: z.string().min(1).max(2000),
+  promptTemplate: z.string().min(1).max(10000),
+  icon: z.string().max(10).optional(),
+  author: z.string().max(200).optional(),
+  version: z.string().max(50).optional(),
+  tags: z.array(z.string().max(100)).max(20).optional(),
+});
+
+/** Schema for an angle pack file (.angle.json). */
+export const AnglePackSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  version: z.string().max(50).optional(),
+  angles: z.array(CustomAngleSchema).min(1).max(50),
+});
+
+/** An angle pack containing one or more custom angles for import/export. */
+export type AnglePack = z.infer<typeof AnglePackSchema>;
 
 // ---- Request / Response ----
 
@@ -154,3 +206,214 @@ export interface AutoRequest {
   subject: string;
   model?: string;
 }
+
+// ---- Plugin System ----
+
+/** Base interface all plugins must implement. */
+export interface PluginBase {
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+}
+
+/** A plugin that provides custom innovation angles. */
+export interface AnglePlugin extends PluginBase {
+  type: "angle";
+  angles: CustomAngle[];
+}
+
+/** Export format configuration. */
+export interface ExportFormat {
+  id: string;
+  name: string;
+  extension: string;
+}
+
+/** A plugin that provides export capabilities. */
+export interface ExporterPlugin extends PluginBase {
+  type: "exporter";
+  formats: ExportFormat[];
+  export(data: ExportData, format: string): Promise<string | Buffer>;
+}
+
+/** Data passed to exporter plugins. */
+export interface ExportData {
+  subject: string;
+  investigation?: Investigation;
+  angleResults: AngleResult[];
+  synthesis?: Synthesis;
+  metadata?: Record<string, unknown>;
+}
+
+/** A plugin that provides visualization capabilities. */
+export interface VisualizerPlugin extends PluginBase {
+  type: "visualizer";
+  render(data: ExportData): Promise<string>;
+}
+
+/** Union of all plugin types. */
+export type InnovatorPlugin = AnglePlugin | ExporterPlugin | VisualizerPlugin;
+
+/** Plugin manifest for discovery and loading. */
+export interface PluginManifest {
+  id: string;
+  name: string;
+  version: string;
+  type: "angle" | "exporter" | "visualizer";
+  description?: string;
+  main: string;
+}
+
+// ---- API Types ----
+
+/** API key metadata for programmatic access. */
+export interface ApiKeyInfo {
+  id: string;
+  name: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt?: string;
+}
+
+/** Rate limit information returned in API responses. */
+export interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  resetAt: string;
+}
+
+// ---- Presets & Templates ----
+
+/** A domain preset with pre-selected angles and customized prompts. */
+export interface Preset {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  suggestedSubject: string;
+  selectedAngles: AngleId[];
+  /** Optional custom prompt hints injected into investigation. */
+  contextHints?: string;
+  tags?: string[];
+}
+
+// ---- History & Persistence ----
+
+/** A stored innovation session with all pipeline results. */
+export interface SessionRecord {
+  id: string;
+  subject: string;
+  createdAt: string;
+  updatedAt: string;
+  investigation?: Investigation;
+  angleResults: AngleResult[];
+  synthesis?: Synthesis;
+  tags: string[];
+  notes?: string;
+  presetId?: string;
+}
+
+/** Search/filter options for querying session history. */
+export interface HistoryQuery {
+  search?: string;
+  tags?: string[];
+  fromDate?: string;
+  toDate?: string;
+  angleId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+// ---- Multi-Model Orchestration ----
+
+/** Pipeline stage that can have a model assigned. */
+export type PipelineModelStage = "investigation" | "generation" | "synthesis";
+
+/** Model capability metadata for smart routing. */
+export interface ModelCapability {
+  modelId: string;
+  displayName: string;
+  strengths: PipelineModelStage[];
+  costTier: "low" | "medium" | "high";
+  speedTier: "fast" | "medium" | "slow";
+  qualityTier: "standard" | "high" | "premium";
+}
+
+/** Per-stage model configuration for the pipeline. */
+export interface ModelRouting {
+  investigation?: string;
+  generation?: string;
+  synthesis?: string;
+}
+
+/** Result of comparing the same angle across multiple models. */
+export interface ModelComparisonResult {
+  angleId: string;
+  results: Array<{
+    model: string;
+    angleResult: AngleResult;
+    durationMs: number;
+  }>;
+}
+
+// ---- Collaborative Sessions ----
+
+/** A collaborative ideation session. */
+export interface CollaborativeSession {
+  id: string;
+  roomCode: string;
+  subject: string;
+  hostUserId: string;
+  createdAt: string;
+  status: "waiting" | "active" | "completed";
+  participants: SessionParticipant[];
+  angleAssignments: Record<string, AngleId[]>;
+  ideas: CollaborativeIdea[];
+  votes: Record<string, string[]>;
+}
+
+/** A participant in a collaborative session. */
+export interface SessionParticipant {
+  userId: string;
+  displayName: string;
+  joinedAt: string;
+  isHost: boolean;
+  assignedAngles: AngleId[];
+  status: "connected" | "disconnected";
+}
+
+/** An idea submitted in a collaborative session. */
+export interface CollaborativeIdea {
+  id: string;
+  authorId: string;
+  angleId: string;
+  title: string;
+  description: string;
+  potentialImpact: string;
+  votes: number;
+  comments: IdeaComment[];
+  createdAt: string;
+}
+
+/** A comment on a collaborative idea. */
+export interface IdeaComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
+/** Events emitted by the collaborative session system. */
+export type CollaborativeEvent =
+  | { type: "participant_joined"; participant: SessionParticipant }
+  | { type: "participant_left"; userId: string }
+  | { type: "idea_submitted"; idea: CollaborativeIdea }
+  | { type: "idea_voted"; ideaId: string; userId: string; votes: number }
+  | { type: "comment_added"; ideaId: string; comment: IdeaComment }
+  | { type: "angle_assigned"; userId: string; angles: AngleId[] }
+  | { type: "session_started"; subject: string }
+  | { type: "session_completed" }
+  | { type: "ideas_merged"; sourceIds: string[]; mergedIdea: CollaborativeIdea };
