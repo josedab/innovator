@@ -22,6 +22,12 @@ Respond with this exact JSON structure:
 
 Generate 3-5 creative, specific, and actionable innovation ideas.`;
 
+/**
+ * Build a prompt that applies the SCAMPER creative-thinking method to generate innovation ideas.
+ * @param subject - The topic to innovate on
+ * @param investigation - Prior investigation context for the subject
+ * @returns A formatted LLM prompt string requesting JSON-structured ideas
+ */
 export function buildScamperPrompt(subject: string, investigation: Investigation): string {
   return `You are an innovation expert applying the SCAMPER method.
 
@@ -39,6 +45,12 @@ Apply each letter of SCAMPER to this subject:
 Use angleId "scamper" and angleName "SCAMPER".${ANGLE_PROMPT_SUFFIX}`;
 }
 
+/**
+ * Build a prompt that applies First Principles thinking to strip away assumptions and rebuild solutions from fundamentals.
+ * @param subject - The topic to innovate on
+ * @param investigation - Prior investigation context for the subject
+ * @returns A formatted LLM prompt string requesting JSON-structured ideas
+ */
 export function buildFirstPrinciplesPrompt(subject: string, investigation: Investigation): string {
   return `You are an innovation expert applying First Principles thinking.
 
@@ -53,6 +65,12 @@ Apply first principles thinking:
 Use angleId "first-principles" and angleName "First Principles".${ANGLE_PROMPT_SUFFIX}`;
 }
 
+/**
+ * Build a prompt that applies Cross-Domain Analogy thinking to map structures from unrelated fields onto the subject.
+ * @param subject - The topic to innovate on
+ * @param investigation - Prior investigation context for the subject
+ * @returns A formatted LLM prompt string requesting JSON-structured ideas
+ */
 export function buildCrossDomainPrompt(subject: string, investigation: Investigation): string {
   return `You are an innovation expert applying Cross-Domain Analogy thinking.
 
@@ -67,6 +85,12 @@ Apply cross-domain analogies:
 Use angleId "cross-domain" and angleName "Cross-Domain Analogy".${ANGLE_PROMPT_SUFFIX}`;
 }
 
+/**
+ * Build a prompt that applies Constraint Injection by imposing provocative limitations to force novel solutions.
+ * @param subject - The topic to innovate on
+ * @param investigation - Prior investigation context for the subject
+ * @returns A formatted LLM prompt string requesting JSON-structured ideas
+ */
 export function buildConstraintsPrompt(subject: string, investigation: Investigation): string {
   return `You are an innovation expert applying Constraint Injection.
 
@@ -84,6 +108,12 @@ Each constraint should force a fundamentally different approach.
 Use angleId "constraints" and angleName "Constraint Injection".${ANGLE_PROMPT_SUFFIX}`;
 }
 
+/**
+ * Build a prompt that applies Problem Inversion by analyzing failure modes and reversing them into innovations.
+ * @param subject - The topic to innovate on
+ * @param investigation - Prior investigation context for the subject
+ * @returns A formatted LLM prompt string requesting JSON-structured ideas
+ */
 export function buildInversionPrompt(subject: string, investigation: Investigation): string {
   return `You are an innovation expert applying Problem Inversion.
 
@@ -99,6 +129,12 @@ Apply problem inversion:
 Use angleId "inversion" and angleName "Problem Inversion".${ANGLE_PROMPT_SUFFIX}`;
 }
 
+/**
+ * Build a prompt that applies Role-Based Perspectives by viewing the subject through diverse stakeholder lenses.
+ * @param subject - The topic to innovate on
+ * @param investigation - Prior investigation context for the subject
+ * @returns A formatted LLM prompt string requesting JSON-structured ideas
+ */
 export function buildPerspectivesPrompt(subject: string, investigation: Investigation): string {
   return `You are an innovation expert applying Role-Based Perspectives.
 
@@ -117,6 +153,12 @@ Each perspective should produce at least one unique insight.
 Use angleId "perspectives" and angleName "Role-Based Perspectives".${ANGLE_PROMPT_SUFFIX}`;
 }
 
+/**
+ * Build a prompt that applies What-If Scenario thinking to push ideas beyond current boundaries with provocative hypotheticals.
+ * @param subject - The topic to innovate on
+ * @param investigation - Prior investigation context for the subject
+ * @returns A formatted LLM prompt string requesting JSON-structured ideas
+ */
 export function buildWhatIfPrompt(subject: string, investigation: Investigation): string {
   return `You are an innovation expert applying What-If Scenario thinking.
 
@@ -134,6 +176,12 @@ Each scenario should push thinking beyond current boundaries and produce genuine
 Use angleId "what-if" and angleName "What-If Scenarios".${ANGLE_PROMPT_SUFFIX}`;
 }
 
+/**
+ * Build a prompt that applies Trend Collision thinking by colliding the subject with emerging technologies and movements.
+ * @param subject - The topic to innovate on
+ * @param investigation - Prior investigation context for the subject
+ * @returns A formatted LLM prompt string requesting JSON-structured ideas
+ */
 export function buildTrendCollisionPrompt(subject: string, investigation: Investigation): string {
   return `You are an innovation expert applying Trend Collision thinking.
 
