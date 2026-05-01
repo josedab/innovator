@@ -13,16 +13,26 @@ import {
 import { investigate } from "./investigate.js";
 import { generateForAngle } from "./generate.js";
 
-/** Replace internal error details with a generic user-facing message. */
+/** Replace internal error details with a generic user-facing message to avoid leaking internals. */
 function sanitizeErrorMessage(stage: string): string {
   return `${stage} encountered an internal error. Please try again.`;
 }
 
+/** Result of running tasks with bounded concurrency, collecting both successes and per-task errors. */
 interface ConcurrencyResult<T> {
+  /** Ordered results array matching the input task indices; `undefined` for failed tasks. */
   results: (T | undefined)[];
+  /** Errors captured per task, indexed to match the original task array. */
   errors: { index: number; error: Error }[];
 }
 
+/**
+ * Execute an array of async task factories with a bounded concurrency limit (semaphore pattern).
+ *
+ * Uses a `Set` of in-flight promises and `Promise.race` to wait for a slot
+ * when the concurrency cap is reached, ensuring at most `concurrency` tasks
+ * run simultaneously.
+ */
 async function runWithConcurrency<T>(
   tasks: (() => Promise<T>)[],
   concurrency: number,
@@ -30,12 +40,14 @@ async function runWithConcurrency<T>(
 ): Promise<ConcurrencyResult<T>> {
   const results: (T | undefined)[] = new Array(tasks.length);
   const errors: { index: number; error: Error }[] = [];
+  // Active promise pool — acts as the semaphore's permit set
   const executing: Set<Promise<void>> = new Set();
 
   for (let i = 0; i < tasks.length; i++) {
     if (signal?.aborted) break;
 
     const index = i;
+    // Start the task and record its result or error by index
     const p = tasks[index]()
       .then((result) => {
         results[index] = result;
@@ -46,17 +58,19 @@ async function runWithConcurrency<T>(
           error: err instanceof Error ? err : new Error(String(err)),
         });
       });
+    // Wrap the promise so it removes itself from the pool on completion
     const wrapped = p.then(() => {
       executing.delete(wrapped);
     });
     executing.add(wrapped);
 
+    // When the pool is full, wait for the first task to finish (release a permit)
     if (executing.size >= concurrency) {
       await Promise.race(executing);
     }
   }
 
-  // Wait for all in-flight tasks to settle
+  // Wait for all remaining in-flight tasks to settle
   await Promise.all(executing);
 
   return { results, errors };
