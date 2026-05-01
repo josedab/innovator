@@ -74,11 +74,12 @@ When complete, the app automatically transitions to the Results view with full s
 
 The web app exposes three API endpoints:
 
-| Route              | Method | Description                          |
-| ------------------ | ------ | ------------------------------------ |
-| `/api/investigate` | POST   | Investigate a subject                |
-| `/api/innovate`    | POST   | Generate ideas for selected angles   |
-| `/api/auto`        | POST   | Run full pipeline with SSE streaming |
+| Route              | Method | Description                             |
+| ------------------ | ------ | --------------------------------------- |
+| `/api/health`      | GET    | Health check (returns status + version) |
+| `/api/investigate` | POST   | Investigate a subject                   |
+| `/api/innovate`    | POST   | Generate ideas for selected angles      |
+| `/api/auto`        | POST   | Run full pipeline with SSE streaming    |
 
 All routes validate request bodies with Zod and return structured JSON error responses on failure.
 
