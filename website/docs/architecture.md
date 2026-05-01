@@ -30,7 +30,7 @@ graph TB
         Investigate[investigate]
         Generate[generateForAngle]
         Pipeline[runAutoPipeline]
-        Prompts[Prompt Templates x9]
+        Prompts[Prompt Templates x10]
         Types[Zod Schemas]
 
         Investigate --> Client

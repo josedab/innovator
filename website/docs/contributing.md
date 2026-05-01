@@ -98,7 +98,7 @@ innovator/
    };
    ```
 
-5. **Update the UI** — add the angle to the `ANGLES` array in `apps/web/src/components/AngleSelector.tsx`
+5. **No UI changes needed** — the `AngleSelector` component imports `ANGLES` from `@innovator/core/types`, so new angles are picked up automatically after rebuilding the core package.
 
 6. **Rebuild** and test
 
