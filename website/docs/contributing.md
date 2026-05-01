@@ -136,6 +136,9 @@ Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feat/my-feature`)
 3. Make your changes with appropriate commits
-4. Ensure all type-checks pass (`npx tsc --noEmit` in each package)
-5. Ensure the web app builds (`npm run build --workspace=apps/web`)
-6. Open a pull request with a clear description
+4. Run all quality checks before pushing:
+   ```bash
+   npm run check     # lint, typecheck, format, test
+   npm run test:ci   # full CI simulation (includes build + coverage)
+   ```
+5. Open a pull request with a clear description
