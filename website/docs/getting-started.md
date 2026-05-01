@@ -23,19 +23,13 @@ cd innovator
 npm install
 ```
 
-## Build the core package
-
-The shared engine must be built before the web app or CLI can use it:
-
-```bash
-npm run build --workspace=packages/core
-```
-
 ## Start the web app
 
 ```bash
 npm run dev
 ```
+
+> **Note:** `npm run dev` automatically builds the core package first via the `predev` script — no manual build step is needed.
 
 Open [http://localhost:3000](http://localhost:3000). You'll see the subject input screen.
 
