@@ -1,3 +1,9 @@
+/**
+ * @module innovation
+ *
+ * Core innovation engine — angle definitions, subject investigation,
+ * per-angle idea generation, and the full auto-mode pipeline.
+ */
 export { ANGLES, getAngleById } from "./angles.js";
 export { investigate } from "./investigate.js";
 export { generateForAngle } from "./generate.js";
