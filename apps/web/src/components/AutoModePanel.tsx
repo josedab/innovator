@@ -41,7 +41,8 @@ const SSE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
  *
  * Connects to `/api/auto`, displays a progress bar with stage labels,
  * and lists completed angles in real time. Calls `onComplete` when the
- * pipeline finishes successfully.
+ * pipeline finishes successfully. Supports "stop and keep" to abort
+ * the pipeline and retain partial results.
  *
  * @param props.subject - The subject to run the pipeline on
  * @param props.onComplete - Called with angle results and optional synthesis on success
@@ -56,7 +57,18 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
   });
   const [started, setStarted] = useState(false);
   const [showCompleted, setShowCompleted] = useState(true);
+  const [partialContent, setPartialContent] = useState<string>("");
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleStopAndKeep = useCallback(() => {
+    abortControllerRef.current?.abort();
+    setProgress((prev) => {
+      if (prev.angleResults.length > 0) {
+        onComplete(prev.angleResults, prev.synthesis ?? null);
+      }
+      return { ...prev, stage: "complete", stoppedEarly: true };
+    });
+  }, [onComplete]);
 
   const runPipeline = useCallback(
     async (signal: AbortSignal) => {
@@ -109,6 +121,13 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
                 }
                 const data: PipelineProgress = parsed;
                 setProgress(data);
+
+                // Track partial idea content for streaming display
+                if (data.partialIdea) {
+                  setPartialContent(data.partialIdea.content);
+                } else {
+                  setPartialContent("");
+                }
 
                 if (data.stage === "complete") {
                   receivedComplete = true;
@@ -182,14 +201,24 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">🚀 Auto Mode</h2>
-        {progress.stage === "error" && (
-          <button
-            onClick={onReset}
-            className="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 underline"
-          >
-            Start over
-          </button>
-        )}
+        <div className="flex gap-3">
+          {progress.stage !== "complete" && progress.stage !== "error" && progress.angleResults.length > 0 && (
+            <button
+              onClick={handleStopAndKeep}
+              className="text-sm px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition"
+            >
+              ⏹ Stop & Keep Results
+            </button>
+          )}
+          {progress.stage === "error" && (
+            <button
+              onClick={onReset}
+              className="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 underline"
+            >
+              Start over
+            </button>
+          )}
+        </div>
       </div>
 
       <p className="text-neutral-600 dark:text-neutral-400 mb-6">
@@ -242,6 +271,23 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
         {progress.error && (
           <div className="p-3 bg-red-50 dark:bg-red-950 rounded-lg text-red-800 dark:text-red-200 text-sm">
             {progress.error}
+          </div>
+        )}
+
+        {partialContent && progress.stage === "generating" && (
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-sm">
+            <p className="text-xs text-blue-500 mb-1 font-medium">
+              {progress.partialIdea ? `💭 ${progress.partialIdea.angleName}` : "Generating..."}
+            </p>
+            <p className="text-neutral-700 dark:text-neutral-300 animate-pulse">
+              {partialContent}
+            </p>
+          </div>
+        )}
+
+        {progress.stoppedEarly && (
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-amber-800 dark:text-amber-300 text-sm">
+            Pipeline stopped early. Showing {progress.angleResults.length} completed angle(s).
           </div>
         )}
       </div>

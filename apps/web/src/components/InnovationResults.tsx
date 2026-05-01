@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { AngleResult, Synthesis } from "@innovator/core/types";
+import { IdeaMap } from "./IdeaMap";
 
 interface InnovationResultsProps {
   angleResults: AngleResult[];
@@ -27,9 +28,27 @@ const FEASIBILITY_COLORS = {
 export function InnovationResults({ angleResults, synthesis }: InnovationResultsProps) {
   const [expandedAngle, setExpandedAngle] = useState<string | null>(null);
   const [showSynthesis, setShowSynthesis] = useState(!!synthesis);
+  const [showMap, setShowMap] = useState(false);
 
   return (
     <div className="space-y-8">
+      {/* Idea Map toggle */}
+      {angleResults.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowMap(!showMap)}
+            className="px-4 py-2 text-sm bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition"
+          >
+            {showMap ? "📊 Hide Idea Map" : "🗺️ Show Idea Map"}
+          </button>
+          {showMap && (
+            <div className="mt-4">
+              <IdeaMap angleResults={angleResults} synthesis={synthesis} />
+            </div>
+          )}
+        </div>
+      )}
+
       {synthesis && (
         <div>
           <button
