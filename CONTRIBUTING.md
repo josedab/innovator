@@ -26,6 +26,8 @@ npm install
 npm run dev
 ```
 
+> **Prefer `make`?** A full Makefile with common targets is available. Run `make help` to see all options.
+
 > **💻 Dev Container / Codespaces:** This repo includes a `.devcontainer/devcontainer.json` with Node.js 20, GitHub CLI, and ESLint/Prettier extensions pre-configured. Open in Codespaces or VS Code Dev Containers to skip manual setup.
 
 ## Project Structure
@@ -199,6 +201,8 @@ This project uses [GitHub CodeQL](https://codeql.github.com/) for automated secu
 - On a weekly schedule
 
 It analyzes JavaScript/TypeScript code using `security-and-quality` queries. Results appear in the repository's **Security → Code scanning** tab. No action is needed from contributors — CodeQL runs automatically as part of CI.
+
+To report a security vulnerability, see [SECURITY.md](.github/SECURITY.md).
 
 ## Releases
 
