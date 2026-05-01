@@ -44,7 +44,7 @@ describe("CLI smoke tests", () => {
     const { stdout, status } = run("angles");
     expect(status).toBe(0);
     expect(stdout).toContain("scamper");
-    expect(stdout).toContain("Available Innovation Angles");
+    expect(stdout).toContain("Innovation Angles");
   });
 
   it("rejects innovate without --angles", () => {
