@@ -416,6 +416,62 @@ data: {"stage":"generating","completedAngles":["scamper"],"totalAngles":8,...}
 data: {"stage":"complete","completedAngles":[...],"synthesis":{...}}
 ```
 
+#### Fields present at each stage
+
+Not every `PipelineProgress` field is populated at every stage. The table below shows which fields carry meaningful values at each stage transition:
+
+| Field             | `investigating` | `generating`                 | `synthesizing`    | `complete`        | `error`        |
+| ----------------- | --------------- | ---------------------------- | ----------------- | ----------------- | -------------- |
+| `stage`           | ✅              | ✅                           | ✅                | ✅                | ✅             |
+| `totalAngles`     | ✅              | ✅                           | ✅                | ✅                | ✅             |
+| `completedAngles` | `[]`            | Grows as angles finish       | All angles listed | All angles listed | Partial        |
+| `currentAngle`    | —               | ID of the angle in progress  | —                 | —                 | —              |
+| `investigation`   | —               | ✅ (set after investigation) | ✅                | ✅                | May be present |
+| `angleResults`    | `[]`            | Grows with each completion   | All angle results | All angle results | Partial        |
+| `synthesis`       | —               | —                            | —                 | ✅                | —              |
+| `error`           | —               | —                            | —                 | —                 | Error message  |
+
+:::note
+The server sends SSE keepalive comments (`: keepalive`) every 15 seconds to prevent proxy/load-balancer timeouts. These are lines starting with `:` and should be ignored by the client.
+:::
+
+#### Consuming the SSE stream
+
+The `/api/auto` endpoint uses raw SSE (not compatible with `EventSource`). Use `fetch()` with a streaming reader:
+
+```javascript
+async function runAuto(subject) {
+  const response = await fetch("/api/auto", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ subject }),
+  });
+
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += value;
+
+    // SSE messages are separated by double newlines
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop(); // keep incomplete chunk
+
+    for (const part of parts) {
+      if (part.startsWith("data: ")) {
+        const progress = JSON.parse(part.slice(6));
+        console.log(progress.stage, progress.completedAngles.length);
+      }
+      // Lines starting with ":" are keepalive comments — ignore them
+    }
+  }
+}
+```
+
 ### `GET /api/health`
 
 Returns the service status and version.
