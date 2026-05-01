@@ -5,7 +5,7 @@ Thank you for your interest in contributing! This guide will help you get starte
 ## Prerequisites
 
 - **Node.js 20+** (see `.nvmrc`)
-- **npm** as package manager — do not use yarn or pnpm
+- **npm** as package manager — do not use yarn or pnpm (enforced via `only-allow npm` preinstall hook; other package managers will be blocked)
 - **GitHub Copilot subscription** (for running the AI-powered features)
 - **GitHub CLI** authenticated (`gh auth login`)
 
@@ -25,6 +25,8 @@ npm install
 # Start development (auto-builds core first)
 npm run dev
 ```
+
+> **💻 Dev Container / Codespaces:** This repo includes a `.devcontainer/devcontainer.json` with Node.js 20, GitHub CLI, and ESLint/Prettier extensions pre-configured. Open in Codespaces or VS Code Dev Containers to skip manual setup.
 
 ## Project Structure
 
@@ -94,15 +96,18 @@ All commands are run from the monorepo root.
 | `npm run format:check` | Check formatting without writing changes                                       |
 | `npm test`             | Run all tests with vitest                                                      |
 | `npm run test:watch`   | Run tests in watch mode                                                        |
+| `npm run test:e2e`     | Run Playwright end-to-end tests (from `apps/web`)                              |
+| `npm run test:e2e:ui`  | Run Playwright E2E tests with interactive UI mode                              |
 
 ### Build
 
-| Command             | Description                                                 |
-| ------------------- | ----------------------------------------------------------- |
-| `npm run build`     | Build core package and web app for production               |
-| `npm run clean`     | Remove build artifacts (`dist/`, `.next/`, `*.tsbuildinfo`) |
-| `npm run clean:all` | Clean build artifacts and all `node_modules/` directories   |
-| `npm run docs:api`  | Generate TypeDoc API documentation for the core package     |
+| Command               | Description                                                 |
+| --------------------- | ----------------------------------------------------------- |
+| `npm run build`       | Build core package and web app for production               |
+| `npm run clean`       | Remove build artifacts (`dist/`, `.next/`, `*.tsbuildinfo`) |
+| `npm run build:check` | Verify all expected build outputs exist                     |
+| `npm run clean:all`   | Clean build artifacts and all `node_modules/` directories   |
+| `npm run docs:api`    | Generate TypeDoc API documentation for the core package     |
 
 ### CLI
 
@@ -117,7 +122,7 @@ All commands are run from the monorepo root.
 
 - **TypeScript** — All code is written in TypeScript with strict mode enabled
 - **Formatting** — Prettier is configured; run `npm run format` or enable format-on-save
-- **Linting** — ESLint is configured; pre-commit hooks run automatically via husky
+- **Linting** — ESLint is configured; pre-commit hooks run automatically via husky. On commit, husky runs [lint-staged](https://github.com/lint-staged/lint-staged) which auto-fixes ESLint issues and formats staged `.ts`/`.tsx` files, and formats `.json`, `.md`, and `.yml` files with Prettier. Staged files may be modified in place.
 - **Commit messages** — [Conventional Commits](https://www.conventionalcommits.org/) are enforced automatically by [commitlint](https://commitlint.js.org/) (configured in `commitlint.config.mjs`) and [husky](https://typicode.github.io/husky/) git hooks. Non-conforming commits will be rejected locally.
 - **Types** — Shared types live in `packages/core/src/types.ts`; import from `@innovator/core` — do not re-declare types locally
 - **Tests** — Write tests for new utilities and logic using vitest (`npm test`)
@@ -185,6 +190,15 @@ npm run dev
 - Include a clear description of what changed and why
 - Ensure all CI checks pass (lint, build, test)
 - Update documentation if your change affects user-facing behavior
+
+## Security
+
+This project uses [GitHub CodeQL](https://codeql.github.com/) for automated security analysis. The CodeQL workflow (`.github/workflows/codeql.yml`) runs:
+
+- On every push and pull request to `main`
+- On a weekly schedule
+
+It analyzes JavaScript/TypeScript code using `security-and-quality` queries. Results appear in the repository's **Security → Code scanning** tab. No action is needed from contributors — CodeQL runs automatically as part of CI.
 
 ## Releases
 
