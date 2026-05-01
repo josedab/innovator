@@ -111,6 +111,16 @@ INNOVATOR_DEFAULT_MODEL=gpt-4.1
 
 Supported models include `gpt-4.1`, `gpt-5`, `claude-sonnet-4.5`, and others available through your Copilot subscription.
 
+### Environment Variables
+
+| Variable                   | Description                                      | Default   | Required |
+| -------------------------- | ------------------------------------------------ | --------- | -------- |
+| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime | `gpt-4.1` | No       |
+| `INNOVATOR_API_KEY`        | API key to protect web routes (bearer token)     | _unset_   | No       |
+| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for LLM requests in milliseconds         | `90000`   | No       |
+| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs     | _unset_   | No       |
+| `PORT`                     | Dev server port                                  | `3000`    | No       |
+
 ## Contributing
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, coding standards, and PR guidelines.
