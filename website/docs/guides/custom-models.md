@@ -64,3 +64,7 @@ const result = await investigate("quantum computing", "gpt-5");
 - **Quick exploration**: Use `gpt-4.1` for fast iteration
 - **Final deep analysis**: Use `gpt-5` for the highest-quality synthesis
 - **Different perspectives**: Try different models on the same subject — they have different creative tendencies
+
+## Related
+
+- [Configuration Reference](../configuration.md) — full list of environment variables including `INNOVATOR_API_KEY` and `INNOVATOR_LLM_TIMEOUT_MS`
