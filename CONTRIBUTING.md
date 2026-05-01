@@ -127,6 +127,18 @@ All commands are run from the monorepo root.
 - **Formatting** — Prettier is configured; run `npm run format` or enable format-on-save
 - **Linting** — ESLint is configured; pre-commit hooks run automatically via husky. On commit, husky runs [lint-staged](https://github.com/lint-staged/lint-staged) which auto-fixes ESLint issues and formats staged `.ts`/`.tsx` files, and formats `.json`, `.md`, and `.yml` files with Prettier. Staged files may be modified in place.
 - **Commit messages** — [Conventional Commits](https://www.conventionalcommits.org/) are enforced automatically by [commitlint](https://commitlint.js.org/) (configured in `commitlint.config.mjs`) and [husky](https://typicode.github.io/husky/) git hooks. Non-conforming commits will be rejected locally.
+
+  The `commit-msg` hook runs commitlint on every commit. If your message does not follow the conventional format, you will see an error like:
+
+  ```
+  ⧗   input: my bad commit message
+  ✖   subject may not be empty [subject-empty]
+  ✖   type may not be empty [type-empty]
+  ✖   Found 2 problems, 0 warnings
+  ```
+
+  Fix this by using a valid prefix: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, `perf:`, etc.
+
 - **Types** — Shared types live in `packages/core/src/types.ts`; import from `@innovator/core` — do not re-declare types locally
 - **Tests** — Write tests for new utilities and logic using vitest (`npm test`)
 
