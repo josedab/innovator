@@ -170,6 +170,55 @@ Tests are configured in `vitest.config.ts` at the repository root. Key settings:
 - **Minimum thresholds** — CI enforces **35%** coverage for lines, functions, and branches. Pull requests that drop below these thresholds will fail.
 - **Run coverage locally** with `npm run test:coverage`.
 
+## Testing Guide
+
+### Test Categories
+
+- **Unit tests** — Located in `packages/*/src/__tests__/` and `apps/*/src/__tests__/`. Run with `npm test`. These test individual modules (prompt builders, JSON extraction, retry logic, angle generation, pipeline orchestration).
+- **End-to-end tests** — Located in `apps/web/e2e/`. Run with `npm run test:e2e`. These use Playwright to test the web app in a real browser.
+
+### Mocking the LLM Layer
+
+All tests that touch LLM functionality mock the Copilot SDK and client to avoid real API calls:
+
+```typescript
+// Mock the Copilot SDK (required in every test file that imports core modules)
+vi.mock("@github/copilot-sdk", () => ({
+  CopilotClient: vi.fn(),
+}));
+
+// Mock the client wrapper
+vi.mock("../copilot/client.js", () => ({
+  generateText: vi.fn(),
+  extractJson: vi.fn(),
+}));
+```
+
+### Test Fixtures
+
+Tests use a shared `MOCK_INVESTIGATION` fixture to simulate investigation results:
+
+```typescript
+const MOCK_INVESTIGATION: Investigation = {
+  summary: "Test summary",
+  keyAspects: [{ title: "Aspect", description: "Description" }],
+  currentState: "Current state",
+  challenges: ["Challenge"],
+  opportunities: ["Opportunity"],
+};
+```
+
+### Writing Tests for the LLM Integration Layer
+
+1. Mock `generateText` and `extractJson` from the client module
+2. Use `vi.mocked()` to get typed mock references
+3. Set up return values with `mockResolvedValue` / `mockReturnValue`
+4. Assert that prompts are constructed correctly and results are parsed as expected
+
+### Coverage Thresholds
+
+CI enforces a **35% minimum** for lines, functions, and branches (configured in `vitest.config.ts`). This threshold reflects the project's reliance on LLM integration code that is mocked in tests — the goal is to ensure utility and pipeline logic is well-tested while acknowledging that full coverage of SDK-dependent code requires integration tests. Run `npm run test:coverage` to check locally.
+
 ## Making Changes
 
 ### Core package (`packages/core`)
