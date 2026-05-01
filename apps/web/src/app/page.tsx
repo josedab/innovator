@@ -1,3 +1,13 @@
+/**
+ * Main page component for the Innovator web app.
+ *
+ * Implements a stage-based flow:
+ *   input → investigating → explored → innovating → results
+ *
+ * Also supports an "auto" stage that runs all angles via SSE.
+ * API requests use a 60-second timeout (AbortSignal.timeout) to prevent
+ * the UI from hanging indefinitely on slow or unresponsive LLM calls.
+ */
 "use client";
 
 import { useReducer, useRef } from "react";
