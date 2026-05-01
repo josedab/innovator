@@ -15,6 +15,16 @@ const RequestSchema = z.object({
   model: z.string().optional(),
 });
 
+/**
+ * Run the full innovation pipeline automatically via Server-Sent Events.
+ *
+ * Investigates the subject, generates innovations for all 8 angles with bounded
+ * concurrency, synthesizes results, and streams {@link PipelineProgress} events.
+ *
+ * @param request - JSON body: `{ subject: string, model?: string }`
+ * @returns An SSE stream (`text/event-stream`) where each `data:` line is a JSON
+ *          {@link PipelineProgress} object, or `{ error: string }` on failure (400/500).
+ */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   const startTime = Date.now();
