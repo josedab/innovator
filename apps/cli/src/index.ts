@@ -179,7 +179,10 @@ program
         const batch = angleIds.slice(i, i + MAX_CONCURRENCY);
         const batchResults = await Promise.all(
           batch.map(async (angleId) => {
-            const angle = ANGLES.find((a) => a.id === angleId)!;
+            const angle = ANGLES.find((a) => a.id === angleId);
+            if (!angle) {
+              throw new Error(`Unknown angle: ${angleId}`);
+            }
             spinner.start(`${angle.icon} Generating: ${angle.name}...`);
 
             const endAngle = timeStart(`generate:${angleId}`);
