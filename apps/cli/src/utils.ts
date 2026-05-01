@@ -2,6 +2,7 @@
  * Pure utility functions for CLI input validation and sanitization.
  */
 
+/** Maximum number of characters allowed for a CLI subject argument. */
 export const MAX_SUBJECT_LENGTH = 500;
 
 /** Strip ANSI escape sequences from untrusted LLM output */
