@@ -186,6 +186,24 @@ npm run dev
 - Ensure all CI checks pass (lint, build, test)
 - Update documentation if your change affects user-facing behavior
 
+## Releases
+
+This project uses [semantic-release](https://github.com/semantic-release/semantic-release) to automate versioning, changelog generation, and publishing.
+
+### How it works
+
+1. **Trigger** — Every push to the `main` branch runs the release workflow (`.github/workflows/release.yml`).
+2. **Version bump** — `semantic-release` analyzes commit messages since the last release and determines the next version using [Conventional Commits](https://www.conventionalcommits.org/):
+   - `fix:` → patch release (e.g. 1.0.0 → 1.0.1)
+   - `feat:` → minor release (e.g. 1.0.0 → 1.1.0)
+   - `BREAKING CHANGE:` or `feat!:` / `fix!:` → major release (e.g. 1.0.0 → 2.0.0)
+3. **Changelog** — `CHANGELOG.md` is updated automatically based on the commit history.
+4. **Publish** — A GitHub Release is created with the new version tag and release notes.
+
+### Who can publish
+
+Only pushes to `main` on the upstream repository (`josedab/innovator`) trigger a release. Fork pushes and pull request branches do not. The workflow uses the `GITHUB_TOKEN` secret provided by GitHub Actions — no additional credentials are needed.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
