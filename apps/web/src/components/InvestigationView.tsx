@@ -4,6 +4,14 @@ interface InvestigationViewProps {
   investigation: Investigation;
 }
 
+/**
+ * Renders the structured results of a subject investigation.
+ *
+ * Displays the AI-generated summary, key aspects, current state,
+ * challenges, and opportunities in a card-based layout.
+ *
+ * @param props.investigation - The {@link Investigation} object to display
+ */
 export function InvestigationView({ investigation }: InvestigationViewProps) {
   return (
     <div className="space-y-6">

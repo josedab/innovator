@@ -14,6 +14,16 @@ const FEASIBILITY_COLORS = {
   high: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 };
 
+/**
+ * Displays innovation results grouped by angle with an optional synthesis section.
+ *
+ * Renders expandable angle cards showing ideas, reasoning, and impact. When synthesis
+ * is available, shows top ideas ranked by feasibility, cross-cutting themes, and a
+ * strategic recommendation.
+ *
+ * @param props.angleResults - Array of {@link AngleResult} objects to display
+ * @param props.synthesis - Optional {@link Synthesis} with cross-angle analysis
+ */
 export function InnovationResults({ angleResults, synthesis }: InnovationResultsProps) {
   const [expandedAngle, setExpandedAngle] = useState<string | null>(null);
   const [showSynthesis, setShowSynthesis] = useState(!!synthesis);

@@ -8,6 +8,14 @@ interface AngleSelectorProps {
   onSubmit: (angles: AngleId[]) => void;
 }
 
+/**
+ * Grid of toggle-able innovation angle cards for manual angle selection.
+ *
+ * Displays all 8 angles with icons and descriptions. Users can select/deselect
+ * individual angles or use Select All / Clear. Submits the chosen angle IDs.
+ *
+ * @param props.onSubmit - Called with the array of selected {@link AngleId}s
+ */
 export function AngleSelector({ onSubmit }: AngleSelectorProps) {
   const [selected, setSelected] = useState<Set<AngleId>>(new Set());
 

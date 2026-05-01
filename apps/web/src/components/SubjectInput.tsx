@@ -7,6 +7,16 @@ interface SubjectInputProps {
   onAutoMode: (subject: string) => void;
 }
 
+/**
+ * Entry form for submitting a subject to investigate or run in auto mode.
+ *
+ * Provides a text input (max 500 chars) with two action buttons:
+ * - **Investigate** — triggers manual angle selection flow
+ * - **Auto Mode** — runs all angles automatically
+ *
+ * @param props.onSubmit - Called with the trimmed subject for manual investigation
+ * @param props.onAutoMode - Called with the trimmed subject for automatic pipeline
+ */
 export function SubjectInput({ onSubmit, onAutoMode }: SubjectInputProps) {
   const [value, setValue] = useState("");
 
