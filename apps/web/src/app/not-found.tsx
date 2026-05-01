@@ -1,5 +1,10 @@
 import Link from "next/link";
 
+/**
+ * Custom 404 page displayed when a route is not found.
+ *
+ * Renders a centered message with a link back to the home page.
+ */
 export default function NotFound() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh]">

@@ -18,6 +18,13 @@ export const metadata: Metadata = {
   description: "Explore any subject from multiple innovation angles using AI",
 };
 
+/**
+ * Root layout for the Innovator web application.
+ *
+ * Sets up Geist fonts, global metadata (title, description), and the
+ * page shell: a header with the Innovator logo, a flex-grow main content
+ * area, and a footer. All pages are rendered as children within this layout.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

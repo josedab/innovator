@@ -2,6 +2,7 @@ import { z } from "zod";
 import { KNOWN_MODELS } from "@innovator/core";
 import { logger } from "./logger";
 
+/** Re-exported list of known LLM model identifiers from `@innovator/core`. */
 export { KNOWN_MODELS };
 
 const envSchema = z.object({
@@ -15,6 +16,7 @@ const envSchema = z.object({
     }),
 });
 
+/** Inferred environment variable types after Zod validation. */
 export type Env = z.infer<typeof envSchema>;
 
 /**
