@@ -1,3 +1,8 @@
+/**
+ * Root loading skeleton shown by Next.js while a route segment is loading.
+ *
+ * Displays a pulsing lightbulb animation as a placeholder for the main content.
+ */
 export default function Loading() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh]">

@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Global error boundary for the Next.js app.
+ *
+ * Catches unhandled errors in the component tree and displays a user-friendly
+ * message with a "Try again" button that re-renders the failed segment.
+ * The `digest` property is set by Next.js for server-side errors.
+ */
 export default function Error({
   error,
   reset,
