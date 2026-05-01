@@ -27,6 +27,8 @@ Explore any subject from multiple innovation angles using AI. Built with Next.js
 
 ## Quick Start
 
+> **💻 Using GitHub Codespaces or VS Code Dev Containers?** Open the repo in a dev container — Node.js 20, GitHub CLI, and extensions are pre-configured. See [Dev Container / Codespaces](#dev-container--codespaces).
+
 ```bash
 # Use the correct Node.js version (see .nvmrc)
 nvm use  # or fnm use
@@ -120,6 +122,17 @@ Supported models include `gpt-4.1`, `gpt-5`, `claude-sonnet-4.5`, and others ava
 | `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for LLM requests in milliseconds         | `90000`   | No       |
 | `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs     | _unset_   | No       |
 | `PORT`                     | Dev server port                                  | `3000`    | No       |
+
+## Dev Container / Codespaces
+
+This repository includes a [dev container](.devcontainer/devcontainer.json) configuration for **GitHub Codespaces** and **VS Code Dev Containers**. It provides:
+
+- **Node.js 20** runtime
+- **GitHub CLI** pre-installed
+- **ESLint & Prettier** VS Code extensions with format-on-save enabled
+- **Port 3000** forwarded automatically
+
+To get started, click **"Code → Codespaces → New codespace"** on GitHub, or open the repo in VS Code and select **"Reopen in Container"**. Dependencies install automatically via the `postCreateCommand`.
 
 ## Contributing
 
