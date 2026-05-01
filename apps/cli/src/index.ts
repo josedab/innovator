@@ -174,24 +174,32 @@ program
       spinner.succeed("Investigation complete");
       debugLog("RESPONSE", "investigation", JSON.stringify(investigation, null, 2));
 
-      for (const angleId of angleIds) {
-        const angle = ANGLES.find((a) => a.id === angleId)!;
-        spinner.start(`${angle.icon} Generating: ${angle.name}...`);
+      const MAX_CONCURRENCY = 2;
+      for (let i = 0; i < angleIds.length; i += MAX_CONCURRENCY) {
+        const batch = angleIds.slice(i, i + MAX_CONCURRENCY);
+        const batchResults = await Promise.all(
+          batch.map(async (angleId) => {
+            const angle = ANGLES.find((a) => a.id === angleId)!;
+            spinner.start(`${angle.icon} Generating: ${angle.name}...`);
 
-        const endAngle = timeStart(`generate:${angleId}`);
-        const result = await generateForAngle(subject, investigation, angleId, opts.model);
-        endAngle();
-        spinner.succeed(`${angle.icon} ${angle.name}`);
-        debugLog("RESPONSE", angleId, JSON.stringify(result, null, 2));
-
-        console.log(chalk.dim(`   Reasoning: ${stripAnsi(result.reasoning)}`));
-        for (const idea of result.ideas) {
-          console.log(`\n   ${chalk.bold.cyan(stripAnsi(idea.title))}`);
-          console.log(`   ${stripAnsi(idea.description)}`);
-          console.log(`   ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}`);
-          console.log(`   ${chalk.dim("How to start:")} ${stripAnsi(idea.implementationHint)}`);
+            const endAngle = timeStart(`generate:${angleId}`);
+            const result = await generateForAngle(subject, investigation, angleId, opts.model);
+            endAngle();
+            debugLog("RESPONSE", angleId, JSON.stringify(result, null, 2));
+            return { angle, result };
+          })
+        );
+        for (const { angle, result } of batchResults) {
+          spinner.succeed(`${angle.icon} ${angle.name}`);
+          console.log(chalk.dim(`   Reasoning: ${stripAnsi(result.reasoning)}`));
+          for (const idea of result.ideas) {
+            console.log(`\n   ${chalk.bold.cyan(stripAnsi(idea.title))}`);
+            console.log(`   ${stripAnsi(idea.description)}`);
+            console.log(`   ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}`);
+            console.log(`   ${chalk.dim("How to start:")} ${stripAnsi(idea.implementationHint)}`);
+          }
+          console.log();
         }
-        console.log();
       }
     } catch (err) {
       spinner.fail("Innovation generation failed");
