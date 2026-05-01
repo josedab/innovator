@@ -89,6 +89,17 @@ The project uses **npm workspaces** with three packages:
 
 The core package is built with `tsc` and consumed by both apps. The web app uses `transpilePackages` in `next.config.ts` for seamless workspace resolution.
 
+### Dependency Rules
+
+The npm workspaces setup enforces an implicit dependency hierarchy:
+
+- **`packages/core` must remain app-agnostic** — it must not depend on any app package (`apps/web`, `apps/cli`). It contains only the shared innovation engine, types, and Copilot SDK integration.
+- **`apps/web` and `apps/cli` depend on `packages/core`** — they import types, functions, and constants from the core package.
+- **Client components** (`"use client"`) must import from `@innovator/core/types` (browser-safe, no Node.js dependencies).
+- **Server components and API routes** can import from `@innovator/core` (full API including Node.js-only Copilot SDK).
+
+Violating these rules will cause build failures — for example, importing `@innovator/core` in a client component pulls in Node.js dependencies that don't exist in the browser.
+
 ## Copilot SDK Client
 
 The client is a **singleton with promise caching**:
