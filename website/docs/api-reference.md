@@ -152,6 +152,21 @@ type AngleId =
 
 ---
 
+### `ANGLE_IDS` constant
+
+Readonly tuple of all valid angle identifier strings. Used to iterate over angles or validate user input.
+
+```typescript
+import { ANGLE_IDS } from "@innovator/core";
+
+ANGLE_IDS.forEach((id) => console.log(id));
+// "scamper", "first-principles", "cross-domain", ...
+```
+
+**Type:** `readonly ["scamper", "first-principles", "cross-domain", "constraints", "inversion", "perspectives", "what-if", "trend-collision"]`
+
+---
+
 ### `ANGLES` constant
 
 Array of all angle definitions with metadata:
