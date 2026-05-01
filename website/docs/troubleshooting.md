@@ -64,12 +64,7 @@ Check the error response for details:
 
 ```json
 {
-  "error": "Invalid request",
-  "details": {
-    "fieldErrors": {
-      "subject": ["String must contain at least 1 character(s)"]
-    }
-  }
+  "error": "Invalid request. Please check your input and try again."
 }
 ```
 
@@ -103,6 +98,19 @@ npm run build --workspace=packages/core
 ```
 
 The web app's dev server (`npm run dev`) picks up changes automatically via `transpilePackages`.
+
+## `npm run doctor` checks
+
+The `npm run doctor` command verifies your development environment is ready. It checks:
+
+| Check                        | What it verifies                           | Fix if it fails                                                                   |
+| ---------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------- |
+| **Node.js ≥ 20**             | Your Node.js major version is 20 or higher | Install Node.js 20+ via `nvm install 20` or from [nodejs.org](https://nodejs.org) |
+| **GitHub CLI installed**     | The `gh` command is available on your PATH | Install from [cli.github.com](https://cli.github.com)                             |
+| **GitHub CLI authenticated** | `gh auth status` succeeds                  | Run `gh auth login`                                                               |
+| **Core package built**       | `packages/core/dist/` exists               | Run `npm run build --workspace=packages/core`                                     |
+
+If all checks pass (✅), you're ready to develop. If any check fails (❌), follow the fix instructions above.
 
 ## Port 3000 already in use
 
