@@ -102,6 +102,7 @@ All commands are run from the monorepo root.
 | `npm run build`     | Build core package and web app for production               |
 | `npm run clean`     | Remove build artifacts (`dist/`, `.next/`, `*.tsbuildinfo`) |
 | `npm run clean:all` | Clean build artifacts and all `node_modules/` directories   |
+| `npm run docs:api`  | Generate TypeDoc API documentation for the core package     |
 
 ### CLI
 
@@ -117,6 +118,7 @@ All commands are run from the monorepo root.
 - **TypeScript** — All code is written in TypeScript with strict mode enabled
 - **Formatting** — Prettier is configured; run `npm run format` or enable format-on-save
 - **Linting** — ESLint is configured; pre-commit hooks run automatically via husky
+- **Commit messages** — [Conventional Commits](https://www.conventionalcommits.org/) are enforced automatically by [commitlint](https://commitlint.js.org/) (configured in `commitlint.config.mjs`) and [husky](https://typicode.github.io/husky/) git hooks. Non-conforming commits will be rejected locally.
 - **Types** — Shared types live in `packages/core/src/types.ts`; import from `@innovator/core` — do not re-declare types locally
 - **Tests** — Write tests for new utilities and logic using vitest (`npm test`)
 
@@ -138,6 +140,15 @@ npx vitest packages/core/src/__tests__/angles.test.ts
 npx vitest run packages/core/
 npx vitest run apps/web/
 ```
+
+### Test Configuration and Coverage
+
+Tests are configured in `vitest.config.ts` at the repository root. Key settings:
+
+- **Environment** — Web app tests (`apps/web/**`) run in a `jsdom` environment; all other tests use the default Node environment.
+- **Coverage provider** — V8, with `lcov` and `text` reporters.
+- **Minimum thresholds** — CI enforces **35%** coverage for lines, functions, and branches. Pull requests that drop below these thresholds will fail.
+- **Run coverage locally** with `npm run test:coverage`.
 
 ## Making Changes
 
