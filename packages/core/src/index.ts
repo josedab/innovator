@@ -154,3 +154,27 @@ export type {
   ConversationContext,
   RefinementResponse,
 } from "./conversation/index.js";
+
+// Providers
+export {
+  CopilotProvider,
+  OpenAIProvider,
+  AnthropicProvider,
+  OllamaProvider,
+  loadConfig,
+  saveConfig,
+  registerProvider,
+  getProvider,
+  getActiveProvider,
+  setActiveProvider,
+  listProviders,
+  initializeProviders,
+  clearProviders,
+  InnovatorConfigSchema,
+} from "./providers/index.js";
+export type {
+  LLMProvider,
+  LLMGenerateOptions,
+  LLMModelInfo,
+  InnovatorConfig,
+} from "./providers/index.js";
