@@ -13,6 +13,7 @@ export interface RetryOptions {
   signal?: AbortSignal;
 }
 
+/** Error message substrings that identify transient network/timeout failures eligible for retry. */
 const DEFAULT_RETRYABLE_PATTERNS = [
   "ECONNRESET",
   "ECONNREFUSED",

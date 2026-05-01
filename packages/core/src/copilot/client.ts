@@ -60,7 +60,10 @@ function createPermissionHandler(mode: string) {
   };
 }
 
+/** Permission handler for web/API routes — restricts Copilot to read-only operations. */
 const serverPermissionHandler = createPermissionHandler("Server");
+
+/** Permission handler for CLI usage — restricts Copilot to read-only operations. */
 const cliPermissionHandler = createPermissionHandler("CLI");
 
 export interface GenerateOptions {
@@ -74,6 +77,7 @@ export interface GenerateOptions {
   signal?: AbortSignal;
 }
 
+/** Default LLM request timeout in ms, configurable via INNOVATOR_LLM_TIMEOUT_MS env var. */
 const DEFAULT_TIMEOUT_MS = (() => {
   const env = process.env.INNOVATOR_LLM_TIMEOUT_MS;
   if (env) {
