@@ -45,6 +45,8 @@ npm run dev
 # Open http://localhost:3000 (customize with PORT=3001)
 ```
 
+> **Prefer `make`?** Run `make help` to see all available targets.
+
 ## CLI Usage
 
 ```bash
@@ -115,13 +117,13 @@ Supported models include `gpt-4.1`, `gpt-5`, `claude-sonnet-4.5`, and others ava
 
 ### Environment Variables
 
-| Variable                   | Description                                      | Default   | Required |
-| -------------------------- | ------------------------------------------------ | --------- | -------- |
-| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime | `gpt-4.1` | No       |
-| `INNOVATOR_API_KEY`        | API key to protect web routes (bearer token)     | _unset_   | No       |
-| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for LLM requests in milliseconds         | `90000`   | No       |
-| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs     | _unset_   | No       |
-| `PORT`                     | Dev server port                                  | `3000`    | No       |
+| Variable                   | Description                                        | Default   | Required |
+| -------------------------- | -------------------------------------------------- | --------- | -------- |
+| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime   | `gpt-4.1` | No       |
+| `INNOVATOR_API_KEY`        | API key to protect web routes (`X-API-Key` header) | _unset_   | No       |
+| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for LLM requests in milliseconds           | `90000`   | No       |
+| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs       | _unset_   | No       |
+| `PORT`                     | Dev server port                                    | `3000`    | No       |
 
 ## Dev Container / Codespaces
 
@@ -137,6 +139,10 @@ To get started, click **"Code → Codespaces → New codespace"** on GitHub, or 
 ## Contributing
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, coding standards, and PR guidelines.
+
+## Security
+
+To report a vulnerability, please follow the instructions in [SECURITY.md](.github/SECURITY.md). **Do not open a public issue for security vulnerabilities.** We aim to acknowledge reports within 48 hours.
 
 ## Tech Stack
 
