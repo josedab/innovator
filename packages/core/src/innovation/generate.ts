@@ -10,7 +10,15 @@ import {
   buildWhatIfPrompt,
   buildTrendCollisionPrompt,
 } from "../prompts/angles/index.js";
-import { AngleResultSchema, type AngleId, type AngleResult, type Investigation } from "../types.js";
+import { investigationContext } from "../prompts/investigation.js";
+import {
+  AngleResultSchema,
+  type AngleId,
+  type AngleResult,
+  type Investigation,
+  type CustomAngle,
+} from "../types.js";
+import { buildCustomAnglePrompt, getCustomAngle } from "./custom-angles.js";
 
 type PromptBuilder = (subject: string, investigation: Investigation) => string;
 
@@ -47,16 +55,24 @@ const ANGLE_PROMPT_MAP: Record<AngleId, PromptBuilder> = {
 export async function generateForAngle(
   subject: string,
   investigation: Investigation,
-  angleId: AngleId,
+  angleId: AngleId | string,
   model?: string,
   signal?: AbortSignal
 ): Promise<AngleResult> {
-  const buildPrompt = ANGLE_PROMPT_MAP[angleId];
-  if (!buildPrompt) {
-    throw new Error(`Unknown angle: ${angleId}`);
-  }
+  const buildPrompt = ANGLE_PROMPT_MAP[angleId as AngleId];
 
-  const prompt = buildPrompt(subject, investigation);
+  let prompt: string;
+  if (buildPrompt) {
+    prompt = buildPrompt(subject, investigation);
+  } else {
+    // Check custom angles
+    const customAngle = getCustomAngle(angleId);
+    if (!customAngle) {
+      throw new Error(`Unknown angle: ${angleId}`);
+    }
+    const context = investigationContext(subject, investigation);
+    prompt = buildCustomAnglePrompt(customAngle, subject, context);
+  }
   const parsed = await withRetry(
     async () => {
       const raw = await generateText({ prompt, model, serverMode: true, signal });
