@@ -11,6 +11,7 @@ Get Innovator running and generate your first innovation ideas in under 5 minute
 ## Prerequisites
 
 - **Node.js 20+** (see `.nvmrc`)
+- **npm** as package manager (yarn and pnpm are not supported and will be blocked at install time)
 - **GitHub Copilot subscription** (Free, Pro, or Enterprise)
 - **GitHub CLI** authenticated (`gh auth login`)
 
@@ -79,6 +80,15 @@ innovator/
 │       └── prompts/    # Prompt templates for each angle
 └── package.json        # Workspace root
 ```
+
+## Dev Container / Codespaces
+
+If you prefer a pre-configured environment, this repository includes a [dev container](https://containers.dev/) configuration:
+
+- **GitHub Codespaces** — click **"Code → Codespaces → New codespace"** on the GitHub repo page
+- **VS Code Dev Containers** — open the repo locally and select **"Reopen in Container"**
+
+The dev container provides Node.js 20, GitHub CLI, ESLint/Prettier extensions with format-on-save, and port 3000 forwarded automatically. Dependencies are installed via the `postCreateCommand`, so you can run `npm run dev` immediately.
 
 ## Next steps
 
