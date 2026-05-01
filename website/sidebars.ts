@@ -7,9 +7,16 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Guides",
-      items: ["guides/web-app", "guides/cli", "guides/auto-mode", "guides/custom-models"],
+      items: [
+        "guides/web-app",
+        "guides/cli",
+        "guides/auto-mode",
+        "guides/custom-models",
+        "guides/deployment",
+      ],
     },
     "api-reference",
+    "configuration",
     {
       type: "category",
       label: "API Docs (Generated)",
