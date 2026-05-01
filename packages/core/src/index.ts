@@ -137,3 +137,20 @@ export {
   TIME_TO_IMPLEMENT_ORDER,
 } from "./scoring/index.js";
 export type { IdeaScore, ScoringResult } from "./scoring/index.js";
+
+// Conversation
+export {
+  createConversation,
+  getConversation,
+  deleteConversation,
+  listConversations,
+  refineConversation,
+  clearConversations,
+  ConversationMessageSchema,
+  RefinementResponseSchema,
+} from "./conversation/index.js";
+export type {
+  ConversationMessage,
+  ConversationContext,
+  RefinementResponse,
+} from "./conversation/index.js";
