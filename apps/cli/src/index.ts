@@ -11,6 +11,7 @@ import {
   ANGLES,
   ANGLE_IDS,
   KNOWN_MODELS,
+  MAX_CONCURRENCY,
 } from "@innovator/core";
 import type { AngleId } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -18,11 +19,13 @@ import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from ".
 const program = new Command();
 
 let verbose = false;
+let commandCleanup: (() => Promise<void>) | null = null;
 
-// Graceful shutdown on SIGINT/SIGTERM
+// Graceful shutdown on SIGINT/SIGTERM — runs per-command cleanup first
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, () => {
-    stopCopilotClient().finally(() => process.exit(0));
+    const cleanup = commandCleanup ? commandCleanup() : Promise.resolve();
+    cleanup.finally(() => stopCopilotClient().finally(() => process.exit(0)));
   });
 }
 
@@ -174,7 +177,6 @@ program
       spinner.succeed("Investigation complete");
       debugLog("RESPONSE", "investigation", JSON.stringify(investigation, null, 2));
 
-      const MAX_CONCURRENCY = 2;
       for (let i = 0; i < angleIds.length; i += MAX_CONCURRENCY) {
         const batch = angleIds.slice(i, i + MAX_CONCURRENCY);
         const batchResults = await Promise.all(
@@ -231,9 +233,7 @@ program
     const endTimer = timeStart("auto-pipeline");
 
     const controller = new AbortController();
-    const onAbort = () => controller.abort();
-    process.on("SIGINT", onAbort);
-    process.on("SIGTERM", onAbort);
+    commandCleanup = async () => controller.abort();
 
     try {
       const result = await runAutoPipeline(
@@ -329,8 +329,7 @@ program
       }
       process.exitCode = 1;
     } finally {
-      process.removeListener("SIGINT", onAbort);
-      process.removeListener("SIGTERM", onAbort);
+      commandCleanup = null;
       await stopCopilotClient();
     }
   });
