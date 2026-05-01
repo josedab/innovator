@@ -34,6 +34,7 @@ Respond with this exact JSON structure:
 Provide 4-6 key aspects, 3-5 challenges, and 3-5 opportunities. Be specific, insightful, and actionable.`;
 }
 
+/** Maximum character length for the formatted investigation context included in prompts. */
 const MAX_CONTEXT_LENGTH = 10_000;
 
 function investigationContext(subject: string, investigation: Investigation): string {

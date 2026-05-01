@@ -40,6 +40,7 @@ export function wrapUserInput(label: string, value: string): string {
   return `${label}: """${sanitized}"""`;
 }
 
+/** Maximum allowed length (in characters) for LLM output before truncation. */
 const MAX_LLM_OUTPUT_LENGTH = 50_000;
 
 /**
