@@ -150,6 +150,7 @@ interface PipelineProgress {
   totalAngles: number;
   investigation?: Investigation;
   angleResults: AngleResult[];
+  failedAngles?: { angleId: string; error: string }[];
   synthesis?: Synthesis;
   error?: string;
 }
@@ -404,6 +405,10 @@ interface AutoRequest {
 }
 ```
 
+:::note Partial Failures
+The `/api/innovate` route uses `Promise.allSettled()` internally, so individual angle failures do not fail the entire request. The response includes only successful results in `angleResults`. If all angles fail, the endpoint returns a `500` error. Synthesis only runs when `results.length >= 2` — if fewer than 2 angles succeed, the response omits the `synthesis` field even when `synthesize: true` is requested.
+:::
+
 ### `POST /api/auto`
 
 Returns a **Server-Sent Events** stream. Each event is a JSON `PipelineProgress` object:
@@ -420,16 +425,17 @@ data: {"stage":"complete","completedAngles":[...],"synthesis":{...}}
 
 Not every `PipelineProgress` field is populated at every stage. The table below shows which fields carry meaningful values at each stage transition:
 
-| Field             | `investigating` | `generating`                 | `synthesizing`    | `complete`        | `error`        |
-| ----------------- | --------------- | ---------------------------- | ----------------- | ----------------- | -------------- |
-| `stage`           | ✅              | ✅                           | ✅                | ✅                | ✅             |
-| `totalAngles`     | ✅              | ✅                           | ✅                | ✅                | ✅             |
-| `completedAngles` | `[]`            | Grows as angles finish       | All angles listed | All angles listed | Partial        |
-| `currentAngle`    | —               | ID of the angle in progress  | —                 | —                 | —              |
-| `investigation`   | —               | ✅ (set after investigation) | ✅                | ✅                | May be present |
-| `angleResults`    | `[]`            | Grows with each completion   | All angle results | All angle results | Partial        |
-| `synthesis`       | —               | —                            | —                 | ✅                | —              |
-| `error`           | —               | —                            | —                 | —                 | Error message  |
+| Field             | `investigating` | `generating`                       | `synthesizing`    | `complete`        | `error`        |
+| ----------------- | --------------- | ---------------------------------- | ----------------- | ----------------- | -------------- |
+| `stage`           | ✅              | ✅                                 | ✅                | ✅                | ✅             |
+| `totalAngles`     | ✅              | ✅                                 | ✅                | ✅                | ✅             |
+| `completedAngles` | `[]`            | Grows as angles finish             | All angles listed | All angles listed | Partial        |
+| `currentAngle`    | —               | ID of the angle in progress        | —                 | —                 | —              |
+| `investigation`   | —               | ✅ (set after investigation)       | ✅                | ✅                | May be present |
+| `angleResults`    | `[]`            | Grows with each completion         | All angle results | All angle results | Partial        |
+| `failedAngles`    | —               | `{ angleId, error }[]` if any fail | May be present    | May be present    | May be present |
+| `synthesis`       | —               | —                                  | —                 | ✅                | —              |
+| `error`           | —               | —                                  | —                 | —                 | Error message  |
 
 :::note
 The server sends SSE keepalive comments (`: keepalive`) every 15 seconds to prevent proxy/load-balancer timeouts. These are lines starting with `:` and should be ignored by the client.
