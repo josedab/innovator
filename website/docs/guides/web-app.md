@@ -14,6 +14,8 @@ The web app is the primary interface for Innovator. It provides a visual, step-b
 npm run dev
 ```
 
+> **Note:** `npm run dev` automatically runs prerequisite checks (`npm run doctor`) and builds the core package before starting the Next.js dev server. If either step fails, the dev server will not start — fix the reported errors first.
+
 Open [http://localhost:3000](http://localhost:3000).
 
 ## User flow
