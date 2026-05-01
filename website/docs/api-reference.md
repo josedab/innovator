@@ -292,6 +292,7 @@ interface InnovateRequest {
   investigation: Investigation;
   angles: AngleId[];
   model?: string;
+  synthesize?: boolean;
 }
 
 interface AutoRequest {
@@ -299,6 +300,14 @@ interface AutoRequest {
   model?: string;
 }
 ```
+
+### Constants
+
+| Constant          | Value | Description                                                              |
+| ----------------- | ----- | ------------------------------------------------------------------------ |
+| `MAX_CONCURRENCY` | `2`   | Maximum parallel LLM requests when generating ideas for multiple angles. |
+
+`MAX_CONCURRENCY` is exported from `@innovator/core/types` and used by the innovate route to limit how many angles are processed simultaneously.
 
 ---
 
@@ -320,7 +329,7 @@ interface AutoRequest {
 }
 
 // Error (400)
-{ "error": "Invalid request", "details": { "fieldErrors": { "subject": ["Required"] } } }
+{ "error": "Invalid request. Please check your input and try again." }
 ```
 
 ### `POST /api/innovate`
@@ -352,3 +361,48 @@ data: {"stage":"generating","completedAngles":["scamper"],"totalAngles":8,...}
 
 data: {"stage":"complete","completedAngles":[...],"synthesis":{...}}
 ```
+
+### `GET /api/health`
+
+Returns the service status and version.
+
+```json
+// Response (200)
+{ "status": "ok", "version": "0.1.0" }
+```
+
+The `version` value comes from `npm_package_version` (defaults to `"0.1.0"`).
+
+---
+
+## Rate Limiting
+
+All API routes are protected by middleware-level rate limiting (see `apps/web/src/middleware.ts`). Limits are enforced per client IP using an in-memory store.
+
+### Limits
+
+| Constraint            | Value      | Scope        |
+| --------------------- | ---------- | ------------ |
+| Global rate limit     | 10 req/min | All `/api/*` |
+| `/api/innovate` limit | 5 req/min  | Per IP       |
+| `/api/auto` limit     | 3 req/min  | Per IP       |
+| Concurrent requests   | 2 per IP   | All `/api/*` |
+| Max request body size | 100 KB     | All `/api/*` |
+
+### 429 Response
+
+When a rate limit is exceeded, the API returns HTTP 429 with a JSON body and `Retry-After` header:
+
+```json
+{ "error": "Too many requests. Please try again later." }
+```
+
+Route-specific messages:
+
+- **`/api/innovate`**: `"Too many innovate requests. Please try again later."`
+- **`/api/auto`**: `"Too many auto requests. Please try again later."`
+- **Concurrent limit**: `"Too many concurrent requests. Please wait for existing requests to complete."`
+
+:::note
+The in-memory rate limiter works for single-instance deployments only. For multi-instance environments (Vercel, Kubernetes), use Redis or a platform-provided rate limiting solution.
+:::
