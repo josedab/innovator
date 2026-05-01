@@ -3,6 +3,7 @@ import { buildSynthesisPrompt } from "../prompts/investigation.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 import {
   ANGLE_IDS,
+  MAX_CONCURRENCY,
   SynthesisSchema,
   type AngleId,
   type AngleResult,
@@ -11,8 +12,6 @@ import {
 } from "../types.js";
 import { investigate } from "./investigate.js";
 import { generateForAngle } from "./generate.js";
-
-const MAX_CONCURRENCY = 2;
 
 /** Replace internal error details with a generic user-facing message. */
 function sanitizeErrorMessage(stage: string): string {
