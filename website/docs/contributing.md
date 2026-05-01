@@ -58,6 +58,15 @@ innovator/
 2. The dev server hot-reloads automatically
 3. Type-check: `cd apps/web && npx tsc --noEmit`
 
+#### Client vs server imports
+
+The web app uses two different import paths for `@innovator/core`:
+
+- **`@innovator/core`** — use in server components and API routes (has Node.js dependencies)
+- **`@innovator/core/types`** — use in client components (`"use client"`) for types and constants only
+
+Using the full `@innovator/core` import in a client component will break the build because it pulls in the Copilot SDK (Node.js-only). See the [API Reference](/docs/api-reference#client-vs-server-imports) for the full exports mapping.
+
 ### CLI changes
 
 1. Edit `apps/cli/src/index.ts`

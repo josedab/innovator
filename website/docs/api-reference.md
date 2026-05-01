@@ -8,6 +8,45 @@ sidebar_position: 5
 
 Complete reference for the `@innovator/core` package and web API routes.
 
+## Client vs Server Imports
+
+The `@innovator/core` package exposes two subpath exports. Using the wrong one can break client-side components because the main entry pulls in Node.js-only dependencies (the Copilot SDK).
+
+| Import path             | Resolves to      | Use when                                                        |
+| ----------------------- | ---------------- | --------------------------------------------------------------- |
+| `@innovator/core`       | `dist/index.js`  | Server components, API routes, CLI — full API with Node.js deps |
+| `@innovator/core/types` | `dist/client.js` | Client components (`"use client"`) — types and constants only   |
+
+### `exports` field in `packages/core/package.json`
+
+```json
+"exports": {
+  ".": {
+    "import": "./dist/index.js",
+    "types": "./dist/index.d.ts"
+  },
+  "./types": {
+    "import": "./dist/client.js",
+    "types": "./dist/client.d.ts"
+  }
+}
+```
+
+### Examples
+
+```typescript
+// ✅ Server component or API route — full access
+import { investigate, generateForAngle } from "@innovator/core";
+
+// ✅ Client component — types and constants only (no Node.js deps)
+import { ANGLES, ANGLE_IDS, type AngleId } from "@innovator/core/types";
+
+// ❌ DON'T do this in client components — will fail at build time
+import { investigate } from "@innovator/core";
+```
+
+---
+
 ## Core Package (`@innovator/core`)
 
 ### `investigate(subject, model?)`
