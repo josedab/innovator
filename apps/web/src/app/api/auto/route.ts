@@ -164,6 +164,7 @@ export async function POST(request: Request) {
       error: err instanceof Error ? err.message : String(err),
       route: "/api/auto",
       requestId,
+      durationMs: Date.now() - startTime,
     });
     return new Response(JSON.stringify({ error: "Auto mode failed. Please try again." }), {
       status: 500,
