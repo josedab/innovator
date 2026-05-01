@@ -10,6 +10,15 @@ function formatMessage(level: string, message: string, context?: LogContext): st
   return JSON.stringify({ level, message, timestamp: new Date().toISOString(), ...context });
 }
 
+/**
+ * Structured logger with level-based methods.
+ *
+ * In development (`NODE_ENV !== "production"`), outputs human-readable strings
+ * prefixed with the log level (e.g. `[INFO] message`).
+ * In production, outputs JSON with `level`, `message`, `timestamp`, and any extra context fields.
+ *
+ * The `debug` method only produces output in development mode.
+ */
 export const logger = {
   error(message: string, context?: LogContext) {
     console.error(formatMessage("error", message, context));
