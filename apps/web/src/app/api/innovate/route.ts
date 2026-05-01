@@ -9,6 +9,7 @@ import {
   InvestigationSchema,
   ANGLE_IDS,
   SynthesisSchema,
+  MAX_CONCURRENCY,
 } from "@innovator/core";
 import type { AngleId, AngleResult } from "@innovator/core";
 import { z } from "zod";
@@ -82,14 +83,13 @@ export async function POST(request: Request) {
     request.signal.addEventListener("abort", onAbort, { once: true });
 
     const results: AngleResult[] = [];
-    const MAX_CONCURRENCY = 2;
 
     try {
       // Process angles with bounded concurrency
       for (let i = 0; i < angles.length; i += MAX_CONCURRENCY) {
         if (abortController.signal.aborted) break;
         const batch = angles.slice(i, i + MAX_CONCURRENCY);
-        const batchResults = await Promise.all(
+        const batchSettled = await Promise.allSettled(
           batch.map((angleId) =>
             generateForAngle(
               subject,
@@ -100,7 +100,24 @@ export async function POST(request: Request) {
             )
           )
         );
-        results.push(...batchResults);
+        for (const result of batchSettled) {
+          if (result.status === "fulfilled") {
+            results.push(result.value);
+          } else {
+            logger.warn("Angle generation failed", {
+              route: "/api/innovate",
+              requestId,
+              error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+            });
+          }
+        }
+      }
+
+      if (results.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "All angle generations failed. Please try again." }),
+          { status: 500, headers: API_RESPONSE_HEADERS }
+        );
       }
 
       // Optionally synthesize results
