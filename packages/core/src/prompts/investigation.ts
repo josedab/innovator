@@ -37,6 +37,17 @@ Provide 4-6 key aspects, 3-5 challenges, and 3-5 opportunities. Be specific, ins
 /** Maximum character length for the formatted investigation context included in prompts. */
 const MAX_CONTEXT_LENGTH = 10_000;
 
+/**
+ * Format the investigation context for inclusion in angle and synthesis LLM prompts.
+ *
+ * Used by all angle prompt builders to provide the LLM with structured context
+ * about the subject and its investigation results.
+ *
+ * @param subject - The original topic being investigated
+ * @param investigation - The structured investigation result (summary, aspects, challenges, etc.)
+ * @returns A formatted string containing the subject and investigation context,
+ *          truncated to {@link MAX_CONTEXT_LENGTH} characters with a `[truncated]` marker if exceeded
+ */
 function investigationContext(subject: string, investigation: Investigation): string {
   const raw = `${wrapUserInput("SUBJECT", subject)}
 
