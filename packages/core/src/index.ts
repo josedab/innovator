@@ -278,6 +278,32 @@ export type {
   IdeaValidator,
 } from "./validation/index.js";
 
+// Replay & A/B Testing
+export {
+  startRunRecord,
+  recordPrompt,
+  completeRunRecord,
+  getRunRecord,
+  listRunRecords,
+  deleteRunRecord,
+  clearRunRecords,
+  setRecordingEnabled,
+  isRecordingEnabled,
+  previewReplay,
+  replayRun,
+  compareRuns,
+  comparisonToMarkdown,
+  PromptRecordSchema,
+  RunRecordSchema,
+  RunComparisonSchema,
+} from "./replay/index.js";
+export type {
+  PromptRecord,
+  RunRecord,
+  RunComparison,
+  ReplayOverrides,
+} from "./replay/index.js";
+
 // Analytics
 export {
   trackEvent,
@@ -291,6 +317,32 @@ export {
 export type {
   AnalyticsEvent,
   AnalyticsEventType,
+
+// Replay & A/B Testing
+export {
+  startRunRecord,
+  recordPrompt,
+  completeRunRecord,
+  getRunRecord,
+  listRunRecords,
+  deleteRunRecord,
+  clearRunRecords,
+  setRecordingEnabled,
+  isRecordingEnabled,
+  previewReplay,
+  replayRun,
+  compareRuns,
+  comparisonToMarkdown,
+  PromptRecordSchema,
+  RunRecordSchema,
+  RunComparisonSchema,
+} from "./replay/index.js";
+export type {
+  PromptRecord,
+  RunRecord,
+  RunComparison,
+  ReplayOverrides,
+} from "./replay/index.js";
   AnalyticsSummary,
   AnalyticsInsight,
 } from "./analytics/index.js";
