@@ -139,3 +139,18 @@ pm2 start npm --name innovator -- start
 - [ ] HTTPS is enabled (via reverse proxy or platform)
 - [ ] Access logs are monitored for unusual Copilot quota usage
 - [ ] `gh auth` credentials are scoped to the minimum required permissions
+
+## Security Headers
+
+The Next.js app sets the following security headers on all responses via `apps/web/next.config.ts`. If you deploy behind a reverse proxy (e.g., nginx, Cloudflare), be aware these are already set to avoid duplicate or conflicting headers.
+
+| Header                      | Value                                                                              |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| `X-Frame-Options`           | `DENY`                                                                             |
+| `X-Content-Type-Options`    | `nosniff`                                                                          |
+| `Referrer-Policy`           | `strict-origin-when-cross-origin`                                                  |
+| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()` |
+| `X-DNS-Prefetch-Control`    | `off`                                                                              |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload`                                     |
+
+Additionally, the middleware (`apps/web/src/middleware.ts`) applies a nonce-based `Content-Security-Policy` header on all non-API routes.
