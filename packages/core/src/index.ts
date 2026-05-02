@@ -343,6 +343,22 @@ export type {
   RunComparison,
   ReplayOverrides,
 } from "./replay/index.js";
+
+// Audience-Adaptive Output
+export {
+  transformForAudience,
+  transformForAllAudiences,
+  OUTPUT_MODES,
+  OUTPUT_MODE_DEFINITIONS,
+  OutputModeSchema,
+  getOutputMode,
+  AudienceOutputSchema,
+} from "./audience/index.js";
+export type {
+  OutputMode,
+  OutputModeDefinition,
+  AudienceOutput,
+} from "./audience/index.js";
   AnalyticsSummary,
   AnalyticsInsight,
 } from "./analytics/index.js";
