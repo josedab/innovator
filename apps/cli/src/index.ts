@@ -44,8 +44,11 @@ import {
   setActiveProvider,
   createConversation,
   refineConversation,
+  validateIdeas,
+  transformForAudience,
+  OUTPUT_MODES,
 } from "@innovator/core";
-import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig } from "@innovator/core";
+import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
 
 const program = new Command();
@@ -304,9 +307,11 @@ program
   .argument("<subject>", "The subject to innovate on")
   .option("-m, --model <model>", "LLM model to use")
   .option("--score", "Score and rank ideas after generation")
+  .option("--validate", "Validate ideas against patent, market, and feasibility checks")
+  .option("--audience <mode>", "Generate audience-adapted output (executive, technical, pitch, research)")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
-  .action(async (subject: string, opts: { model?: string; score?: boolean; file?: string; url?: string }) => {
+  .action(async (subject: string, opts: { model?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
 
@@ -469,8 +474,82 @@ program
           }
         }
       }
+
+      // Validate ideas if --validate flag is set
+      if (opts.validate && result.angleResults.length > 0) {
+        const allIdeas = result.angleResults.flatMap((ar) => ar.ideas);
+        const validateSpinner = ora(`🔍 Validating ${allIdeas.length} ideas...`).start();
+        try {
+          const scorecard = await validateIdeas(allIdeas, subject, opts.model);
+          validateSpinner.succeed("Ideas validated!\n");
+
+          console.log(chalk.bold.blue("🔍 VALIDATION SCORECARD\n"));
+          console.log(
+            chalk.dim(
+              "  " +
+                "Idea".padEnd(40) +
+                "Score".padEnd(8) +
+                "Status".padEnd(20) +
+                "Patent".padEnd(10) +
+                "Market".padEnd(10) +
+                "Feasibility"
+            )
+          );
+          console.log(chalk.dim("  " + "─".repeat(95)));
+          for (const vr of scorecard.results) {
+            const statusColor =
+              vr.overallStatus === "validated"
+                ? chalk.green
+                : vr.overallStatus === "caution"
+                  ? chalk.yellow
+                  : vr.overallStatus === "risky"
+                    ? chalk.red
+                    : chalk.dim;
+            const title = stripAnsi(vr.ideaTitle).slice(0, 38).padEnd(40);
+            const patent = vr.checks.find((c: ValidationCheck) => c.category === "patent");
+            const market = vr.checks.find((c: ValidationCheck) => c.category === "competitor");
+            const feasibility = vr.checks.find((c: ValidationCheck) => c.category === "feasibility");
+            console.log(
+              `  ${title}${String(vr.overallScore).padEnd(8)}${statusColor(vr.overallStatus.padEnd(20))}${(patent?.status ?? "n/a").padEnd(10)}${(market?.status ?? "n/a").padEnd(10)}${feasibility?.status ?? "n/a"}`
+            );
+          }
+          console.log(`\n  ${chalk.dim(scorecard.summary)}\n`);
+        } catch (err) {
+          validateSpinner.fail("Validation failed");
+          if (verbose) {
+            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          }
+        }
+      }
+
+      // Generate audience-adapted output if --audience flag is set
+      if (opts.audience && result.synthesis) {
+        const validModes = OUTPUT_MODES as readonly string[];
+        if (!validModes.includes(opts.audience)) {
+          console.error(chalk.red(`Unknown audience mode: ${opts.audience}. Valid: ${OUTPUT_MODES.join(", ")}`));
+        } else {
+          const audienceSpinner = ora(`📝 Generating ${opts.audience} output...`).start();
+          try {
+            const output = await transformForAudience(
+              result.synthesis,
+              opts.audience as OutputMode,
+              subject,
+              result.investigation,
+              opts.model
+            );
+            audienceSpinner.succeed(`${opts.audience} output generated!\n`);
+            console.log(chalk.bold.blue(`📝 ${output.modeName} (for ${output.audience})\n`));
+            console.log(JSON.stringify(output.content, null, 2));
+            console.log();
+          } catch (err) {
+            audienceSpinner.fail("Audience output generation failed");
+            if (verbose) {
+              console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+            }
+          }
+        }
+      }
     } catch (err) {
-      spinner.fail("Auto mode failed");
       if (verbose) {
         console.error(chalk.red(err instanceof Error ? err.message : String(err)));
       } else {
