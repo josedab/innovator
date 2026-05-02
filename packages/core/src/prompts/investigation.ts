@@ -13,10 +13,14 @@ import { wrapUserInput, sanitizeLlmOutput, sanitizeUserInput } from "./sanitize.
  * const raw = await generateText({ prompt });
  * ```
  */
-export function buildInvestigationPrompt(subject: string): string {
+export function buildInvestigationPrompt(subject: string, contextDocuments?: string): string {
+  const contextBlock = contextDocuments
+    ? `\n${contextDocuments}\n\nUse the knowledge base context above to ground your analysis with specific, relevant details.\n`
+    : "";
+
   return `You are an expert innovation analyst. Investigate the following subject thoroughly.
 
-${wrapUserInput("SUBJECT", subject)}
+${wrapUserInput("SUBJECT", subject)}${contextBlock}
 
 Analyze the subject above and provide a structured investigation. You MUST respond with valid JSON only — no markdown, no explanation outside the JSON.
 
