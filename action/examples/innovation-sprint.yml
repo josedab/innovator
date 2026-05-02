@@ -1,0 +1,38 @@
+# Example workflow: Run Innovator on issues labeled with 'needs-innovation'
+# Copy this file to .github/workflows/ in your repository
+
+name: Innovation Sprint
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      subject:
+        description: "Subject to investigate"
+        required: true
+        type: string
+      depth:
+        description: "Investigation depth"
+        required: false
+        default: "standard"
+        type: choice
+        options:
+          - shallow
+          - standard
+          - deep
+
+jobs:
+  innovate:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.label.name == 'needs-innovation'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: josedab/innovator/action@main
+        with:
+          subject: ${{ github.event.inputs.subject || '' }}
+          depth: ${{ github.event.inputs.depth || 'standard' }}
+          label: "needs-innovation"
+          post-comment: "true"
