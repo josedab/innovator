@@ -8,6 +8,10 @@ sidebar_position: 5
 
 Complete reference for the `@innovator/core` package and web API routes.
 
+:::tip Auto-Generated API Docs
+For detailed, auto-generated documentation of every exported symbol, see the [TypeDoc API reference](/docs/api/).
+:::
+
 ## Client vs Server Imports
 
 The `@innovator/core` package exposes two subpath exports. Using the wrong one can break client-side components because the main entry pulls in Node.js-only dependencies (the Copilot SDK).
@@ -49,7 +53,7 @@ import { investigate } from "@innovator/core";
 
 ## Core Package (`@innovator/core`)
 
-### `investigate(subject, model?)`
+### `investigate(subject, model?, signal?)`
 
 Analyze a subject and return structured findings.
 
@@ -61,10 +65,11 @@ const result = await investigate("remote work tools");
 
 **Parameters:**
 
-| Param     | Type     | Required | Description                       |
-| --------- | -------- | -------- | --------------------------------- |
-| `subject` | `string` | Yes      | The topic to investigate          |
-| `model`   | `string` | No       | LLM model ID (default: `gpt-4.1`) |
+| Param     | Type          | Required | Description                        |
+| --------- | ------------- | -------- | ---------------------------------- |
+| `subject` | `string`      | Yes      | The topic to investigate           |
+| `model`   | `string`      | No       | LLM model ID (default: `gpt-4.1`)  |
+| `signal`  | `AbortSignal` | No       | Signal to cancel the request early |
 
 **Returns:** `Promise<Investigation>`
 
@@ -80,7 +85,7 @@ interface Investigation {
 
 ---
 
-### `generateForAngle(subject, investigation, angleId, model?)`
+### `generateForAngle(subject, investigation, angleId, model?, signal?)`
 
 Generate innovations for a single angle.
 
@@ -92,12 +97,13 @@ const result = await generateForAngle("remote work tools", investigation, "scamp
 
 **Parameters:**
 
-| Param           | Type            | Required | Description                 |
-| --------------- | --------------- | -------- | --------------------------- |
-| `subject`       | `string`        | Yes      | The original subject        |
-| `investigation` | `Investigation` | Yes      | Result from `investigate()` |
-| `angleId`       | `AngleId`       | Yes      | One of the 8 angle IDs      |
-| `model`         | `string`        | No       | LLM model ID                |
+| Param           | Type            | Required | Description                        |
+| --------------- | --------------- | -------- | ---------------------------------- |
+| `subject`       | `string`        | Yes      | The original subject               |
+| `investigation` | `Investigation` | Yes      | Result from `investigate()`        |
+| `angleId`       | `AngleId`       | Yes      | One of the 8 angle IDs             |
+| `model`         | `string`        | No       | LLM model ID                       |
+| `signal`        | `AbortSignal`   | No       | Signal to cancel the request early |
 
 **Returns:** `Promise<AngleResult>`
 
@@ -119,7 +125,7 @@ interface InnovationIdea {
 
 ---
 
-### `runAutoPipeline(subject, onProgress, model?, angles?)`
+### `runAutoPipeline(subject, onProgress, model?, angles?, signal?)`
 
 Run the full automatic pipeline with progress callbacks.
 
@@ -133,12 +139,13 @@ const result = await runAutoPipeline("remote work tools", (progress) =>
 
 **Parameters:**
 
-| Param        | Type                                   | Required | Description                       |
-| ------------ | -------------------------------------- | -------- | --------------------------------- |
-| `subject`    | `string`                               | Yes      | The topic to innovate on          |
-| `onProgress` | `(progress: PipelineProgress) => void` | Yes      | Called on each stage transition   |
-| `model`      | `string`                               | No       | LLM model ID                      |
-| `angles`     | `AngleId[]`                            | No       | Subset of angles (default: all 8) |
+| Param        | Type                                   | Required | Description                        |
+| ------------ | -------------------------------------- | -------- | ---------------------------------- |
+| `subject`    | `string`                               | Yes      | The topic to innovate on           |
+| `onProgress` | `(progress: PipelineProgress) => void` | Yes      | Called on each stage transition    |
+| `model`      | `string`                               | No       | LLM model ID                       |
+| `angles`     | `AngleId[]`                            | No       | Subset of angles (default: all 8)  |
+| `signal`     | `AbortSignal`                          | No       | Signal to cancel the request early |
 
 **Returns:** `Promise<PipelineProgress>`
 
