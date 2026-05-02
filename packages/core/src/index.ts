@@ -304,46 +304,6 @@ export type {
   ReplayOverrides,
 } from "./replay/index.js";
 
-// Analytics
-export {
-  trackEvent,
-  readEvents,
-  generateSummary,
-  generateInsights,
-  clearAnalytics,
-  ANALYTICS_EVENT_TYPES,
-  AnalyticsEventSchema,
-} from "./analytics/index.js";
-export type {
-  AnalyticsEvent,
-  AnalyticsEventType,
-
-// Replay & A/B Testing
-export {
-  startRunRecord,
-  recordPrompt,
-  completeRunRecord,
-  getRunRecord,
-  listRunRecords,
-  deleteRunRecord,
-  clearRunRecords,
-  setRecordingEnabled,
-  isRecordingEnabled,
-  previewReplay,
-  replayRun,
-  compareRuns,
-  comparisonToMarkdown,
-  PromptRecordSchema,
-  RunRecordSchema,
-  RunComparisonSchema,
-} from "./replay/index.js";
-export type {
-  PromptRecord,
-  RunRecord,
-  RunComparison,
-  ReplayOverrides,
-} from "./replay/index.js";
-
 // Audience-Adaptive Output
 export {
   transformForAudience,
@@ -515,6 +475,20 @@ export type {
   IPComplianceReport,
   RiskLevel,
 } from "./compliance/index.js";
+
+// Analytics
+export {
+  trackEvent,
+  readEvents,
+  generateSummary,
+  generateInsights,
+  clearAnalytics,
+  ANALYTICS_EVENT_TYPES,
+  AnalyticsEventSchema,
+} from "./analytics/index.js";
+export type {
+  AnalyticsEvent,
+  AnalyticsEventType,
   AnalyticsSummary,
   AnalyticsInsight,
 } from "./analytics/index.js";
