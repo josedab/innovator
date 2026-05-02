@@ -137,3 +137,18 @@ graph TB
 ```
 
 The **core** package is the shared engine. Both the web app and CLI are thin adapters that call into it.
+
+## Runtime Validation
+
+LLM responses are inherently unstructured text. Innovator uses [Zod](https://zod.dev/) schemas to validate and parse the JSON output from the LLM before it reaches consumers. If the LLM returns malformed or unexpected data, validation fails fast with a descriptive error instead of propagating bad data downstream.
+
+Four schemas are exported from `@innovator/core`:
+
+| Schema                 | Validates                                             |
+| ---------------------- | ----------------------------------------------------- |
+| `InvestigationSchema`  | Investigation results (summary, aspects, challenges…) |
+| `InnovationIdeaSchema` | A single idea (title, description, impact, hint)      |
+| `AngleResultSchema`    | One angle's output (ideas array + reasoning)          |
+| `SynthesisSchema`      | Final synthesis (top ideas, themes, recommendation)   |
+
+Each schema enforces field presence, types, and maximum string lengths to guard against oversized or malformed LLM output. The corresponding TypeScript types (`Investigation`, `InnovationIdea`, `AngleResult`, `Synthesis`) are inferred directly from these schemas via `z.infer`, so runtime validation and compile-time types are always in sync.
