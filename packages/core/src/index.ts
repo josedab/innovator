@@ -464,6 +464,35 @@ export type {
   ShareOptions,
   ForkResult,
 } from "./sharing/index.js";
+
+// Voice
+export {
+  parseVoiceCommand,
+  buildNarrationSegments,
+  getVoiceCommandHelp,
+  registerSTTProvider,
+  registerTTSProvider,
+  getSTTProvider,
+  getTTSProvider,
+  listSTTProviders,
+  listTTSProviders,
+  clearVoiceProviders,
+  VOICE_COMMANDS,
+  VoiceCommandSchema,
+  VoiceConfigSchema,
+  VoiceTranscriptSchema,
+  ParsedVoiceCommandSchema,
+  NarrationSegmentSchema,
+} from "./voice/index.js";
+export type {
+  VoiceCommand,
+  VoiceConfig,
+  VoiceTranscript,
+  ParsedVoiceCommand,
+  NarrationSegment,
+  SpeechRecognitionProvider,
+  TextToSpeechProvider,
+} from "./voice/index.js";
   AnalyticsSummary,
   AnalyticsInsight,
 } from "./analytics/index.js";
