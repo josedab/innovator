@@ -16,6 +16,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Innovator — AI-Powered Innovation Engine",
   description: "Explore any subject from multiple innovation angles using AI",
+  manifest: "/manifest.json",
+  themeColor: "#2563eb",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Innovator",
+  },
   openGraph: {
     title: "Innovator — AI-Powered Innovation Engine",
     description:
