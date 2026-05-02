@@ -75,7 +75,9 @@ Using the full `@innovator/core` import in a client component will break the bui
 
 ## Adding a new innovation angle
 
-1. **Define the angle** in `packages/core/src/innovation/angles.ts`:
+1. **Add the angle ID** to `ANGLE_IDS` in `packages/core/src/types.ts`
+
+2. **Define the angle** in `packages/core/src/innovation/angles.ts`:
 
    ```typescript
    {
@@ -85,8 +87,6 @@ Using the full `@innovator/core` import in a client component will break the bui
      icon: "🎯",
    }
    ```
-
-2. **Add the ID** to `ANGLE_IDS` in `packages/core/src/types.ts`
 
 3. **Write the prompt** in `packages/core/src/prompts/angles/index.ts`:
 
