@@ -50,6 +50,7 @@ npx tsx apps/cli/src/index.ts investigate "code review processes"
 Options:
 
 - `-m, --model <model>` — specify the LLM model (default: `gpt-4.1`)
+- `--verbose` — enable verbose logging (prompts, responses, timing)
 
 Output includes summary, key aspects, current state, challenges, opportunities, and a suggestion for which angles to try next.
 
@@ -64,6 +65,7 @@ Options:
 
 - `-a, --angles <list>` — **(required)** comma-separated angle IDs
 - `-m, --model <model>` — specify the LLM model
+- `--verbose` — enable verbose logging (prompts, responses, timing)
 
 This command investigates the subject first, then generates ideas for each selected angle.
 
@@ -76,6 +78,7 @@ npx tsx apps/cli/src/index.ts auto "home automation"
 Options:
 
 - `-m, --model <model>` — specify the LLM model
+- `--verbose` — enable verbose logging (prompts, responses, timing)
 
 Runs the complete pipeline: investigate → all 8 angles → synthesis. Shows a spinner with progress updates. Outputs all ideas plus the synthesized top picks.
 
