@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/*
+ * Design Tokens (CSS Custom Properties)
+ *
+ * --background    Base background color (light: #ffffff, dark: #0a0a0a)
+ * --foreground    Base text color (light: #171717, dark: #ededed)
+ * --font-sans     Sans-serif font stack (Geist Sans via next/font)
+ * --font-mono     Monospace font stack (Geist Mono via next/font)
+ *
+ * Light/dark mode is handled automatically via prefers-color-scheme.
+ * To add new tokens, define them in both the :root and the dark media query below.
+ */
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
