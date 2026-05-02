@@ -493,6 +493,28 @@ export type {
   SpeechRecognitionProvider,
   TextToSpeechProvider,
 } from "./voice/index.js";
+
+// Compliance & IP Guard Rails
+export {
+  screenIdea,
+  screenIdeas,
+  getIndustryRegulations,
+  listRegulatedIndustries,
+  complianceReportToMarkdown,
+  INDUSTRY_REGULATIONS,
+  IPRiskIndicatorSchema,
+  RegulatoryConstraintSchema,
+  IPScreeningResultSchema,
+  IPComplianceReportSchema,
+  RiskLevelSchema,
+} from "./compliance/index.js";
+export type {
+  IPRiskIndicator,
+  RegulatoryConstraint,
+  IPScreeningResult,
+  IPComplianceReport,
+  RiskLevel,
+} from "./compliance/index.js";
   AnalyticsSummary,
   AnalyticsInsight,
 } from "./analytics/index.js";
