@@ -375,6 +375,29 @@ export type {
   IdeaDependencyGraph,
   RelationshipType,
 } from "./dependency-graph/index.js";
+
+// Market Signals
+export {
+  fetchMarketSignals,
+  buildMarketSignalContext,
+  registerSignalProvider,
+  unregisterSignalProvider,
+  listSignalProviders,
+  getAvailableProviders,
+  clearSignalProviders,
+  ProductHuntProvider,
+  HackerNewsProvider,
+  GoogleTrendsProvider,
+  ArxivProvider,
+  PatentFilingProvider,
+  MarketSignalSchema,
+  MarketSignalReportSchema,
+} from "./market-signals/index.js";
+export type {
+  MarketSignal,
+  MarketSignalReport,
+  MarketSignalProvider,
+} from "./market-signals/index.js";
   AnalyticsSummary,
   AnalyticsInsight,
 } from "./analytics/index.js";
