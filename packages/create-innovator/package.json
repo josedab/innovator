@@ -1,0 +1,31 @@
+{
+  "name": "create-innovator",
+  "version": "0.1.0",
+  "description": "Scaffold a new Innovator project with config, custom angles, and presets",
+  "type": "module",
+  "bin": {
+    "create-innovator": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/index.ts"
+  },
+  "keywords": [
+    "innovator",
+    "scaffolding",
+    "ai",
+    "innovation"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.4.0",
+    "commander": "^13.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.6.0"
+  },
+  "files": [
+    "dist"
+  ]
+}
