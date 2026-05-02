@@ -236,3 +236,20 @@ export type {
   RelationshipEdge,
   KnowledgeGraph,
 } from "./knowledge-graph/index.js";
+
+// Benchmark
+export {
+  runBenchmark,
+  evaluateAngleResult,
+  benchmarkToMarkdown,
+  EVALUATION_CRITERIA,
+  IdeaEvaluationSchema,
+  ModelBenchmarkSchema,
+  BenchmarkReportSchema,
+} from "./benchmark/index.js";
+export type {
+  IdeaEvaluation,
+  ModelBenchmark,
+  BenchmarkReport,
+  EvaluationCriterion,
+} from "./benchmark/index.js";
