@@ -3,8 +3,19 @@
 [![CI](https://github.com/josedab/innovator/actions/workflows/ci.yml/badge.svg)](https://github.com/josedab/innovator/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Coverage](https://img.shields.io/badge/coverage-v8-brightgreen)](https://github.com/josedab/innovator/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/create-innovator)](https://www.npmjs.com/package/create-innovator)
 
 Explore any subject from multiple innovation angles using AI. Built with Next.js, the GitHub Copilot SDK, and TypeScript.
+
+## Quick Install
+
+```bash
+# Scaffold a new project
+npx create-innovator my-project
+
+# Or use the CLI directly
+npx innovator auto 'solar energy'
+```
 
 ## Demo
 
