@@ -10,8 +10,9 @@ import {
   ANGLE_IDS,
   SynthesisSchema,
   MAX_CONCURRENCY,
+  scoreIdeas,
 } from "@innovator/core";
-import type { AngleId, AngleResult } from "@innovator/core";
+import type { AngleId, AngleResult, ScoringResult } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType, validateModel } from "@/lib/validate-request";
@@ -23,6 +24,7 @@ const RequestSchema = z.object({
   angles: z.array(z.enum(ANGLE_IDS)).min(1).max(8),
   model: z.string().optional(),
   synthesize: z.boolean().optional(),
+  score: z.boolean().optional(),
 });
 
 /**
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { subject, investigation, angles, model, synthesize } = parsed.data;
+    const { subject, investigation, angles, model, synthesize, score } = parsed.data;
 
     const modelError = validateModel(model);
     if (modelError) {
@@ -148,6 +150,26 @@ export async function POST(request: Request) {
         synthesis = SynthesisSchema.parse(parsedJson);
       }
 
+      // Optionally score ideas
+      let scoring: ScoringResult | undefined = undefined;
+      if (score && results.length > 0) {
+        try {
+          scoring = await scoreIdeas(
+            subject,
+            results,
+            investigation,
+            model,
+            abortController.signal
+          );
+        } catch (err) {
+          logger.warn("Scoring failed", {
+            route: "/api/innovate",
+            requestId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+
       logger.info("Innovation completed", {
         route: "/api/innovate",
         requestId,
@@ -156,7 +178,7 @@ export async function POST(request: Request) {
         durationMs: Date.now() - startTime,
       });
       return Response.json(
-        { angleResults: results, synthesis },
+        { angleResults: results, synthesis, scoring },
         { headers: { ...CACHE_HEADERS, ...API_RESPONSE_HEADERS } }
       );
     } finally {
