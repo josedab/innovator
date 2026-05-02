@@ -912,3 +912,254 @@ export type {
   Branch,
   MergeResult,
 } from "./versioning/index.js";
+
+// Fingerprint (Idea DNA)
+export {
+  generateFingerprint,
+  findSimilar,
+  searchFingerprints,
+  storeFingerprint,
+  getFingerprint,
+  listFingerprints,
+  clearFingerprints,
+  cosineSimilarity,
+  fingerprintDistance,
+  NoveltyVectorSchema,
+  DomainBlendSchema,
+  ConstraintProfileSchema,
+  FeasibilitySignatureSchema,
+  IdeaFingerprintSchema,
+  SimilarityMatchSchema,
+} from "./fingerprint/index.js";
+export type {
+  NoveltyVector,
+  DomainBlend,
+  ConstraintProfile,
+  FeasibilitySignature,
+  IdeaFingerprint,
+  SimilarityMatch,
+} from "./fingerprint/index.js";
+
+// Red Team (Adversarial Analysis)
+export {
+  attackIdea,
+  defendIdea,
+  runRedTeamSession,
+  getRedTeamSession,
+  listRedTeamSessions,
+  clearRedTeamSessions,
+  countSevereFindings,
+  defenseEffectiveness,
+  AttackFindingSchema,
+  DefenseRebuttalSchema,
+  RedTeamAttackSchema,
+  DefenseRoundSchema,
+  RedTeamSessionSchema,
+} from "./redteam/index.js";
+export type {
+  AttackFinding,
+  DefenseRebuttal,
+  RedTeamAttack,
+  DefenseRound,
+  RedTeamSession,
+} from "./redteam/index.js";
+
+// Industry Vertical Packs
+export {
+  getVerticalPack,
+  listVerticalPacks,
+  registerVerticalPack,
+  unregisterVerticalPack,
+  loadVerticalPackFromJson,
+  getVerticalPromptContext,
+  validateIdeaForVertical,
+  searchVerticalPacks,
+  resetVerticalPacks,
+  HEALTHTECH_PACK,
+  FINTECH_PACK,
+  EDTECH_PACK,
+  CLEANTECH_PACK,
+  GOVTECH_PACK,
+  RegulatoryContextSchema,
+  MarketDataSchema,
+  ValidationRuleSchema,
+  VerticalAngleSchema,
+  VerticalPackSchema,
+} from "./verticals/index.js";
+export type {
+  RegulatoryContext,
+  MarketData,
+  ValidationRule,
+  VerticalAngle,
+  VerticalPack,
+} from "./verticals/index.js";
+
+// Memory & Learning
+export {
+  recordSignal,
+  getUserSignals,
+  buildPreferenceProfile,
+  getPreferenceProfile,
+  buildPreferenceContext,
+  assignABTest,
+  getABTestVariant,
+  clearMemory,
+  UserSignalSchema,
+  PreferenceWeightsSchema,
+  UserPreferenceProfileSchema,
+  ABTestAssignmentSchema,
+  ABTestResultSchema,
+} from "./memory/index.js";
+export type {
+  UserSignal,
+  PreferenceWeights,
+  UserPreferenceProfile,
+  ABTestAssignment,
+  ABTestResult,
+} from "./memory/index.js";
+
+// Hypothesis-Driven Innovation
+export {
+  parseHypothesis,
+  analyzeHypothesis,
+  createHypothesisSession,
+  getHypothesisSession,
+  listHypothesisSessions,
+  updateHypothesisStatus,
+  attachAnalysis,
+  clearHypothesisSessions,
+  ParsedHypothesisSchema,
+  ExperimentCardSchema,
+  CounterEvidenceSchema,
+  AlternativeHypothesisSchema,
+  PivotSuggestionSchema,
+  HypothesisAnalysisSchema,
+  HypothesisSessionSchema,
+} from "./hypothesis/index.js";
+export type {
+  ParsedHypothesis,
+  ExperimentCard,
+  CounterEvidence,
+  AlternativeHypothesis,
+  PivotSuggestion,
+  HypothesisAnalysis,
+  HypothesisSession,
+} from "./hypothesis/index.js";
+
+// Workflow (Innovation Sprints as Code)
+export {
+  parseWorkflowYaml,
+  validateWorkflow,
+  runWorkflow,
+  createSampleWorkflow,
+  WorkflowFilterSchema,
+  WorkflowStageSchema,
+  SynthesisRulesSchema,
+  OutputFormatSchema,
+  WorkflowConfigSchema,
+  WorkflowCheckpointSchema,
+  WorkflowRunResultSchema,
+} from "./workflow/index.js";
+export type {
+  WorkflowFilter,
+  WorkflowStage,
+  SynthesisRules,
+  OutputFormat,
+  WorkflowConfig,
+  WorkflowCheckpoint,
+  WorkflowRunResult,
+  WorkflowProgressCallback,
+} from "./workflow/index.js";
+
+// Competitive Intelligence
+export {
+  analyzeCompetitors,
+  getCompetitiveAnalysis,
+  listCompetitiveAnalyses,
+  clearCompetitiveAnalyses,
+  rankGaps,
+  rankStrategies,
+  generatePositioningMatrix,
+  CompetitorProfileSchema,
+  CompetitiveGapSchema,
+  DifferentiationStrategySchema,
+  FlankingOpportunitySchema,
+  CompetitiveAnalysisSchema,
+} from "./competitive/index.js";
+export type {
+  CompetitorProfile,
+  CompetitiveGap,
+  DifferentiationStrategy,
+  FlankingOpportunity,
+  CompetitiveAnalysis,
+} from "./competitive/index.js";
+
+// Impact Simulator
+export {
+  simulateImpact,
+  getSimulation,
+  listSimulations,
+  clearSimulations,
+  calculateTotalResourceCost,
+  getGoNoGoMilestones,
+  calculateExpectedROI,
+  generateTimeline,
+  MonthlyDataPointSchema,
+  MilestoneSchema,
+  ResourceRequirementSchema,
+  DecisionPointSchema,
+  ScenarioSimulationSchema,
+  ImpactSimulationSchema,
+} from "./impact-simulator/index.js";
+export type {
+  MonthlyDataPoint,
+  Milestone,
+  ResourceRequirement,
+  DecisionPoint,
+  ScenarioSimulation,
+  ImpactSimulation,
+} from "./impact-simulator/index.js";
+
+// Vision (Multi-Modal Input)
+export {
+  extractFromImage,
+  validateImage,
+  detectImageFormat,
+  extractionToSubject,
+  extractionToContext,
+  imageToDataUrl,
+  VisualElementSchema,
+  ImageExtractionSchema,
+  ImageMetadataSchema,
+} from "./vision/index.js";
+export type { VisualElement, ImageExtraction, ImageMetadata } from "./vision/index.js";
+
+// Retrospective Engine
+export {
+  trackOutcome,
+  getOutcome,
+  listOutcomes,
+  updateOutcome,
+  analyzeSuccessPatterns,
+  analyzeFailureModes,
+  calculateVelocityTrends,
+  detectDiminishingReturns,
+  generateRetrospectiveReport,
+  getRetrospectiveReport,
+  listRetrospectiveReports,
+  clearRetrospectiveData,
+  IdeaOutcomeSchema,
+  SuccessPatternSchema,
+  FailureModeSchema,
+  VelocityTrendSchema,
+  DiminishingReturnsSchema,
+  RetrospectiveReportSchema,
+} from "./retrospective/index.js";
+export type {
+  IdeaOutcome,
+  SuccessPattern,
+  FailureMode,
+  VelocityTrend,
+  DiminishingReturns,
+  RetrospectiveReport,
+} from "./retrospective/index.js";
