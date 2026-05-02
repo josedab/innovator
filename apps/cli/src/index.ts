@@ -29,8 +29,14 @@ import {
   exportToMarkdown,
   exportToJson,
   generateGitHubIssueBody,
+  scoreIdeas,
+  computePriorityScore,
+  getQuadrant,
+  rankIdeas,
+  extractContent,
+  buildSubjectFromContent,
 } from "@innovator/core";
-import type { AngleId, CustomAngle, ExportData } from "@innovator/core";
+import type { AngleId, CustomAngle, ExportData, IdeaScore } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
 
 const program = new Command();
@@ -109,9 +115,30 @@ program
   .description("Investigate a subject to identify key aspects, challenges, and opportunities")
   .argument("<subject>", "The subject to investigate")
   .option("-m, --model <model>", "LLM model to use")
-  .action(async (subject: string, opts: { model?: string }) => {
+  .option("--score", "Score and rank ideas after generation")
+  .option("--file <path>", "Use a file or directory as context input")
+  .option("--url <url>", "Use a URL as context input")
+  .action(async (subject: string, opts: { model?: string; score?: boolean; file?: string; url?: string }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
+
+    // Handle --file or --url input
+    let enrichedSubject = subject;
+    if (opts.file || opts.url) {
+      const source = opts.file ?? opts.url!;
+      const extractSpinner = ora(`Extracting content from ${source}...`).start();
+      try {
+        const extracted = await extractContent(source);
+        enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
+        extractSpinner.succeed(`Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`);
+      } catch (err) {
+        extractSpinner.fail("Content extraction failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
+        return;
+      }
+    }
+
     const spinner = ora(`Investigating "${subject}"...`).start();
     debugLog("COMMAND", "investigate", { subject, model: opts.model });
     const endTimer = timeStart("investigate");
@@ -176,9 +203,30 @@ program
     "Comma-separated angle IDs (e.g., scamper,inversion,what-if)"
   )
   .option("-m, --model <model>", "LLM model to use")
+  .option("--score", "Score and rank ideas after generation")
+  .option("--file <path>", "Use a file or directory as context input")
+  .option("--url <url>", "Use a URL as context input")
   .action(async (subject: string, opts: { angles: string; model?: string }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
+
+    // Handle --file or --url input
+    let enrichedSubject = subject;
+    if (opts.file || opts.url) {
+      const source = opts.file ?? opts.url!;
+      const extractSpinner = ora(`Extracting content from ${source}...`).start();
+      try {
+        const extracted = await extractContent(source);
+        enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
+        extractSpinner.succeed(`Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`);
+      } catch (err) {
+        extractSpinner.fail("Content extraction failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
+        return;
+      }
+    }
+
     const angleIds = opts.angles.split(",").map((a) => a.trim()) as AngleId[];
     const invalid = angleIds.filter((a) => !(ANGLE_IDS as readonly string[]).includes(a));
     if (invalid.length) {
@@ -246,9 +294,30 @@ program
   .description("Run full innovation pipeline automatically (all angles + synthesis)")
   .argument("<subject>", "The subject to innovate on")
   .option("-m, --model <model>", "LLM model to use")
-  .action(async (subject: string, opts: { model?: string }) => {
+  .option("--score", "Score and rank ideas after generation")
+  .option("--file <path>", "Use a file or directory as context input")
+  .option("--url <url>", "Use a URL as context input")
+  .action(async (subject: string, opts: { model?: string; score?: boolean; file?: string; url?: string }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
+
+    // Handle --file or --url input
+    let enrichedSubject = subject;
+    if (opts.file || opts.url) {
+      const source = opts.file ?? opts.url!;
+      const extractSpinner = ora(`Extracting content from ${source}...`).start();
+      try {
+        const extracted = await extractContent(source);
+        enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
+        extractSpinner.succeed(`Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`);
+      } catch (err) {
+        extractSpinner.fail("Content extraction failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
+        return;
+      }
+    }
+
     const spinner = ora("Starting auto pipeline...").start();
     debugLog("COMMAND", "auto", { subject, model: opts.model });
     const endTimer = timeStart("auto-pipeline");
@@ -258,7 +327,7 @@ program
 
     try {
       const result = await runAutoPipeline(
-        subject,
+        enrichedSubject,
         (progress) => {
           debugLog("PIPELINE", progress.stage, {
             completedAngles: progress.completedAngles.length,
@@ -340,6 +409,56 @@ program
 
         console.log(chalk.bold("\n📌 Recommendation:"));
         console.log(`  ${stripAnsi(result.synthesis.recommendation)}`);
+      }
+
+      // Score ideas if --score flag is set
+      if (opts.score && result.angleResults.length > 0) {
+        const scoreSpinner = ora("📊 Scoring ideas...").start();
+        try {
+          const scoring = await scoreIdeas(
+            subject,
+            result.angleResults,
+            result.investigation,
+            opts.model
+          );
+          scoreSpinner.succeed("Ideas scored!\n");
+
+          const ranked = rankIdeas(scoring.scores);
+          console.log(chalk.bold.blue("📊 PRIORITY MATRIX\n"));
+          console.log(
+            chalk.dim(
+              "  " +
+                "Idea".padEnd(40) +
+                "Feasibility".padEnd(14) +
+                "Impact".padEnd(9) +
+                "Novelty".padEnd(10) +
+                "Time".padEnd(10) +
+                "Quadrant"
+            )
+          );
+          console.log(chalk.dim("  " + "─".repeat(90)));
+          for (const score of ranked) {
+            const quadrant = getQuadrant(score);
+            const quadrantColor =
+              quadrant === "quick-wins"
+                ? chalk.green
+                : quadrant === "strategic-bets"
+                  ? chalk.yellow
+                  : quadrant === "low-hanging-fruit"
+                    ? chalk.cyan
+                    : chalk.dim;
+            const title = stripAnsi(score.ideaTitle).slice(0, 38).padEnd(40);
+            console.log(
+              `  ${title}${String(score.feasibility).padEnd(14)}${String(score.impact).padEnd(9)}${String(score.novelty).padEnd(10)}${score.timeToImplement.padEnd(10)}${quadrantColor(quadrant)}`
+            );
+          }
+          console.log();
+        } catch (err) {
+          scoreSpinner.fail("Scoring failed");
+          if (verbose) {
+            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          }
+        }
       }
     } catch (err) {
       spinner.fail("Auto mode failed");
@@ -653,6 +772,9 @@ presetsCmd
   .command("run <presetId> <subject>")
   .description("Run the auto pipeline with a preset's configuration")
   .option("-m, --model <model>", "LLM model to use")
+  .option("--score", "Score and rank ideas after generation")
+  .option("--file <path>", "Use a file or directory as context input")
+  .option("--url <url>", "Use a URL as context input")
   .action(async (presetId: string, subject: string, opts: { model?: string }) => {
     const preset = getPresetById(presetId);
     if (!preset) {
@@ -665,6 +787,24 @@ presetsCmd
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
 
+    // Handle --file or --url input
+    let enrichedSubject = subject;
+    if (opts.file || opts.url) {
+      const source = opts.file ?? opts.url!;
+      const extractSpinner = ora(`Extracting content from ${source}...`).start();
+      try {
+        const extracted = await extractContent(source);
+        enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
+        extractSpinner.succeed(`Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`);
+      } catch (err) {
+        extractSpinner.fail("Content extraction failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
+        return;
+      }
+    }
+
+
     console.log(chalk.bold(`\n${preset.icon} Using preset: ${preset.name}`));
     console.log(chalk.dim(preset.description));
     console.log(chalk.dim(`Angles: ${preset.selectedAngles.join(", ")}\n`));
@@ -675,7 +815,7 @@ presetsCmd
 
     try {
       const result = await runAutoPipeline(
-        subject,
+        enrichedSubject,
         (progress) => {
           if (progress.stage === "investigating") spinner.text = "🔍 Investigating subject...";
           else if (progress.stage === "generating") {
