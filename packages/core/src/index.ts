@@ -398,6 +398,38 @@ export type {
   MarketSignalReport,
   MarketSignalProvider,
 } from "./market-signals/index.js";
+
+// Sprint Mode
+export {
+  createSprint,
+  getSprint,
+  listSprints,
+  deleteSprint,
+  clearSprints,
+  startSprint,
+  pauseSprint,
+  canAdvancePhase,
+  advancePhase,
+  updateSprintData,
+  getPhasePrompt,
+  generateRetrospective,
+  getProgressionSuggestions,
+  SPRINT_PHASES,
+  SPRINT_PHASE_DEFINITIONS,
+  SprintPhaseSchema,
+  SprintStatusSchema,
+  SprintCheckpointSchema,
+  SprintRetrospectiveSchema,
+  SprintSchema,
+} from "./sprint/index.js";
+export type {
+  Sprint,
+  SprintPhase,
+  SprintStatus,
+  SprintCheckpoint,
+  SprintRetrospective,
+  SprintPhaseDefinition,
+} from "./sprint/index.js";
   AnalyticsSummary,
   AnalyticsInsight,
 } from "./analytics/index.js";
