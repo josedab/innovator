@@ -200,12 +200,7 @@ export {
   WorkspaceMemberSchema,
   ActivityEventSchema,
 } from "./workspaces/index.js";
-export type {
-  Workspace,
-  WorkspaceMember,
-  MemberRole,
-  ActivityEvent,
-} from "./workspaces/index.js";
+export type { Workspace, WorkspaceMember, MemberRole, ActivityEvent } from "./workspaces/index.js";
 
 // Artifacts
 export {
@@ -231,11 +226,7 @@ export {
   RelationshipEdgeSchema,
   KnowledgeGraphSchema,
 } from "./knowledge-graph/index.js";
-export type {
-  EntityNode,
-  RelationshipEdge,
-  KnowledgeGraph,
-} from "./knowledge-graph/index.js";
+export type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./knowledge-graph/index.js";
 
 // Benchmark
 export {
@@ -263,11 +254,29 @@ export {
   FileExtractor,
   CodeRepoExtractor,
 } from "./extractors/index.js";
+export type { ExtractedContent, ExtractorOptions, ContentExtractor } from "./extractors/index.js";
+
+// Validation
+export {
+  validateIdea,
+  validateIdeas,
+  registerValidator,
+  unregisterValidator,
+  listValidators,
+  clearValidators,
+  PatentValidator,
+  MarketValidator,
+  FeasibilityValidator,
+  ValidationCheckSchema,
+  ValidationResultSchema,
+  ValidationScorecardSchema,
+} from "./validation/index.js";
 export type {
-  ExtractedContent,
-  ExtractorOptions,
-  ContentExtractor,
-} from "./extractors/index.js";
+  ValidationCheck,
+  ValidationResult,
+  ValidationScorecard,
+  IdeaValidator,
+} from "./validation/index.js";
 
 // Analytics
 export {
