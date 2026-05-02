@@ -37,8 +37,13 @@ import {
   buildSubjectFromContent,
   runBenchmark,
   benchmarkToMarkdown,
+  loadConfig,
+  saveConfig,
+  initializeProviders,
+  listProviders,
+  setActiveProvider,
 } from "@innovator/core";
-import type { AngleId, CustomAngle, ExportData, IdeaScore } from "@innovator/core";
+import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
 
 const program = new Command();
@@ -1063,5 +1068,79 @@ program
       }
     }
   );
+
+// ---- config command ----
+const configCmd = program
+  .command("config")
+  .description("Manage LLM provider configuration");
+
+configCmd
+  .command("show")
+  .description("Show current configuration")
+  .action(() => {
+    const config = loadConfig();
+    console.log(chalk.bold("\n⚙️  Innovator Configuration\n"));
+    console.log(chalk.dim("Default provider:"), chalk.bold(config.defaultProvider));
+    if (config.providers) {
+      console.log(chalk.dim("\nProviders:"));
+      for (const [id, cfg] of Object.entries(config.providers)) {
+        console.log(`  ${chalk.bold(id)}: ${cfg.enabled !== false ? chalk.green("enabled") : chalk.red("disabled")}`);
+        if (cfg.baseUrl) console.log(`    ${chalk.dim("URL:")} ${cfg.baseUrl}`);
+        if (cfg.defaultModel) console.log(`    ${chalk.dim("Model:")} ${cfg.defaultModel}`);
+        if (cfg.apiKeyEnv) console.log(`    ${chalk.dim("API Key Env:")} ${cfg.apiKeyEnv}`);
+      }
+    }
+    if (config.modelPreferences) {
+      console.log(chalk.dim("\nModel preferences per stage:"));
+      const prefs = config.modelPreferences;
+      if (prefs.investigation) console.log(`  ${chalk.dim("Investigation:")} ${prefs.investigation}`);
+      if (prefs.generation) console.log(`  ${chalk.dim("Generation:")} ${prefs.generation}`);
+      if (prefs.synthesis) console.log(`  ${chalk.dim("Synthesis:")} ${prefs.synthesis}`);
+    }
+    console.log();
+  });
+
+configCmd
+  .command("set-provider <provider>")
+  .description("Set the default LLM provider (copilot, openai, anthropic, ollama)")
+  .action((provider: string) => {
+    const config = loadConfig();
+    config.defaultProvider = provider;
+    saveConfig(config);
+    console.log(chalk.green(`✓ Default provider set to "${provider}"`));
+  });
+
+configCmd
+  .command("set-model <stage> <model>")
+  .description("Set the preferred model for a pipeline stage (investigation, generation, synthesis)")
+  .action((stage: string, model: string) => {
+    if (!["investigation", "generation", "synthesis"].includes(stage)) {
+      console.error(chalk.red(`Invalid stage. Use: investigation, generation, or synthesis`));
+      process.exitCode = 1;
+      return;
+    }
+    const config = loadConfig();
+    if (!config.modelPreferences) config.modelPreferences = {};
+    (config.modelPreferences as Record<string, string>)[stage] = model;
+    saveConfig(config);
+    console.log(chalk.green(`✓ ${stage} model set to "${model}"`));
+  });
+
+configCmd
+  .command("providers")
+  .description("List available LLM providers")
+  .action(() => {
+    initializeProviders();
+    const providers = listProviders();
+    console.log(chalk.bold("\n🔌 Available Providers\n"));
+    for (const p of providers) {
+      console.log(`  ${chalk.bold(p.id.padEnd(15))} ${p.name}`);
+    }
+    console.log();
+  });
+
+configCmd.action(() => {
+  configCmd.commands.find((c) => c.name() === "show")?.parse([], { from: "user" });
+});
 
 program.parse();
