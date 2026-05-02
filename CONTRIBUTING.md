@@ -267,6 +267,21 @@ It analyzes JavaScript/TypeScript code using `security-and-quality` queries. Res
 
 To report a security vulnerability, see [SECURITY.md](.github/SECURITY.md).
 
+## Dependency Management
+
+This project uses [Dependabot](https://docs.github.com/en/code-security/dependabot) for automated dependency updates. The configuration (`.github/dependabot.yml`) defines 6 separate update schedules, all running weekly:
+
+| Schedule       | Directory        | Group name     |
+| -------------- | ---------------- | -------------- |
+| Root npm deps  | `/`              | `root-deps`    |
+| Core package   | `/packages/core` | `core-deps`    |
+| Web app        | `/apps/web`      | `web-deps`     |
+| CLI app        | `/apps/cli`      | `cli-deps`     |
+| Documentation  | `/website`       | `website-deps` |
+| GitHub Actions | `/` (actions)    | _(ungrouped)_  |
+
+Each npm schedule groups all dependency updates into a single PR per workspace. Dependabot PRs are created automatically — review, test, and merge them like any other PR.
+
 ## Releases
 
 This project uses [semantic-release](https://github.com/semantic-release/semantic-release) to automate versioning, changelog generation, and publishing.
