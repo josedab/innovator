@@ -35,6 +35,8 @@ import {
   rankIdeas,
   extractContent,
   buildSubjectFromContent,
+  runBenchmark,
+  benchmarkToMarkdown,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -989,5 +991,77 @@ export default plugin;
     console.log(chalk.green(`✓ Plugin scaffolded in ./${dir}/`));
     console.log(chalk.dim(`  Edit ${dir}/src/index.ts to customize your plugin.`));
   });
+
+// ---- benchmark command ----
+program
+  .command("benchmark")
+  .description("Compare innovation quality across models")
+  .argument("<subject>", "The subject to benchmark")
+  .requiredOption("--models <models>", "Comma-separated model IDs to compare")
+  .option("--angles <angles>", "Comma-separated angle IDs (default: scamper,first-principles,cross-domain)")
+  .option("--judge <model>", "Model to use as evaluator/judge")
+  .option("-o, --output <file>", "Output report file path")
+  .action(
+    async (
+      subject: string,
+      opts: { models: string; angles?: string; judge?: string; output?: string }
+    ) => {
+      if (!validateSubjectWithLog(subject)) return;
+
+      const models = opts.models.split(",").map((m) => m.trim());
+      const angles = opts.angles
+        ? (opts.angles.split(",").map((a) => a.trim()) as AngleId[])
+        : undefined;
+
+      console.log(chalk.bold(`\n📊 Benchmarking: "${subject}"`));
+      console.log(chalk.dim(`Models: ${models.join(", ")}`));
+      if (angles) console.log(chalk.dim(`Angles: ${angles.join(", ")}`));
+      console.log();
+
+      const spinner = ora("Running benchmark...").start();
+
+      try {
+        const report = await runBenchmark(
+          subject,
+          models,
+          angles,
+          opts.judge,
+          (status) => {
+            spinner.text = status;
+          }
+        );
+
+        spinner.succeed("Benchmark complete!\n");
+
+        // Display summary
+        console.log(chalk.bold.blue("🏆 Results Summary\n"));
+        console.log(`  Best Overall: ${chalk.bold.green(report.summary.bestOverall)}`);
+        console.log(chalk.dim("\n  Ranking:"));
+        for (const r of report.summary.ranking) {
+          const bar = "█".repeat(Math.round(r.score));
+          console.log(`    ${r.model.padEnd(25)} ${chalk.cyan(bar)} ${r.score}/10`);
+        }
+
+        console.log(chalk.dim("\n  Best by category:"));
+        for (const [cat, model] of Object.entries(report.summary.bestByCategory)) {
+          console.log(`    ${cat.padEnd(15)} → ${chalk.bold(model)}`);
+        }
+
+        // Save if output specified
+        if (opts.output) {
+          const md = benchmarkToMarkdown(report);
+          const { writeFileSync } = require("node:fs");
+          writeFileSync(opts.output, md, "utf-8");
+          console.log(chalk.green(`\n✓ Report saved to ${opts.output}`));
+        }
+      } catch (err) {
+        spinner.fail("Benchmark failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
+      } finally {
+        await stopCopilotClient();
+      }
+    }
+  );
 
 program.parse();
