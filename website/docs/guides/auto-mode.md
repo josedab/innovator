@@ -47,8 +47,13 @@ The Auto Mode panel shows:
 
 - Current pipeline stage with descriptive labels
 - A progress bar (10% → 85% across angles → 90% for synthesis → 100%)
+- The name of the angle currently being generated (via `currentAngle`)
 - Green badges for completed angles
 - Error messages with retry guidance
+
+### Progress Event Fields
+
+Each progress callback receives a `PipelineProgress` object. During the `generating` stage, the `currentAngle` field (`string | undefined`) indicates which angle is actively being generated. The web UI displays this to show real-time progress (e.g., "Generating: SCAMPER…"). The `failedAngles` field (`{ angleId: string; error: string }[] | undefined`) lists any angles that failed during generation — check this to detect partial failures.
 
 ### CLI
 
