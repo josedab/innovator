@@ -42,6 +42,8 @@ import {
   initializeProviders,
   listProviders,
   setActiveProvider,
+  createConversation,
+  refineConversation,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -1142,5 +1144,123 @@ configCmd
 configCmd.action(() => {
   configCmd.commands.find((c) => c.name() === "show")?.parse([], { from: "user" });
 });
+
+// ---- refine command (interactive REPL) ----
+program
+  .command("refine")
+  .description("Start an interactive refinement session on a completed auto pipeline")
+  .argument("<subject>", "The subject to innovate on and refine")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (subject: string, opts: { model?: string }) => {
+    if (!validateSubjectWithLog(subject)) return;
+    if (!validateModelWithLog(opts.model)) return;
+
+    const spinner = ora("Running pipeline before refinement...").start();
+    const controller = new AbortController();
+    commandCleanup = async () => controller.abort();
+
+    try {
+      const result = await runAutoPipeline(
+        subject,
+        (progress) => {
+          if (progress.stage === "investigating") spinner.text = "🔍 Investigating...";
+          else if (progress.stage === "generating")
+            spinner.text = `⚡ Generating (${progress.completedAngles.length}/${progress.totalAngles})...`;
+          else if (progress.stage === "synthesizing") spinner.text = "🧪 Synthesizing...";
+        },
+        opts.model,
+        undefined,
+        controller.signal
+      );
+
+      if (result.stage === "error") {
+        spinner.fail("Pipeline failed");
+        console.error(chalk.red(result.error ?? "Unknown error"));
+        process.exitCode = 1;
+        return;
+      }
+
+      spinner.succeed("Pipeline complete! Starting conversation mode...\n");
+
+      const ctx = createConversation({
+        subject,
+        investigation: result.investigation,
+        angleResults: result.angleResults,
+        synthesis: result.synthesis,
+      });
+
+      console.log(chalk.bold.blue("💬 Conversation Mode"));
+      console.log(chalk.dim("Type your questions to refine ideas. Type 'exit' or 'quit' to end.\n"));
+
+      if (result.synthesis) {
+        console.log(chalk.dim("Top ideas:"));
+        for (const idea of result.synthesis.topIdeas.slice(0, 5)) {
+          console.log(chalk.dim(`  • ${idea.title}`));
+        }
+        console.log();
+      }
+
+      // Interactive REPL
+      const readline = await import("node:readline");
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+
+      const askQuestion = (): Promise<string> =>
+        new Promise((resolve) => {
+          rl.question(chalk.cyan("You: "), (answer) => resolve(answer));
+        });
+
+      while (true) {
+        const input = await askQuestion();
+        if (!input.trim()) continue;
+        if (input.trim().toLowerCase() === "exit" || input.trim().toLowerCase() === "quit") {
+          console.log(chalk.dim("\nConversation ended."));
+          rl.close();
+          break;
+        }
+
+        const refineSpinner = ora("Thinking...").start();
+        try {
+          const response = await refineConversation(
+            ctx.sessionId,
+            input.trim(),
+            undefined,
+            opts.model
+          );
+          refineSpinner.stop();
+
+          console.log(chalk.green("\nAssistant: ") + stripAnsi(response.response));
+
+          if (response.updatedIdeas && response.updatedIdeas.length > 0) {
+            console.log(chalk.bold("\n📝 Updated Ideas:"));
+            for (const idea of response.updatedIdeas) {
+              console.log(`  ${chalk.cyan("•")} ${chalk.bold(stripAnsi(idea.title))}`);
+              console.log(`    ${stripAnsi(idea.description)}`);
+            }
+          }
+
+          if (response.suggestions && response.suggestions.length > 0) {
+            console.log(chalk.dim("\nSuggested follow-ups:"));
+            for (const s of response.suggestions) {
+              console.log(chalk.dim(`  → ${stripAnsi(s)}`));
+            }
+          }
+          console.log();
+        } catch (err) {
+          refineSpinner.fail("Refinement failed");
+          console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        }
+      }
+    } catch (err) {
+      spinner.fail("Refine mode failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    } finally {
+      commandCleanup = null;
+      await stopCopilotClient();
+    }
+  });
 
 program.parse();
