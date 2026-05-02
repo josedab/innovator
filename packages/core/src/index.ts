@@ -28,7 +28,10 @@ export {
   exportAnglePack,
   importAnglePack,
   buildCustomAnglePrompt,
+  runComparativePipeline,
+  buildComparativeSynthesisPrompt,
 } from "./innovation/index.js";
+export type { ComparativeProgress, ComparativeSynthesis } from "./innovation/index.js";
 
 // Prompts (for advanced usage)
 export { buildInvestigationPrompt, buildSynthesisPrompt } from "./prompts/investigation.js";
@@ -545,6 +548,114 @@ export {
   RECOMMENDED_MODELS,
 } from "./offline/index.js";
 export type { OllamaStatus, OfflineStatus, RecommendedModel } from "./offline/index.js";
+
+// RAG / Knowledge Grounding
+export {
+  KnowledgeBase,
+  loadDocument,
+  chunkText,
+  generateEmbedding,
+  cosineSimilarity,
+  DocumentTypeSchema,
+  DocumentChunkSchema,
+  KnowledgeDocumentSchema,
+  KnowledgeBaseConfigSchema,
+  DEFAULT_CHUNKING_OPTIONS,
+} from "./rag/index.js";
+export type {
+  DocumentType,
+  DocumentChunk,
+  KnowledgeDocument,
+  KnowledgeBaseConfig,
+  SearchResult,
+  ChunkingOptions,
+} from "./rag/index.js";
+
+// Cost Tracking & Budget Management
+export {
+  CostTracker,
+  getCostTracker,
+  resetCostTracker,
+  estimateTokenCount,
+  setModelPricing,
+  getModelPricing,
+  listModelPricing,
+  estimateCost,
+  TokenUsageSchema,
+} from "./cost/index.js";
+export type { TokenUsage, CostSummary, BudgetConfig, ModelPricing } from "./cost/index.js";
+
+// Deep Research
+export {
+  ResearchAgent,
+  deepInvestigate,
+  ResearchDepthSchema,
+  ResearchFindingSchema,
+  ResearchStepSchema,
+  ResearchBriefSchema,
+  DEPTH_STEP_LIMITS,
+} from "./research/index.js";
+export type {
+  ResearchDepth,
+  ResearchFinding,
+  ResearchStep,
+  ResearchBrief,
+  ResearchProgress,
+  ResearchConfig,
+} from "./research/index.js";
+
+// Portfolio
+export {
+  addPortfolioItem,
+  getPortfolioItem,
+  transitionItem,
+  updatePortfolioItem,
+  deletePortfolioItem,
+  listPortfolioItems,
+  getPortfolioMetrics,
+  generatePortfolioInsights,
+} from "./portfolio/index.js";
+export {
+  IdeaLifecycleStageSchema,
+  StatusTransitionSchema,
+  PortfolioItemSchema,
+} from "./portfolio/types.js";
+export type {
+  IdeaLifecycleStage,
+  StatusTransition,
+  PortfolioItem,
+  PortfolioMetrics,
+  PortfolioInsight,
+} from "./portfolio/types.js";
+
+// Theming / White-Label
+export {
+  loadTheme,
+  clearThemeCache,
+  setTheme,
+  themeToCssVars,
+  getPromptPreamble,
+} from "./theming/index.js";
+export { ThemeConfigSchema, DEFAULT_THEME } from "./theming/types.js";
+export type { ThemeConfig } from "./theming/types.js";
+
+// Event Bus & Webhooks
+export {
+  EventBus,
+  getEventBus,
+  resetEventBus,
+  WebhookManager,
+  EventTypeSchema,
+  PipelineEventSchema,
+  WebhookConfigSchema,
+} from "./events/index.js";
+export type {
+  EventType,
+  PipelineEvent,
+  WebhookConfig,
+  WebhookDelivery,
+  DeadLetterEntry,
+} from "./events/index.js";
 
 // Analytics
 export {
