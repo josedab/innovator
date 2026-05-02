@@ -9,6 +9,7 @@ import {
   type AngleResult,
   type Investigation,
   type PipelineProgress,
+  type ModelRouting,
 } from "../types.js";
 import { investigate } from "./investigate.js";
 import { generateForAngle } from "./generate.js";
@@ -99,7 +100,8 @@ export async function runAutoPipeline(
   onProgress: (progress: PipelineProgress) => void,
   model?: string,
   angles?: AngleId[],
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  modelRouting?: ModelRouting
 ): Promise<PipelineProgress> {
   const selectedAngles = angles ?? [...ANGLE_IDS];
   let terminated = false;
@@ -132,7 +134,7 @@ export async function runAutoPipeline(
 
   let investigation: Investigation;
   try {
-    investigation = await investigate(subject, model, signal);
+    investigation = await investigate(subject, modelRouting?.investigation ?? model, signal);
     progress.investigation = investigation;
   } catch (err) {
     progress.stage = "error";
@@ -155,7 +157,13 @@ export async function runAutoPipeline(
 
   const tasks = selectedAngles.map(
     (angleId) => () =>
-      generateForAngle(subject, investigation, angleId, model, signal).then((result) => {
+      generateForAngle(
+        subject,
+        investigation,
+        angleId,
+        modelRouting?.generation ?? model,
+        signal
+      ).then((result) => {
         progress.angleResults.push(result);
         progress.completedAngles.push(angleId);
         progress.currentAngle = angleId;
@@ -208,7 +216,12 @@ export async function runAutoPipeline(
   try {
     const angleResultsJson = sanitizeLlmOutput(JSON.stringify(progress.angleResults, null, 2));
     const synthesisPrompt = buildSynthesisPrompt(subject, investigation, angleResultsJson);
-    const raw = await generateText({ prompt: synthesisPrompt, model, serverMode: true, signal });
+    const raw = await generateText({
+      prompt: synthesisPrompt,
+      model: modelRouting?.synthesis ?? model,
+      serverMode: true,
+      signal,
+    });
 
     const jsonStr = extractJson(raw);
     let parsedJson;
