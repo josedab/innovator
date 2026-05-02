@@ -922,7 +922,7 @@ export {
   getFingerprint,
   listFingerprints,
   clearFingerprints,
-  cosineSimilarity,
+  cosineSimilarity as fingerprintCosineSimilarity,
   fingerprintDistance,
   NoveltyVectorSchema,
   DomainBlendSchema,
