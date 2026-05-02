@@ -430,6 +430,20 @@ export type {
   SprintRetrospective,
   SprintPhaseDefinition,
 } from "./sprint/index.js";
+
+// Idea Deduplication & Clustering
+export {
+  deduplicateIdeas,
+  EmbeddedIdeaSchema,
+  IdeaClusterSchema,
+  DeduplicationResultSchema,
+} from "./deduplication/index.js";
+export type {
+  EmbeddedIdea,
+  IdeaCluster,
+  DeduplicationResult,
+  DeduplicationConfig,
+} from "./deduplication/index.js";
   AnalyticsSummary,
   AnalyticsInsight,
 } from "./analytics/index.js";
