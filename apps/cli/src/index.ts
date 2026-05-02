@@ -47,8 +47,26 @@ import {
   validateIdeas,
   transformForAudience,
   OUTPUT_MODES,
+  runChain,
+  getChainById,
+  listChains,
+  DEFAULT_CHAINS,
+  submitFeedback,
+  computeAngleScores,
+  getFeedbackSummary,
+  detectLanguage,
+  localizePrompt,
+  listLanguages,
+  SupportedLanguageSchema,
+  detectOllama,
+  getOfflineStatus,
+  RECOMMENDED_MODELS,
+  DEPTH_CONFIGS,
+  getDepthConfig,
+  suggestDepth,
+  DepthSchema,
 } from "@innovator/core";
-import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode } from "@innovator/core";
+import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
 
 const program = new Command();
@@ -127,12 +145,32 @@ program
   .description("Investigate a subject to identify key aspects, challenges, and opportunities")
   .argument("<subject>", "The subject to investigate")
   .option("-m, --model <model>", "LLM model to use")
+  .option("--depth <depth>", "Investigation depth: shallow, standard, or deep", "standard")
+  .option("--lang <language>", "Output language: en, es, ja, de, pt")
   .option("--score", "Score and rank ideas after generation")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
-  .action(async (subject: string, opts: { model?: string; score?: boolean; file?: string; url?: string }) => {
+  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; file?: string; url?: string }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
+
+    // Validate depth option
+    const depthParse = DepthSchema.safeParse(opts.depth ?? "standard");
+    if (!depthParse.success) {
+      console.error(chalk.red(`Invalid depth: ${opts.depth}. Use: shallow, standard, or deep`));
+      process.exitCode = 1;
+      return;
+    }
+    const depth: Depth = depthParse.data;
+    const depthConfig = getDepthConfig(depth);
+
+    // Show depth info
+    const suggestedDepth = suggestDepth(subject);
+    if (suggestedDepth !== depth && depth === "standard") {
+      console.log(chalk.dim(`💡 Suggested depth for this subject: ${suggestedDepth} (use --depth ${suggestedDepth})`));
+    }
+    console.log(chalk.dim(`📐 Depth: ${depthConfig.label} — ${depthConfig.description}`));
+    console.log(chalk.dim(`⏱️  Estimated: ${depthConfig.estimatedTimeSeconds}s, ~${depthConfig.estimatedCalls} LLM call(s)\n`));
 
     // Handle --file or --url input
     let enrichedSubject = subject;
@@ -306,14 +344,40 @@ program
   .description("Run full innovation pipeline automatically (all angles + synthesis)")
   .argument("<subject>", "The subject to innovate on")
   .option("-m, --model <model>", "LLM model to use")
+  .option("--depth <depth>", "Investigation depth: shallow, standard, or deep", "standard")
+  .option("--lang <language>", "Output language: en, es, ja, de, pt")
   .option("--score", "Score and rank ideas after generation")
   .option("--validate", "Validate ideas against patent, market, and feasibility checks")
   .option("--audience <mode>", "Generate audience-adapted output (executive, technical, pitch, research)")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
-  .action(async (subject: string, opts: { model?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string }) => {
+  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
+
+    // Auto-detect or validate language
+    const detectedLang = opts.lang ?? detectLanguage(subject);
+    const langParse = SupportedLanguageSchema.safeParse(detectedLang);
+    if (opts.lang && !langParse.success) {
+      console.error(chalk.red(`Invalid language: ${opts.lang}. Supported: en, es, ja, de, pt`));
+      process.exitCode = 1;
+      return;
+    }
+    if (detectedLang !== "en") {
+      console.log(chalk.dim(`🌐 Language: ${detectedLang}${!opts.lang ? " (auto-detected)" : ""}`));
+    }
+
+    // Validate and display depth info
+    const depthParse = DepthSchema.safeParse(opts.depth ?? "standard");
+    if (!depthParse.success) {
+      console.error(chalk.red(`Invalid depth: ${opts.depth}. Use: shallow, standard, or deep`));
+      process.exitCode = 1;
+      return;
+    }
+    const depth: Depth = depthParse.data;
+    const depthConfig = getDepthConfig(depth);
+    console.log(chalk.dim(`📐 Depth: ${depthConfig.label} — ${depthConfig.description}`));
+    console.log(chalk.dim(`⏱️  Estimated: ${depthConfig.estimatedTimeSeconds}s, ~${depthConfig.estimatedCalls} LLM call(s)\n`));
 
     // Handle --file or --url input
     let enrichedSubject = subject;
@@ -560,6 +624,156 @@ program
       commandCleanup = null;
       await stopCopilotClient();
     }
+  });
+
+// ---- chain command ----
+const chainCmd = program
+  .command("chain")
+  .description("Run pre-defined angle chains for composed innovation");
+
+chainCmd
+  .command("list")
+  .description("List available angle chains")
+  .action(() => {
+    console.log(chalk.bold("\n🔗 Available Angle Chains\n"));
+    for (const chain of listChains()) {
+      console.log(`  ${chalk.bold.cyan(chain.id)} — ${chain.name}`);
+      console.log(`  ${chalk.dim(chain.description)}`);
+      console.log(
+        `  Steps: ${chain.steps.map((s) => s.angleId).join(" → ")}\n`
+      );
+    }
+  });
+
+chainCmd
+  .command("run")
+  .description("Run an angle chain")
+  .argument("<chainId>", "Chain ID to run (e.g., deep-disruption)")
+  .argument("<subject>", "The subject to innovate on")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (chainId: string, subject: string, opts: { model?: string }) => {
+    if (!validateSubjectWithLog(subject)) return;
+    if (!validateModelWithLog(opts.model)) return;
+
+    const chain = getChainById(chainId);
+    if (!chain) {
+      console.error(chalk.red(`Unknown chain: ${chainId}`));
+      console.log(chalk.dim(`Available chains: ${listChains().map((c) => c.id).join(", ")}`));
+      process.exitCode = 1;
+      return;
+    }
+
+    console.log(chalk.bold(`\n🔗 Running chain: ${chain.name}`));
+    console.log(chalk.dim(`${chain.description}`));
+    console.log(chalk.dim(`Steps: ${chain.steps.map((s) => s.angleId).join(" → ")}\n`));
+
+    const spinner = ora(`Investigating "${subject}"...`).start();
+    const controller = new AbortController();
+    commandCleanup = async () => controller.abort();
+
+    try {
+      const investigation = await investigate(subject, opts.model, controller.signal);
+      spinner.succeed("Investigation complete");
+
+      const results = await runChain(
+        chain,
+        subject,
+        investigation,
+        (progress) => {
+          spinner.start(
+            `⚡ Step ${progress.currentStep}/${progress.totalSteps}: ${progress.currentAngleId}...`
+          );
+        },
+        opts.model,
+        controller.signal
+      );
+
+      spinner.succeed("Chain complete!\n");
+
+      for (let i = 0; i < results.length; i++) {
+        const step = chain.steps[i];
+        const result = results[i];
+        console.log(chalk.bold(`\n${"═".repeat(60)}`));
+        console.log(
+          chalk.bold.blue(`Step ${i + 1}: ${stripAnsi(result.angleName)}`) +
+            (step.contextFilter ? chalk.dim(` (filter: ${step.contextFilter})`) : "")
+        );
+        console.log(chalk.dim(stripAnsi(result.reasoning)));
+
+        for (const idea of result.ideas) {
+          console.log(`\n  ${chalk.bold.cyan(stripAnsi(idea.title))}`);
+          console.log(`  ${stripAnsi(idea.description)}`);
+          console.log(`  ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}`);
+          console.log(`  ${chalk.dim("Start:")} ${stripAnsi(idea.implementationHint)}`);
+        }
+      }
+    } catch (err) {
+      spinner.fail("Chain execution failed");
+      if (verbose) {
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      } else {
+        console.error(chalk.red("Chain execution failed. Use --verbose for details."));
+      }
+      process.exitCode = 1;
+    } finally {
+      commandCleanup = null;
+      await stopCopilotClient();
+    }
+  });
+
+// ---- feedback command ----
+const feedbackCmd = program
+  .command("feedback")
+  .description("View and manage idea quality feedback");
+
+feedbackCmd
+  .command("summary")
+  .description("Show per-angle quality scores from collected feedback")
+  .action(() => {
+    const summary = getFeedbackSummary();
+    if (summary.totalFeedback === 0) {
+      console.log(chalk.dim("No feedback collected yet. Use --rate with auto/innovate to rate ideas."));
+      return;
+    }
+    console.log(chalk.bold(`\n📊 Feedback Summary (${summary.totalFeedback} ratings)\n`));
+    for (const score of summary.angleScores) {
+      const bar = score.qualityScore >= 0.7 ? chalk.green("■") : score.qualityScore >= 0.4 ? chalk.yellow("■") : chalk.red("■");
+      const trendIcon = score.recentTrend === "improving" ? "📈" : score.recentTrend === "declining" ? "📉" : "➡️";
+      console.log(
+        `  ${bar} ${chalk.bold(score.angleId)} — ${Math.round(score.qualityScore * 100)}% positive (${score.thumbsUp}👍 ${score.thumbsDown}👎) ${trendIcon}`
+      );
+      if (score.commonComplaints.length > 0) {
+        console.log(chalk.dim(`    Complaints: ${score.commonComplaints.slice(0, 2).join("; ")}`));
+      }
+    }
+    if (summary.bestAngle) console.log(chalk.green(`\n  Best angle: ${summary.bestAngle}`));
+    if (summary.worstAngle && summary.worstAngle !== summary.bestAngle)
+      console.log(chalk.red(`  Needs improvement: ${summary.worstAngle}`));
+    console.log();
+  });
+
+feedbackCmd
+  .command("rate")
+  .description("Rate an idea from a session")
+  .argument("<angleId>", "Angle ID the idea belongs to")
+  .argument("<rating>", "Rating: up or down")
+  .option("--idea <title>", "Idea title to rate", "general")
+  .option("--comment <text>", "Optional comment on why")
+  .option("--session <id>", "Session ID")
+  .action((angleId: string, rating: string, opts: { idea: string; comment?: string; session?: string }) => {
+    if (rating !== "up" && rating !== "down") {
+      console.error(chalk.red("Rating must be 'up' or 'down'"));
+      process.exitCode = 1;
+      return;
+    }
+    const id = submitFeedback({
+      angleId,
+      rating: rating as "up" | "down",
+      ideaTitle: opts.idea,
+      comment: opts.comment,
+      sessionId: opts.session,
+    });
+    console.log(chalk.green(`✅ Feedback recorded (${id.slice(0, 8)})`));
   });
 
 // ---- angles command (utility) ----
@@ -1223,6 +1437,68 @@ configCmd
 configCmd.action(() => {
   configCmd.commands.find((c) => c.name() === "show")?.parse([], { from: "user" });
 });
+
+configCmd
+  .command("setup-offline")
+  .description("Configure Ollama for offline / local-first innovation")
+  .action(async () => {
+    console.log(chalk.bold("\n🔌 Offline Mode Setup\n"));
+
+    const spinner = ora("Detecting Ollama instance...").start();
+    const status = await getOfflineStatus();
+
+    if (!status.ollama.available) {
+      spinner.fail("Ollama not detected");
+      console.log(chalk.dim("\nTo install Ollama:"));
+      console.log(chalk.dim("  macOS: brew install ollama"));
+      console.log(chalk.dim("  Linux: curl -fsSL https://ollama.ai/install.sh | sh"));
+      console.log(chalk.dim("  Then start it: ollama serve\n"));
+      console.log(chalk.dim("After Ollama is running, pull a model:"));
+      console.log(chalk.dim("  ollama pull llama3:8b    (balanced, 8GB RAM)"));
+      console.log(chalk.dim("  ollama pull mistral:7b   (fast, 8GB RAM)"));
+      return;
+    }
+
+    spinner.succeed(`Ollama detected at ${status.ollama.baseUrl}`);
+    console.log(chalk.dim(`  Available models: ${status.ollama.models.join(", ") || "none"}`));
+
+    if (status.ollama.models.length === 0) {
+      console.log(chalk.yellow("\n⚠️  No models found. Pull a model first:"));
+      console.log(chalk.dim("  ollama pull llama3:8b"));
+      return;
+    }
+
+    console.log(chalk.bold("\n📋 Recommended Models:\n"));
+    for (const rec of RECOMMENDED_MODELS) {
+      const installed = status.ollama.models.some((m) => m.startsWith(rec.id.split(":")[0]));
+      const indicator = installed ? chalk.green("✓") : chalk.dim("○");
+      console.log(`  ${indicator} ${chalk.bold(rec.id.padEnd(20))} [${rec.useCase}] ${rec.description}`);
+      console.log(chalk.dim(`    Min RAM: ${rec.minRamGb}GB`));
+    }
+
+    // Auto-configure if models are available
+    const config = loadConfig();
+    if (!config.providers) config.providers = {};
+    config.providers.ollama = { enabled: true, baseUrl: status.ollama.baseUrl };
+
+    if (status.recommendedModel) {
+      config.providers.ollama.defaultModel = status.recommendedModel.id;
+      console.log(chalk.green(`\n✓ Configured Ollama with model: ${status.recommendedModel.id}`));
+    }
+
+    saveConfig(config);
+    console.log(chalk.green("✓ Ollama provider enabled in config"));
+    console.log(chalk.dim("\nTo use offline mode:"));
+    console.log(chalk.dim("  innovator config set-provider ollama"));
+    console.log(chalk.dim("  innovator auto 'your subject'\n"));
+
+    if (status.isOnline) {
+      console.log(chalk.dim("Network: 🟢 Online (will auto-switch to Ollama when offline)"));
+    } else {
+      console.log(chalk.yellow("Network: 🔴 Offline (using Ollama for all requests)"));
+    }
+  });
+
 
 // ---- refine command (interactive REPL) ----
 program
