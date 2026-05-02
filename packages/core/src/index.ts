@@ -125,3 +125,15 @@ export {
   deleteCollaborativeSession,
   clearAllSessions,
 } from "./collaboration/index.js";
+
+// Scoring
+export {
+  scoreIdeas,
+  computePriorityScore,
+  getQuadrant,
+  rankIdeas,
+  IdeaScoreSchema,
+  ScoringResultSchema,
+  TIME_TO_IMPLEMENT_ORDER,
+} from "./scoring/index.js";
+export type { IdeaScore, ScoringResult } from "./scoring/index.js";
