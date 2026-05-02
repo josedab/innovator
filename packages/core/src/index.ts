@@ -178,3 +178,31 @@ export type {
   LLMModelInfo,
   InnovatorConfig,
 } from "./providers/index.js";
+
+// Workspaces
+export {
+  createWorkspace,
+  getWorkspace,
+  updateWorkspace,
+  deleteWorkspace,
+  listWorkspaces,
+  listUserWorkspaces,
+  addMember,
+  removeMember,
+  updateMemberRole,
+  hasPermission,
+  addSessionToWorkspace,
+  searchWorkspaceSessions,
+  getActivityFeed,
+  sharePreset,
+  shareAngle,
+  WorkspaceSchema,
+  WorkspaceMemberSchema,
+  ActivityEventSchema,
+} from "./workspaces/index.js";
+export type {
+  Workspace,
+  WorkspaceMember,
+  MemberRole,
+  ActivityEvent,
+} from "./workspaces/index.js";
