@@ -12,8 +12,25 @@ import {
   ANGLE_IDS,
   KNOWN_MODELS,
   MAX_CONCURRENCY,
+  loadCustomAngles,
+  addCustomAngle,
+  removeCustomAngle,
+  exportAnglePack,
+  importAnglePack,
+  listPlugins,
+  loadPlugin,
+  getPresets,
+  getPresetById,
+  listSessions,
+  getSession,
+  querySessions,
+  deleteSession,
+  updateSession,
+  exportToMarkdown,
+  exportToJson,
+  generateGitHubIssueBody,
 } from "@innovator/core";
-import type { AngleId } from "@innovator/core";
+import type { AngleId, CustomAngle, ExportData } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
 
 const program = new Command();
@@ -339,15 +356,498 @@ program
   });
 
 // ---- angles command (utility) ----
-program
+const anglesCmd = program
   .command("angles")
-  .description("List all available innovation angles")
+  .description("List and manage innovation angles");
+
+anglesCmd
+  .command("list")
+  .description("List all available innovation angles (built-in and custom)")
   .action(() => {
-    console.log(chalk.bold("\n💡 Available Innovation Angles\n"));
+    console.log(chalk.bold("\n💡 Built-in Innovation Angles\n"));
     for (const angle of ANGLES) {
       console.log(`  ${angle.icon} ${chalk.bold(angle.id.padEnd(20))} ${angle.name}`);
       console.log(`     ${chalk.dim(angle.shortDescription)}\n`);
     }
+
+    const custom = loadCustomAngles();
+    if (custom.length > 0) {
+      console.log(chalk.bold("🎨 Custom Angles\n"));
+      for (const angle of custom) {
+        console.log(`  ${angle.icon ?? "🔧"} ${chalk.bold(angle.id.padEnd(20))} ${angle.name}`);
+        console.log(`     ${chalk.dim(angle.description)}\n`);
+      }
+    }
+  });
+
+// Default action: just listing (backwards compat)
+anglesCmd.action(() => {
+  anglesCmd.commands.find((c) => c.name() === "list")?.parse([], { from: "user" });
+});
+
+anglesCmd
+  .command("create")
+  .description("Create a new custom innovation angle")
+  .requiredOption("--id <id>", "Unique angle identifier (lowercase, hyphens)")
+  .requiredOption("--name <name>", "Display name")
+  .requiredOption("--description <desc>", "Short description of the angle")
+  .requiredOption("--template <template>", "Prompt template with {{subject}} and {{investigation}} placeholders")
+  .option("--icon <icon>", "Emoji icon", "🔧")
+  .option("--author <author>", "Author name")
+  .option("--tags <tags>", "Comma-separated tags")
+  .action((opts: { id: string; name: string; description: string; template: string; icon: string; author?: string; tags?: string }) => {
+    try {
+      const angle: CustomAngle = {
+        id: opts.id,
+        name: opts.name,
+        description: opts.description,
+        promptTemplate: opts.template,
+        icon: opts.icon,
+        author: opts.author,
+        tags: opts.tags?.split(",").map((t) => t.trim()),
+      };
+      addCustomAngle(angle);
+      console.log(chalk.green(`✓ Custom angle "${opts.id}" created successfully`));
+    } catch (err) {
+      console.error(chalk.red(err instanceof Error ? err.message : "Failed to create angle"));
+      process.exitCode = 1;
+    }
+  });
+
+anglesCmd
+  .command("remove <id>")
+  .description("Remove a custom angle")
+  .action((id: string) => {
+    if (removeCustomAngle(id)) {
+      console.log(chalk.green(`✓ Custom angle "${id}" removed`));
+    } else {
+      console.error(chalk.red(`Custom angle "${id}" not found`));
+      process.exitCode = 1;
+    }
+  });
+
+anglesCmd
+  .command("export")
+  .description("Export custom angles to an angle pack file")
+  .requiredOption("--name <name>", "Pack name")
+  .option("--angles <ids>", "Comma-separated angle IDs (defaults to all)")
+  .option("-o, --output <file>", "Output file path", "angles.angle.json")
+  .action((opts: { name: string; angles?: string; output: string }) => {
+    try {
+      const angleIds = opts.angles?.split(",").map((a) => a.trim());
+      const pack = exportAnglePack(opts.name, angleIds);
+      const { writeFileSync } = require("node:fs");
+      writeFileSync(opts.output, JSON.stringify(pack, null, 2), "utf-8");
+      console.log(chalk.green(`✓ Exported ${pack.angles.length} angle(s) to ${opts.output}`));
+    } catch (err) {
+      console.error(chalk.red(err instanceof Error ? err.message : "Export failed"));
+      process.exitCode = 1;
+    }
+  });
+
+anglesCmd
+  .command("import <file>")
+  .description("Import angles from an .angle.json pack file")
+  .action((file: string) => {
+    try {
+      const { readFileSync } = require("node:fs");
+      const raw = readFileSync(file, "utf-8");
+      const pack = JSON.parse(raw);
+      const result = importAnglePack(pack);
+      console.log(chalk.green(`✓ Imported ${result.imported} angle(s)`));
+      if (result.skipped.length > 0) {
+        console.log(chalk.yellow(`  Skipped (already exist): ${result.skipped.join(", ")}`));
+      }
+    } catch (err) {
+      console.error(chalk.red(err instanceof Error ? err.message : "Import failed"));
+      process.exitCode = 1;
+    }
+  });
+
+// ---- export command ----
+program
+  .command("export <sessionId>")
+  .description("Export a session to Markdown, JSON, or GitHub Issue format")
+  .option("-f, --format <format>", "Export format: markdown, json, github-issue", "markdown")
+  .option("-o, --output <file>", "Output file path (defaults to stdout)")
+  .action((sessionId: string, opts: { format: string; output?: string }) => {
+    const sessions = listSessions();
+    const session = sessions.find((s) => s.id.startsWith(sessionId));
+    if (!session) {
+      console.error(chalk.red(`Session "${sessionId}" not found`));
+      process.exitCode = 1;
+      return;
+    }
+
+    const data: ExportData = {
+      subject: session.subject,
+      investigation: session.investigation,
+      angleResults: session.angleResults,
+      synthesis: session.synthesis,
+    };
+
+    let output: string;
+    let filename: string;
+    switch (opts.format) {
+      case "markdown": {
+        const result = exportToMarkdown(data);
+        output = result.content;
+        filename = result.filename;
+        break;
+      }
+      case "json": {
+        const result = exportToJson(data);
+        output = result.content;
+        filename = result.filename;
+        break;
+      }
+      case "github-issue": {
+        const issue = generateGitHubIssueBody(data);
+        output = `Title: ${issue.title}\nLabels: ${issue.labels.join(", ")}\n\n${issue.body}`;
+        filename = `issue-${session.subject.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30)}.md`;
+        break;
+      }
+      default:
+        console.error(chalk.red(`Unknown format: ${opts.format}`));
+        process.exitCode = 1;
+        return;
+    }
+
+    if (opts.output) {
+      const { writeFileSync } = require("node:fs");
+      writeFileSync(opts.output, output, "utf-8");
+      console.log(chalk.green(`✓ Exported to ${opts.output}`));
+    } else {
+      console.log(output);
+    }
+  });
+
+// ---- history command ----
+const historyCmd = program
+  .command("history")
+  .description("Browse and manage innovation session history");
+
+historyCmd
+  .command("list")
+  .description("List recent sessions")
+  .option("-n, --limit <n>", "Number of sessions to show", "10")
+  .option("--search <query>", "Search by subject or content")
+  .option("--tag <tag>", "Filter by tag")
+  .action((opts: { limit: string; search?: string; tag?: string }) => {
+    const sessions = querySessions({
+      search: opts.search,
+      tags: opts.tag ? [opts.tag] : undefined,
+      limit: parseInt(opts.limit, 10),
+    });
+
+    if (sessions.length === 0) {
+      console.log(chalk.dim("No sessions found."));
+      return;
+    }
+
+    console.log(chalk.bold("\n📚 Session History\n"));
+    for (const s of sessions) {
+      const date = new Date(s.createdAt).toLocaleDateString();
+      const angleCount = s.angleResults.length;
+      const tags = s.tags.length > 0 ? chalk.cyan(` [${s.tags.join(", ")}]`) : "";
+      console.log(`  ${chalk.dim(s.id.slice(0, 8))} ${chalk.bold(s.subject)} ${chalk.dim(date)} ${chalk.dim(`(${angleCount} angles)`)}${tags}`);
+    }
+    console.log(chalk.dim(`\nShowing ${sessions.length} session(s). Use 'innovator history show <id>' for details.`));
+  });
+
+historyCmd.action(() => {
+  historyCmd.commands.find((c) => c.name() === "list")?.parse([], { from: "user" });
+});
+
+historyCmd
+  .command("show <id>")
+  .description("Show details of a session")
+  .action((id: string) => {
+    const sessions = listSessions();
+    const session = sessions.find((s) => s.id.startsWith(id));
+    if (!session) {
+      console.error(chalk.red(`Session "${id}" not found`));
+      process.exitCode = 1;
+      return;
+    }
+
+    console.log(chalk.bold(`\n📋 Session: ${session.subject}\n`));
+    console.log(`  ${chalk.dim("ID:")} ${session.id}`);
+    console.log(`  ${chalk.dim("Created:")} ${session.createdAt}`);
+    console.log(`  ${chalk.dim("Tags:")} ${session.tags.join(", ") || "none"}`);
+    if (session.notes) console.log(`  ${chalk.dim("Notes:")} ${session.notes}`);
+
+    if (session.investigation) {
+      console.log(`\n${chalk.bold.blue("Summary:")}`);
+      console.log(`  ${stripAnsi(session.investigation.summary)}`);
+    }
+
+    for (const angle of session.angleResults) {
+      console.log(`\n${chalk.bold(stripAnsi(angle.angleName))} (${angle.ideas.length} ideas)`);
+      for (const idea of angle.ideas) {
+        console.log(`  ${chalk.cyan("•")} ${stripAnsi(idea.title)}`);
+      }
+    }
+
+    if (session.synthesis) {
+      console.log(`\n${chalk.bold.magenta("Recommendation:")}`);
+      console.log(`  ${stripAnsi(session.synthesis.recommendation)}`);
+    }
+  });
+
+historyCmd
+  .command("tag <id> <tags...>")
+  .description("Add tags to a session")
+  .action((id: string, tags: string[]) => {
+    const sessions = listSessions();
+    const session = sessions.find((s) => s.id.startsWith(id));
+    if (!session) {
+      console.error(chalk.red(`Session "${id}" not found`));
+      process.exitCode = 1;
+      return;
+    }
+    const newTags = [...new Set([...session.tags, ...tags])];
+    updateSession(session.id, { tags: newTags });
+    console.log(chalk.green(`✓ Tags updated: ${newTags.join(", ")}`));
+  });
+
+historyCmd
+  .command("delete <id>")
+  .description("Delete a session")
+  .action((id: string) => {
+    const sessions = listSessions();
+    const session = sessions.find((s) => s.id.startsWith(id));
+    if (!session) {
+      console.error(chalk.red(`Session "${id}" not found`));
+      process.exitCode = 1;
+      return;
+    }
+    deleteSession(session.id);
+    console.log(chalk.green(`✓ Session deleted`));
+  });
+
+// ---- presets command ----
+const presetsCmd = program
+  .command("presets")
+  .description("Browse and use domain presets");
+
+presetsCmd
+  .command("list")
+  .description("List all available presets")
+  .action(() => {
+    const presets = getPresets();
+    console.log(chalk.bold("\n📋 Available Presets\n"));
+    for (const preset of presets) {
+      console.log(`  ${preset.icon} ${chalk.bold(preset.name)} ${chalk.dim(`(${preset.category})`)}`);
+      console.log(`     ${chalk.dim(preset.description)}`);
+      console.log(`     ${chalk.cyan("Angles:")} ${preset.selectedAngles.join(", ")}`);
+      console.log(`     ${chalk.dim("Try:")} innovator presets run ${preset.id} "${preset.suggestedSubject}"\n`);
+    }
+  });
+
+presetsCmd.action(() => {
+  presetsCmd.commands.find((c) => c.name() === "list")?.parse([], { from: "user" });
+});
+
+presetsCmd
+  .command("run <presetId> <subject>")
+  .description("Run the auto pipeline with a preset's configuration")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (presetId: string, subject: string, opts: { model?: string }) => {
+    const preset = getPresetById(presetId);
+    if (!preset) {
+      console.error(chalk.red(`Preset "${presetId}" not found`));
+      const presets = getPresets();
+      console.log(chalk.dim(`Available: ${presets.map((p) => p.id).join(", ")}`));
+      process.exitCode = 1;
+      return;
+    }
+    if (!validateSubjectWithLog(subject)) return;
+    if (!validateModelWithLog(opts.model)) return;
+
+    console.log(chalk.bold(`\n${preset.icon} Using preset: ${preset.name}`));
+    console.log(chalk.dim(preset.description));
+    console.log(chalk.dim(`Angles: ${preset.selectedAngles.join(", ")}\n`));
+
+    const spinner = ora("Starting pipeline with preset...").start();
+    const controller = new AbortController();
+    commandCleanup = async () => controller.abort();
+
+    try {
+      const result = await runAutoPipeline(
+        subject,
+        (progress) => {
+          if (progress.stage === "investigating") spinner.text = "🔍 Investigating subject...";
+          else if (progress.stage === "generating") {
+            spinner.text = `⚡ Generating (${progress.completedAngles.length}/${progress.totalAngles})...`;
+          } else if (progress.stage === "synthesizing") spinner.text = "🧪 Synthesizing...";
+        },
+        opts.model,
+        preset.selectedAngles,
+        controller.signal
+      );
+
+      if (result.stage === "error") {
+        spinner.fail("Pipeline failed");
+        console.error(chalk.red(result.error ?? "Unknown error"));
+        process.exitCode = 1;
+        return;
+      }
+
+      spinner.succeed("Pipeline complete!\n");
+
+      for (const angle of result.angleResults) {
+        console.log(chalk.bold(`\n${"═".repeat(60)}`));
+        console.log(chalk.bold.blue(stripAnsi(angle.angleName)));
+        for (const idea of angle.ideas) {
+          console.log(`\n  ${chalk.bold.cyan(stripAnsi(idea.title))}`);
+          console.log(`  ${stripAnsi(idea.description)}`);
+        }
+      }
+
+      if (result.synthesis) {
+        console.log(chalk.bold(`\n${"═".repeat(60)}`));
+        console.log(chalk.bold.magenta("🏆 SYNTHESIS\n"));
+        console.log(`  ${stripAnsi(result.synthesis.recommendation)}`);
+      }
+    } catch (err) {
+      spinner.fail("Preset run failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    } finally {
+      commandCleanup = null;
+      await stopCopilotClient();
+    }
+  });
+
+// ---- plugin command ----
+const pluginCmd = program
+  .command("plugin")
+  .description("Manage innovator plugins");
+
+pluginCmd
+  .command("list")
+  .description("List all registered plugins")
+  .action(() => {
+    const plugins = listPlugins();
+    if (plugins.length === 0) {
+      console.log(chalk.dim("No plugins registered."));
+      return;
+    }
+    console.log(chalk.bold("\n🔌 Registered Plugins\n"));
+    for (const p of plugins) {
+      console.log(`  ${chalk.bold(p.id)} (${p.type}) v${p.version}`);
+      console.log(`     ${chalk.dim(p.description ?? "No description")}\n`);
+    }
+  });
+
+pluginCmd
+  .command("load <source>")
+  .description("Load a plugin from a file path or npm package")
+  .action(async (source: string) => {
+    try {
+      const plugin = await loadPlugin(source);
+      console.log(chalk.green(`✓ Loaded plugin "${plugin.id}" (${plugin.type})`));
+    } catch (err) {
+      console.error(chalk.red(err instanceof Error ? err.message : "Failed to load plugin"));
+      process.exitCode = 1;
+    }
+  });
+
+pluginCmd
+  .command("create <name>")
+  .description("Scaffold a new plugin project")
+  .option("--type <type>", "Plugin type: angle, exporter, or visualizer", "angle")
+  .action((name: string, opts: { type: string }) => {
+    const { mkdirSync, writeFileSync, existsSync } = require("node:fs");
+    const dir = name;
+    if (existsSync(dir)) {
+      console.error(chalk.red(`Directory "${dir}" already exists`));
+      process.exitCode = 1;
+      return;
+    }
+    mkdirSync(dir, { recursive: true });
+    mkdirSync(`${dir}/src`, { recursive: true });
+
+    writeFileSync(
+      `${dir}/package.json`,
+      JSON.stringify(
+        {
+          name: `innovator-plugin-${name}`,
+          version: "0.1.0",
+          type: "module",
+          main: "./src/index.ts",
+          peerDependencies: { "@innovator/core": "*" },
+          keywords: ["innovator-plugin", opts.type],
+        },
+        null,
+        2
+      ) + "\n"
+    );
+
+    const template =
+      opts.type === "angle"
+        ? `import type { AnglePlugin } from "@innovator/core";
+
+const plugin: AnglePlugin = {
+  id: "${name}",
+  name: "${name}",
+  version: "0.1.0",
+  type: "angle",
+  description: "A custom angle plugin",
+  angles: [
+    {
+      id: "${name}-angle",
+      name: "${name} Angle",
+      description: "Describe what this angle does",
+      promptTemplate: "You are an expert. Analyze {{subject}} using this context: {{investigation}}",
+    },
+  ],
+};
+
+export default plugin;
+`
+        : opts.type === "exporter"
+          ? `import type { ExporterPlugin, ExportData } from "@innovator/core";
+
+const plugin: ExporterPlugin = {
+  id: "${name}",
+  name: "${name}",
+  version: "0.1.0",
+  type: "exporter",
+  description: "A custom exporter plugin",
+  formats: [{ id: "custom", name: "Custom Format", extension: ".txt" }],
+  async export(data: ExportData, format: string): Promise<string> {
+    return JSON.stringify(data, null, 2);
+  },
+};
+
+export default plugin;
+`
+          : `import type { VisualizerPlugin, ExportData } from "@innovator/core";
+
+const plugin: VisualizerPlugin = {
+  id: "${name}",
+  name: "${name}",
+  version: "0.1.0",
+  type: "visualizer",
+  description: "A custom visualizer plugin",
+  async render(data: ExportData): Promise<string> {
+    return "<div>Visualization</div>";
+  },
+};
+
+export default plugin;
+`;
+
+    writeFileSync(`${dir}/src/index.ts`, template);
+    writeFileSync(
+      `${dir}/README.md`,
+      `# innovator-plugin-${name}\n\nA ${opts.type} plugin for Innovator.\n\n## Usage\n\n\`\`\`bash\ninnovator plugin load ./${dir}\n\`\`\`\n`
+    );
+
+    console.log(chalk.green(`✓ Plugin scaffolded in ./${dir}/`));
+    console.log(chalk.dim(`  Edit ${dir}/src/index.ts to customize your plugin.`));
   });
 
 program.parse();
