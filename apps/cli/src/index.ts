@@ -65,6 +65,7 @@ import {
   getDepthConfig,
   suggestDepth,
   DepthSchema,
+  runInnovationDiff,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -622,6 +623,65 @@ program
       process.exitCode = 1;
     } finally {
       commandCleanup = null;
+      await stopCopilotClient();
+    }
+  });
+
+// ---- diff command ----
+program
+  .command("diff")
+  .description("Compare two snapshots of a subject and generate an innovation diff")
+  .argument("<subjectA>", "First snapshot (e.g., 'remote work in 2020')")
+  .argument("<subjectB>", "Second snapshot (e.g., 'remote work in 2026')")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (subjectA: string, subjectB: string, opts: { model?: string }) => {
+    if (!validateModelWithLog(opts.model)) return;
+
+    const spinner = ora(`Comparing "${subjectA}" vs "${subjectB}"...`).start();
+    debugLog("COMMAND", "diff", { subjectA, subjectB, model: opts.model });
+
+    try {
+      const result = await runInnovationDiff(subjectA, subjectB, opts.model);
+      spinner.succeed("Innovation diff complete!\n");
+
+      console.log(chalk.bold.blue(`📊 ${result.subjectA} → ${result.subjectB}\n`));
+      console.log(chalk.bold(`📋 Summary`));
+      console.log(`  ${stripAnsi(result.summary)}\n`);
+
+      console.log(chalk.bold.yellow("🔄 What Changed"));
+      for (const item of result.changed) {
+        const sig = item.significance === "high" ? chalk.red("●") : item.significance === "medium" ? chalk.yellow("●") : chalk.dim("●");
+        console.log(`  ${sig} ${chalk.bold(stripAnsi(item.title))}`);
+        console.log(`    ${stripAnsi(item.description)}`);
+      }
+
+      console.log(chalk.bold.green("\n✨ New Opportunities"));
+      for (const item of result.newOpportunities) {
+        console.log(`  ${chalk.green("•")} ${chalk.bold(stripAnsi(item.title))}`);
+        console.log(`    ${stripAnsi(item.description)}`);
+      }
+
+      console.log(chalk.bold.red("\n🗑️  Obsoleted"));
+      for (const item of result.obsoleted) {
+        console.log(`  ${chalk.red("•")} ${chalk.bold(stripAnsi(item.title))}`);
+        console.log(`    ${stripAnsi(item.description)}`);
+      }
+
+      console.log(chalk.bold.magenta("\n🔍 Emerging Gaps"));
+      for (const item of result.emergingGaps) {
+        console.log(`  ${chalk.magenta("•")} ${chalk.bold(stripAnsi(item.title))}`);
+        console.log(`    ${stripAnsi(item.description)}`);
+      }
+      console.log();
+    } catch (err) {
+      spinner.fail("Innovation diff failed");
+      if (verbose) {
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      } else {
+        console.error(chalk.red("Diff failed. Use --verbose for details."));
+      }
+      process.exitCode = 1;
+    } finally {
       await stopCopilotClient();
     }
   });
