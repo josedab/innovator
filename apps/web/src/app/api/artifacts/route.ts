@@ -1,0 +1,89 @@
+export const runtime = "nodejs";
+
+import {
+  generateArtifact,
+  ARTIFACT_TYPES,
+  InnovationIdeaSchema,
+  InvestigationSchema,
+} from "@innovator/core";
+import { z } from "zod";
+import { logger } from "@/lib/logger";
+import { validateJsonContentType, validateModel } from "@/lib/validate-request";
+import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
+
+const RequestSchema = z.object({
+  idea: InnovationIdeaSchema,
+  artifactType: z.enum(ARTIFACT_TYPES),
+  subject: z.string().min(1).max(500),
+  investigation: InvestigationSchema.optional(),
+  model: z.string().optional(),
+});
+
+/**
+ * Generate a structured artifact (PRD, user story, tech spec, etc.) from an idea.
+ */
+export async function POST(request: Request) {
+  const requestId = request.headers.get("x-request-id") ?? undefined;
+  const startTime = Date.now();
+
+  try {
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
+    }
+
+    const parsed = RequestSchema.safeParse(body);
+    if (!parsed.success) {
+      logger.warn("Invalid artifact request", {
+        route: "/api/artifacts",
+        requestId,
+        details: parsed.error.flatten(),
+      });
+      return new Response(
+        JSON.stringify({ error: "Invalid request. Please check your input." }),
+        { status: 400, headers: API_RESPONSE_HEADERS }
+      );
+    }
+
+    const { idea, artifactType, subject, investigation, model } = parsed.data;
+
+    const modelError = validateModel(model);
+    if (modelError) return modelError;
+
+    const artifact = await generateArtifact(
+      idea,
+      artifactType,
+      { subject, investigation },
+      model,
+      request.signal
+    );
+
+    logger.info("Artifact generated", {
+      route: "/api/artifacts",
+      requestId,
+      artifactType,
+      durationMs: Date.now() - startTime,
+    });
+
+    return Response.json(artifact, { headers: API_RESPONSE_HEADERS });
+  } catch (err) {
+    logger.error("Artifact generation error", {
+      error: err instanceof Error ? err.message : String(err),
+      route: "/api/artifacts",
+      requestId,
+      durationMs: Date.now() - startTime,
+    });
+    return new Response(
+      JSON.stringify({ error: "Artifact generation failed. Please try again." }),
+      { status: 500, headers: API_RESPONSE_HEADERS }
+    );
+  }
+}
