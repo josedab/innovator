@@ -359,6 +359,22 @@ export type {
   OutputModeDefinition,
   AudienceOutput,
 } from "./audience/index.js";
+
+// Idea Dependency Graph
+export {
+  buildIdeaDependencyGraph,
+  dependencyGraphToMarkdown,
+  IdeaDependencyNodeSchema,
+  IdeaDependencyEdgeSchema,
+  IdeaDependencyGraphSchema,
+  RelationshipTypeSchema,
+} from "./dependency-graph/index.js";
+export type {
+  IdeaDependencyNode,
+  IdeaDependencyEdge,
+  IdeaDependencyGraph,
+  RelationshipType,
+} from "./dependency-graph/index.js";
   AnalyticsSummary,
   AnalyticsInsight,
 } from "./analytics/index.js";
