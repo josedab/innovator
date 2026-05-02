@@ -268,3 +268,20 @@ export type {
   ExtractorOptions,
   ContentExtractor,
 } from "./extractors/index.js";
+
+// Analytics
+export {
+  trackEvent,
+  readEvents,
+  generateSummary,
+  generateInsights,
+  clearAnalytics,
+  ANALYTICS_EVENT_TYPES,
+  AnalyticsEventSchema,
+} from "./analytics/index.js";
+export type {
+  AnalyticsEvent,
+  AnalyticsEventType,
+  AnalyticsSummary,
+  AnalyticsInsight,
+} from "./analytics/index.js";
