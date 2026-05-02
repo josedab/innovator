@@ -673,3 +673,242 @@ export type {
   AnalyticsSummary,
   AnalyticsInsight,
 } from "./analytics/index.js";
+
+// Coaching
+export {
+  generateClarificationQuestions,
+  generateMidAngleIntervention,
+  generatePostSynthesisDeepening,
+  detectAssumptions,
+  recommendPivots,
+  CoachPersonalitySchema,
+  CoachQuestionSchema,
+  AssumptionSchema,
+  PivotRecommendationSchema,
+  CoachInterventionSchema,
+} from "./coaching/index.js";
+export type {
+  CoachPersonality,
+  CoachQuestion,
+  Assumption,
+  PivotRecommendation,
+  CoachIntervention,
+  CoachConfig,
+} from "./coaching/index.js";
+
+// Recommendation (Smart Angle Selection)
+export {
+  classifySubject,
+  recommendAngles,
+  smartRecommend,
+  recordAngleFeedback,
+  getAngleFeedback,
+  clearAngleFeedback,
+  SubjectDomainSchema,
+  ComplexityLevelSchema,
+  InnovationIntentSchema,
+  SubjectClassificationSchema,
+  AngleRecommendationSchema,
+  RecommendationResultSchema,
+} from "./recommendation/index.js";
+export type {
+  SubjectDomain,
+  ComplexityLevel,
+  InnovationIntent,
+  SubjectClassification,
+  AngleRecommendation,
+  RecommendationResult,
+  AngleFeedbackEntry,
+} from "./recommendation/index.js";
+
+// Mining (Cross-Investigation Pattern Mining)
+export {
+  ingestDataPoints,
+  getDataPoints,
+  clearMiningData,
+  computeAngleEffectiveness,
+  buildHeatmap,
+  computeCorrelationMatrix,
+  chiSquaredAngleEffectiveness,
+  generateMiningReport,
+  MiningDataPointSchema,
+  AngleEffectivenessSchema,
+  HeatmapCellSchema,
+  CorrelationEntrySchema,
+  StatisticalTestSchema,
+  NarratedInsightSchema,
+  MiningReportSchema,
+} from "./mining/index.js";
+export type {
+  MiningDataPoint,
+  AngleEffectiveness,
+  HeatmapCell,
+  CorrelationEntry,
+  StatisticalTest,
+  NarratedInsight,
+  MiningReport,
+} from "./mining/index.js";
+
+// Temporal Innovation Lens
+export {
+  buildTemporalPrompt,
+  generateForHorizon,
+  runTemporalLens,
+  getHorizonConfig,
+  TimeHorizonSchema,
+  TemporalIdeaSchema,
+  TemporalHorizonResultSchema,
+  TemporalLensResultSchema,
+} from "./prompts/temporal/index.js";
+export type {
+  TimeHorizon,
+  TemporalIdea,
+  TemporalHorizonResult,
+  TemporalLensResult,
+  TemporalLensConfig,
+} from "./prompts/temporal/index.js";
+
+// Simulation (Stakeholder + Scenario)
+export {
+  simulatePersonaReaction,
+  simulateStakeholders,
+  simulateStakeholdersBatch,
+  DEFAULT_PERSONAS,
+  StakeholderPersonaSchema,
+  StakeholderReactionSchema,
+  StakeholderSimulationSchema,
+  modelScenarios,
+  modelScenariosBatch,
+  scenarioToMarkdown,
+  compareScenarioModels,
+  ScenarioTypeSchema,
+  AdoptionDataPointSchema,
+  ScenarioProjectionSchema,
+  SensitivityFactorSchema,
+  ScenarioModelSchema,
+} from "./simulation/index.js";
+export type {
+  StakeholderPersona,
+  StakeholderReaction,
+  StakeholderSimulation,
+  ScenarioType,
+  AdoptionDataPoint,
+  ScenarioProjection,
+  SensitivityFactor,
+  ScenarioModel,
+} from "./simulation/index.js";
+
+// Gallery (Idea Marketplace)
+export {
+  publishToGallery,
+  getGalleryListing,
+  searchGallery,
+  upvoteListing,
+  addGalleryComment,
+  getGalleryComments,
+  forkGalleryListing,
+  upsertContributorProfile,
+  getContributorProfile,
+  createFeaturedCollection,
+  listFeaturedCollections,
+  clearGallery,
+  GalleryCategorySchema,
+  GalleryListingSchema,
+  GalleryCommentSchema,
+  ContributorProfileSchema,
+  GalleryFilterSchema,
+  FeaturedCollectionSchema,
+} from "./gallery/index.js";
+export type {
+  GalleryCategory,
+  GalleryListing,
+  GalleryComment,
+  ContributorProfile,
+  GalleryFilter,
+  FeaturedCollection,
+} from "./gallery/index.js";
+
+// Gamification
+export {
+  awardAchievement,
+  getUserAchievements,
+  getUserPoints,
+  createChallenge,
+  startChallenge,
+  completeChallenge,
+  getUserChallenges,
+  getLeaderboard,
+  addActivity,
+  getActivityFeedItems,
+  getGamificationConfig,
+  updateGamificationConfig,
+  clearGamification,
+  ACHIEVEMENTS,
+  AchievementSchema,
+  EarnedAchievementSchema,
+  ChallengeTypeSchema,
+  ChallengeSchema,
+  LeaderboardEntrySchema,
+  ActivityItemSchema,
+  GamificationConfigSchema,
+} from "./gamification/index.js";
+export type {
+  Achievement,
+  EarnedAchievement,
+  ChallengeType,
+  Challenge,
+  LeaderboardEntry,
+  ActivityItem,
+  GamificationConfig,
+} from "./gamification/index.js";
+
+// Sustainability (ESG Assessment)
+export {
+  scoreSustainability,
+  scorePortfolioSustainability,
+  getIndicator,
+  sustainabilityToMarkdown,
+  TrafficLightSchema,
+  EnvironmentalScoreSchema,
+  SocialScoreSchema,
+  GovernanceScoreSchema,
+  ESGRiskFlagSchema,
+  ImprovementSuggestionSchema,
+  SustainabilityScorecardSchema,
+  PortfolioSustainabilitySchema,
+} from "./sustainability/index.js";
+export type {
+  TrafficLight,
+  EnvironmentalScore,
+  SocialScore,
+  GovernanceScore,
+  ESGRiskFlag,
+  ImprovementSuggestion,
+  SustainabilityScorecard,
+  PortfolioSustainability,
+} from "./sustainability/index.js";
+
+// Versioning (Semantic Idea Version Control)
+export {
+  createVersion,
+  commitVersion,
+  createBranch,
+  getVersionLog,
+  getVersion,
+  listBranches,
+  semanticDiff,
+  mergeVersions,
+  clearVersionHistory,
+  SemanticChangeSchema,
+  SemanticDiffSchema,
+  IdeaVersionSchema,
+  BranchSchema,
+  MergeResultSchema,
+} from "./versioning/index.js";
+export type {
+  SemanticChange,
+  SemanticDiff,
+  IdeaVersion,
+  Branch,
+  MergeResult,
+} from "./versioning/index.js";
