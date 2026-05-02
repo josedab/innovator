@@ -16,6 +16,8 @@ import { InvestigationView } from "@/components/InvestigationView";
 import { AngleSelector } from "@/components/AngleSelector";
 import { InnovationResults } from "@/components/InnovationResults";
 import { AutoModePanel } from "@/components/AutoModePanel";
+import { IdeaWorkshop } from "@/components/IdeaWorkshop";
+import { ExploreExamples } from "@/components/ExploreExamples";
 import { appReducer, initialState } from "./appReducer";
 import type { Investigation, AngleResult, Synthesis, AngleId } from "@innovator/core/types";
 
@@ -136,6 +138,7 @@ export default function Home() {
             </p>
           </div>
           <SubjectInput onSubmit={handleInvestigate} onAutoMode={handleAutoMode} />
+          <ExploreExamples onSelect={(s) => handleAutoMode(s)} />
         </div>
       )}
 
@@ -206,6 +209,11 @@ export default function Home() {
             </button>
           </div>
           <InnovationResults angleResults={angleResults} synthesis={synthesis} />
+          {angleResults.length > 0 && (
+            <div className="mt-8">
+              <IdeaWorkshop angleResults={angleResults} subject={subject} />
+            </div>
+          )}
         </div>
       )}
 
