@@ -444,6 +444,26 @@ export type {
   DeduplicationResult,
   DeduplicationConfig,
 } from "./deduplication/index.js";
+
+// Sharing
+export {
+  shareInvestigation,
+  getSharedInvestigation,
+  listSharedInvestigations,
+  deleteSharedInvestigation,
+  clearSharedInvestigations,
+  updateSharedInvestigation,
+  forkInvestigation,
+  buildShareUrl,
+  SharedInvestigationSchema,
+  ShareOptionsSchema,
+  ForkResultSchema,
+} from "./sharing/index.js";
+export type {
+  SharedInvestigation,
+  ShareOptions,
+  ForkResult,
+} from "./sharing/index.js";
   AnalyticsSummary,
   AnalyticsInsight,
 } from "./analytics/index.js";
