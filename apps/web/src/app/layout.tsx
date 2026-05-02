@@ -16,6 +16,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Innovator — AI-Powered Innovation Engine",
   description: "Explore any subject from multiple innovation angles using AI",
+  openGraph: {
+    title: "Innovator — AI-Powered Innovation Engine",
+    description:
+      "Explore any subject from 8 innovation angles using AI. SCAMPER, First Principles, Cross-Domain, and more.",
+    type: "website",
+    siteName: "Innovator",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Innovator — AI-Powered Innovation Engine",
+    description: "AI-powered innovation from 8 creativity angles",
+  },
 };
 
 /**
