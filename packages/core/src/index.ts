@@ -218,3 +218,21 @@ export {
   ARTIFACT_TYPES,
 } from "./artifacts/index.js";
 export type { Artifact, ArtifactType, ArtifactContext } from "./artifacts/index.js";
+
+// Knowledge Graph
+export {
+  ingestInvestigation,
+  queryRelatedSubjects,
+  getKnowledgeGraph,
+  getGraphStats,
+  filterGraphNodes,
+  clearKnowledgeGraph,
+  EntityNodeSchema,
+  RelationshipEdgeSchema,
+  KnowledgeGraphSchema,
+} from "./knowledge-graph/index.js";
+export type {
+  EntityNode,
+  RelationshipEdge,
+  KnowledgeGraph,
+} from "./knowledge-graph/index.js";
