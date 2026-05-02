@@ -297,12 +297,7 @@ export {
   RunRecordSchema,
   RunComparisonSchema,
 } from "./replay/index.js";
-export type {
-  PromptRecord,
-  RunRecord,
-  RunComparison,
-  ReplayOverrides,
-} from "./replay/index.js";
+export type { PromptRecord, RunRecord, RunComparison, ReplayOverrides } from "./replay/index.js";
 
 // Audience-Adaptive Output
 export {
@@ -314,11 +309,7 @@ export {
   getOutputMode,
   AudienceOutputSchema,
 } from "./audience/index.js";
-export type {
-  OutputMode,
-  OutputModeDefinition,
-  AudienceOutput,
-} from "./audience/index.js";
+export type { OutputMode, OutputModeDefinition, AudienceOutput } from "./audience/index.js";
 
 // Idea Dependency Graph
 export {
@@ -419,11 +410,7 @@ export {
   ShareOptionsSchema,
   ForkResultSchema,
 } from "./sharing/index.js";
-export type {
-  SharedInvestigation,
-  ShareOptions,
-  ForkResult,
-} from "./sharing/index.js";
+export type { SharedInvestigation, ShareOptions, ForkResult } from "./sharing/index.js";
 
 // Voice
 export {
@@ -475,6 +462,89 @@ export type {
   IPComplianceReport,
   RiskLevel,
 } from "./compliance/index.js";
+
+// Depth Tiers
+export {
+  DepthSchema,
+  DEPTH_CONFIGS,
+  getDepthConfig,
+  buildShallowInvestigationPrompt,
+  buildSubTopicPrompt,
+  buildDeepDivePrompt,
+  buildDeepSynthesisPrompt,
+  SubTopicSchema,
+  DeepDiveResultSchema,
+  suggestDepth,
+} from "./depth/index.js";
+export type { Depth, DepthConfig, SubTopicResult, DeepDiveResult } from "./depth/index.js";
+
+// Angle Chaining
+export {
+  DEFAULT_CHAINS,
+  AngleChainSchema,
+  AngleChainStepSchema,
+  runChain,
+  getChainById,
+  listChains,
+} from "./chaining/index.js";
+export type { AngleChain, AngleChainStep, ChainProgress } from "./chaining/index.js";
+
+// Feedback
+export {
+  submitFeedback,
+  loadAllFeedback,
+  getSessionFeedback,
+  computeAngleScores,
+  getFeedbackSummary,
+  buildFeedbackHint,
+  FeedbackRatingSchema,
+  IdeaFeedbackSchema,
+} from "./feedback/index.js";
+export type {
+  FeedbackRating,
+  IdeaFeedback,
+  AngleQualityScore,
+  FeedbackSummary,
+} from "./feedback/index.js";
+
+// Internationalization
+export {
+  detectLanguage,
+  localizePrompt,
+  listLanguages,
+  getLanguageConfig,
+  SUPPORTED_LANGUAGES,
+  SupportedLanguageSchema,
+} from "./i18n/index.js";
+export type { SupportedLanguage, LanguageConfig } from "./i18n/index.js";
+
+// Idea Fitness Tracker
+export {
+  trackIdea,
+  loadTrackedIdeas,
+  updateTrackedIdeaStatus,
+  getTrackedIdea,
+  buildDashboard,
+  TrackedIdeaSchema,
+  ExternalStatusSchema,
+  TrackerPlatformSchema,
+} from "./tracker/index.js";
+export type {
+  TrackedIdea,
+  ExternalStatus,
+  TrackerPlatform,
+  TrackerDashboard,
+} from "./tracker/index.js";
+
+// Offline / Local-First
+export {
+  detectOllama,
+  checkNetworkStatus,
+  getOfflineStatus,
+  getRecommendedModel,
+  RECOMMENDED_MODELS,
+} from "./offline/index.js";
+export type { OllamaStatus, OfflineStatus, RecommendedModel } from "./offline/index.js";
 
 // Analytics
 export {
