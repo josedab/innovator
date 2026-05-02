@@ -206,3 +206,15 @@ export type {
   MemberRole,
   ActivityEvent,
 } from "./workspaces/index.js";
+
+// Artifacts
+export {
+  generateArtifact,
+  generateArtifactStream,
+  artifactToMarkdown,
+  artifactToGitHubIssue,
+  getArtifactTypeLabel,
+  ArtifactSchema,
+  ARTIFACT_TYPES,
+} from "./artifacts/index.js";
+export type { Artifact, ArtifactType, ArtifactContext } from "./artifacts/index.js";
