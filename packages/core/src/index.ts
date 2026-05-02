@@ -253,3 +253,18 @@ export type {
   BenchmarkReport,
   EvaluationCriterion,
 } from "./benchmark/index.js";
+
+// Content Extractors
+export {
+  extractContent,
+  buildSubjectFromContent,
+  registerExtractor,
+  UrlExtractor,
+  FileExtractor,
+  CodeRepoExtractor,
+} from "./extractors/index.js";
+export type {
+  ExtractedContent,
+  ExtractorOptions,
+  ContentExtractor,
+} from "./extractors/index.js";
