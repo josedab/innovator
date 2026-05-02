@@ -519,6 +519,18 @@ Route-specific messages:
 - **`/api/auto`**: `"Too many auto requests. Please try again later."`
 - **Concurrent limit**: `"Too many concurrent requests. Please wait for existing requests to complete."`
 
+### 411 Response
+
+All mutation requests (`POST`, `PUT`, `PATCH`) require a `Content-Length` header. Requests without it receive a `411 Length Required` response:
+
+```json
+{ "error": "Content-Length header is required." }
+```
+
+### In-Flight Request Timeout
+
+In-flight request slots are automatically freed after 3 minutes (`INFLIGHT_TIMEOUT_MS = 180000`) as a safety mechanism. This prevents permanent counter leaks when response completion cannot be detected (e.g., long-running `/api/auto` pipelines or dropped connections).
+
 :::note
 The in-memory rate limiter works for single-instance deployments only. For multi-instance environments (Vercel, Kubernetes), use Redis or a platform-provided rate limiting solution.
 :::
