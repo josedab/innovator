@@ -193,6 +193,7 @@ npm run dev
 - Include a clear description of what changed and why
 - Ensure all CI checks pass (lint, build, test)
 - Update documentation if your change affects user-facing behavior
+- PRs are automatically assigned reviewers via [CODEOWNERS](.github/CODEOWNERS)
 
 ## Security
 
