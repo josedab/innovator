@@ -64,3 +64,124 @@ jobs:
 ## Examples
 
 See the [examples/](examples/) directory for complete workflow files.
+
+### Specific angles only
+
+Run only a subset of innovation angles:
+
+```yaml
+- uses: josedab/innovator/action@main
+  with:
+    subject: "developer onboarding"
+    angles: "scamper,first-principles,constraints"
+    post-comment: "true"
+```
+
+### Deep investigation
+
+Use `depth: "deep"` for more thorough analysis (takes longer but produces richer output):
+
+```yaml
+- uses: josedab/innovator/action@main
+  with:
+    subject: "CI/CD pipeline optimization"
+    depth: "deep"
+    post-comment: "true"
+```
+
+### Shallow investigation for quick triage
+
+Use `depth: "shallow"` for a fast, lightweight analysis:
+
+```yaml
+- uses: josedab/innovator/action@main
+  with:
+    subject: ${{ github.event.issue.title }}
+    depth: "shallow"
+    angles: "scamper"
+    post-comment: "true"
+```
+
+### Innovate from discussion or PR context
+
+Extract context from GitHub discussions or PR descriptions and pass as the subject:
+
+```yaml
+on:
+  discussion:
+    types: [created]
+
+jobs:
+  innovate:
+    runs-on: ubuntu-latest
+    permissions:
+      discussions: read
+      issues: write
+    steps:
+      - uses: josedab/innovator/action@main
+        with:
+          subject: ${{ github.event.discussion.title }} — ${{ github.event.discussion.body }}
+          depth: "standard"
+          angles: "first-principles,cross-domain,trend-collision"
+```
+
+```yaml
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  innovate:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: josedab/innovator/action@main
+        with:
+          subject: ${{ github.event.pull_request.title }}
+          depth: "shallow"
+          angles: "perspectives,what-if"
+          post-comment: "true"
+```
+
+### Save output to a file
+
+Use the `markdown` output to save results as an artifact:
+
+```yaml
+- uses: josedab/innovator/action@main
+  id: innovate
+  with:
+    subject: "remote work tools"
+
+- name: Save results
+  run: echo "${{ steps.innovate.outputs.markdown }}" > innovation-report.md
+
+- uses: actions/upload-artifact@v4
+  with:
+    name: innovation-report
+    path: innovation-report.md
+```
+
+## Troubleshooting
+
+### "Authentication failed" in the action
+
+The action requires GitHub Copilot access. Ensure:
+
+- The repository has access to GitHub Copilot (org-level setting)
+- The `GITHUB_TOKEN` has sufficient permissions — add `permissions: issues: write` for comment posting
+
+### Action times out
+
+Deep investigations with all 8 angles can take 3–5 minutes. If the action times out:
+
+- Use `depth: "shallow"` for faster results
+- Limit angles with the `angles` input (e.g. `"scamper,first-principles"`)
+- Increase the job timeout: `timeout-minutes: 10`
+
+### Empty or partial results
+
+- Check that the `subject` input is descriptive enough (avoid single words)
+- Try a different model via the `model` input
+- Review the action logs for LLM response errors
