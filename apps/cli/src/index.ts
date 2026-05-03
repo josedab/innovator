@@ -66,6 +66,8 @@ import {
   suggestDepth,
   DepthSchema,
   runInnovationDiff,
+  parsePipelineRequest,
+  resolveAngles,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -682,6 +684,90 @@ program
       }
       process.exitCode = 1;
     } finally {
+      await stopCopilotClient();
+    }
+  });
+
+// ---- run (natural language pipeline) command ----
+program
+  .command("run")
+  .description("Run a pipeline described in natural language")
+  .argument("<description>", "Plain English description of what pipeline to run")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (description: string, opts: { model?: string }) => {
+    if (!validateModelWithLog(opts.model)) return;
+
+    const parseSpinner = ora("Parsing pipeline description...").start();
+    debugLog("COMMAND", "run", { description, model: opts.model });
+
+    try {
+      const config = await parsePipelineRequest(description, opts.model);
+      parseSpinner.succeed("Pipeline configuration parsed");
+
+      console.log(chalk.dim(`  Subject: ${config.subject}`));
+      console.log(chalk.dim(`  Phases: ${config.phases.join(" → ")}`));
+      if (config.angles) console.log(chalk.dim(`  Angles: ${config.angles.join(", ")}`));
+      if (config.outputFormat) console.log(chalk.dim(`  Format: ${config.outputFormat}`));
+      if (config.focusArea) console.log(chalk.dim(`  Focus: ${config.focusArea}`));
+      console.log();
+
+      if (!validateSubjectWithLog(config.subject)) return;
+
+      const angles = resolveAngles(config);
+      const spinner = ora("Running pipeline...").start();
+      const controller = new AbortController();
+      commandCleanup = async () => controller.abort();
+
+      const result = await runAutoPipeline(
+        config.subject,
+        (progress) => {
+          if (progress.stage === "investigating") spinner.text = "🔍 Investigating subject...";
+          else if (progress.stage === "generating") {
+            const done = progress.completedAngles.length;
+            spinner.text = `⚡ Generating innovations... (${done}/${progress.totalAngles})`;
+          } else if (progress.stage === "synthesizing") spinner.text = "🧪 Synthesizing results...";
+        },
+        config.model ?? opts.model,
+        angles,
+        controller.signal
+      );
+
+      if (result.stage === "error") {
+        spinner.fail("Pipeline failed");
+        console.error(chalk.red(result.error ?? "Unknown error"));
+        process.exitCode = 1;
+        return;
+      }
+
+      spinner.succeed("Pipeline complete!\n");
+
+      for (const angle of result.angleResults) {
+        console.log(chalk.bold.blue(`\n${stripAnsi(angle.angleName)}`));
+        for (const idea of angle.ideas) {
+          console.log(`  ${chalk.bold.cyan(stripAnsi(idea.title))}`);
+          console.log(`  ${stripAnsi(idea.description)}`);
+        }
+      }
+
+      if (result.synthesis) {
+        console.log(chalk.bold.magenta("\n🏆 TOP IDEAS\n"));
+        for (const idea of result.synthesis.topIdeas) {
+          console.log(`  ${chalk.bold(stripAnsi(idea.title))} [${idea.feasibility}]`);
+          console.log(`  ${stripAnsi(idea.description)}\n`);
+        }
+        console.log(chalk.bold("\n📌 Recommendation:"));
+        console.log(`  ${stripAnsi(result.synthesis.recommendation)}`);
+      }
+    } catch (err) {
+      parseSpinner.fail("Pipeline failed");
+      if (verbose) {
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      } else {
+        console.error(chalk.red("Pipeline failed. Use --verbose for details."));
+      }
+      process.exitCode = 1;
+    } finally {
+      commandCleanup = null;
       await stopCopilotClient();
     }
   });
