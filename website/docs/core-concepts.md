@@ -246,3 +246,38 @@ After generating ideas across multiple angles, the **dependency graph** module a
 ### Custom Angles
 
 Beyond the 8 built-in angles, you can **create custom angles** with your own prompt templates. Custom angles are registered via the API and appear alongside built-in angles in the UI and CLI. They can be scoped to specific domains and tagged for discoverability.
+
+## Multi-Language Support (i18n)
+
+Innovator supports generating investigations and innovations in multiple languages. The system detects the language of your input automatically and instructs the LLM to respond in that language.
+
+### Supported Languages
+
+| Code | Language   | Native Name |
+| ---- | ---------- | ----------- |
+| `en` | English    | English     |
+| `es` | Spanish    | Español     |
+| `ja` | Japanese   | 日本語      |
+| `de` | German     | Deutsch     |
+| `pt` | Portuguese | Português   |
+
+### Language Detection
+
+When you submit a subject, Innovator uses heuristic-based language detection:
+
+- **Japanese** is detected via character sets (Hiragana, Katakana, CJK characters).
+- **Spanish, German, and Portuguese** are detected via common word patterns and diacritical characters (e.g., `ñ`, `ü`, `ã`).
+- **English** is the fallback when no strong signal is detected.
+
+The detected language is applied to prompt templates so the LLM responds in the same language. JSON field names remain in English for programmatic compatibility — only values are localized.
+
+### Using `--lang` in the CLI
+
+You can explicitly set the output language with the `--lang` flag:
+
+```bash
+npx tsx apps/cli/src/index.ts investigate "energía solar" --lang es
+npx tsx apps/cli/src/index.ts auto "再生可能エネルギー" --lang ja
+```
+
+If `--lang` is not specified, the language is auto-detected from the subject text.
