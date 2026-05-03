@@ -60,7 +60,7 @@ Vercel deployment requires the Copilot SDK to support token-based auth. Check th
 ### Build and run
 
 :::note
-The Dockerfile below is an illustrative example — no `Dockerfile` is included in the repository. Copy it into your project root and adjust as needed for your deployment environment.
+The Dockerfile below is an illustrative example — no `Dockerfile` is included in the repository yet. Copy it into your project root and adjust as needed for your deployment environment.
 :::
 
 ```dockerfile
@@ -131,6 +131,161 @@ Use a process manager like [PM2](https://pm2.keymetrics.io/) for production:
 ```bash
 pm2 start npm --name innovator -- start
 ```
+
+## AWS
+
+### EC2
+
+Deploy as a standard Node.js application on an EC2 instance:
+
+```bash
+# On your EC2 instance (Amazon Linux 2023 or Ubuntu 22.04+)
+# Install Node.js 20
+curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+sudo yum install -y nodejs   # Amazon Linux
+# sudo apt install -y nodejs   # Ubuntu
+
+# Install GitHub CLI
+sudo yum install -y gh   # or: sudo apt install -y gh
+
+# Clone and build
+git clone https://github.com/josedab/innovator.git
+cd innovator
+npm ci && npm run build
+
+# Authenticate GitHub CLI
+gh auth login
+
+# Set environment variables
+export INNOVATOR_API_KEY=your-secret-key
+export PORT=3000
+
+# Run with PM2
+npm install -g pm2
+pm2 start npm --name innovator -- start
+pm2 save
+pm2 startup
+```
+
+Open port 3000 in your EC2 security group, or place behind an ALB with HTTPS.
+
+### ECS (Fargate)
+
+Use the Docker image from the [Docker section](#docker) with ECS Fargate:
+
+1. Push the Docker image to **Amazon ECR**
+2. Create an ECS **task definition** with the image, setting environment variables (`INNOVATOR_API_KEY`, `GH_TOKEN`)
+3. Create an ECS **service** with a Fargate launch type
+4. Attach an **Application Load Balancer** with HTTPS listener
+
+Pass `GH_TOKEN` as a secret via AWS Secrets Manager rather than plain environment variables.
+
+### Lambda (Experimental)
+
+Next.js can be deployed to Lambda via [OpenNext](https://open-next.js.org/) or the [Serverless Next.js Component](https://github.com/serverless-nextjs/serverless-next.js). However, the Copilot SDK's reliance on `gh` CLI makes serverless deployment challenging. Consider using an alternative LLM provider (OpenAI/Anthropic direct) with API key auth for Lambda deployments.
+
+## Azure App Service
+
+1. Create a **Node.js 20 LTS** App Service in the Azure Portal
+2. Configure deployment from your GitHub repository (or push the Docker image to Azure Container Registry)
+3. Set environment variables in **Configuration → Application settings**:
+   - `INNOVATOR_API_KEY`
+   - `INNOVATOR_DEFAULT_MODEL`
+   - `GH_TOKEN` (for Copilot SDK auth)
+4. Set the **Startup Command** to `npm start`
+
+```bash
+# Or deploy via Azure CLI
+az webapp up --name innovator-app --runtime "NODE:20-lts" --sku B1
+az webapp config appsettings set --name innovator-app \
+  --settings INNOVATOR_API_KEY=your-key GH_TOKEN=your-token
+```
+
+## Railway
+
+[Railway](https://railway.app/) auto-detects Node.js projects and provides simple deployments.
+
+1. Connect your GitHub repository in the Railway dashboard
+2. Railway detects the project and runs `npm install && npm run build` automatically
+3. Set environment variables in the Railway project settings:
+   - `INNOVATOR_API_KEY`
+   - `GH_TOKEN`
+   - `PORT` — Railway sets this automatically; Innovator reads it
+4. Deploy — Railway assigns a public URL with HTTPS
+
+```bash
+# Or deploy via Railway CLI
+npm install -g @railway/cli
+railway login
+railway init
+railway up
+```
+
+## Heroku
+
+1. Create a new Heroku app and connect your repository
+2. Add the **GitHub CLI buildpack** (Copilot SDK requires `gh`):
+   ```bash
+   heroku buildpacks:add --index 1 https://github.com/heroku/heroku-buildpack-github-cli
+   heroku buildpacks:add heroku/nodejs
+   ```
+3. Set config vars:
+   ```bash
+   heroku config:set INNOVATOR_API_KEY=your-key
+   heroku config:set GH_TOKEN=your-token
+   heroku config:set NPM_CONFIG_PRODUCTION=false
+   ```
+4. Deploy:
+   ```bash
+   git push heroku main
+   ```
+
+Add a `Procfile` to the repository root if not already present:
+
+```
+web: npm start
+```
+
+## Fly.io
+
+[Fly.io](https://fly.io/) runs Docker containers globally with low latency.
+
+1. Install the Fly CLI: `curl -L https://fly.io/install.sh | sh`
+2. Create the app:
+   ```bash
+   fly launch --name innovator --region iad
+   ```
+3. Set secrets:
+   ```bash
+   fly secrets set INNOVATOR_API_KEY=your-key GH_TOKEN=your-token
+   ```
+4. Create a `fly.toml` (or let `fly launch` generate one):
+
+   ```toml
+   [build]
+     dockerfile = "Dockerfile"
+
+   [env]
+     PORT = "3000"
+
+   [[services]]
+     internal_port = 3000
+     protocol = "tcp"
+     [services.concurrency]
+       hard_limit = 25
+       soft_limit = 20
+     [[services.ports]]
+       handlers = ["http"]
+       port = 80
+     [[services.ports]]
+       handlers = ["tls", "http"]
+       port = 443
+   ```
+
+5. Deploy:
+   ```bash
+   fly deploy
+   ```
 
 ## Security Checklist
 
