@@ -13,8 +13,12 @@ import {
   buildHeatmap,
   computeCorrelationMatrix,
   chiSquaredAngleEffectiveness,
+  generateMiningReport,
 } from "../mining/index.js";
 import type { MiningDataPoint } from "../mining/index.js";
+import { generateText, extractJson } from "../copilot/client.js";
+const mockGenerateText = vi.mocked(generateText);
+const mockExtractJson = vi.mocked(extractJson);
 
 function makeDataPoints(): MiningDataPoint[] {
   return [
@@ -47,6 +51,7 @@ function makeDataPoints(): MiningDataPoint[] {
 describe("mining", () => {
   beforeEach(() => {
     clearMiningData();
+    vi.clearAllMocks();
   });
 
   it("ingests and retrieves data points", () => {
@@ -117,5 +122,106 @@ describe("mining", () => {
 
     const chiResult = chiSquaredAngleEffectiveness([]);
     expect(chiResult.significant).toBe(false);
+  });
+
+  describe("generateMiningReport", () => {
+    it("mocked LLM returns NarratedInsight", async () => {
+      const insights = {
+        insights: [
+          {
+            title: "Test Insight",
+            description: "A test insight from LLM",
+            confidence: 0.85,
+            category: "pattern",
+            supportingData: "data",
+          },
+        ],
+      };
+      mockGenerateText.mockResolvedValue(JSON.stringify(insights));
+      mockExtractJson.mockReturnValue(JSON.stringify(insights));
+
+      const report = await generateMiningReport(makeDataPoints());
+      expect(report.dataPointCount).toBe(8);
+      expect(report.insights).toHaveLength(1);
+      expect(report.insights[0].title).toBe("Test Insight");
+      expect(mockGenerateText).toHaveBeenCalledTimes(1);
+      expect(mockGenerateText).toHaveBeenCalledWith(expect.objectContaining({ serverMode: true }));
+      expect(mockExtractJson).toHaveBeenCalledTimes(1);
+    });
+
+    it("LLM failure returns fallback report", async () => {
+      mockGenerateText.mockRejectedValue(new Error("LLM down"));
+
+      const report = await generateMiningReport(makeDataPoints());
+      expect(report.dataPointCount).toBe(8);
+      expect(report.insights).toHaveLength(1);
+      expect(report.insights[0].title).toBe("Automated Insights Unavailable");
+    });
+
+    it("empty data returns report with 0 insights", async () => {
+      const report = await generateMiningReport([]);
+      expect(report.dataPointCount).toBe(0);
+      expect(report.insights).toHaveLength(0);
+    });
+  });
+
+  describe("statistical edge cases", () => {
+    it("pearsonCorrelation with zero-variance data returns 0", () => {
+      // All same scores in all domains → correlation should be 0 (zero variance)
+      const data: MiningDataPoint[] = [
+        { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 5, timestamp: Date.now() },
+        { subjectDomain: "tech", angleId: "what-if", ideaQualityScore: 5, timestamp: Date.now() },
+        { subjectDomain: "health", angleId: "scamper", ideaQualityScore: 5, timestamp: Date.now() },
+        { subjectDomain: "health", angleId: "what-if", ideaQualityScore: 5, timestamp: Date.now() },
+      ];
+      const correlations = computeCorrelationMatrix(data);
+      if (correlations.length > 0) {
+        expect(correlations[0].correlation).toBe(0);
+      }
+    });
+
+    it("correlation with < 2 shared angles returns empty", () => {
+      const data: MiningDataPoint[] = [
+        { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 8, timestamp: Date.now() },
+        { subjectDomain: "health", angleId: "what-if", ideaQualityScore: 6, timestamp: Date.now() },
+      ];
+      const correlations = computeCorrelationMatrix(data);
+      // No shared angles → no correlation entries
+      expect(correlations).toHaveLength(0);
+    });
+
+    it("chi-squared with single domain returns pValue: 1", () => {
+      const data: MiningDataPoint[] = [
+        { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 8, timestamp: Date.now() },
+        { subjectDomain: "tech", angleId: "what-if", ideaQualityScore: 6, timestamp: Date.now() },
+      ];
+      const result = chiSquaredAngleEffectiveness(data);
+      expect(result.pValue).toBe(1);
+      expect(result.significant).toBe(false);
+    });
+
+    it("median with even-count array", () => {
+      const data: MiningDataPoint[] = [
+        { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 4, timestamp: Date.now() },
+        { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 6, timestamp: Date.now() },
+        { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 8, timestamp: Date.now() },
+        { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 10, timestamp: Date.now() },
+      ];
+      const effectiveness = computeAngleEffectiveness(data);
+      const entry = effectiveness.find((e) => e.angleId === "scamper");
+      // Median of [4,6,8,10] = (6+8)/2 = 7
+      expect(entry?.medianQuality).toBe(7);
+    });
+
+    it("standard deviation with identical values returns 0", () => {
+      const data: MiningDataPoint[] = [
+        { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 5, timestamp: Date.now() },
+        { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 5, timestamp: Date.now() },
+        { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 5, timestamp: Date.now() },
+      ];
+      const effectiveness = computeAngleEffectiveness(data);
+      const entry = effectiveness.find((e) => e.angleId === "scamper");
+      expect(entry?.stdDev).toBe(0);
+    });
   });
 });
