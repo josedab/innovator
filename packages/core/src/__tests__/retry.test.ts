@@ -78,4 +78,107 @@ describe("withRetry", () => {
     await expect(withRetry(fn, { initialDelayMs: 1 })).rejects.toBe("string error");
     expect(fn).toHaveBeenCalledTimes(1);
   });
+
+  it("defaultIsRetryable matches all 10 retryable patterns", async () => {
+    const patterns = [
+      "ECONNRESET",
+      "ECONNREFUSED",
+      "ETIMEDOUT",
+      "ENOTFOUND",
+      "EAI_AGAIN",
+      "fetch failed",
+      "network",
+      "timed out",
+      "socket hang up",
+      "EPIPE",
+    ];
+    for (const pattern of patterns) {
+      const fn = vi.fn().mockRejectedValueOnce(new Error(pattern)).mockResolvedValue("ok");
+      const result = await withRetry(fn, { initialDelayMs: 1 });
+      expect(result).toBe("ok");
+      expect(fn).toHaveBeenCalledTimes(2);
+    }
+  });
+
+  it("defaultIsRetryable returns false for non-Error values", async () => {
+    const fn = vi.fn().mockRejectedValue(42);
+    await expect(withRetry(fn, { initialDelayMs: 1 })).rejects.toBe(42);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("backoff delay grows exponentially (1→2→4ms)", async () => {
+    const callTimes: number[] = [];
+    const fn = vi.fn().mockImplementation(() => {
+      callTimes.push(Date.now());
+      return Promise.reject(new Error("ECONNRESET"));
+    });
+
+    await expect(
+      withRetry(fn, { maxAttempts: 4, initialDelayMs: 50, backoffMultiplier: 2 })
+    ).rejects.toThrow("ECONNRESET");
+
+    expect(fn).toHaveBeenCalledTimes(4);
+    // Verify delays grow: gap2 > gap1, gap3 > gap2
+    const gaps = callTimes.slice(1).map((t, i) => t - callTimes[i]);
+    expect(gaps[1]).toBeGreaterThanOrEqual(gaps[0]);
+    expect(gaps[2]).toBeGreaterThanOrEqual(gaps[1]);
+  });
+
+  it("delay is capped at maxDelayMs", async () => {
+    const callTimes: number[] = [];
+    const fn = vi.fn().mockImplementation(() => {
+      callTimes.push(Date.now());
+      return Promise.reject(new Error("ECONNRESET"));
+    });
+
+    await expect(
+      withRetry(fn, {
+        maxAttempts: 3,
+        initialDelayMs: 30,
+        backoffMultiplier: 100,
+        maxDelayMs: 60,
+      })
+    ).rejects.toThrow("ECONNRESET");
+
+    expect(fn).toHaveBeenCalledTimes(3);
+    // Second gap should be capped at ~60ms, not 3000ms
+    const gap2 = callTimes[2] - callTimes[1];
+    expect(gap2).toBeLessThan(200);
+  });
+
+  it("AbortSignal already aborted throws before first fn() call", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const fn = vi.fn().mockResolvedValue("ok");
+
+    await expect(withRetry(fn, { signal: controller.signal })).rejects.toThrow("Retry aborted");
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it("AbortSignal fires during delay rejects with abort error", async () => {
+    const controller = new AbortController();
+    const fn = vi.fn().mockRejectedValueOnce(new Error("ECONNRESET")).mockResolvedValue("ok");
+
+    const promise = withRetry(fn, {
+      initialDelayMs: 10_000,
+      signal: controller.signal,
+    });
+
+    // Abort while waiting for the delay
+    setTimeout(() => controller.abort(), 50);
+    await expect(promise).rejects.toThrow("Retry aborted");
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("custom isRetryable predicate prevents retry when returning false", async () => {
+    const fn = vi.fn().mockRejectedValue(new Error("ECONNRESET"));
+
+    await expect(
+      withRetry(fn, {
+        initialDelayMs: 1,
+        isRetryable: () => false,
+      })
+    ).rejects.toThrow("ECONNRESET");
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
 });
