@@ -65,17 +65,17 @@ import {
   getDepthConfig,
   suggestDepth,
   DepthSchema,
-  runInnovationDiff,
   parsePipelineRequest,
   resolveAngles,
-  scoreInvestigationQuality,
-  meetsConfidenceThreshold,
-  formatGapSuggestions,
+  runInnovationDiff,
   evaluateConstraints,
   flattenIdeas,
   parseConstraintString,
-  generatePlaybook,
   findSerendipitousConnections,
+  scoreInvestigationQuality,
+  meetsConfidenceThreshold,
+  formatGapSuggestions,
+  generatePlaybook,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -362,10 +362,10 @@ program
   .option("--audience <mode>", "Generate audience-adapted output (executive, technical, pitch, research)")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
-  .option("--min-confidence <score>", "Minimum investigation confidence score (0-100) before generating ideas")
   .option("--constraint <expr...>", "Apply constraints (e.g., 'budget<50K', 'timeline<3months')")
+  .option("--min-confidence <score>", "Minimum investigation confidence score (0-100) before generating ideas")
   .option("--playbook [format]", "Generate an Innovation Playbook (markdown or html)")
-  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; minConfidence?: string; constraint?: string[]; playbook?: string | boolean }) => {
+  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; constraint?: string[]; minConfidence?: string; playbook?: string | boolean }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
 
