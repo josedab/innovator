@@ -373,6 +373,639 @@ interface AutoRequest {
 
 ---
 
+## Workspace & Collaboration APIs
+
+### `createCollaborativeSession(subject, participants)`
+
+Create a new collaborative innovation session.
+
+```typescript
+import { createCollaborativeSession } from "@innovator/core";
+
+const session = createCollaborativeSession("remote work tools", [
+  { userId: "user-1", displayName: "Alice" },
+]);
+```
+
+**Parameters:**
+
+| Param          | Type                                        | Required | Description              |
+| -------------- | ------------------------------------------- | -------- | ------------------------ |
+| `subject`      | `string`                                    | Yes      | The topic to innovate on |
+| `participants` | `{ userId: string; displayName: string }[]` | Yes      | Initial participants     |
+
+**Returns:** `CollaborativeSession`
+
+---
+
+### `joinSession(code, userId)`
+
+Join an existing collaborative session via its share code.
+
+**Parameters:**
+
+| Param    | Type     | Required | Description            |
+| -------- | -------- | -------- | ---------------------- |
+| `code`   | `string` | Yes      | Session share code     |
+| `userId` | `string` | Yes      | ID of the user joining |
+
+**Returns:** `CollaborativeSession | undefined`
+
+---
+
+### `submitIdea(sessionId, userId, idea)`
+
+Submit an idea to a collaborative session.
+
+**Parameters:**
+
+| Param       | Type             | Required | Description        |
+| ----------- | ---------------- | -------- | ------------------ |
+| `sessionId` | `string`         | Yes      | Session ID         |
+| `userId`    | `string`         | Yes      | Submitting user ID |
+| `idea`      | `InnovationIdea` | Yes      | The idea to submit |
+
+**Returns:** `void`
+
+---
+
+### `voteForIdea(sessionId, ideaId, userId)`
+
+Cast a vote for an idea in a collaborative session.
+
+**Returns:** `void`
+
+---
+
+### `mergeIdeas(sessionId, ideaIds)`
+
+Merge two or more ideas within a session into a single combined idea.
+
+**Parameters:**
+
+| Param       | Type       | Required | Description           |
+| ----------- | ---------- | -------- | --------------------- |
+| `sessionId` | `string`   | Yes      | Session ID            |
+| `ideaIds`   | `string[]` | Yes      | IDs of ideas to merge |
+
+**Returns:** `InnovationIdea`
+
+---
+
+### `completeSession(sessionId)`
+
+Mark a collaborative session as complete.
+
+**Returns:** `CollaborativeSession | undefined`
+
+---
+
+## Memory & Learning APIs
+
+### `recordSignal(signal)`
+
+Record a user behaviour signal for preference learning.
+
+```typescript
+import { recordSignal } from "@innovator/core";
+
+recordSignal({
+  userId: "user-1",
+  type: "angle_selected",
+  data: { angleId: "scamper" },
+});
+```
+
+**Parameters:**
+
+| Param    | Type         | Required | Description                                            |
+| -------- | ------------ | -------- | ------------------------------------------------------ |
+| `signal` | `UserSignal` | Yes      | Signal object with `userId`, `type`, and `data` fields |
+
+**Returns:** `UserSignal`
+
+---
+
+### `getUserSignals(userId)`
+
+Retrieve all recorded signals for a user.
+
+**Returns:** `UserSignal[]`
+
+---
+
+### `buildPreferenceProfile(userId)`
+
+Build or rebuild a user's preference profile from their recorded signals.
+
+**Returns:** `UserPreferenceProfile`
+
+---
+
+### `getPreferenceProfile(userId)`
+
+Retrieve an existing preference profile without rebuilding.
+
+**Returns:** `UserPreferenceProfile | undefined`
+
+---
+
+### `buildPreferenceContext(userId)`
+
+Generate a natural-language context string from a user's preferences for inclusion in LLM prompts.
+
+**Returns:** `string | undefined`
+
+---
+
+### `assignABTest(testId, userId)`
+
+Assign a user to an A/B test variant (`"adapted"` or `"default"`).
+
+**Returns:** `ABTestAssignment`
+
+---
+
+### `getABTestVariant(testId, userId)`
+
+Get the A/B test variant a user is assigned to.
+
+**Returns:** `"adapted" | "default" | undefined`
+
+---
+
+### `clearMemory()`
+
+Clear all stored memory data (signals, profiles, A/B assignments).
+
+**Returns:** `void`
+
+---
+
+## Portfolio APIs
+
+### `addPortfolioItem(params)`
+
+Add an idea to the innovation portfolio. See [Core Concepts — Portfolio Tracking](/docs/core-concepts#portfolio-tracking).
+
+```typescript
+import { addPortfolioItem } from "@innovator/core";
+
+const item = addPortfolioItem({
+  title: "AI-powered code review",
+  description: "Use LLMs to provide contextual review suggestions",
+  sourceAngle: "trend-collision",
+  tags: ["developer-tools", "ai"],
+});
+```
+
+**Returns:** `PortfolioItem`
+
+---
+
+### `getPortfolioItem(id)`
+
+Retrieve a portfolio item by UUID.
+
+**Returns:** `PortfolioItem | undefined`
+
+---
+
+### `transitionItem(id, toStage, reason?, userId?)`
+
+Transition a portfolio item to a new lifecycle stage.
+
+**Parameters:**
+
+| Param     | Type                 | Required | Description               |
+| --------- | -------------------- | -------- | ------------------------- |
+| `id`      | `string`             | Yes      | Portfolio item UUID       |
+| `toStage` | `IdeaLifecycleStage` | Yes      | Target stage              |
+| `reason`  | `string`             | No       | Reason for the transition |
+| `userId`  | `string`             | No       | User who initiated it     |
+
+**Returns:** `PortfolioItem | undefined`
+
+---
+
+### `updatePortfolioItem(id, updates)`
+
+Update metadata (outcome, impact score, tags, assignee) on a portfolio item.
+
+**Returns:** `boolean`
+
+---
+
+### `deletePortfolioItem(id)`
+
+Permanently delete a portfolio item.
+
+**Returns:** `boolean`
+
+---
+
+### `listPortfolioItems()`
+
+List all portfolio items, sorted by most recently updated.
+
+**Returns:** `PortfolioItem[]`
+
+---
+
+### `getPortfolioMetrics()`
+
+Compute aggregated metrics across the portfolio (totals by stage/angle, conversion rates, velocity).
+
+**Returns:** `PortfolioMetrics`
+
+---
+
+### `generatePortfolioInsights()`
+
+Generate actionable insights from portfolio metrics.
+
+**Returns:** `PortfolioInsight[]`
+
+---
+
+## Compliance APIs
+
+### `screenIdea(idea, domain, industry?, model?, signal?)`
+
+Screen a single idea for IP and regulatory risks.
+
+```typescript
+import { screenIdea } from "@innovator/core";
+
+const result = await screenIdea(
+  { title: "...", description: "..." },
+  "healthcare",
+  "medical-devices"
+);
+```
+
+**Returns:** `Promise<IPScreeningResult>`
+
+---
+
+### `screenIdeas(ideas, domain, industry?, model?, signal?)`
+
+Batch-screen multiple ideas and produce a compliance report.
+
+**Returns:** `Promise<IPComplianceReport>`
+
+---
+
+### `getIndustryRegulations(industry)`
+
+Look up regulatory constraints for a specific industry.
+
+**Returns:** `RegulatoryConstraint[]`
+
+---
+
+### `listRegulatedIndustries()`
+
+List all industries with known regulatory constraints.
+
+**Returns:** `string[]`
+
+---
+
+### `complianceReportToMarkdown(report)`
+
+Convert a compliance report to a readable Markdown string.
+
+**Returns:** `string`
+
+---
+
+## Sprint APIs
+
+### `createSprint(subject)`
+
+Create a new innovation sprint for a subject.
+
+```typescript
+import { createSprint } from "@innovator/core";
+
+const sprint = createSprint("sustainable packaging");
+```
+
+**Returns:** `Sprint`
+
+---
+
+### `getSprint(id)` · `listSprints()` · `deleteSprint(id)` · `clearSprints()`
+
+CRUD operations for sprints. `getSprint` returns `Sprint | undefined`, `listSprints` returns `Sprint[]`, `deleteSprint` and `clearSprints` return `boolean` / `void`.
+
+---
+
+### `startSprint(id)` · `pauseSprint(id)`
+
+Change sprint status to `active` or `paused`.
+
+**Returns:** `Sprint | undefined`
+
+---
+
+### `canAdvancePhase(sprint)`
+
+Check whether a sprint can advance to the next phase (diverge → converge → refine).
+
+**Returns:** `{ canAdvance: boolean; reason?: string }`
+
+---
+
+### `advancePhase(id, model?, signal?)`
+
+Advance a sprint to the next phase, running the appropriate LLM prompts.
+
+**Returns:** `Promise<Sprint | undefined>`
+
+---
+
+### `updateSprintData(id, data)`
+
+Update phase-specific data on a sprint (e.g. shortlisted ideas in the converge phase).
+
+**Returns:** `Sprint | undefined`
+
+---
+
+### `generateRetrospective(id, model?, signal?)`
+
+Generate a sprint retrospective summarising outcomes and learnings.
+
+**Returns:** `Promise<SprintRetrospective | undefined>`
+
+---
+
+### `getProgressionSuggestions(sprint)`
+
+Get suggestions for what to do next in the current sprint phase.
+
+**Returns:** `string[]`
+
+---
+
+## Chaining APIs
+
+### `runChain(chain, subject, investigation, onProgress?, model?, signal?)`
+
+Execute an angle chain — a sequence of angles where each output feeds into the next.
+
+```typescript
+import { runChain, getChainById } from "@innovator/core";
+
+const chain = getChainById("deep-disruption");
+const results = await runChain(chain, "remote work", investigation);
+```
+
+**Returns:** `Promise<AngleResult[]>`
+
+---
+
+### `getChainById(id)`
+
+Look up a built-in chain by ID.
+
+**Returns:** `AngleChain | undefined`
+
+---
+
+### `listChains()`
+
+List all available angle chains.
+
+**Returns:** `AngleChain[]`
+
+---
+
+### `DEFAULT_CHAINS`
+
+Array of built-in chain definitions: `deep-disruption`, `practical-innovation`, `market-entry`, `contrarian-path`, `full-spectrum`.
+
+---
+
+## Voice APIs
+
+### `parseVoiceCommand(transcript)`
+
+Parse a voice transcript into a structured command.
+
+```typescript
+import { parseVoiceCommand } from "@innovator/core";
+
+const cmd = parseVoiceCommand("investigate machine learning");
+// { command: "investigate", args: { subject: "machine learning" } }
+```
+
+**Returns:** `ParsedVoiceCommand | undefined`
+
+---
+
+### `buildNarrationSegments(data)`
+
+Convert pipeline results into narration segments suitable for text-to-speech.
+
+**Returns:** `NarrationSegment[]`
+
+---
+
+### `getVoiceCommandHelp()`
+
+Get a human-readable help string listing all supported voice commands.
+
+**Returns:** `string`
+
+---
+
+### `registerSTTProvider(provider)` · `registerTTSProvider(provider)`
+
+Register a speech-to-text or text-to-speech provider.
+
+**Returns:** `void`
+
+---
+
+### `getSTTProvider(id)` · `getTTSProvider(id)`
+
+Retrieve a registered provider by ID.
+
+**Returns:** `SpeechRecognitionProvider | undefined` / `TextToSpeechProvider | undefined`
+
+---
+
+### `listSTTProviders()` · `listTTSProviders()`
+
+List all registered providers.
+
+**Returns:** `SpeechRecognitionProvider[]` / `TextToSpeechProvider[]`
+
+---
+
+### `clearVoiceProviders()`
+
+Remove all registered voice providers.
+
+**Returns:** `void`
+
+---
+
+## Market Signals APIs
+
+### `fetchMarketSignals(query, limit?, model?, signal?)`
+
+Fetch market signals from all registered providers for a given query.
+
+```typescript
+import { fetchMarketSignals } from "@innovator/core";
+
+const report = await fetchMarketSignals("AI developer tools", 10);
+```
+
+**Returns:** `Promise<MarketSignalReport>`
+
+---
+
+### `buildMarketSignalContext(report)`
+
+Convert a market signal report into a context string for LLM prompts.
+
+**Returns:** `string`
+
+---
+
+### `registerSignalProvider(provider)` · `unregisterSignalProvider(id)`
+
+Register or remove a market signal provider.
+
+---
+
+### `listSignalProviders()` · `getAvailableProviders()`
+
+List registered / available signal providers.
+
+**Returns:** `MarketSignalProvider[]`
+
+---
+
+### `clearSignalProviders()`
+
+Remove all registered signal providers.
+
+**Returns:** `void`
+
+---
+
+### Built-in Signal Providers
+
+| Provider               | Source                  |
+| ---------------------- | ----------------------- |
+| `ProductHuntProvider`  | Product Hunt trending   |
+| `HackerNewsProvider`   | Hacker News top stories |
+| `GoogleTrendsProvider` | Google Trends data      |
+| `ArxivProvider`        | arXiv research papers   |
+| `PatentFilingProvider` | Recent patent filings   |
+
+---
+
+## Dependency Graph APIs
+
+### `buildIdeaDependencyGraph(angleResults, subject, model?, signal?)`
+
+Analyse relationships between ideas across angles and produce a dependency graph.
+
+```typescript
+import { buildIdeaDependencyGraph } from "@innovator/core";
+
+const graph = await buildIdeaDependencyGraph(angleResults, "remote work");
+```
+
+**Returns:** `Promise<IdeaDependencyGraph>`
+
+---
+
+### `dependencyGraphToMarkdown(graph)`
+
+Convert a dependency graph to a readable Markdown representation.
+
+**Returns:** `string`
+
+---
+
+## Plugin Registry APIs
+
+### `registerPlugin(plugin)`
+
+Register a plugin (angle, exporter, or visualizer).
+
+```typescript
+import { registerPlugin } from "@innovator/core";
+
+registerPlugin({
+  id: "my-angle",
+  type: "angle",
+  name: "My Custom Angle",
+  version: "1.0.0",
+  // ... angle-specific fields
+});
+```
+
+**Returns:** `void`
+
+---
+
+### `unregisterPlugin(id)`
+
+Remove a plugin by ID.
+
+**Returns:** `boolean`
+
+---
+
+### `getPlugin(id)`
+
+Retrieve a registered plugin by ID.
+
+**Returns:** `InnovatorPlugin | undefined`
+
+---
+
+### `listPlugins()`
+
+List all registered plugins.
+
+**Returns:** `InnovatorPlugin[]`
+
+---
+
+### `getPluginsByType(type)`
+
+List plugins filtered by type (`"angle"`, `"exporter"`, or `"visualizer"`).
+
+**Returns:** `InnovatorPlugin[]`
+
+---
+
+### `clearPlugins()`
+
+Remove all registered plugins.
+
+**Returns:** `void`
+
+---
+
+### `loadPlugin(source)`
+
+Load a plugin from an external source (URL or file path).
+
+**Returns:** `Promise<InnovatorPlugin>`
+
+---
+
 ## Web API Routes
 
 ### `POST /api/investigate`
