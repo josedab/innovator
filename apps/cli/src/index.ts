@@ -74,6 +74,7 @@ import {
   evaluateConstraints,
   flattenIdeas,
   parseConstraintString,
+  generatePlaybook,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -362,7 +363,8 @@ program
   .option("--url <url>", "Use a URL as context input")
   .option("--min-confidence <score>", "Minimum investigation confidence score (0-100) before generating ideas")
   .option("--constraint <expr...>", "Apply constraints (e.g., 'budget<50K', 'timeline<3months')")
-  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; minConfidence?: string; constraint?: string[] }) => {
+  .option("--playbook [format]", "Generate an Innovation Playbook (markdown or html)")
+  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; minConfidence?: string; constraint?: string[]; playbook?: string | boolean }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
 
@@ -689,13 +691,35 @@ program
           }
         }
       }
-    } catch (err) {
-      if (verbose) {
-        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      } else {
-        console.error(chalk.red("Auto mode failed. Use --verbose for details."));
+
+      // Generate playbook if --playbook flag is set
+      if (opts.playbook && result.investigation && result.synthesis) {
+        const format = typeof opts.playbook === "string" && opts.playbook === "html" ? "html" as const : "markdown" as const;
+        const playbookSpinner = ora(`📕 Generating Innovation Playbook (${format})...`).start();
+        try {
+          const playbook = await generatePlaybook(
+            subject,
+            result.investigation,
+            result.angleResults,
+            result.synthesis,
+            format,
+            opts.model
+          );
+          playbookSpinner.succeed("Innovation Playbook generated!\n");
+
+          const filename = `playbook-${subject.slice(0, 30).replace(/[^a-z0-9]/gi, "-").toLowerCase()}.${format === "html" ? "html" : "md"}`;
+          const fs = await import("node:fs");
+          fs.writeFileSync(filename, playbook.content, "utf-8");
+          console.log(chalk.green(`  📄 Saved to ${filename}`));
+          console.log(chalk.dim(`  ${playbook.content.length} characters, ${playbook.sections.roadmap.length} phases, ${playbook.sections.risks.length} risks\n`));
+        } catch (err) {
+          playbookSpinner.fail("Playbook generation failed");
+          if (verbose) {
+            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          }
+        }
       }
-      process.exitCode = 1;
+    } catch (err) {
     } finally {
       commandCleanup = null;
       await stopCopilotClient();
