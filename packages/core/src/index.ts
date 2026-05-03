@@ -1163,3 +1163,148 @@ export type {
   DiminishingReturns,
   RetrospectiveReport,
 } from "./retrospective/index.js";
+
+// Natural Language Pipeline Builder
+export {
+  parsePipelineRequest,
+  resolvePhases,
+  resolveAngles,
+  PipelineConfigSchema,
+  PipelinePhaseSchema,
+  OutputFormatSchema as PipelineOutputFormatSchema,
+} from "./pipeline-builder/index.js";
+export type {
+  PipelineConfig,
+  PipelinePhase,
+  OutputFormat as PipelineOutputFormat,
+} from "./pipeline-builder/index.js";
+
+// Innovation Diff
+export {
+  runInnovationDiff,
+  buildDiffPrompt,
+  DiffResultSchema,
+  DiffItemSchema,
+} from "./diff/index.js";
+export type { DiffResult, DiffItem } from "./diff/index.js";
+
+// Idea Provenance
+export {
+  buildProvenanceRecords,
+  createProvenanceChain,
+  buildProvenanceTree,
+  getIdeaProvenance,
+  formatProvenance,
+  hashPrompt,
+  estimateInputTokens,
+  ProvenanceRecordSchema,
+  ProvenanceChainSchema,
+} from "./provenance/index.js";
+export type {
+  ProvenanceRecord,
+  ProvenanceChain,
+  ProvenanceTreeNode,
+} from "./provenance/index.js";
+
+// Constraint Satisfaction Optimizer
+export {
+  evaluateConstraints,
+  flattenIdeas,
+  parseConstraintString,
+  ConstraintSchema,
+  ConstraintTypeSchema,
+  ConstraintOperatorSchema,
+  ConstraintEvaluationSchema,
+  ConstraintResultSchema,
+} from "./constraints/index.js";
+export type {
+  Constraint,
+  ConstraintType,
+  ConstraintOperator,
+  ConstraintEvaluation,
+  ConstraintResult,
+} from "./constraints/index.js";
+
+// Cross-Session Serendipity Engine
+export {
+  findSerendipitousConnections,
+  embedSession,
+  SerendipitousConnectionSchema,
+  SerendipityResultSchema,
+} from "./serendipity/index.js";
+export type {
+  SerendipitousConnection,
+  SerendipityResult,
+} from "./serendipity/index.js";
+
+// Investigation Confidence Scoring
+export {
+  scoreInvestigationQuality,
+  formatGapSuggestions,
+  meetsConfidenceThreshold,
+  ConfidenceScoreSchema,
+  ConfidenceDimensionSchema,
+  KnowledgeGapSchema,
+} from "./confidence/index.js";
+export type {
+  ConfidenceScore,
+  ConfidenceDimension,
+  KnowledgeGap,
+} from "./confidence/index.js";
+
+// Embeddable Widget SDK
+export {
+  generateEmbedCode,
+  getWidgetSource,
+  WIDGET_SOURCE,
+} from "./widget/index.js";
+
+// Idea Genealogy — Evolution Tracking
+export {
+  compareInvestigationRuns,
+  findPreviousInvestigation,
+  IdeaStatusSchema,
+  IdeaEvolutionSchema,
+  GenealogyResultSchema,
+} from "./genealogy/index.js";
+export type {
+  IdeaStatus,
+  IdeaEvolution,
+  GenealogyResult,
+} from "./genealogy/index.js";
+
+// LLM Output Quality Gate
+export {
+  runQualityGate,
+  checkHallucinatedStatistics,
+  checkVaguePlatitudes,
+  checkCrossAngleDuplication,
+  checkSelfContradictions,
+  QualityCheckTypeSchema,
+  QualityIssueSchema,
+  QualityReportSchema,
+} from "./quality-gate/index.js";
+export type {
+  QualityCheckType,
+  QualityIssue,
+  QualityReport,
+  QualityGateConfig,
+} from "./quality-gate/index.js";
+
+// Innovation Playbook Generator
+export {
+  generatePlaybook,
+  generatePlaybookFromPipeline,
+  PlaybookFormatSchema,
+  PlaybookSchema,
+  PlaybookSectionsSchema,
+  RoadmapItemSchema,
+  RiskItemSchema,
+} from "./playbook/index.js";
+export type {
+  Playbook,
+  PlaybookFormat,
+  PlaybookSections,
+  RoadmapItem,
+  RiskItem,
+} from "./playbook/index.js";
