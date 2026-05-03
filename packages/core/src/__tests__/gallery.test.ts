@@ -139,4 +139,90 @@ describe("gallery", () => {
     expect(collections).toHaveLength(1);
     expect(collections[0].title).toBe("Best of Week");
   });
+
+  describe("searchGallery sorting", () => {
+    it("sortBy 'newest' returns date-descending", () => {
+      publishToGallery(makeListing({ id: "old", createdAt: 1000 }));
+      publishToGallery(makeListing({ id: "new", createdAt: 2000 }));
+      const results = searchGallery({ sortBy: "newest" });
+      expect(results.listings[0].id).toBe("new");
+      expect(results.listings[1].id).toBe("old");
+    });
+
+    it("sortBy 'most-upvoted' returns vote-descending", () => {
+      publishToGallery(makeListing({ id: "low", upvotes: 1 }));
+      publishToGallery(makeListing({ id: "high", upvotes: 100 }));
+      const results = searchGallery({ sortBy: "most-upvoted" });
+      expect(results.listings[0].id).toBe("high");
+      expect(results.listings[1].id).toBe("low");
+    });
+  });
+
+  describe("searchGallery pagination", () => {
+    it("offset and limit paginate correctly", () => {
+      for (let i = 0; i < 5; i++) {
+        publishToGallery(makeListing({ id: `l-${i}`, createdAt: i }));
+      }
+      const page1 = searchGallery({ sortBy: "newest", limit: 2, offset: 0 });
+      const page2 = searchGallery({ sortBy: "newest", limit: 2, offset: 2 });
+      expect(page1.listings).toHaveLength(2);
+      expect(page2.listings).toHaveLength(2);
+      expect(page1.total).toBe(5);
+      expect(page1.listings[0].id).not.toBe(page2.listings[0].id);
+    });
+
+    it("empty query returns all listings", () => {
+      publishToGallery(makeListing({ id: "a" }));
+      publishToGallery(makeListing({ id: "b" }));
+      const results = searchGallery({});
+      expect(results.total).toBe(2);
+    });
+  });
+
+  describe("comments", () => {
+    it("comment with parentId creates threaded reply", () => {
+      publishToGallery(makeListing());
+      addGalleryComment({
+        id: "parent-1",
+        listingId: "test-listing-1",
+        authorId: "user-1",
+        authorName: "User",
+        content: "Top-level comment",
+        createdAt: Date.now(),
+      });
+      addGalleryComment({
+        id: "reply-1",
+        listingId: "test-listing-1",
+        authorId: "user-2",
+        authorName: "Reply User",
+        content: "A reply",
+        createdAt: Date.now(),
+        parentId: "parent-1",
+      });
+      const comments = getGalleryComments("test-listing-1");
+      expect(comments).toHaveLength(2);
+      const reply = comments.find((c) => c.id === "reply-1");
+      expect(reply?.parentId).toBe("parent-1");
+    });
+  });
+
+  describe("Zod schema validation", () => {
+    it("rejects oversized strings", () => {
+      expect(() => publishToGallery(makeListing({ title: "x".repeat(501) }))).toThrow();
+    });
+  });
+
+  describe("trending score edge case", () => {
+    it("0-view 0-upvote listing has low trending rank", () => {
+      publishToGallery(
+        makeListing({ id: "zero", upvotes: 0, viewCount: 0, forkCount: 0, commentCount: 0 })
+      );
+      publishToGallery(
+        makeListing({ id: "active", upvotes: 10, viewCount: 100, forkCount: 5, commentCount: 20 })
+      );
+      const results = searchGallery({ sortBy: "trending" });
+      // Active listing should rank higher than zero-engagement one
+      expect(results.listings[0].id).toBe("active");
+    });
+  });
 });
