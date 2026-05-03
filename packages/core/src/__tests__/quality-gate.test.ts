@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@github/copilot-sdk", () => ({
   CopilotClient: vi.fn(),
@@ -17,6 +17,9 @@ import {
   runQualityGate,
 } from "../quality-gate/index.js";
 import type { InnovationIdea, AngleResult } from "../types.js";
+import { generateText, extractJson } from "../copilot/client.js";
+const mockGenerateText = vi.mocked(generateText);
+const mockExtractJson = vi.mocked(extractJson);
 
 function makeIdea(overrides: Partial<InnovationIdea> = {}): InnovationIdea {
   return {
@@ -37,6 +40,10 @@ function makeAngleResult(ideas: InnovationIdea[], angleId = "angle-1"): AngleRes
 }
 
 describe("quality-gate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe("checkHallucinatedStatistics", () => {
     it("returns no issues for clean text", () => {
       const idea = makeIdea();
@@ -267,6 +274,15 @@ describe("quality-gate", () => {
       const report = runQualityGate([ar], { minScore: 99 });
       // With clean ideas, score should be ~100
       expect(report.passesGate).toBe(true);
+    });
+  });
+
+  describe("mock verification", () => {
+    it("quality gate does not call LLM functions directly", () => {
+      const ar = makeAngleResult([makeIdea()]);
+      runQualityGate([ar]);
+      expect(mockGenerateText).not.toHaveBeenCalled();
+      expect(mockExtractJson).not.toHaveBeenCalled();
     });
   });
 });
