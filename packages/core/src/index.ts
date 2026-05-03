@@ -1295,6 +1295,231 @@ export type {
   QualityGateConfig,
 } from "./quality-gate/index.js";
 
+// Debate Engine
+export {
+  runDebate,
+  debateIdeas,
+  debateToMarkdown,
+  DEFAULT_PRO_PERSONA,
+  DEFAULT_CON_PERSONA,
+  DebaterPersonaSchema,
+  DebateArgumentSchema,
+  DebateRoundSchema,
+  DebateVerdictSchema,
+  DebateQualitySchema,
+  DebateResultSchema,
+} from "./debate/index.js";
+export type {
+  DebaterPersona,
+  DebateArgument,
+  DebateRound,
+  DebateVerdict,
+  DebateQuality,
+  DebateResult,
+  DebateConfig,
+} from "./debate/index.js";
+
+// Evolution Engine
+export {
+  crossover,
+  mutate,
+  select,
+  runEvolution,
+  evolutionToMarkdown,
+  MutationTypeSchema,
+  AncestryNodeSchema,
+  EvolvedIdeaSchema,
+  GenerationResultSchema,
+  EvolutionResultSchema,
+} from "./evolution/index.js";
+export type {
+  MutationType,
+  AncestryNode,
+  EvolvedIdea,
+  GenerationResult,
+  EvolutionResult,
+  EvolutionConfig,
+  EvolutionProgress,
+} from "./evolution/index.js";
+
+// API Gateway
+export {
+  createApiKey,
+  getApiKey,
+  findApiKeyByValue,
+  listApiKeys,
+  revokeApiKey,
+  updateApiKeyTier,
+  deleteApiKey,
+  recordUsage,
+  getUsageSummary,
+  checkDailyLimit,
+  checkTokenBucket,
+  registerWebhook,
+  getWebhooks,
+  removeWebhook,
+  getOpenApiSpec,
+  clearApiGateway,
+  TIER_LIMITS,
+  BillingTierSchema,
+  ApiKeySchema,
+  UsageRecordSchema,
+  UsageSummarySchema,
+  WebhookEventSchema,
+} from "./api-gateway/index.js";
+export type {
+  BillingTier,
+  ApiKey,
+  UsageRecord,
+  UsageSummary,
+  WebhookEvent,
+} from "./api-gateway/index.js";
+
+// Decision Packet
+export {
+  generateDecisionPacket,
+  decisionPacketToMarkdown,
+  decisionPacketToSlidesJson,
+  DecisionPacketSchema,
+  OptionSchema,
+  RiskAssessmentSchema,
+  ResourceAskSchema,
+} from "./decision/index.js";
+export type {
+  DecisionPacket,
+  Option,
+  RiskAssessment,
+  ResourceAsk,
+  DecisionPacketConfig,
+} from "./decision/index.js";
+
+// Investigation Ontology
+export {
+  extractOntology,
+  getOntology,
+  listOntologies,
+  queryEntities,
+  buildInvestigationPrompt as buildOntologyEnrichedPrompt,
+  clearOntologies,
+  EntityTypeSchema,
+  OntologyEntitySchema,
+  OntologyRelationshipSchema,
+  OntologyVersionSchema,
+  OntologyGraphSchema,
+} from "./ontology/index.js";
+export type {
+  EntityType,
+  OntologyEntity,
+  OntologyRelationship,
+  TaxonomyNode,
+  OntologyVersion,
+  OntologyGraph,
+  OntologyConfig,
+} from "./ontology/index.js";
+
+// Stress Testing
+export {
+  generateStressScenarios,
+  stressTestIdeas,
+  stressTestToMarkdown,
+  ScenarioTypeSchema as StressScenarioTypeSchema,
+  StressScenarioSchema,
+  ImpactAssessmentSchema,
+  VulnerabilitySchema,
+  HedgingStrategySchema,
+  StressTestResultSchema,
+} from "./stress-testing/index.js";
+export type {
+  ScenarioType as StressScenarioType,
+  StressScenario,
+  ImpactAssessment,
+  Vulnerability,
+  HedgingStrategy,
+  StressTestResult,
+  StressTestConfig,
+} from "./stress-testing/index.js";
+
+// Angle Effectiveness Learning
+export {
+  recordAngleEvent,
+  getAngleEvents,
+  computeAngleEffectiveness as computeAngleLearning,
+  getWeightedAngles,
+  buildAvoidanceHints,
+  assignABVariant,
+  getABTestResults,
+  clearAngleLearning,
+  AngleEventTypeSchema,
+  AngleEventSchema,
+  AngleQualityScoreSchema,
+  DomainAffinitySchema,
+  EffectivenessReportSchema,
+} from "./angle-learning/index.js";
+export type {
+  AngleEventType,
+  AngleEvent,
+  AngleQualityScore as AngleLearningScore,
+  DomainAffinity,
+  EffectivenessReport,
+} from "./angle-learning/index.js";
+
+// Prompt Observatory
+export {
+  setObservatoryEnabled,
+  isObservatoryEnabled,
+  recordPromptCall,
+  observeCall,
+  getCallTimeline,
+  getPromptCallById,
+  getObservatoryStats,
+  diffPromptCalls,
+  createABComparison,
+  clearObservatory,
+  PromptCallSchema,
+  PromptDiffSchema,
+  ObservatoryStatsSchema,
+  ABComparisonSchema,
+} from "./observatory/index.js";
+export type {
+  PromptCall,
+  PromptDiff,
+  ObservatoryStats,
+  ABComparison,
+} from "./observatory/index.js";
+
+// Team Innovation Rituals
+export {
+  createRitual,
+  getRitual,
+  listRituals,
+  deleteRitual,
+  setRitualEnabled,
+  addParticipant,
+  removeParticipant,
+  addBacklogItem,
+  getNextBacklogSubject,
+  recordExecution,
+  getNextAngles,
+  isRitualDue,
+  getDueRituals,
+  compileDigest,
+  clearRituals,
+  CadenceSchema,
+  ParticipantSchema,
+  SubjectBacklogItemSchema,
+  RitualExecutionSchema,
+  RitualDigestSchema,
+  InnovationRitualSchema,
+} from "./rituals/index.js";
+export type {
+  Cadence,
+  Participant,
+  SubjectBacklogItem,
+  RitualExecution,
+  RitualDigest,
+  InnovationRitual,
+} from "./rituals/index.js";
+
 // Innovation Playbook Generator
 export {
   generatePlaybook,
