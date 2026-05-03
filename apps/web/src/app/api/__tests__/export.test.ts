@@ -108,6 +108,9 @@ describe("POST /api/export", () => {
     expect(res.status).toBe(200);
     expect(json.data).toContain("Markdown Export");
     expect(exportToMarkdown).toHaveBeenCalledTimes(1);
+    expect(exportToMarkdown).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: "Solar Energy" })
+    );
   });
 
   it("returns JSON content for format=json", async () => {
@@ -116,6 +119,7 @@ describe("POST /api/export", () => {
     expect(res.status).toBe(200);
     expect(json.data).toBeDefined();
     expect(exportToJson).toHaveBeenCalledTimes(1);
+    expect(exportToJson).toHaveBeenCalledWith(expect.objectContaining({ subject: "Solar Energy" }));
   });
 
   it("returns clipboard content for format=clipboard", async () => {
@@ -137,6 +141,11 @@ describe("POST /api/export", () => {
   it("returns 400 for invalid format", async () => {
     const res = await POST(makeRequest({ format: "pdf", data: VALID_DATA }));
     expect(res.status).toBe(400);
+    // No export function should be called for invalid format
+    expect(exportToMarkdown).not.toHaveBeenCalled();
+    expect(exportToJson).not.toHaveBeenCalled();
+    expect(exportToClipboard).not.toHaveBeenCalled();
+    expect(generateGitHubIssueBody).not.toHaveBeenCalled();
   });
 
   it("returns 400 for missing data.subject", async () => {
