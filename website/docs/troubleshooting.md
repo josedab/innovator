@@ -101,14 +101,16 @@ The web app's dev server (`npm run dev`) picks up changes automatically via `tra
 
 ## `npm run doctor` checks
 
-The `npm run doctor` command verifies your development environment is ready. It checks:
+The `npm run doctor` command (implemented in `scripts/doctor.mjs`) verifies your development environment is ready. It runs 4 checks in order and exits with a non-zero code if any fail. The `npm run dev` command runs `doctor` automatically before starting the dev server.
 
-| Check                        | What it verifies                           | Fix if it fails                                                                   |
-| ---------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------- |
-| **Node.js ≥ 20**             | Your Node.js major version is 20 or higher | Install Node.js 20+ via `nvm install 20` or from [nodejs.org](https://nodejs.org) |
-| **GitHub CLI installed**     | The `gh` command is available on your PATH | Install from [cli.github.com](https://cli.github.com)                             |
-| **GitHub CLI authenticated** | `gh auth status` succeeds                  | Run `gh auth login`                                                               |
-| **Core package built**       | `packages/core/dist/` exists               | Run `npm run build --workspace=packages/core`                                     |
+| #   | Check                        | What it verifies                                                    | Fix if it fails                                                                   |
+| --- | ---------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 1   | **Node.js ≥ 20**             | Parses `process.versions.node` and checks the major version is ≥ 20 | Install Node.js 20+ via `nvm install 20` or from [nodejs.org](https://nodejs.org) |
+| 2   | **GitHub CLI installed**     | Runs `gh --version` and checks it exits successfully                | Install from [cli.github.com](https://cli.github.com)                             |
+| 3   | **GitHub CLI authenticated** | Runs `gh auth status` and checks it exits successfully              | Run `gh auth login`                                                               |
+| 4   | **Core package built**       | Checks that `packages/core/dist/` directory exists on disk          | Run `npm run build --workspace=packages/core`                                     |
+
+Each check prints ✅ on success or ❌ with an error message on failure. All 4 checks run even if earlier ones fail, so you can see every issue at once.
 
 If all checks pass (✅), you're ready to develop. If any check fails (❌), follow the fix instructions above.
 
