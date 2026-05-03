@@ -76,6 +76,14 @@ import {
   meetsConfidenceThreshold,
   formatGapSuggestions,
   generatePlaybook,
+  runDebate,
+  debateToMarkdown,
+  runEvolution,
+  evolutionToMarkdown,
+  generateDecisionPacket,
+  decisionPacketToMarkdown,
+  generateStressScenarios,
+  stressTestToMarkdown,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -365,7 +373,11 @@ program
   .option("--constraint <expr...>", "Apply constraints (e.g., 'budget<50K', 'timeline<3months')")
   .option("--min-confidence <score>", "Minimum investigation confidence score (0-100) before generating ideas")
   .option("--playbook [format]", "Generate an Innovation Playbook (markdown or html)")
-  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; constraint?: string[]; minConfidence?: string; playbook?: string | boolean }) => {
+  .option("--debate", "Run structured debate on top ideas after synthesis")
+  .option("--debate-rounds <n>", "Number of debate rounds (1-5)", "2")
+  .option("--decision-packet", "Generate an executive decision packet from results")
+  .option("--stress-test", "Run stress test scenarios on top ideas")
+  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; constraint?: string[]; minConfidence?: string; playbook?: string | boolean; debate?: boolean; debateRounds?: string; decisionPacket?: boolean; stressTest?: boolean }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
 
@@ -693,6 +705,55 @@ program
         }
       }
 
+      // Run debate on top ideas if --debate flag is set
+      if (opts.debate && result.synthesis && result.synthesis.topIdeas.length > 0) {
+        const debateRounds = Math.min(5, Math.max(1, parseInt(opts.debateRounds ?? "2", 10) || 2));
+        const topIdeas = result.synthesis.topIdeas.slice(0, 3);
+        const debateSpinner = ora(`🗣️  Debating top ${topIdeas.length} ideas (${debateRounds} rounds)...`).start();
+        try {
+          for (const topIdea of topIdeas) {
+            debateSpinner.text = `🗣️  Debating: ${stripAnsi(topIdea.title)}...`;
+            const debateResult = await runDebate(
+              { title: topIdea.title, description: topIdea.description, potentialImpact: topIdea.potentialImpact, implementationHint: "" },
+              result.investigation,
+              { rounds: debateRounds, model: opts.model, signal: controller.signal }
+            );
+            console.log(chalk.bold(`\n${"═".repeat(60)}`));
+            console.log(debateToMarkdown(debateResult));
+          }
+          debateSpinner.succeed("Debates complete!\n");
+        } catch (err) {
+          debateSpinner.fail("Debate failed");
+          if (verbose) {
+            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          }
+        }
+      }
+
+      // Run stress test on top ideas if --stress-test flag is set
+      if (opts.stressTest && result.synthesis && result.synthesis.topIdeas.length > 0) {
+        const topIdeas = result.synthesis.topIdeas.slice(0, 3);
+        const stressSpinner = ora(`🔥 Stress testing ${topIdeas.length} ideas...`).start();
+        try {
+          for (const topIdea of topIdeas) {
+            stressSpinner.text = `🔥 Stress testing: ${stripAnsi(topIdea.title)}...`;
+            const stressResult = await generateStressScenarios(
+              { title: topIdea.title, description: topIdea.description, potentialImpact: topIdea.potentialImpact, implementationHint: "" },
+              subject,
+              { model: opts.model, signal: controller.signal }
+            );
+            console.log(chalk.bold(`\n${"═".repeat(60)}`));
+            console.log(stressTestToMarkdown(stressResult));
+          }
+          stressSpinner.succeed("Stress tests complete!\n");
+        } catch (err) {
+          stressSpinner.fail("Stress test failed");
+          if (verbose) {
+            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          }
+        }
+      }
+
       // Generate playbook if --playbook flag is set
       if (opts.playbook && result.investigation && result.synthesis) {
         const format = typeof opts.playbook === "string" && opts.playbook === "html" ? "html" as const : "markdown" as const;
@@ -720,7 +781,82 @@ program
           }
         }
       }
+
+      // Generate decision packet if --decision-packet flag is set
+      if (opts.decisionPacket && result.investigation && result.synthesis) {
+        const packetSpinner = ora("📋 Generating Executive Decision Packet...").start();
+        try {
+          const packet = await generateDecisionPacket(
+            result.synthesis,
+            result.investigation,
+            subject,
+            { model: opts.model, signal: controller.signal }
+          );
+          packetSpinner.succeed("Decision Packet generated!\n");
+
+          const md = decisionPacketToMarkdown(packet);
+          const filename = `decision-packet-${subject.slice(0, 30).replace(/[^a-z0-9]/gi, "-").toLowerCase()}.md`;
+          const fs = await import("node:fs");
+          fs.writeFileSync(filename, md, "utf-8");
+          console.log(chalk.green(`  📄 Saved to ${filename}`));
+          console.log(chalk.dim(`  ${packet.options.length} options, ${packet.risks.length} risks, ${packet.resourceAsk.length} resources\n`));
+        } catch (err) {
+          packetSpinner.fail("Decision packet generation failed");
+          if (verbose) {
+            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          }
+        }
+      }
     } catch (err) {
+    } finally {
+      commandCleanup = null;
+      await stopCopilotClient();
+    }
+  });
+
+// ---- evolve command ----
+program
+  .command("evolve")
+  .description("Evolve ideas through genetic-algorithm-inspired mutation and crossover")
+  .argument("<subject>", "The subject to evolve ideas for")
+  .option("-m, --model <model>", "LLM model to use")
+  .option("--generations <n>", "Number of evolution generations (1-10)", "3")
+  .option("--population <n>", "Population size per generation", "6")
+  .action(async (subject: string, opts: { model?: string; generations?: string; population?: string }) => {
+    if (!validateSubjectWithLog(subject)) return;
+    if (!validateModelWithLog(opts.model)) return;
+
+    const gens = Math.min(10, Math.max(1, parseInt(opts.generations ?? "3", 10) || 3));
+    const popSize = Math.min(20, Math.max(4, parseInt(opts.population ?? "6", 10) || 6));
+
+    const spinner = ora("🔍 Investigating subject for initial population...").start();
+    const controller = new AbortController();
+    commandCleanup = async () => controller.abort();
+
+    try {
+      const investigation = await investigate(subject, opts.model, controller.signal);
+      spinner.succeed("Investigation complete");
+
+      spinner.start("⚡ Generating initial idea population...");
+      const angleResult = await generateForAngle(subject, investigation, "first-principles", opts.model, controller.signal);
+      spinner.succeed(`Generated ${angleResult.ideas.length} seed ideas`);
+
+      spinner.start(`🧬 Evolving over ${gens} generations (pop: ${popSize})...`);
+      const result = await runEvolution(
+        angleResult.ideas,
+        gens,
+        { populationSize: popSize, model: opts.model, signal: controller.signal },
+        (progress) => {
+          spinner.text = `🧬 Gen ${progress.generation + 1}/${progress.totalGenerations} — best fitness: ${progress.bestFitness} (${progress.phase})`;
+        }
+      );
+      spinner.succeed("Evolution complete!\n");
+
+      console.log(evolutionToMarkdown(result));
+    } catch (err) {
+      spinner.fail("Evolution failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
     } finally {
       commandCleanup = null;
       await stopCopilotClient();
