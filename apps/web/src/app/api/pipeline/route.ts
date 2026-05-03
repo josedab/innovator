@@ -22,6 +22,15 @@ const RequestSchema = z.object({
 
 /**
  * Parse a natural language pipeline description and execute it via SSE.
+ *
+ * @route POST /api/pipeline
+ * @param request - JSON body with `description` (string, 1–5000 chars) and optional `model` (string).
+ * @returns SSE stream emitting:
+ *   - `{ type: "config", config }` — parsed pipeline configuration
+ *   - `PipelineProgress` events — stage updates, angle results, and synthesis
+ *   - `: keepalive` comments every 15 seconds
+ * @status 400 — invalid JSON, missing/invalid fields, or unparseable pipeline description
+ * @status 500 — pipeline execution failure
  */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;

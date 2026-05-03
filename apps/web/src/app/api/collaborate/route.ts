@@ -85,7 +85,15 @@ const ActionSchema = z.discriminatedUnion("action", [
   }),
 ]);
 
-/** GET /api/collaborate — get session by ID or room code. */
+/**
+ * Retrieve a collaborative session by ID or room code.
+ *
+ * @route GET /api/collaborate
+ * @param request - Query parameters: `id` (session ID) or `code` (room code). One is required.
+ * @returns JSON `{ data: CollaborativeSession }`
+ * @status 400 — neither `id` nor `code` provided
+ * @status 404 — session or room not found
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
@@ -116,7 +124,19 @@ export async function GET(request: Request) {
   });
 }
 
-/** POST /api/collaborate — create session or perform actions. */
+/**
+ * Create a collaborative session or perform an action on an existing one.
+ *
+ * @route POST /api/collaborate
+ * @param request - JSON body, either:
+ *   - **Create session**: `{ subject, hostUserId, hostDisplayName }`
+ *   - **Action**: `{ action, sessionId, ... }` where action is one of:
+ *     `join`, `submit_idea`, `vote`, `comment`, `start`, `complete`, `assign_angles`, `merge`
+ * @returns JSON `{ data: ... }` on success, or `{ success: boolean }` for state-change actions
+ * @status 201 — session/idea/comment created successfully
+ * @status 400 — invalid request body or action cannot be performed
+ * @status 500 — unexpected server error
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
