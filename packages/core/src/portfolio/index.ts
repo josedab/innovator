@@ -29,7 +29,21 @@ function itemPath(id: string): string {
   return join(PORTFOLIO_DIR, `${id}.json`);
 }
 
-/** Add an idea to the portfolio. */
+/**
+ * Add a new idea to the innovation portfolio.
+ *
+ * Creates a {@link PortfolioItem} in the `ideation` stage, persists it to
+ * `~/.innovator/portfolio/<id>.json`, and returns the created item.
+ *
+ * @param params - Item creation parameters.
+ * @param params.title - Short, descriptive name for the idea.
+ * @param params.description - Full explanation of the idea.
+ * @param params.sourceAngle - The innovation angle that generated this idea (e.g. `"scamper"`).
+ * @param params.sessionId - Optional innovation session ID to link back to the originating session.
+ * @param params.tags - Optional tags for categorisation and filtering.
+ * @param params.assignee - Optional user or team assigned to the idea.
+ * @returns The newly created {@link PortfolioItem} with a generated UUID.
+ */
 export function addPortfolioItem(params: {
   title: string;
   description: string;
@@ -57,7 +71,15 @@ export function addPortfolioItem(params: {
   return item;
 }
 
-/** Get a portfolio item by ID. */
+/**
+ * Retrieve a portfolio item by its unique ID.
+ *
+ * Reads the item from `~/.innovator/portfolio/<id>.json`. Returns `undefined`
+ * if the item does not exist or the file cannot be parsed.
+ *
+ * @param id - UUID of the portfolio item.
+ * @returns The {@link PortfolioItem}, or `undefined` if not found.
+ */
 export function getPortfolioItem(id: string): PortfolioItem | undefined {
   try {
     const path = itemPath(id);
@@ -68,7 +90,20 @@ export function getPortfolioItem(id: string): PortfolioItem | undefined {
   }
 }
 
-/** Transition an item to a new lifecycle stage. */
+/**
+ * Transition a portfolio item to a new lifecycle stage.
+ *
+ * Records a {@link StatusTransition} with timestamps and optional metadata,
+ * updates the item's current stage, and persists the change.
+ *
+ * Valid stages: `ideation` → `evaluation` → `prototyping` → `shipped` | `abandoned`.
+ *
+ * @param id - UUID of the portfolio item to transition.
+ * @param toStage - The target {@link IdeaLifecycleStage}.
+ * @param reason - Optional reason for the transition (e.g. `"passed feasibility review"`).
+ * @param userId - Optional ID of the user who initiated the transition.
+ * @returns The updated {@link PortfolioItem}, or `undefined` if the item was not found.
+ */
 export function transitionItem(
   id: string,
   toStage: IdeaLifecycleStage,
@@ -93,7 +128,21 @@ export function transitionItem(
   return item;
 }
 
-/** Update a portfolio item's metadata. */
+/**
+ * Update a portfolio item's metadata.
+ *
+ * Merges the provided fields into the existing item. Only supplied fields are
+ * overwritten; omitted fields remain unchanged. The `updatedAt` timestamp is
+ * refreshed automatically.
+ *
+ * @param id - UUID of the portfolio item to update.
+ * @param updates - Partial metadata to merge.
+ * @param updates.outcome - Free-text outcome description (e.g. `"launched as v2 feature"`).
+ * @param updates.impactScore - Numeric impact score from 0 to 10.
+ * @param updates.tags - Replacement tag array (overwrites existing tags).
+ * @param updates.assignee - New assignee user or team.
+ * @returns `true` if the item was found and updated, `false` otherwise.
+ */
 export function updatePortfolioItem(
   id: string,
   updates: {
@@ -116,7 +165,15 @@ export function updatePortfolioItem(
   return true;
 }
 
-/** Delete a portfolio item. */
+/**
+ * Delete a portfolio item permanently.
+ *
+ * Removes the item's JSON file from `~/.innovator/portfolio/`. This action
+ * is irreversible.
+ *
+ * @param id - UUID of the portfolio item to delete.
+ * @returns `true` if the item existed and was deleted, `false` if not found.
+ */
 export function deletePortfolioItem(id: string): boolean {
   const path = itemPath(id);
   if (!existsSync(path)) return false;
@@ -124,7 +181,14 @@ export function deletePortfolioItem(id: string): boolean {
   return true;
 }
 
-/** List all portfolio items. */
+/**
+ * List all portfolio items, sorted by most recently updated first.
+ *
+ * Reads every `.json` file in `~/.innovator/portfolio/` and returns them as
+ * an array. Corrupt or unreadable files are silently skipped.
+ *
+ * @returns Array of {@link PortfolioItem} objects, sorted descending by `updatedAt`.
+ */
 export function listPortfolioItems(): PortfolioItem[] {
   ensureDir();
   const files = readdirSync(PORTFOLIO_DIR).filter((f) => f.endsWith(".json"));
@@ -139,7 +203,15 @@ export function listPortfolioItems(): PortfolioItem[] {
   return items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-/** Compute portfolio metrics from all items. */
+/**
+ * Compute aggregated metrics across the entire portfolio.
+ *
+ * Calculates totals by stage and angle, conversion rates between lifecycle
+ * stages, average time spent in each stage, and idea creation velocity
+ * (ideas per week).
+ *
+ * @returns A {@link PortfolioMetrics} snapshot of the current portfolio state.
+ */
 export function getPortfolioMetrics(): PortfolioMetrics {
   const items = listPortfolioItems();
   const stages: IdeaLifecycleStage[] = [
@@ -201,7 +273,18 @@ export function getPortfolioMetrics(): PortfolioMetrics {
   };
 }
 
-/** Generate insights from portfolio metrics. */
+/**
+ * Generate actionable insights from portfolio metrics.
+ *
+ * Analyzes conversion rates, velocity, stage distribution, and angle
+ * performance to produce an array of typed insights:
+ * - `"strength"` — metrics that exceed benchmarks (e.g. high ship rate).
+ * - `"warning"` — metrics that suggest problems (e.g. low evaluation rate).
+ * - `"opportunity"` — areas with untapped potential (e.g. prototype backlog).
+ *
+ * @returns Array of {@link PortfolioInsight} objects. May be empty if the
+ *   portfolio has too few items to draw conclusions.
+ */
 export function generatePortfolioInsights(): PortfolioInsight[] {
   const metrics = getPortfolioMetrics();
   const insights: PortfolioInsight[] = [];
