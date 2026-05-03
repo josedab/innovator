@@ -71,8 +71,11 @@ import {
   scoreInvestigationQuality,
   meetsConfidenceThreshold,
   formatGapSuggestions,
+  evaluateConstraints,
+  flattenIdeas,
+  parseConstraintString,
 } from "@innovator/core";
-import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain } from "@innovator/core";
+import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
 
 const program = new Command();
@@ -358,7 +361,8 @@ program
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
   .option("--min-confidence <score>", "Minimum investigation confidence score (0-100) before generating ideas")
-  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; minConfidence?: string }) => {
+  .option("--constraint <expr...>", "Apply constraints (e.g., 'budget<50K', 'timeline<3months')")
+  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; minConfidence?: string; constraint?: string[] }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
 
@@ -655,6 +659,33 @@ program
             if (verbose) {
               console.error(chalk.red(err instanceof Error ? err.message : String(err)));
             }
+          }
+        }
+      }
+
+      // Evaluate constraints if --constraint flags are set
+      if (opts.constraint && opts.constraint.length > 0 && result.angleResults.length > 0) {
+        const constraintSpinner = ora("🔒 Evaluating constraints...").start();
+        try {
+          const constraints: Constraint[] = opts.constraint.map((c) => parseConstraintString(c));
+          const ideas = flattenIdeas(result.angleResults);
+          const constraintResult = await evaluateConstraints(ideas, constraints, opts.model);
+          constraintSpinner.succeed("Constraints evaluated!\n");
+
+          console.log(chalk.bold.blue("🔒 CONSTRAINT EVALUATION\n"));
+          for (const evaluation of constraintResult.evaluations) {
+            const passIcon = evaluation.passes ? chalk.green("✓") : chalk.red("✗");
+            console.log(`  ${passIcon} ${chalk.bold(stripAnsi(evaluation.ideaTitle))} — score: ${evaluation.score}/100`);
+            for (const cr of evaluation.constraintResults) {
+              const crIcon = cr.satisfied ? chalk.green("  ✓") : chalk.red("  ✗");
+              console.log(`    ${crIcon} ${stripAnsi(cr.dimension)}: ${stripAnsi(cr.explanation)}`);
+            }
+          }
+          console.log(`\n  ${chalk.dim(stripAnsi(constraintResult.summary))}\n`);
+        } catch (err) {
+          constraintSpinner.fail("Constraint evaluation failed");
+          if (verbose) {
+            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
           }
         }
       }
