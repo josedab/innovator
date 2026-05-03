@@ -152,3 +152,97 @@ Four schemas are exported from `@innovator/core`:
 | `SynthesisSchema`      | Final synthesis (top ideas, themes, recommendation)   |
 
 Each schema enforces field presence, types, and maximum string lengths to guard against oversized or malformed LLM output. The corresponding TypeScript types (`Investigation`, `InnovationIdea`, `AngleResult`, `Synthesis`) are inferred directly from these schemas via `z.infer`, so runtime validation and compile-time types are always in sync.
+
+## Beyond the Pipeline
+
+The three-stage pipeline and 8 angles form the foundation, but Innovator includes several advanced systems that extend the core workflow.
+
+### Workspaces & Collaboration
+
+Multiple users can innovate together in real time through **collaborative sessions**. A host creates a session, shares a join code, and participants submit ideas, vote, and comment. Angles can be assigned to specific participants so the team covers different creative perspectives in parallel. When the session completes, ideas can be merged and exported.
+
+Key concepts:
+
+- **Session** — a shared workspace scoped to a single subject.
+- **Participants** — users who join via a share code.
+- **Voting & Comments** — lightweight prioritisation within the session.
+- **Merge** — combine overlapping ideas from different participants into one.
+
+### Memory & Learning System
+
+Innovator can learn from your behaviour over time. The **memory system** records signals — which angles you select, which ideas you act on, which subjects you return to — and builds a **preference profile**. Future sessions use this profile to surface more relevant ideas.
+
+Key concepts:
+
+- **User Signals** — discrete events such as `angle_selected`, `idea_bookmarked`, or `session_completed`.
+- **Preference Profile** — an aggregated view of angle affinity, topic interests, and engagement patterns.
+- **A/B Testing** — the system can split users into `adapted` vs. `default` variants to measure whether personalisation improves outcomes.
+
+### Innovation Sprints
+
+For structured, multi-phase innovation work, **sprints** organise ideas through three phases:
+
+| Phase        | Purpose                                     |
+| ------------ | ------------------------------------------- |
+| **Diverge**  | Generate as many ideas as possible          |
+| **Converge** | Evaluate, score, and shortlist ideas        |
+| **Refine**   | Deepen the best ideas into actionable plans |
+
+Sprints are persistent — they can be paused, resumed, and reviewed later. A retrospective can be generated at the end to capture learnings.
+
+### Portfolio Tracking
+
+The **portfolio** tracks ideas across their full lifecycle: `ideation` → `evaluation` → `prototyping` → `shipped` (or `abandoned`). Each transition is recorded with timestamps, reasons, and optional user attribution.
+
+Portfolio metrics include:
+
+- **Conversion rates** between stages (e.g. ideation → evaluation).
+- **Average time in stage** to identify bottlenecks.
+- **Velocity** — ideas created per week.
+- **Insights** — automated analysis that flags strengths, warnings, and opportunities.
+
+### Compliance & IP Screening
+
+Before pursuing an idea, the **compliance module** can screen it for potential intellectual property conflicts and regulatory constraints. Ideas are checked against a database of industry-specific regulations (healthcare, finance, etc.) and the results include risk levels and recommended next steps.
+
+### Voice Interaction
+
+Innovator supports **voice-driven workflows**. Users can speak commands like _"investigate solar energy"_ or _"next angle"_, and the system parses them into actions. Results can be narrated back via text-to-speech. Speech-to-text and text-to-speech providers are pluggable.
+
+Built-in voice commands: `investigate`, `next-angle`, `previous-angle`, `score-this`, `refine`, `export`, `summarize`, `stop`, `help`.
+
+### Plugin System
+
+The **plugin registry** lets you extend Innovator with custom functionality. Three plugin types are supported:
+
+| Type           | What it adds                                      |
+| -------------- | ------------------------------------------------- |
+| **Angle**      | A new innovation angle with a custom prompt       |
+| **Exporter**   | A new export format (beyond Markdown/JSON/GitHub) |
+| **Visualizer** | A custom visualisation for idea data              |
+
+Plugins can be registered programmatically or loaded from external sources.
+
+### Market Signals
+
+The **market signals** module enriches innovation sessions with real-world data. Pluggable providers fetch signals from sources like Product Hunt, Hacker News, Google Trends, arXiv, and patent filings. The resulting signal report is injected into prompts to ground ideas in current market context.
+
+### Dependency Graphs
+
+After generating ideas across multiple angles, the **dependency graph** module analyses relationships between them. It identifies which ideas depend on, enable, or conflict with each other, producing a directed graph that helps prioritise implementation order.
+
+### Angle Chaining
+
+**Chains** run angles in a defined sequence where each angle's output feeds into the next. Built-in chains include:
+
+| Chain                    | Angles in sequence                            |
+| ------------------------ | --------------------------------------------- |
+| **Deep Disruption**      | First Principles → Inversion → Constraints    |
+| **Practical Innovation** | SCAMPER → Perspectives → What-If              |
+| **Market Entry**         | Cross-Domain → Trend Collision → Perspectives |
+| **Contrarian Path**      | Inversion → Constraints → First Principles    |
+| **Full Spectrum**        | All 8 angles in optimised order               |
+
+### Custom Angles
+
+Beyond the 8 built-in angles, you can **create custom angles** with your own prompt templates. Custom angles are registered via the API and appear alongside built-in angles in the UI and CLI. They can be scoped to specific domains and tagged for discoverability.
