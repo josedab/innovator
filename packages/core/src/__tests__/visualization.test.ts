@@ -95,4 +95,196 @@ describe("visualization", () => {
     expect(graph.edges).toHaveLength(0);
     expect(graph.clusters).toHaveLength(0);
   });
+
+  describe("estimateImpact scoring", () => {
+    it("'revolutionary' keyword scores +1.5", () => {
+      const revolutionaryResults: AngleResult[] = [
+        {
+          angleId: "scamper",
+          angleName: "SCAMPER",
+          ideas: [
+            {
+              title: "Revolutionary Idea",
+              description: "A revolutionary approach to energy",
+              potentialImpact: "Revolutionary change in the industry",
+              implementationHint: "Start now",
+            },
+          ],
+          reasoning: "Applied SCAMPER",
+        },
+      ];
+      const graph = buildIdeaGraph(revolutionaryResults);
+      // Base score is 5, +1.5 for each 'revolutionary' occurrence
+      expect(graph.nodes[0].impactScore).toBeGreaterThan(5);
+    });
+
+    it("no impact keywords returns base score", () => {
+      const neutralResults: AngleResult[] = [
+        {
+          angleId: "scamper",
+          angleName: "SCAMPER",
+          ideas: [
+            {
+              title: "Plain Idea",
+              description: "A plain approach",
+              potentialImpact: "Some effect",
+              implementationHint: "Do it",
+            },
+          ],
+          reasoning: "Applied SCAMPER",
+        },
+      ];
+      const graph = buildIdeaGraph(neutralResults);
+      expect(graph.nodes[0].impactScore).toBe(5);
+    });
+  });
+
+  describe("buildIdeaGraph edge cases", () => {
+    it("identical ideas create edges with high similarity", () => {
+      const identicalResults: AngleResult[] = [
+        {
+          angleId: "scamper",
+          angleName: "SCAMPER",
+          ideas: [
+            {
+              title: "Solar Energy Panels",
+              description: "Solar energy panels for buildings",
+              potentialImpact: "Significant",
+              implementationHint: "Install",
+            },
+          ],
+          reasoning: "Applied",
+        },
+        {
+          angleId: "first-principles",
+          angleName: "First Principles",
+          ideas: [
+            {
+              title: "Solar Energy Panels",
+              description: "Solar energy panels for buildings",
+              potentialImpact: "Significant",
+              implementationHint: "Install",
+            },
+          ],
+          reasoning: "Applied",
+        },
+      ];
+      const graph = buildIdeaGraph(identicalResults, undefined, 0.01);
+      // Identical text should produce edges with similarity 1.0
+      expect(graph.edges.length).toBeGreaterThanOrEqual(1);
+      expect(graph.edges[0].weight).toBe(1);
+    });
+
+    it("unrelated ideas create 0 edges with high threshold", () => {
+      const unrelatedResults: AngleResult[] = [
+        {
+          angleId: "scamper",
+          angleName: "SCAMPER",
+          ideas: [
+            {
+              title: "Quantum Computing",
+              description: "Quantum bits processing algorithms",
+              potentialImpact: "Computing speed",
+              implementationHint: "Research",
+            },
+          ],
+          reasoning: "Applied",
+        },
+        {
+          angleId: "first-principles",
+          angleName: "First Principles",
+          ideas: [
+            {
+              title: "Organic Farming",
+              description: "Growing vegetables without pesticides naturally",
+              potentialImpact: "Healthier food",
+              implementationHint: "Plant",
+            },
+          ],
+          reasoning: "Applied",
+        },
+      ];
+      const graph = buildIdeaGraph(unrelatedResults, undefined, 0.99);
+      expect(graph.edges).toHaveLength(0);
+    });
+
+    it("edge weight between 0 and 1", () => {
+      const graph = buildIdeaGraph(sampleResults, undefined, 0.01);
+      for (const edge of graph.edges) {
+        expect(edge.weight).toBeGreaterThanOrEqual(0);
+        expect(edge.weight).toBeLessThanOrEqual(1);
+      }
+    });
+
+    it("node impact score clamped 1-10", () => {
+      const extremeResults: AngleResult[] = [
+        {
+          angleId: "scamper",
+          angleName: "SCAMPER",
+          ideas: [
+            {
+              title: "Super Idea",
+              description:
+                "revolutionary transformative breakthrough disruptive paradigm revolutionary transformative",
+              potentialImpact:
+                "revolutionary transformative breakthrough disruptive paradigm shifting",
+              implementationHint: "Start now",
+            },
+            {
+              title: "Tiny Idea",
+              description: "incremental minor slight marginal small incremental minor slight",
+              potentialImpact: "incremental minor slight marginal small",
+              implementationHint: "Maybe",
+            },
+          ],
+          reasoning: "Applied SCAMPER",
+        },
+      ];
+      const graph = buildIdeaGraph(extremeResults);
+      for (const node of graph.nodes) {
+        expect(node.impactScore).toBeGreaterThanOrEqual(1);
+        expect(node.impactScore).toBeLessThanOrEqual(10);
+      }
+    });
+
+    it("synthesis parameter enriches graph clusters", () => {
+      const synthesis = {
+        topIdeas: [
+          {
+            title: "Top Idea",
+            description: "The best",
+            sourceAngle: "SCAMPER",
+            potentialImpact: "High",
+            feasibility: "high" as const,
+          },
+        ],
+        themes: ["solar", "energy"],
+        recommendation: "Go solar",
+      };
+      const graph = buildIdeaGraph(sampleResults, synthesis);
+      expect(graph.nodes.length).toBeGreaterThan(0);
+      expect(graph.clusters.length).toBeGreaterThan(0);
+    });
+
+    it("empty idea titles don't crash keyword extraction", () => {
+      const emptyTitleResults: AngleResult[] = [
+        {
+          angleId: "scamper",
+          angleName: "SCAMPER",
+          ideas: [
+            {
+              title: "",
+              description: "",
+              potentialImpact: "",
+              implementationHint: "",
+            },
+          ],
+          reasoning: "Applied",
+        },
+      ];
+      expect(() => buildIdeaGraph(emptyTitleResults)).not.toThrow();
+      const graph = buildIdeaGraph(emptyTitleResults);
+      expect(graph.nodes).toHaveLength(1);
+    });
+  });
 });
