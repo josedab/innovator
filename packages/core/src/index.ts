@@ -106,8 +106,12 @@ export {
   formatPresetsForChat,
   formatHelpForChat,
   GITHUB_APP_MANIFEST,
+  getCopilotAgentManifest,
+  handleCopilotRequest,
+  formatWithCollapsible,
+  buildStreamingResponse,
 } from "./extension/index.js";
-export type { SlashCommand, ChatResponse } from "./extension/index.js";
+export type { SlashCommand, ChatResponse, CopilotAgentConfig, CopilotCommandDef } from "./extension/index.js";
 
 // Collaboration
 export {
