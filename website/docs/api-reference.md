@@ -498,6 +498,426 @@ The `version` value comes from `npm_package_version` (defaults to `"0.1.0"`).
 
 ---
 
+### `POST /api/artifacts`
+
+Generate structured artifacts from an innovation idea.
+
+```json
+// Request
+{
+  "idea": { "title": "...", "description": "...", "potentialImpact": "...", "implementationHint": "..." },
+  "artifactType": "prd",
+  "subject": "remote work tools",
+  "investigation": { ... },
+  "model": "gpt-4.1"
+}
+
+// Response (200)
+{
+  "type": "prd",
+  "title": "...",
+  "content": "...",
+  "sections": [{ "heading": "...", "body": "..." }],
+  "metadata": { ... }
+}
+```
+
+**Artifact types:** `prd`, `user-story`, `tech-spec`, `pitch-outline`, `okr`
+
+---
+
+### `GET /api/collaborate` · `POST /api/collaborate`
+
+Manage collaborative innovation sessions with voting and commenting.
+
+```json
+// GET — Retrieve session by ID or share code
+// Query: ?id=<session-id> or ?code=<share-code>
+// Response (200)
+{ "data": { "id": "...", "subject": "...", "participants": [...], "ideas": [...] } }
+
+// POST — Create session
+{
+  "subject": "remote work tools",
+  "hostUserId": "user-123",
+  "hostDisplayName": "Alice"
+}
+
+// POST — Session actions
+{
+  "action": "join" | "submit_idea" | "vote" | "comment" | "start" | "complete" | "assign_angles" | "merge",
+  ...
+}
+```
+
+---
+
+### `POST /api/refine`
+
+Conversational refinement of innovation ideas.
+
+```json
+// Start a refinement session
+{
+  "action": "start",
+  "subject": "remote work tools",
+  "selectedIdeas": ["idea-1", "idea-2"],
+  "model": "gpt-4.1"
+}
+// Response (200)
+{ "sessionId": "uuid", "subject": "remote work tools" }
+
+// Send follow-up refinement
+{
+  "action": "refine",
+  "sessionId": "uuid",
+  "message": "Focus on enterprise use cases"
+}
+```
+
+---
+
+### `POST /api/validate`
+
+Validate innovation ideas with structured scoring.
+
+```json
+// Request
+{
+  "ideas": [{ "title": "...", "description": "..." }],
+  "domain": "enterprise SaaS",
+  "model": "gpt-4.1"
+}
+
+// Response (200) — ValidationScorecard
+{ ... }
+```
+
+**Constraints:** 1–50 ideas, domain max 200 chars.
+
+---
+
+### `GET /api/share` · `POST /api/share` · `GET /api/share/[slug]` · `POST /api/share/[slug]`
+
+Share and fork innovation sessions via shareable links.
+
+```json
+// POST /api/share — Create shareable link
+{
+  "subject": "remote work tools",
+  "investigation": { ... },
+  "angleResults": [...],
+  "synthesis": { ... },
+  "title": "My Session",
+  "isPublic": true,
+  "expiresInDays": 30
+}
+// Response (200)
+{ "shareUrl": "https://...", ... }
+
+// GET /api/share — List all shared investigations
+// Response (200)
+{ "investigations": [...] }
+
+// GET /api/share/[slug] — Retrieve by slug
+// Response (200)
+{ "subject": "...", "investigation": { ... }, ... }
+
+// POST /api/share/[slug] — Fork investigation
+// Response (201)
+{ "newSessionId": "..." }
+```
+
+---
+
+### `GET /api/analytics` · `POST /api/analytics`
+
+Innovation analytics and event tracking.
+
+```json
+// GET — Analytics summary
+// Response (200)
+{ "summary": { ... }, "insights": [...] }
+
+// POST — Track event
+{ "type": "idea_generated", "data": { "angleId": "scamper" } }
+// Response (200)
+{ "event": { ... } }
+```
+
+---
+
+### `GET /api/angles` · `POST /api/angles` · `DELETE /api/angles`
+
+Manage built-in and custom innovation angles.
+
+```json
+// GET — List all angles
+// Response (200)
+{ "angles": [{ "id": "scamper", "name": "SCAMPER", "type": "built-in", ... }] }
+
+// POST — Create custom angle
+{
+  "id": "my-angle",
+  "name": "My Angle",
+  "description": "Custom framework",
+  "promptTemplate": "Analyze {{subject}}...",
+  "icon": "🔧",
+  "author": "user",
+  "tags": ["custom"]
+}
+// Response (201)
+{ "success": true, "angle": { ... } }
+
+// DELETE ?id=my-angle — Remove custom angle
+// Response (200)
+{ "success": true }
+```
+
+---
+
+### `GET /api/presets`
+
+Retrieve innovation presets (pre-configured angle sets and configurations).
+
+```json
+// GET — List all presets
+// Query: ?category=<category> or ?id=<preset-id>
+// Response (200)
+{ "data": [...] }
+```
+
+---
+
+### `POST /api/export`
+
+Export innovation results in various formats.
+
+```json
+// Request
+{
+  "format": "markdown" | "json" | "clipboard" | "github-issue",
+  "data": {
+    "subject": "remote work tools",
+    "investigation": { ... },
+    "angleResults": [...],
+    "synthesis": { ... },
+    "metadata": { ... }
+  }
+}
+// Response (200)
+{ "data": "..." }
+```
+
+---
+
+### `GET /api/observatory`
+
+Query the prompt observatory for LLM call statistics, timeline, and diffs.
+
+```json
+// GET ?action=stats — Aggregated statistics
+// Response (200)
+{ "totalCalls": 42, "byModel": { ... }, "byStage": { ... }, "qualityDistribution": { ... } }
+
+// GET ?action=timeline&limit=20&stage=investigate&model=gpt-4.1 — Call timeline
+// Response (200)
+{ "calls": [{ "id": "...", "prompt": "...", "tokens": { ... }, "latencyMs": 1200, ... }] }
+
+// GET ?action=diff&a=<call-id>&b=<call-id> — Compare two LLM calls
+// Response (200)
+{ "added": [...], "removed": [...], "unchanged": [...], "tokenDelta": { ... } }
+```
+
+---
+
+### `GET /api/history` · `POST /api/history` · `DELETE /api/history` · `PATCH /api/history`
+
+Session history management with search, tags, and pagination.
+
+```json
+// GET — Query sessions
+// Query: ?search=<text>&tags=<csv>&angle=<id>&from=<date>&to=<date>&page=1&limit=20
+// Response (200)
+{ "data": [...], "total": 42 }
+
+// POST — Save session
+{
+  "subject": "remote work tools",
+  "investigation": { ... },
+  "angleResults": [...],
+  "synthesis": { ... },
+  "tags": ["enterprise"],
+  "notes": "Initial exploration"
+}
+// Response (201)
+{ "data": { "id": "..." } }
+
+// DELETE ?id=<session-id> — Remove session
+// PATCH — Update session tags/notes
+{ "id": "...", "tags": ["updated"], "notes": "Refined" }
+```
+
+---
+
+### `POST /api/pipeline`
+
+Run a natural-language-described pipeline. Returns an SSE stream.
+
+```json
+// Request
+{ "description": "Investigate AI in healthcare, focus on diagnostics", "model": "gpt-4.1" }
+
+// Response — Server-Sent Events stream
+data: {"type":"config","config":{...}}
+data: {"stage":"investigating",...}
+data: {"stage":"complete",...}
+```
+
+The server sends `: keepalive` comments every 15 seconds.
+
+---
+
+### `GET /api/tracker`
+
+Get the innovation tracker dashboard.
+
+```json
+// Response (200)
+{ "dashboard": { ... }, "recentIdeas": [...] }
+```
+
+Returns up to 20 recent ideas.
+
+---
+
+### `GET /api/widget`
+
+Serves the `<innovator-widget>` embeddable web component as JavaScript.
+
+- **Content-Type:** `application/javascript`
+- **Cache-Control:** `public, max-age=3600`
+- **CORS:** `Access-Control-Allow-Origin: *`
+
+Usage:
+
+```html
+<script src="https://your-domain.com/api/widget"></script>
+<innovator-widget></innovator-widget>
+```
+
+---
+
+### `POST /api/embed`
+
+Embeddable API for running innovation pipelines from external sites.
+
+```json
+// Request
+{
+  "subject": "remote work tools",
+  "angles": ["scamper", "first-principles"],
+  "model": "gpt-4.1"
+}
+
+// Response (200)
+{
+  "subject": "...",
+  "investigation": { ... },
+  "angleResults": [...],
+  "synthesis": { ... }
+}
+```
+
+**Authentication:** Optional `X-Embed-Key` header (validated against `INNOVATOR_EMBED_API_KEY` env var).
+**CORS:** Configurable via `INNOVATOR_EMBED_ORIGINS` env var.
+
+---
+
+## V1 Authenticated API
+
+The `/api/v1/*` endpoints provide programmatic access with API key authentication. All requests require an `X-API-Key` header.
+
+See the [V1 API Guide](/docs/guides/v1-api) for setup and usage details.
+
+### `POST /api/v1/investigate`
+
+Authenticated investigation endpoint.
+
+```json
+// Request (X-API-Key required)
+{ "subject": "remote work tools", "model": "gpt-4.1" }
+
+// Response (200)
+{ "data": { "summary": "...", "keyAspects": [...], ... } }
+```
+
+**Rate limit:** 30 req/min.
+
+### `POST /api/v1/innovate`
+
+Authenticated innovation generation.
+
+```json
+// Request (X-API-Key required)
+{ "subject": "remote work tools", "angles": ["scamper", "first-principles"], "model": "gpt-4.1" }
+
+// Response (200)
+{ "data": { "investigation": { ... }, "angleResults": [...] } }
+```
+
+**Rate limit:** 20 req/min.
+
+### `POST /api/v1/auto`
+
+Authenticated full pipeline with optional streaming.
+
+```json
+// Request (X-API-Key required)
+{ "subject": "remote work tools", "model": "gpt-4.1", "stream": true }
+
+// Response (stream: true) — SSE stream of PipelineProgress events
+// Response (stream: false)
+{ "data": { ... } }
+```
+
+**Rate limit:** 10 req/min.
+
+### `POST /api/v1/keys` · `GET /api/v1/keys` · `DELETE /api/v1/keys`
+
+API key management.
+
+```json
+// POST — Create key
+{ "name": "My Integration" }
+// Response (201)
+{ "id": "...", "name": "...", "key": "inv_...", ... }
+
+// GET — List keys
+// Response (200)
+{ "keys": [{ "id": "...", "name": "...", "enabled": true, ... }] }
+
+// DELETE — Revoke key
+{ "id": "key-id" }
+// Response (200)
+{ "success": true }
+```
+
+### `GET /api/v1/openapi`
+
+Returns the OpenAPI specification for the V1 API as JSON.
+
+### `GET /api/v1/plugins`
+
+List registered plugins. Requires API key authentication.
+
+```json
+// Response (200)
+{ "data": [{ "id": "...", "name": "...", "type": "...", "version": "...", "description": "..." }] }
+```
+
+---
+
 ## Rate Limiting
 
 All API routes are protected by middleware-level rate limiting (see `apps/web/src/middleware.ts`). Limits are enforced per client IP using an in-memory store.
