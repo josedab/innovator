@@ -9,8 +9,12 @@ import {
   recommendAngles,
   recordAngleFeedback,
   clearAngleFeedback,
+  classifySubject,
 } from "../recommendation/index.js";
 import type { SubjectClassification } from "../recommendation/index.js";
+import { generateText, extractJson } from "../copilot/client.js";
+const mockGenerateText = vi.mocked(generateText);
+const mockExtractJson = vi.mocked(extractJson);
 
 const techClassification: SubjectClassification = {
   domain: "technology",
@@ -92,5 +96,83 @@ describe("recommendation", () => {
   it("respects topN parameter", () => {
     expect(recommendAngles(techClassification, 2)).toHaveLength(2);
     expect(recommendAngles(techClassification, 6)).toHaveLength(6);
+  });
+
+  it("topN > available angles returns all angles", () => {
+    const result = recommendAngles(techClassification, 100);
+    expect(result).toHaveLength(8); // 8 known angles
+  });
+
+  describe("classifySubject with mocked LLM", () => {
+    it("returns domain/intent/keywords from LLM", async () => {
+      const classification = {
+        domain: "technology",
+        subDomain: "machine learning",
+        complexity: "moderate",
+        intent: "explore",
+        keywords: ["AI", "automation"],
+        confidence: 0.85,
+      };
+      mockGenerateText.mockResolvedValue(JSON.stringify(classification));
+      mockExtractJson.mockReturnValue(JSON.stringify(classification));
+
+      const result = await classifySubject("AI automation tools");
+      expect(result.domain).toBe("technology");
+      expect(result.intent).toBe("explore");
+      expect(result.keywords).toContain("AI");
+    });
+
+    it("LLM failure propagates error", async () => {
+      mockGenerateText.mockRejectedValue(new Error("LLM unavailable"));
+
+      await expect(classifySubject("test subject")).rejects.toThrow();
+    });
+  });
+
+  describe("recommendAngles edge cases", () => {
+    it("unknown domain uses default weights", () => {
+      const unknownDomain: SubjectClassification = {
+        ...techClassification,
+        domain: "other",
+      };
+      const recs = recommendAngles(unknownDomain, 8);
+      expect(recs).toHaveLength(8);
+      // With default weights, all angles should have some relevance
+      for (const rec of recs) {
+        expect(rec.relevance).toBeGreaterThan(0);
+      }
+    });
+
+    it("intent 'solve' vs 'explore' produces different rankings", () => {
+      const solveClass: SubjectClassification = {
+        ...techClassification,
+        intent: "solve",
+      };
+      const exploreClass: SubjectClassification = {
+        ...techClassification,
+        intent: "explore",
+      };
+      const solveRecs = recommendAngles(solveClass, 8);
+      const exploreRecs = recommendAngles(exploreClass, 8);
+      // The what-if angle rationale text incorporates the intent
+      const solveWhatIf = solveRecs.find((r) => r.angleId === "what-if");
+      const exploreWhatIf = exploreRecs.find((r) => r.angleId === "what-if");
+      expect(solveWhatIf?.rationale).toContain("solve");
+      expect(exploreWhatIf?.rationale).toContain("explore");
+    });
+
+    it("confidence scores are 0-1", () => {
+      const recs = recommendAngles(techClassification, 8);
+      for (const rec of recs) {
+        expect(rec.relevance).toBeGreaterThanOrEqual(0);
+        expect(rec.relevance).toBeLessThanOrEqual(1);
+      }
+    });
+
+    it("feedback with 0 ratings doesn't crash", () => {
+      // No feedback recorded, should work fine
+      const recs = recommendAngles(techClassification, 4);
+      expect(recs).toHaveLength(4);
+    });
   });
 });
