@@ -365,7 +365,12 @@ export function clearGallery(): void {
 
 /**
  * Compute a trending score using a time-decayed engagement formula.
- * Score = (upvotes * 3 + forks * 5 + comments * 2 + views * 0.1) / age_hours^1.5
+ * Weights: forks (5×) > upvotes (3×) > comments (2×) > views (0.1×)
+ * because forks indicate deeper engagement than passive interactions.
+ * The "+2" in the denominator prevents division-by-zero for brand-new
+ * listings and gives new items a brief visibility boost before decay
+ * takes effect. The 1.5 exponent produces a sub-quadratic decay curve
+ * that balances recency with sustained engagement.
  */
 function computeTrendingScore(listing: GalleryListing): number {
   const ageMs = Math.max(Date.now() - listing.createdAt, 1);

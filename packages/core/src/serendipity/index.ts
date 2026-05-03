@@ -112,12 +112,10 @@ export async function findSerendipitousConnections(
 
   for (let i = 0; i < embeddings.length; i++) {
     for (let j = i + 1; j < embeddings.length; j++) {
-      const similarity = cosineSimilarity(
-        embeddings[i].embedding,
-        embeddings[j].embedding
-      );
+      const similarity = cosineSimilarity(embeddings[i].embedding, embeddings[j].embedding);
 
-      // Filter: above minimum but below 0.95 (near-duplicate)
+      // Filter: above minimum similarity but below 0.95 to exclude
+      // near-duplicate sessions that would produce trivial connections
       if (similarity >= minSimilarity && similarity < 0.95) {
         candidates.push({
           sessionA: embeddings[i].session,
@@ -128,7 +126,7 @@ export async function findSerendipitousConnections(
     }
   }
 
-  // Sort by similarity and take top N
+  // Sort by descending similarity so the strongest connections appear first
   candidates.sort((a, b) => b.similarity - a.similarity);
   const topCandidates = candidates.slice(0, maxConnections);
 
@@ -217,8 +215,7 @@ You MUST respond with valid JSON only.
     },
     {
       signal,
-      isRetryable: (err) =>
-        err instanceof Error && err.message.includes("Failed to parse"),
+      isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse"),
     }
   );
 

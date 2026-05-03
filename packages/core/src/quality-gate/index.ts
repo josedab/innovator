@@ -103,10 +103,7 @@ const PLATITUDE_PHRASES = [
 /**
  * Check for hallucinated statistics in idea text.
  */
-export function checkHallucinatedStatistics(
-  idea: InnovationIdea,
-  angleId: string
-): QualityIssue[] {
+export function checkHallucinatedStatistics(idea: InnovationIdea, angleId: string): QualityIssue[] {
   const issues: QualityIssue[] = [];
   const fullText = `${idea.description} ${idea.potentialImpact} ${idea.implementationHint}`;
 
@@ -130,13 +127,9 @@ export function checkHallucinatedStatistics(
 /**
  * Check for vague platitudes in idea text.
  */
-export function checkVaguePlatitudes(
-  idea: InnovationIdea,
-  angleId: string
-): QualityIssue[] {
+export function checkVaguePlatitudes(idea: InnovationIdea, angleId: string): QualityIssue[] {
   const issues: QualityIssue[] = [];
-  const fullText =
-    `${idea.title} ${idea.description} ${idea.potentialImpact}`.toLowerCase();
+  const fullText = `${idea.title} ${idea.description} ${idea.potentialImpact}`.toLowerCase();
 
   let platitudeCount = 0;
   const found: string[] = [];
@@ -190,9 +183,7 @@ export function checkCrossAngleDuplication(
       allIdeas.push({
         idea,
         angleId: ar.angleId,
-        embedding: generateEmbedding(
-          `${idea.title} ${idea.description}`
-        ),
+        embedding: generateEmbedding(`${idea.title} ${idea.description}`),
       });
     }
   }
@@ -202,10 +193,7 @@ export function checkCrossAngleDuplication(
       // Only flag cross-angle duplicates
       if (allIdeas[i].angleId === allIdeas[j].angleId) continue;
 
-      const similarity = cosineSimilarity(
-        allIdeas[i].embedding,
-        allIdeas[j].embedding
-      );
+      const similarity = cosineSimilarity(allIdeas[i].embedding, allIdeas[j].embedding);
 
       if (similarity >= threshold) {
         issues.push({
@@ -226,9 +214,7 @@ export function checkCrossAngleDuplication(
 /**
  * Check for self-contradictions within an angle's ideas.
  */
-export function checkSelfContradictions(
-  angleResult: AngleResult
-): QualityIssue[] {
+export function checkSelfContradictions(angleResult: AngleResult): QualityIssue[] {
   const issues: QualityIssue[] = [];
   const ideas = angleResult.ideas;
 
@@ -255,10 +241,7 @@ export function checkSelfContradictions(
           (textA.includes(termB) && textB.includes(termA))
         ) {
           // Check if they're about the same topic
-          const similarity = cosineSimilarity(
-            generateEmbedding(textA),
-            generateEmbedding(textB)
-          );
+          const similarity = cosineSimilarity(generateEmbedding(textA), generateEmbedding(textB));
 
           if (similarity >= 0.5) {
             issues.push({
@@ -267,8 +250,7 @@ export function checkSelfContradictions(
               ideaTitle: ideas[i].title,
               angleId: angleResult.angleId,
               detail: `"${ideas[i].title}" suggests "${termA}" while "${ideas[j].title}" suggests "${termB}" on a similar topic`,
-              suggestion:
-                "Reconcile these opposing approaches or clarify different contexts",
+              suggestion: "Reconcile these opposing approaches or clarify different contexts",
             });
             break;
           }
@@ -327,7 +309,9 @@ export function runQualityGate(
     issues.push(...checkCrossAngleDuplication(angleResults, duplicateThreshold));
   }
 
-  // Calculate score: start at 100, deduct per issue
+  // Calculate score: start at 100, deduct per issue based on severity.
+  // High-severity issues (hallucinations, contradictions) cost 15 points,
+  // medium (vagueness) costs 8, and low (minor style) costs 3.
   const deductions = issues.reduce((sum, issue) => {
     switch (issue.severity) {
       case "high":
