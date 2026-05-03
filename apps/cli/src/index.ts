@@ -75,6 +75,7 @@ import {
   flattenIdeas,
   parseConstraintString,
   generatePlaybook,
+  findSerendipitousConnections,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -1857,6 +1858,65 @@ program
       process.exitCode = 1;
     } finally {
       commandCleanup = null;
+      await stopCopilotClient();
+    }
+  });
+
+// ---- connections command ----
+program
+  .command("connections")
+  .description("Find serendipitous connections across past investigations")
+  .option("--min-similarity <threshold>", "Minimum similarity threshold (0-1)", "0.3")
+  .option("--max <count>", "Maximum connections to show", "10")
+  .option("-m, --model <model>", "LLM model to use for explanations")
+  .action(async (opts: { minSimilarity?: string; max?: string; model?: string }) => {
+    if (!validateModelWithLog(opts.model)) return;
+
+    const minSim = parseFloat(opts.minSimilarity ?? "0.3");
+    const maxConn = parseInt(opts.max ?? "10", 10);
+
+    if (isNaN(minSim) || minSim < 0 || minSim > 1) {
+      console.error(chalk.red("Invalid similarity threshold. Use a value between 0 and 1."));
+      process.exitCode = 1;
+      return;
+    }
+
+    const spinner = ora("Analyzing past investigations for connections...").start();
+
+    try {
+      const result = await findSerendipitousConnections(minSim, maxConn, opts.model);
+      spinner.succeed(`Found ${result.connections.length} connection(s) across ${result.totalSessionsAnalyzed} sessions\n`);
+
+      if (result.connections.length === 0) {
+        console.log(chalk.dim("No serendipitous connections found. Run more investigations to build your knowledge base."));
+        return;
+      }
+
+      for (const conn of result.connections) {
+        console.log(chalk.bold.magenta(`\n🔗 ${stripAnsi(conn.subjectA)} ↔ ${stripAnsi(conn.subjectB)}`));
+        console.log(chalk.dim(`   Similarity: ${(conn.similarityScore * 100).toFixed(0)}%`));
+        console.log(`   ${stripAnsi(conn.explanation)}`);
+
+        if (conn.sharedPatterns.length > 0) {
+          console.log(chalk.dim("   Shared patterns:"));
+          for (const p of conn.sharedPatterns) {
+            console.log(`     ${chalk.cyan("•")} ${stripAnsi(p)}`);
+          }
+        }
+        if (conn.potentialInsight) {
+          console.log(chalk.green(`   💡 ${stripAnsi(conn.potentialInsight)}`));
+        }
+      }
+      console.log();
+    } catch (err) {
+      spinner.fail("Connection analysis failed");
+      if (verbose) {
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      } else {
+        console.error(chalk.red("Connection analysis failed. Use --verbose for details."));
+      }
+      process.exitCode = 1;
+    } finally {
       await stopCopilotClient();
     }
   });
