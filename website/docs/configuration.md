@@ -10,13 +10,20 @@ Innovator is configured via environment variables. Copy `.env.local.example` to 
 
 ## Environment Variables
 
-| Variable                   | Description                                                          | Default   | Required |
-| -------------------------- | -------------------------------------------------------------------- | --------- | -------- |
-| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime                     | `gpt-4.1` | No       |
-| `INNOVATOR_API_KEY`        | API key to protect web API routes via `X-API-Key` header (see below) | _unset_   | No       |
-| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for each LLM request in milliseconds                         | `90000`   | No       |
-| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs to allow                | _unset_   | No       |
-| `PORT`                     | Port for the Next.js dev server                                      | `3000`    | No       |
+| Variable                   | Description                                                              | Default   | Required |
+| -------------------------- | ------------------------------------------------------------------------ | --------- | -------- |
+| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime                         | `gpt-4.1` | No       |
+| `INNOVATOR_API_KEY`        | API key to protect web API routes via `X-API-Key` header (see below)     | _unset_   | No       |
+| `INNOVATOR_API_KEYS`       | Comma-separated API keys for multi-key auth (`X-API-Key` or Bearer)      | _unset_   | No       |
+| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for each LLM request in milliseconds                             | `90000`   | No       |
+| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs to allow                    | _unset_   | No       |
+| `INNOVATOR_EMBED_ORIGINS`  | Comma-separated CORS origins for the `/api/embed` widget endpoint        | `*`       | No       |
+| `OPENAI_API_KEY`           | OpenAI API key for direct OpenAI provider (non-Copilot usage)            | _unset_   | No       |
+| `ANTHROPIC_API_KEY`        | Anthropic API key for direct Anthropic provider (non-Copilot usage)      | _unset_   | No       |
+| `OLLAMA_BASE_URL`          | Base URL for local Ollama instance                                       | `http://localhost:11434` | No |
+| `PLAYWRIGHT_BASE_URL`     | Base URL for Playwright E2E tests                                        | `http://localhost:3000`  | No |
+| `MCP_PORT`                | Port for the MCP server SSE transport                                    | `3100`   | No       |
+| `PORT`                    | Port for the Next.js dev server                                          | `3000`   | No       |
 
 ## `INNOVATOR_DEFAULT_MODEL`
 
@@ -45,6 +52,24 @@ curl -X POST http://localhost:3000/api/investigate \
   -d '{"subject": "quantum computing"}'
 ```
 
+## `INNOVATOR_API_KEYS`
+
+When set, enables multi-key authentication. Provide a comma-separated list of valid API keys. Clients authenticate via `Authorization: Bearer <key>` or `X-API-Key: <key>` headers. Each key is assigned a positional identifier (`key-0`, `key-1`, etc.) for audit logging.
+
+Takes precedence over `INNOVATOR_API_KEY` when both are set.
+
+```bash
+INNOVATOR_API_KEYS=team-key-abc,ci-key-xyz,partner-key-123
+```
+
+## `INNOVATOR_EMBED_ORIGINS`
+
+Comma-separated list of allowed CORS origins for the `/api/embed` widget endpoint. Set to `*` (the default) to allow all origins, or restrict to specific domains for production deployments.
+
+```bash
+INNOVATOR_EMBED_ORIGINS=https://mysite.com,https://docs.mysite.com
+```
+
 ## `INNOVATOR_LLM_TIMEOUT_MS`
 
 Maximum time in milliseconds to wait for an LLM response before timing out. Increase this if you experience timeouts with complex subjects or slower models.
@@ -67,4 +92,50 @@ Port for the Next.js development server.
 
 ```bash
 PORT=3001
+```
+
+## Alternative LLM Providers
+
+By default, Innovator uses the GitHub Copilot SDK. If you want to use a different LLM provider directly (without Copilot), set the corresponding environment variable.
+
+### `OPENAI_API_KEY`
+
+API key for direct OpenAI API access. When set, enables the OpenAI provider as a fallback for non-Copilot usage.
+
+```bash
+OPENAI_API_KEY=sk-...
+```
+
+### `ANTHROPIC_API_KEY`
+
+API key for direct Anthropic API access. When set, enables the Anthropic provider.
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+### `OLLAMA_BASE_URL`
+
+Base URL for a local [Ollama](https://ollama.ai) instance. Defaults to `http://localhost:11434` when not set.
+
+```bash
+OLLAMA_BASE_URL=http://localhost:11434
+```
+
+## Testing & Development
+
+### `PLAYWRIGHT_BASE_URL`
+
+Base URL for Playwright E2E tests. Used by `apps/web/playwright.config.ts`. CI environments may need to customize this if the dev server runs on a different host or port.
+
+```bash
+PLAYWRIGHT_BASE_URL=http://localhost:3000
+```
+
+### `MCP_PORT`
+
+Port for the MCP server when using SSE transport (`npx @innovator/mcp-server --sse`).
+
+```bash
+MCP_PORT=3100
 ```
