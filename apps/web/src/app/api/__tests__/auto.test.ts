@@ -130,6 +130,8 @@ describe("POST /api/auto", () => {
 
     expect(res.headers.get("Content-Type")).toBe("text/event-stream");
     expect(res.headers.get("Cache-Control")).toBe("no-cache");
+    expect(mockRunAutoPipeline).toHaveBeenCalledTimes(1);
+    expect(mockRunAutoPipeline).toHaveBeenCalledWith("testing", expect.any(Function), undefined);
   });
 
   it("streams progress events from pipeline", async () => {
@@ -168,6 +170,7 @@ describe("POST /api/auto", () => {
     const res = await POST(makeRequest({}));
 
     expect(res.status).toBe(400);
+    expect(mockRunAutoPipeline).not.toHaveBeenCalled();
   });
 
   it("returns 400 for empty subject", async () => {

@@ -324,6 +324,8 @@ describe("POST /api/collaborate", () => {
     expect(res.status).toBe(201);
     const data = await res.json();
     expect(data.data).toBeDefined();
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledWith("New Session", "u1", "User 1");
   });
 
   it("handles join action", async () => {
@@ -334,6 +336,8 @@ describe("POST /api/collaborate", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.data.userId).toBe("u1");
+    expect(mockJoin).toHaveBeenCalledTimes(1);
+    expect(mockJoin).toHaveBeenCalledWith("s1", "u1", "User");
   });
 
   it("handles submit_idea action", async () => {
@@ -350,6 +354,15 @@ describe("POST /api/collaborate", () => {
       })
     );
     expect(res.status).toBe(201);
+    expect(mockSubmitIdea).toHaveBeenCalledTimes(1);
+    expect(mockSubmitIdea).toHaveBeenCalledWith(
+      "s1",
+      "u1",
+      "scamper",
+      "Great Idea",
+      "A great idea description",
+      "High"
+    );
   });
 
   it("handles vote action", async () => {

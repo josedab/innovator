@@ -87,6 +87,7 @@ describe("GET /api/presets", () => {
     const data = await res.json();
     expect(Array.isArray(data.data)).toBe(true);
     expect(data.data).toHaveLength(2);
+    expect(mockGetPresets).toHaveBeenCalledTimes(1);
   });
 
   it("GET with ?id=valid-id returns single preset", async () => {
@@ -95,6 +96,8 @@ describe("GET /api/presets", () => {
     const data = await res.json();
     expect(data.data.id).toBe("startup-validation");
     expect(data.data.name).toBe("Startup Validation");
+    expect(mockGetPresetById).toHaveBeenCalledTimes(1);
+    expect(mockGetPresetById).toHaveBeenCalledWith("startup-validation");
   });
 
   it("GET with ?id=nonexistent returns 404", async () => {
