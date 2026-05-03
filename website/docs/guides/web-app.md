@@ -85,6 +85,55 @@ The web app exposes three API endpoints:
 
 All routes validate request bodies with Zod and return structured JSON error responses on failure.
 
+## PWA Support
+
+The web app includes Progressive Web App (PWA) capabilities via the `usePWA()` hook in `apps/web/src/lib/use-pwa.ts`. This enables install-to-home-screen, offline detection, and service worker registration.
+
+### `usePWA()` Hook
+
+Import and use the hook in any React component:
+
+```tsx
+import { usePWA } from "@/lib/use-pwa";
+
+function MyComponent() {
+  const { isInstalled, isOnline, canInstall, install, requestNotificationPermission } = usePWA();
+
+  return (
+    <div>
+      {!isOnline && <p>You are offline</p>}
+      {canInstall && <button onClick={install}>Install App</button>}
+    </div>
+  );
+}
+```
+
+### Hook Return Values
+
+| Property                          | Type                                    | Description                                                     |
+| --------------------------------- | --------------------------------------- | --------------------------------------------------------------- |
+| `isInstalled`                     | `boolean`                               | `true` if the app is running in standalone/installed mode       |
+| `isOnline`                        | `boolean`                               | `true` if the browser has network connectivity                  |
+| `canInstall`                      | `boolean`                               | `true` if the browser install prompt is available               |
+| `registration`                    | `ServiceWorkerRegistration \| null`     | The active service worker registration, if any                  |
+| `install()`                       | `() => Promise<boolean>`                | Triggers the browser install prompt; returns `true` if accepted |
+| `requestNotificationPermission()` | `() => Promise<NotificationPermission>` | Requests notification permission from the user                  |
+
+### How It Works
+
+1. **Service Worker** — On mount, the hook registers `/sw.js` as a service worker. You must provide a `public/sw.js` file for caching and offline support.
+2. **Install Prompt** — The hook captures the browser's `beforeinstallprompt` event. Call `install()` to show the native install dialog.
+3. **Online/Offline Detection** — The hook listens to browser `online` and `offline` events and updates `isOnline` reactively.
+4. **Standalone Detection** — Checks `display-mode: standalone` media query and Safari's `navigator.standalone` to detect if the app is already installed.
+
+### Prerequisites
+
+For full PWA support, ensure your deployment includes:
+
+- A `public/manifest.json` (or `manifest.webmanifest`) with app name, icons, and display mode
+- A `public/sw.js` service worker for caching strategies
+- HTTPS (required for service workers in production)
+
 ### Example: Call the investigation API directly
 
 ```bash
