@@ -68,6 +68,9 @@ import {
   runInnovationDiff,
   parsePipelineRequest,
   resolveAngles,
+  scoreInvestigationQuality,
+  meetsConfidenceThreshold,
+  formatGapSuggestions,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -354,7 +357,8 @@ program
   .option("--audience <mode>", "Generate audience-adapted output (executive, technical, pitch, research)")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
-  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string }) => {
+  .option("--min-confidence <score>", "Minimum investigation confidence score (0-100) before generating ideas")
+  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; minConfidence?: string }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
 
@@ -490,6 +494,44 @@ program
 
         console.log(chalk.bold("\n📌 Recommendation:"));
         console.log(`  ${stripAnsi(result.synthesis.recommendation)}`);
+      }
+
+      // Check investigation confidence if --min-confidence flag is set
+      if (opts.minConfidence && result.investigation) {
+        const minConf = parseInt(opts.minConfidence, 10);
+        if (isNaN(minConf) || minConf < 0 || minConf > 100) {
+          console.error(chalk.red("Invalid --min-confidence value. Use 0-100."));
+        } else {
+          const confSpinner = ora("📊 Scoring investigation quality...").start();
+          try {
+            const confidence = await scoreInvestigationQuality(subject, result.investigation, opts.model);
+            const passes = meetsConfidenceThreshold(confidence, minConf);
+            if (passes) {
+              confSpinner.succeed(`Investigation confidence: ${confidence.overallScore}/100 ✓\n`);
+            } else {
+              confSpinner.warn(`Investigation confidence: ${confidence.overallScore}/100 (below ${minConf} threshold)\n`);
+            }
+
+            for (const dim of confidence.dimensions) {
+              const color = dim.score >= 70 ? chalk.green : dim.score >= 50 ? chalk.yellow : chalk.red;
+              console.log(`  ${color(`${dim.score}`)} ${dim.name}: ${stripAnsi(dim.explanation)}`);
+            }
+
+            const gaps = formatGapSuggestions(confidence);
+            if (gaps.length > 0) {
+              console.log(chalk.bold.yellow("\n  💡 Knowledge Gaps:"));
+              for (const gap of gaps) {
+                console.log(`    ${chalk.yellow("→")} ${stripAnsi(gap)}`);
+              }
+            }
+            console.log();
+          } catch (err) {
+            confSpinner.fail("Confidence scoring failed");
+            if (verbose) {
+              console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+            }
+          }
+        }
       }
 
       // Score ideas if --score flag is set
