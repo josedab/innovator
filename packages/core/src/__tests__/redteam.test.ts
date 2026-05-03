@@ -5,9 +5,12 @@ vi.mock("@github/copilot-sdk", () => ({
   approveAll: vi.fn(),
 }));
 
+const mockGenerateText = vi.fn();
+const mockExtractJson = vi.fn();
+
 vi.mock("../copilot/client.js", () => ({
-  generateText: vi.fn(),
-  extractJson: vi.fn(),
+  generateText: (...args: unknown[]) => mockGenerateText(...args),
+  extractJson: (...args: unknown[]) => mockExtractJson(...args),
 }));
 
 import {
@@ -16,8 +19,12 @@ import {
   getRedTeamSession,
   countSevereFindings,
   defenseEffectiveness,
+  attackIdea,
+  defendIdea,
+  runRedTeamSession,
 } from "../redteam/index.js";
 import type { RedTeamAttack, DefenseRound } from "../redteam/index.js";
+import type { InnovationIdea } from "../types.js";
 
 function makeAttack(overrides: Partial<RedTeamAttack> = {}): RedTeamAttack {
   return {
@@ -84,6 +91,7 @@ function makeDefense(overrides: Partial<DefenseRound> = {}): DefenseRound {
 describe("redteam", () => {
   beforeEach(() => {
     clearRedTeamSessions();
+    vi.clearAllMocks();
   });
 
   describe("session store", () => {
@@ -174,6 +182,157 @@ describe("redteam", () => {
         ],
       });
       expect(defenseEffectiveness(defense)).toBe(0.5);
+    });
+  });
+
+  describe("attackIdea", () => {
+    const testIdea: InnovationIdea = {
+      title: "AI Assistant",
+      description: "An AI-powered productivity tool",
+      potentialImpact: "10x productivity",
+      implementationHint: "Use LLMs",
+    };
+
+    it("calls LLM and parses attack result", async () => {
+      const attackJson = JSON.stringify(makeAttack());
+      mockGenerateText.mockResolvedValue(attackJson);
+      mockExtractJson.mockReturnValue(attackJson);
+
+      const result = await attackIdea(testIdea);
+      expect(result.ideaTitle).toBe("Test Idea");
+      expect(result.findings).toHaveLength(2);
+      expect(mockGenerateText).toHaveBeenCalledTimes(1);
+    });
+
+    it("includes idea details in prompt", async () => {
+      const attackJson = JSON.stringify(makeAttack());
+      mockGenerateText.mockResolvedValue(attackJson);
+      mockExtractJson.mockReturnValue(attackJson);
+
+      await attackIdea(testIdea);
+      const prompt = mockGenerateText.mock.calls[0][0].prompt;
+      expect(prompt).toContain(testIdea.title);
+      expect(prompt).toContain(testIdea.description);
+    });
+  });
+
+  describe("defendIdea", () => {
+    const testIdea: InnovationIdea = {
+      title: "AI Assistant",
+      description: "An AI-powered productivity tool",
+      potentialImpact: "10x productivity",
+      implementationHint: "Use LLMs",
+    };
+
+    it("calls LLM and parses defense result", async () => {
+      const defenseJson = JSON.stringify(makeDefense());
+      mockGenerateText.mockResolvedValue(defenseJson);
+      mockExtractJson.mockReturnValue(defenseJson);
+
+      const attack = makeAttack();
+      const result = await defendIdea(testIdea, attack);
+      expect(result.rebuttals).toHaveLength(2);
+      expect(result.overallDefenseStrength).toBe("moderate");
+    });
+
+    it("includes attack findings in defense prompt", async () => {
+      const defenseJson = JSON.stringify(makeDefense());
+      mockGenerateText.mockResolvedValue(defenseJson);
+      mockExtractJson.mockReturnValue(defenseJson);
+
+      const attack = makeAttack();
+      await defendIdea(testIdea, attack);
+      const prompt = mockGenerateText.mock.calls[0][0].prompt;
+      expect(prompt).toContain("RED TEAM FINDINGS");
+      expect(prompt).toContain(testIdea.title);
+    });
+  });
+
+  describe("runRedTeamSession", () => {
+    const testIdea: InnovationIdea = {
+      title: "AI Assistant",
+      description: "An AI-powered productivity tool",
+      potentialImpact: "10x productivity",
+      implementationHint: "Use LLMs",
+    };
+
+    it("runs multiple attack/defense rounds", async () => {
+      const attackJson = JSON.stringify(makeAttack());
+      const defenseJson = JSON.stringify(makeDefense());
+
+      // Round 1: attack + defense, Round 2: attack only
+      mockGenerateText
+        .mockResolvedValueOnce(attackJson)
+        .mockResolvedValueOnce(defenseJson)
+        .mockResolvedValueOnce(attackJson);
+      mockExtractJson
+        .mockReturnValueOnce(attackJson)
+        .mockReturnValueOnce(defenseJson)
+        .mockReturnValueOnce(attackJson);
+
+      const session = await runRedTeamSession(testIdea, undefined, { rounds: 2 });
+      expect(session.rounds).toHaveLength(2);
+      expect(session.rounds[0].defense).toBeTruthy();
+      expect(session.rounds[1].defense).toBeUndefined(); // Last round has no defense
+    });
+
+    it("invokes onRoundComplete callback", async () => {
+      const attackJson = JSON.stringify(makeAttack());
+      mockGenerateText.mockResolvedValue(attackJson);
+      mockExtractJson.mockReturnValue(attackJson);
+
+      const onRoundComplete = vi.fn();
+      await runRedTeamSession(testIdea, undefined, { rounds: 1, onRoundComplete });
+      expect(onRoundComplete).toHaveBeenCalledTimes(1);
+      expect(onRoundComplete).toHaveBeenCalledWith(1, expect.any(Object), undefined);
+    });
+
+    it("stores session and sets final verdict", async () => {
+      const attackJson = JSON.stringify(makeAttack({ survivalScore: 7 }));
+      mockGenerateText.mockResolvedValue(attackJson);
+      mockExtractJson.mockReturnValue(attackJson);
+
+      const session = await runRedTeamSession(testIdea, undefined, { rounds: 1 });
+      expect(session.finalVerdict).toBe("validated");
+      expect(getRedTeamSession(session.id)).toBeTruthy();
+    });
+
+    it("sets conditionally-validated for score 5-6.9", async () => {
+      const attackJson = JSON.stringify(makeAttack({ survivalScore: 5 }));
+      mockGenerateText.mockResolvedValue(attackJson);
+      mockExtractJson.mockReturnValue(attackJson);
+
+      const session = await runRedTeamSession(testIdea, undefined, { rounds: 1 });
+      expect(session.finalVerdict).toBe("conditionally-validated");
+    });
+
+    it("sets needs-pivot for score 3-4.9", async () => {
+      const attackJson = JSON.stringify(makeAttack({ survivalScore: 3 }));
+      mockGenerateText.mockResolvedValue(attackJson);
+      mockExtractJson.mockReturnValue(attackJson);
+
+      const session = await runRedTeamSession(testIdea, undefined, { rounds: 1 });
+      expect(session.finalVerdict).toBe("needs-pivot");
+    });
+
+    it("sets rejected for score < 3", async () => {
+      const attackJson = JSON.stringify(makeAttack({ survivalScore: 2 }));
+      mockGenerateText.mockResolvedValue(attackJson);
+      mockExtractJson.mockReturnValue(attackJson);
+
+      const session = await runRedTeamSession(testIdea, undefined, { rounds: 1 });
+      expect(session.finalVerdict).toBe("rejected");
+    });
+
+    it("respects AbortSignal", async () => {
+      const controller = new AbortController();
+      controller.abort();
+
+      const session = await runRedTeamSession(testIdea, undefined, {
+        rounds: 3,
+        signal: controller.signal,
+      });
+      expect(session.rounds).toHaveLength(0);
     });
   });
 });
