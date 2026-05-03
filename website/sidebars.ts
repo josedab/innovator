@@ -10,6 +10,7 @@ const sidebars: SidebarsConfig = {
       items: [
         "guides/web-app",
         "guides/cli",
+        "guides/mcp-server",
         "guides/auto-mode",
         "guides/custom-models",
         "guides/deployment",
