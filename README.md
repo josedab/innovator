@@ -19,6 +19,10 @@ npx innovator auto 'solar energy'
 
 ## Demo
 
+<p align="center">
+  <img src="website/static/img/demo-screenshot.svg" alt="Innovator — investigation, angle selection, and results flow" width="800" />
+</p>
+
 > 📸 _Run `npm run dev` and open http://localhost:3000 to try the investigate → angle select → results flow._
 
 ## Features
@@ -101,12 +105,27 @@ innovator/
 │   ├── web/          # Next.js web application
 │   └── cli/          # Command-line interface
 ├── packages/
-│   └── core/         # Shared innovation engine
-│       ├── copilot/  # GitHub Copilot SDK client wrapper
-│       ├── innovation/ # Investigation, generation, pipeline
-│       └── prompts/  # Prompt templates for each angle
+│   ├── core/         # Shared innovation engine
+│   │   ├── copilot/  # GitHub Copilot SDK client wrapper
+│   │   ├── innovation/ # Investigation, generation, pipeline
+│   │   └── prompts/  # Prompt templates for each angle
+│   └── mcp-server/   # MCP server for AI tool integration
 └── package.json      # Workspace root
 ```
+
+## MCP Server
+
+The MCP (Model Context Protocol) server in `packages/mcp-server/` exposes Innovator's capabilities as tools callable by any MCP-compatible AI client — Claude Desktop, Cursor, Windsurf, VS Code, and others.
+
+```bash
+# stdio transport (default)
+npx @innovator/mcp-server
+
+# SSE transport (port 3100 by default, configurable via MCP_PORT)
+npx @innovator/mcp-server --sse
+```
+
+Available tools: `investigate`, `innovate`, and `auto`. See the [MCP Server README](packages/mcp-server/README.md) for client configuration examples.
 
 ## How It Works
 
@@ -128,13 +147,18 @@ Supported models include `gpt-4.1`, `gpt-5`, `claude-sonnet-4.5`, and others ava
 
 ### Environment Variables
 
-| Variable                   | Description                                        | Default   | Required |
-| -------------------------- | -------------------------------------------------- | --------- | -------- |
-| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime   | `gpt-4.1` | No       |
-| `INNOVATOR_API_KEY`        | API key to protect web routes (`X-API-Key` header) | _unset_   | No       |
-| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for LLM requests in milliseconds           | `90000`   | No       |
-| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs       | _unset_   | No       |
-| `PORT`                     | Dev server port                                    | `3000`    | No       |
+| Variable                   | Description                                                        | Default   | Required |
+| -------------------------- | ------------------------------------------------------------------ | --------- | -------- |
+| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime                   | `gpt-4.1` | No       |
+| `INNOVATOR_API_KEY`        | API key to protect web routes (`X-API-Key` header)                 | _unset_   | No       |
+| `INNOVATOR_API_KEYS`       | Comma-separated API keys for multi-key auth (`X-API-Key`/Bearer)   | _unset_   | No       |
+| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for LLM requests in milliseconds                           | `90000`   | No       |
+| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs                       | _unset_   | No       |
+| `INNOVATOR_EMBED_ORIGINS`  | Comma-separated CORS origins for `/api/embed` widget endpoint      | `*`       | No       |
+| `OPENAI_API_KEY`           | OpenAI API key for direct OpenAI provider (non-Copilot usage)      | _unset_   | No       |
+| `ANTHROPIC_API_KEY`        | Anthropic API key for direct Anthropic provider (non-Copilot usage)| _unset_   | No       |
+| `OLLAMA_BASE_URL`          | Base URL for local Ollama instance                                 | `http://localhost:11434` | No |
+| `PORT`                     | Dev server port                                                    | `3000`    | No       |
 
 ## Dev Container / Codespaces
 
