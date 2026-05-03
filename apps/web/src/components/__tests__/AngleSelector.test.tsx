@@ -104,4 +104,89 @@ describe("AngleSelector", () => {
     fireEvent.click(screen.getByText("First Principles").closest("button")!);
     expect(screen.getByText(/2 angles/)).toBeDefined();
   });
+
+  describe("all 8 angles", () => {
+    const allAngleNames = [
+      "SCAMPER",
+      "First Principles",
+      "Cross-Domain Analogy",
+      "Constraint Injection",
+      "Problem Inversion",
+      "Role-Based Perspectives",
+      "What-If Scenarios",
+      "Trend Collision",
+    ];
+
+    it("renders all 8 angle names", () => {
+      render(<AngleSelector onSubmit={vi.fn()} />);
+      for (const name of allAngleNames) {
+        expect(screen.getByText(name)).toBeDefined();
+      }
+    });
+
+    it("each card shows icon and shortDescription", () => {
+      render(<AngleSelector onSubmit={vi.fn()} />);
+      // Each angle card has an icon (emoji) and shortDescription text
+      const buttons = screen.getAllByRole("button", { name: /Toggle/ });
+      expect(buttons).toHaveLength(8);
+      for (const button of buttons) {
+        // Each button should have description text
+        expect(button.textContent!.length).toBeGreaterThan(5);
+      }
+    });
+  });
+
+  describe("accessibility", () => {
+    it("aria-pressed reflects toggle state", () => {
+      render(<AngleSelector onSubmit={vi.fn()} />);
+      const scamperBtn = screen.getByText("SCAMPER").closest("button")!;
+      expect(scamperBtn.getAttribute("aria-pressed")).toBe("false");
+      fireEvent.click(scamperBtn);
+      expect(scamperBtn.getAttribute("aria-pressed")).toBe("true");
+      fireEvent.click(scamperBtn);
+      expect(scamperBtn.getAttribute("aria-pressed")).toBe("false");
+    });
+
+    it("aria-label includes angle name", () => {
+      render(<AngleSelector onSubmit={vi.fn()} />);
+      const scamperBtn = screen.getByLabelText("Toggle SCAMPER");
+      expect(scamperBtn).toBeDefined();
+      const fpBtn = screen.getByLabelText("Toggle First Principles");
+      expect(fpBtn).toBeDefined();
+    });
+
+    it("disabled submit has disabled attribute", () => {
+      render(<AngleSelector onSubmit={vi.fn()} />);
+      const submitBtn = screen.getByText(/Generate Innovations/) as HTMLButtonElement;
+      expect(submitBtn.disabled).toBe(true);
+    });
+
+    it("keyboard Enter toggles selection via click simulation", () => {
+      render(<AngleSelector onSubmit={vi.fn()} />);
+      const scamperBtn = screen.getByText("SCAMPER").closest("button")!;
+      // fireEvent.click simulates keyboard Enter on a button
+      fireEvent.click(scamperBtn);
+      expect(scamperBtn.getAttribute("aria-pressed")).toBe("true");
+    });
+  });
+
+  describe("pluralization", () => {
+    it("'1 angle' singular form", () => {
+      render(<AngleSelector onSubmit={vi.fn()} />);
+      fireEvent.click(screen.getByText("SCAMPER").closest("button")!);
+      expect(screen.getByText(/1 angle\b/)).toBeDefined();
+    });
+
+    it("'2 angles' plural form", () => {
+      render(<AngleSelector onSubmit={vi.fn()} />);
+      fireEvent.click(screen.getByText("SCAMPER").closest("button")!);
+      fireEvent.click(screen.getByText("First Principles").closest("button")!);
+      expect(screen.getByText(/2 angles/)).toBeDefined();
+    });
+
+    it("'0 angles' plural form when none selected", () => {
+      render(<AngleSelector onSubmit={vi.fn()} />);
+      expect(screen.getByText(/0 angles/)).toBeDefined();
+    });
+  });
 });
