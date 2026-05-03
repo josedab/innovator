@@ -60,6 +60,17 @@ npx tsx apps/cli/src/index.ts investigate "home automation"
 npx tsx apps/cli/src/index.ts auto "home automation"
 ```
 
+## Scaffold a new project
+
+Use `create-innovator` to generate a pre-configured project with provider settings and custom angle templates:
+
+```bash
+npx create-innovator my-project
+cd my-project
+```
+
+The scaffolder prompts for your preferred LLM provider and optionally includes domain presets and a sample custom angle definition.
+
 ## Project structure
 
 ```
