@@ -27,7 +27,7 @@ Innovator is configured via environment variables. Copy `.env.local.example` to 
 
 ## `INNOVATOR_DEFAULT_MODEL`
 
-Sets the default LLM model for all API, CLI, and programmatic usage. Can be overridden at runtime via the `--model` CLI flag or the `model` field in API requests. See the [Custom Models guide](./guides/custom-models.md) for details.
+Sets the default LLM model for all API, CLI, and programmatic usage. Can be overridden at runtime via the `--model` CLI flag or the `model` field in API requests. See the [Custom Models guide](/docs/guides/custom-models) for details.
 
 ```bash
 INNOVATOR_DEFAULT_MODEL=gpt-5

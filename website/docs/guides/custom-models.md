@@ -67,4 +67,4 @@ const result = await investigate("quantum computing", "gpt-5");
 
 ## Related
 
-- [Configuration Reference](../configuration.md) — full list of environment variables including `INNOVATOR_API_KEY` and `INNOVATOR_LLM_TIMEOUT_MS`
+- [Configuration Reference](/docs/configuration) — full list of environment variables including `INNOVATOR_API_KEY` and `INNOVATOR_LLM_TIMEOUT_MS`

@@ -32,7 +32,7 @@ Set these in your deployment platform's environment configuration:
 **Always set `INNOVATOR_API_KEY` in production.** Without it, anyone with access to your deployment URL can consume your Copilot quota.
 :::
 
-See the [Configuration Reference](../configuration.md) for full details on each variable.
+See the [Configuration Reference](/docs/configuration) for full details on each variable.
 
 ## Vercel
 
