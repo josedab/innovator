@@ -227,3 +227,139 @@ export const GITHUB_APP_MANIFEST = {
   default_permissions: {},
   default_events: [],
 };
+
+// ---- Copilot Extensions Spec ----
+
+/** Copilot Extensions agent configuration per GitHub spec. */
+export interface CopilotAgentConfig {
+  name: string;
+  description: string;
+  commands: CopilotCommandDef[];
+  authTokenForward?: boolean;
+}
+
+/** A single command definition for Copilot Extensions. */
+export interface CopilotCommandDef {
+  name: string;
+  description: string;
+  parameters?: Array<{
+    name: string;
+    description: string;
+    required: boolean;
+    type: "string" | "number" | "boolean";
+  }>;
+}
+
+/** Build the Copilot Extensions agent manifest. */
+export function getCopilotAgentManifest(): CopilotAgentConfig {
+  return {
+    name: "innovator",
+    description: "AI-Powered Innovation Engine — explore subjects from multiple angles",
+    authTokenForward: true,
+    commands: [
+      {
+        name: "investigate",
+        description: "Analyze a subject to identify aspects, challenges, and opportunities",
+        parameters: [
+          { name: "subject", description: "The subject to investigate", required: true, type: "string" },
+        ],
+      },
+      {
+        name: "innovate",
+        description: "Generate innovation ideas for a subject using multiple angles",
+        parameters: [
+          { name: "subject", description: "The subject to innovate on", required: true, type: "string" },
+        ],
+      },
+      {
+        name: "auto",
+        description: "Run the full innovation pipeline (investigate + generate + synthesize)",
+        parameters: [
+          { name: "subject", description: "The subject for the full pipeline", required: true, type: "string" },
+        ],
+      },
+      {
+        name: "angles",
+        description: "List available innovation angles",
+      },
+      {
+        name: "debate",
+        description: "Run a structured debate on an idea",
+        parameters: [
+          { name: "idea", description: "The idea to debate", required: true, type: "string" },
+        ],
+      },
+      {
+        name: "evolve",
+        description: "Evolve ideas through genetic-algorithm-inspired mutation",
+        parameters: [
+          { name: "subject", description: "The subject to evolve ideas for", required: true, type: "string" },
+        ],
+      },
+    ],
+  };
+}
+
+/**
+ * Handle a Copilot Extensions request by dispatching to the correct handler.
+ * Returns a ChatResponse with streaming markdown content.
+ */
+export async function handleCopilotRequest(
+  input: string,
+  handlers: {
+    investigate: (subject: string) => Promise<Investigation>;
+    auto: (subject: string, onProgress: (text: string) => void) => Promise<{ results: AngleResult[]; synthesis: Synthesis | null }>;
+  }
+): Promise<ChatResponse> {
+  const cmd = parseSlashCommand(input);
+  if (!cmd) {
+    return formatHelpForChat();
+  }
+
+  switch (cmd.command) {
+    case "help":
+      return formatHelpForChat();
+    case "angles":
+      return formatAnglesForChat();
+    case "presets":
+      return formatPresetsForChat();
+    case "investigate": {
+      if (!cmd.args) {
+        return { markdown: "❌ Please provide a subject to investigate.\n\nExample: `@innovator investigate renewable energy`" };
+      }
+      const investigation = await handlers.investigate(cmd.args);
+      return formatInvestigationForChat(investigation);
+    }
+    case "auto":
+    case "innovate": {
+      if (!cmd.args) {
+        return { markdown: "❌ Please provide a subject.\n\nExample: `@innovator auto AI education`" };
+      }
+      const progressLines: string[] = [];
+      const { results, synthesis } = await handlers.auto(cmd.args, (text) => { progressLines.push(text); });
+      const angleResponse = formatAngleResultsForChat(results);
+      const synthResponse = synthesis ? formatSynthesisForChat(synthesis) : null;
+      return {
+        markdown: [angleResponse.markdown, synthResponse?.markdown ?? ""].filter(Boolean).join("\n\n---\n\n"),
+        metadata: { ...angleResponse.metadata, progressUpdates: progressLines.length },
+      };
+    }
+    default:
+      return { markdown: `Unknown command: \`${cmd.command}\`. Type \`@innovator help\` for available commands.` };
+  }
+}
+
+/**
+ * Format a chat response with collapsible sections for long content.
+ */
+export function formatWithCollapsible(title: string, content: string, defaultOpen = false): string {
+  return `<details${defaultOpen ? " open" : ""}>\n<summary>${title}</summary>\n\n${content}\n\n</details>`;
+}
+
+/**
+ * Build a streaming markdown response for SSE delivery.
+ */
+export function buildStreamingResponse(chunks: string[]): string {
+  return chunks.join("");
+}
+
