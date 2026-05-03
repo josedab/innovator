@@ -34,12 +34,40 @@ const ANGLE_COLORS: Record<string, string> = {
 };
 
 const STOP_WORDS = new Set([
-  "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
-  "of", "with", "by", "from", "is", "are", "was", "were", "be", "been",
-  "this", "that", "it", "its", "not", "no", "as", "if", "also", "more",
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "but",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "of",
+  "with",
+  "by",
+  "from",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "this",
+  "that",
+  "it",
+  "its",
+  "not",
+  "no",
+  "as",
+  "if",
+  "also",
+  "more",
 ]);
 
-function extractKeywords(text: string): string[] {
+export function extractKeywords(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, " ")
@@ -51,7 +79,7 @@ function extractKeywords(text: string): string[] {
     }, []);
 }
 
-function jaccardSimilarity(a: string[], b: string[]): number {
+export function jaccardSimilarity(a: string[], b: string[]): number {
   const setA = new Set(a);
   const setB = new Set(b);
   const intersection = [...setA].filter((x) => setB.has(x));
@@ -145,9 +173,7 @@ export function IdeaMap({ angleResults, synthesis }: IdeaMapProps) {
     return { nodes: positioned, edges: edgesArr };
   }, [angleResults]);
 
-  const filteredNodes = filterAngle
-    ? nodes.filter((n) => n.angleId === filterAngle)
-    : nodes;
+  const filteredNodes = filterAngle ? nodes.filter((n) => n.angleId === filterAngle) : nodes;
   const filteredNodeIds = new Set(filteredNodes.map((n) => n.id));
   const filteredEdges = edges.filter(
     (e) => filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target)
@@ -174,10 +200,8 @@ export function IdeaMap({ angleResults, synthesis }: IdeaMapProps) {
               className="text-xs px-2 py-1 rounded-full transition"
               style={{
                 backgroundColor:
-                  filterAngle === angleId
-                    ? ANGLE_COLORS[angleId] ?? "#6B7280"
-                    : "transparent",
-                color: filterAngle === angleId ? "white" : ANGLE_COLORS[angleId] ?? "#6B7280",
+                  filterAngle === angleId ? (ANGLE_COLORS[angleId] ?? "#6B7280") : "transparent",
+                color: filterAngle === angleId ? "white" : (ANGLE_COLORS[angleId] ?? "#6B7280"),
                 border: `1px solid ${ANGLE_COLORS[angleId] ?? "#6B7280"}`,
               }}
             >
@@ -201,9 +225,20 @@ export function IdeaMap({ angleResults, synthesis }: IdeaMapProps) {
                 y1={s.y}
                 x2={t.x}
                 y2={t.y}
-                stroke={selectedNode && (selectedNode.id === edge.source || selectedNode.id === edge.target) ? "#6366F1" : "#D1D5DB"}
+                stroke={
+                  selectedNode &&
+                  (selectedNode.id === edge.source || selectedNode.id === edge.target)
+                    ? "#6366F1"
+                    : "#D1D5DB"
+                }
                 strokeWidth={Math.max(0.5, edge.weight * 4)}
-                strokeOpacity={selectedNode ? (selectedNode.id === edge.source || selectedNode.id === edge.target ? 0.8 : 0.1) : 0.3}
+                strokeOpacity={
+                  selectedNode
+                    ? selectedNode.id === edge.source || selectedNode.id === edge.target
+                      ? 0.8
+                      : 0.1
+                    : 0.3
+                }
               />
             );
           })}
@@ -253,13 +288,14 @@ export function IdeaMap({ angleResults, synthesis }: IdeaMapProps) {
             <h4 className="font-semibold">{selectedNode.label}</h4>
             <span className="text-xs text-neutral-500">({selectedNode.angleName})</span>
           </div>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">{selectedNode.description}</p>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            {selectedNode.description}
+          </p>
           <div className="mt-2 text-xs text-neutral-500">
-            Impact: {"⭐".repeat(Math.round(selectedNode.impactScore / 2))}
-            {" "}({selectedNode.impactScore}/10)
+            Impact: {"⭐".repeat(Math.round(selectedNode.impactScore / 2))} (
+            {selectedNode.impactScore}/10)
           </div>
-          {filteredEdges
-            .filter((e) => e.source === selectedNode.id || e.target === selectedNode.id)
+          {filteredEdges.filter((e) => e.source === selectedNode.id || e.target === selectedNode.id)
             .length > 0 && (
             <div className="mt-2 text-xs text-neutral-500">
               Connected to{" "}
