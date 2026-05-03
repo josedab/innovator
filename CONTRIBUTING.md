@@ -324,6 +324,82 @@ npm run dev
 - Update documentation if your change affects user-facing behavior
 - PRs are automatically assigned reviewers via [CODEOWNERS](.github/CODEOWNERS)
 
+## Monorepo Workspace Guide
+
+The repository is an [npm workspaces](https://docs.npmjs.com/cli/v10/using-npm/workspaces) monorepo with three workspace groups defined in the root `package.json`:
+
+```json
+"workspaces": ["apps/*", "packages/*", "website"]
+```
+
+### Adding a New Package
+
+1. **Create the package directory** under `packages/` (or `apps/` for an application):
+
+   ```bash
+   mkdir -p packages/my-package/src
+   ```
+
+2. **Add a `package.json`** with a scoped name:
+
+   ```json
+   {
+     "name": "@innovator/my-package",
+     "version": "0.0.0",
+     "private": true,
+     "type": "module",
+     "main": "dist/index.js",
+     "types": "dist/index.d.ts",
+     "scripts": {
+       "build": "tsc -p tsconfig.json",
+       "dev": "tsc -p tsconfig.json --watch"
+     }
+   }
+   ```
+
+3. **Add a `tsconfig.json`** extending the shared base:
+
+   ```json
+   {
+     "extends": "../../tsconfig.base.json",
+     "compilerOptions": {
+       "outDir": "dist",
+       "rootDir": "src"
+     },
+     "include": ["src"]
+   }
+   ```
+
+4. **If the web app imports the package**, add it to `transpilePackages` in `apps/web/next.config.ts`:
+
+   ```ts
+   const nextConfig: NextConfig = {
+     transpilePackages: ["@innovator/core", "@innovator/my-package"],
+   };
+   ```
+
+5. **Run `npm install`** from the root to link the new workspace.
+
+### Workspace Dependency Conventions
+
+- Use `"*"` as the version for intra-workspace dependencies (e.g., `"@innovator/core": "*"`). npm resolves these to the local workspace package.
+- Install shared devDependencies (ESLint, TypeScript, Prettier, Vitest) at the **root** level. Only install package-specific dependencies in the workspace's own `package.json`.
+- Run workspace-specific commands via `npm run <script> --workspace=<name>` (e.g., `npm run build --workspace=packages/core`).
+
+### `tsconfig.base.json`
+
+The shared base TypeScript configuration at the repository root provides common compiler options (`ES2022` target, `bundler` module resolution, strict mode). Each workspace extends it and adds its own `outDir`, `rootDir`, and `include` paths.
+
+### `only-allow npm` Enforcement
+
+The root `package.json` includes a `preinstall` script:
+
+```json
+"preinstall": "npx only-allow npm"
+```
+
+This blocks `yarn` and `pnpm` from being used to install dependencies. The monorepo is configured exclusively for npm workspaces — using a different package manager would produce incompatible lockfiles and break CI.
+
 ## Security
 
 This project uses [GitHub CodeQL](https://codeql.github.com/) for automated security analysis. The CodeQL workflow (`.github/workflows/codeql.yml`) runs:
@@ -363,6 +439,34 @@ This project uses [semantic-release](https://github.com/semantic-release/semanti
    - `BREAKING CHANGE:` or `feat!:` / `fix!:` → major release (e.g. 1.0.0 → 2.0.0)
 3. **Changelog** — `CHANGELOG.md` is updated automatically based on the commit history.
 4. **Publish** — A GitHub Release is created with the new version tag and release notes.
+
+### Release plugins (`.releaserc.json`)
+
+The release pipeline is configured in `.releaserc.json` at the repository root. It runs these plugins in order:
+
+| Plugin                                      | Purpose                                                                     |
+| ------------------------------------------- | --------------------------------------------------------------------------- |
+| `@semantic-release/commit-analyzer`         | Parses commit messages to determine the release type (patch/minor/major)    |
+| `@semantic-release/release-notes-generator` | Generates release notes from commit messages                                |
+| `@semantic-release/changelog`               | Updates `CHANGELOG.md` with the new release entry                           |
+| `@semantic-release/npm`                     | Bumps `package.json` version (`npmPublish: false` — no npm publish)         |
+| `@semantic-release/git`                     | Commits `CHANGELOG.md` and `package.json` back to the repo with `[skip ci]` |
+| `@semantic-release/github`                  | Creates a GitHub Release with tag and release notes                         |
+
+### Tag strategy
+
+- Releases are tagged as `vX.Y.Z` (e.g., `v1.2.3`).
+- Only the `main` branch triggers releases (configured via `"branches": ["main"]`).
+- The release commit message follows the pattern: `chore(release): X.Y.Z [skip ci]` to avoid re-triggering CI.
+
+### How commits become releases
+
+1. You open a PR with conventional commit messages (e.g., `feat: add export button`).
+2. The PR is reviewed and merged into `main`.
+3. The release workflow runs automatically on the push to `main`.
+4. `semantic-release` analyzes all commits since the last release tag.
+5. If releasable commits exist (`feat:`, `fix:`, or breaking changes), a new version is calculated, `CHANGELOG.md` is updated, a Git tag is created, and a GitHub Release is published.
+6. Commits with prefixes like `docs:`, `chore:`, `refactor:`, `test:`, or `style:` do **not** trigger a release on their own.
 
 ### Who can publish
 
