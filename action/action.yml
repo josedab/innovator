@@ -33,12 +33,6 @@ inputs:
     default: "true"
 
 outputs:
-  investigation:
-    description: "JSON investigation result"
-  ideas:
-    description: "JSON array of angle results"
-  synthesis:
-    description: "JSON synthesis result"
   markdown:
     description: "Full results as formatted Markdown"
 
