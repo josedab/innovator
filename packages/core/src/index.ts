@@ -2479,3 +2479,20 @@ export type {
   TeamDNA,
   MemberActivity,
 } from "./team-dna/index.js";
+
+/** Innovation Supply Chain Mapper — build/buy/partner classification with gap analysis. */
+export {
+  mapSupplyChain,
+  getSupplyChainMap,
+  listSupplyChainMaps,
+  supplyChainToMarkdown,
+  clearSupplyChainData,
+  SupplyChainItemSchema,
+  SupplyChainGapSchema,
+  SupplyChainMapSchema,
+} from "./supply-chain/index.js";
+export type {
+  SupplyChainItem,
+  SupplyChainGap,
+  SupplyChainMap,
+} from "./supply-chain/index.js";
