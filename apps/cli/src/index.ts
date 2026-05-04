@@ -101,6 +101,8 @@ import {
   supplyChainToMarkdown,
   optimizePortfolio,
   portfolioOptimizationToMarkdown,
+  analyzeTimings,
+  timingToMarkdown,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -2689,6 +2691,40 @@ program
       }
     } catch (err) {
       spinner.fail("Supply chain mapping failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+// ---- Timing Command ----
+program
+  .command("timing")
+  .description("Analyze optimal execution timing for ideas")
+  .argument("<subject>", "Innovation subject")
+  .option("-m, --model <model>", "LLM model to use")
+  .option("--markdown", "Output as Markdown")
+  .action(async (subject: string, opts: { model?: string; markdown?: boolean }) => {
+    if (!validateSubjectWithLog(subject)) return;
+    if (opts.model && !validateModelWithLog(opts.model)) return;
+    console.log(chalk.dim("Note: Provide ideas via --idea flags or pipe from auto command."));
+    console.log(chalk.dim("Example: innovator timing 'AI in healthcare' --idea 'AI Diagnostics::AI-powered diagnostic tool'\n"));
+    const spinner = ora("Analyzing timing signals...").start();
+    try {
+      const result = await analyzeTimings(subject, [{ title: subject, description: subject }], opts.model);
+      spinner.stop();
+      if (opts.markdown) {
+        console.log(timingToMarkdown(result));
+      } else {
+        console.log(chalk.bold(`\n⏰ Timing Analysis: ${result.subject}\n`));
+        console.log(`  Market Maturity: ${result.marketMaturityStage}`);
+        for (const idea of result.ideas) {
+          const emoji = idea.classification === "right-time" ? "✅" : idea.classification === "peak-window" ? "🔥" : idea.classification === "too-early" ? "🕐" : "⚠️";
+          console.log(`  ${emoji} ${idea.ideaTitle}: ${idea.classification} (urgency: ${idea.urgencyScore}/100)`);
+        }
+        console.log(`\n${chalk.dim(result.overallTimingAdvice)}`);
+      }
+    } catch (err) {
+      spinner.fail("Timing analysis failed");
       console.error(chalk.red(err instanceof Error ? err.message : String(err)));
       process.exitCode = 1;
     }
