@@ -119,6 +119,7 @@ export type {
   ChatResponse,
   CopilotAgentConfig,
   CopilotCommandDef,
+  CopilotAgentContext,
 } from "./extension/index.js";
 
 /** Collaborative sessions — real-time multi-user brainstorming with voting and merging. */
@@ -626,7 +627,9 @@ export {
   listPortfolioItems,
   getPortfolioMetrics,
   generatePortfolioInsights,
+  buildDashboardData,
 } from "./portfolio/index.js";
+export type { InnovationDashboardData } from "./portfolio/index.js";
 export {
   IdeaLifecycleStageSchema,
   StatusTransitionSchema,
@@ -1526,3 +1529,146 @@ export type {
   RoadmapItem,
   RiskItem,
 } from "./playbook/index.js";
+
+/** Storage provider abstraction — pluggable persistence layer (in-memory, SQLite, Turso). */
+export {
+  getStorage,
+  setStorage,
+  initializeStorage,
+  closeStorage,
+  createSQLiteStorage,
+  InMemoryStorageProvider,
+  SQLiteStorageProvider,
+  createBetterSqliteDB,
+} from "./storage/index.js";
+export type {
+  StorageProvider,
+  SessionStorage,
+  WorkspaceStorage,
+  ApiGatewayStorage,
+  CollaborationStorage,
+  AnalyticsStorage,
+  KnowledgeGraphStorage,
+  SQLiteDB,
+  TursoConfig,
+} from "./storage/index.js";
+
+/** Migration tool — import file-based data into a StorageProvider. */
+export { migrateFileDataToStorage } from "./storage/migrate.js";
+export type { MigrationResult } from "./storage/migrate.js";
+
+/** Real-time collaboration — WebSocket room management, presence, and message handling. */
+export { RealtimeRoomManager, getRealtimeManager, resetRealtimeManager } from "./realtime/index.js";
+export type {
+  RealtimeUser,
+  RealtimeRoom,
+  RealtimeMessage,
+  RealtimeResponse,
+  RealtimeMessageType,
+  SendToUser,
+  BroadcastToRoom,
+} from "./realtime/index.js";
+
+/** Multi-model consensus — run angles across multiple LLMs and synthesize agreements/divergences. */
+export { runConsensus, consensusToMarkdown } from "./consensus/index.js";
+export type {
+  ModelResult,
+  ConsensusResult,
+  ConsensusIdea,
+  ConsensusOptions,
+} from "./consensus/index.js";
+
+/** Idea-to-Code scaffolding — generate implementation boilerplate from innovation ideas. */
+export { generateScaffold, scaffoldToFileMap, scaffoldToMarkdown } from "./scaffolding/index.js";
+export type {
+  ScaffoldFile,
+  ScaffoldIssue,
+  IdeaScaffold,
+  ScaffoldOptions,
+} from "./scaffolding/index.js";
+
+/** Innovation Radar — scheduled re-investigations with change detection and alerts. */
+export {
+  createWatch,
+  getWatch,
+  listWatches,
+  updateWatch,
+  deleteWatch,
+  getDueWatches,
+  diffInvestigations,
+  runRadarScan,
+  getScanHistory,
+  buildAlerts,
+  deliverWebhookAlert,
+} from "./radar/index.js";
+export type {
+  WatchFrequency,
+  AlertChannel,
+  WatchSubject,
+  RadarScanResult,
+  RadarChange,
+  RadarAlert,
+} from "./radar/index.js";
+
+/** RBAC — role-based access control with granular permissions and audit logging. */
+export {
+  PERMISSIONS,
+  roleHasPermission,
+  getRolePermissions,
+  isRoleAtLeast,
+  checkPermission,
+  requirePermission,
+  logAction,
+  getAuditLog,
+  clearAuditLog,
+} from "./rbac/index.js";
+export type {
+  Permission,
+  ExtendedRole,
+  AuthContext,
+  PermissionCheckResult,
+  AuditLogEntry,
+} from "./rbac/index.js";
+
+/** Innovation Canvas — spatial idea arrangement with nodes, edges, clusters, and SVG export. */
+export {
+  createCanvasFromResults,
+  addCanvasEdge,
+  addCanvasAnnotation,
+  moveCanvasNode,
+  createCluster,
+  canvasToSvg,
+} from "./canvas/index.js";
+export type {
+  CanvasPosition,
+  CanvasSize,
+  CanvasNode,
+  CanvasEdge,
+  CanvasCluster,
+  CanvasAnnotation,
+  InnovationCanvas,
+} from "./canvas/index.js";
+
+/** Plugin Marketplace — publish, discover, install, and review community plugins. */
+export {
+  publishPlugin,
+  searchPlugins,
+  getMarketplacePlugin,
+  getFeaturedPlugins,
+  getCategories,
+  installPlugin as installMarketplacePlugin,
+  uninstallPlugin as uninstallMarketplacePlugin,
+  listInstalledPlugins,
+  togglePlugin,
+  addReview,
+  getReviews,
+  verifyPlugin,
+  clearMarketplace,
+} from "./marketplace/index.js";
+export type {
+  PluginCategory,
+  MarketplacePlugin,
+  InstalledPlugin,
+  MarketplaceSearchOptions,
+  PluginReview,
+} from "./marketplace/index.js";

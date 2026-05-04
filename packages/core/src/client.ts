@@ -18,3 +18,12 @@ export type {
 } from "./feedback/index.js";
 export type { Depth, DepthConfig } from "./depth/index.js";
 export type { SupportedLanguage, LanguageConfig } from "./i18n/index.js";
+export type {
+  CanvasPosition,
+  CanvasSize,
+  CanvasNode,
+  CanvasEdge,
+  CanvasCluster,
+  CanvasAnnotation,
+  InnovationCanvas,
+} from "./canvas/index.js";
