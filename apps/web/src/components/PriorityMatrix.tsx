@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+/** Displayable idea score with feasibility, impact, novelty, and metadata. */
 interface IdeaScoreDisplay {
   ideaTitle: string;
   angleId: string;
@@ -13,6 +14,7 @@ interface IdeaScoreDisplay {
   rationale: string;
 }
 
+/** Props for the {@link PriorityMatrix} component. */
 interface PriorityMatrixProps {
   scores: IdeaScoreDisplay[];
 }
@@ -58,9 +60,7 @@ export function PriorityMatrix({ scores }: PriorityMatrixProps) {
   return (
     <div className="space-y-4">
       <h4 className="font-semibold text-lg">📊 Priority Matrix</h4>
-      <p className="text-xs text-neutral-500">
-        X: Feasibility → | Y: Impact ↑ | Dot size: Novelty
-      </p>
+      <p className="text-xs text-neutral-500">X: Feasibility → | Y: Impact ↑ | Dot size: Novelty</p>
 
       <div className="relative w-full aspect-square max-w-[500px] border border-neutral-300 dark:border-neutral-600 rounded-lg overflow-hidden bg-white dark:bg-neutral-900">
         {/* Quadrant backgrounds */}

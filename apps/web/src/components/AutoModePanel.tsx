@@ -8,6 +8,7 @@ import type {
   PipelineStage,
 } from "@innovator/core/types";
 
+/** Props for the {@link AutoModePanel} component. */
 interface AutoModePanelProps {
   subject: string;
   onComplete: (results: AngleResult[], synthesis: Synthesis | null) => void;
@@ -102,6 +103,7 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
           return;
         }
 
+        // Accumulate chunks into a buffer; split on double-newline (SSE event boundary)
         let buffer = "";
         let receivedComplete = false;
         while (true) {
@@ -109,20 +111,24 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
+          // SSE events are delimited by double newlines; the last segment may be incomplete
           const lines = buffer.split("\n\n");
-          buffer = lines.pop() || "";
+          buffer = lines.pop() || ""; // keep incomplete segment for next iteration
 
           for (const line of lines) {
+            // SSE data lines start with "data: " prefix per the SSE spec
             if (line.startsWith("data: ")) {
               try {
                 const parsed = JSON.parse(line.slice(6));
+                // Validate shape before treating as PipelineProgress to guard against
+                // malformed or heartbeat-only events
                 if (!isValidPipelineProgress(parsed)) {
                   continue; // skip invalid SSE data
                 }
                 const data: PipelineProgress = parsed;
                 setProgress(data);
 
-                // Track partial idea content for streaming display
+                // Track partial idea content for live streaming display while generating
                 if (data.partialIdea) {
                   setPartialContent(data.partialIdea.content);
                 } else {
@@ -202,14 +208,16 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">🚀 Auto Mode</h2>
         <div className="flex gap-3">
-          {progress.stage !== "complete" && progress.stage !== "error" && progress.angleResults.length > 0 && (
-            <button
-              onClick={handleStopAndKeep}
-              className="text-sm px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition"
-            >
-              ⏹ Stop & Keep Results
-            </button>
-          )}
+          {progress.stage !== "complete" &&
+            progress.stage !== "error" &&
+            progress.angleResults.length > 0 && (
+              <button
+                onClick={handleStopAndKeep}
+                className="text-sm px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition"
+              >
+                ⏹ Stop & Keep Results
+              </button>
+            )}
           {progress.stage === "error" && (
             <button
               onClick={onReset}
@@ -279,9 +287,7 @@ export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelPro
             <p className="text-xs text-blue-500 mb-1 font-medium">
               {progress.partialIdea ? `💭 ${progress.partialIdea.angleName}` : "Generating..."}
             </p>
-            <p className="text-neutral-700 dark:text-neutral-300 animate-pulse">
-              {partialContent}
-            </p>
+            <p className="text-neutral-700 dark:text-neutral-300 animate-pulse">{partialContent}</p>
           </div>
         )}
 
