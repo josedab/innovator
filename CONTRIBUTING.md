@@ -153,7 +153,16 @@ All commands are run from the monorepo root.
 ## Coding Standards
 
 - **TypeScript** — All code is written in TypeScript with strict mode enabled
-- **Formatting** — Prettier is configured; run `npm run format` or enable format-on-save
+- **Formatting** — Prettier is configured; run `npm run format` or enable format-on-save. The project uses these Prettier settings (`.prettierrc`):
+
+  | Setting         | Value   |
+  | --------------- | ------- |
+  | `semi`          | `true`  |
+  | `singleQuote`   | `false` |
+  | `trailingComma` | `es5`   |
+  | `printWidth`    | `100`   |
+  | `tabWidth`      | `2`     |
+
 - **Linting** — ESLint is configured; pre-commit hooks run automatically via husky. On commit, husky runs [lint-staged](https://github.com/lint-staged/lint-staged) which auto-fixes ESLint issues and formats staged `.ts`/`.tsx` files, and formats `.json`, `.md`, and `.yml` files with Prettier. Staged files may be modified in place.
 - **Commit messages** — [Conventional Commits](https://www.conventionalcommits.org/) are enforced automatically by [commitlint](https://commitlint.js.org/) (configured in `commitlint.config.mjs`) and [husky](https://typicode.github.io/husky/) git hooks. Non-conforming commits will be rejected locally.
 
@@ -430,6 +439,22 @@ The root `package.json` includes a `preinstall` script:
 This blocks `yarn` and `pnpm` from being used to install dependencies. The monorepo is configured exclusively for npm workspaces — using a different package manager would produce incompatible lockfiles and break CI.
 
 ## Security
+
+### CI/CD Pipelines
+
+Three GitHub Actions workflows run automatically:
+
+| Workflow    | File          | Trigger                              | What it does                                                                                                                                                                       |
+| ----------- | ------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CI**      | `ci.yml`      | Push & PR to `main`                  | Format check → Lint → Typecheck → Build → Build check → Build website → Test → Coverage → Upload coverage artifact → Check outdated deps → Security audit. Runs on Node 20 and 22. |
+| **CodeQL**  | `codeql.yml`  | Push & PR to `main`, weekly schedule | CodeQL security analysis with `security-and-quality` queries on JavaScript/TypeScript. Results appear in **Security → Code scanning**.                                             |
+| **Release** | `release.yml` | Push to `main` (upstream only)       | Installs → Builds → Tests → Runs `semantic-release` to bump version, update CHANGELOG, create Git tag, and publish GitHub Release. Only runs on `josedab/innovator`, not forks.    |
+
+All CI checks must pass before a PR can be merged. You can simulate the full CI pipeline locally:
+
+```bash
+npm run test:ci
+```
 
 This project uses [GitHub CodeQL](https://codeql.github.com/) for automated security analysis. The CodeQL workflow (`.github/workflows/codeql.yml`) runs:
 
