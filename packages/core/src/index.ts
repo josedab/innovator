@@ -3308,3 +3308,31 @@ export type {
   RegulatorySimulationOptions,
 } from "./regulatory-simulator/index.js";
 
+/** Idea Exchange & Licensing Platform — cross-organization idea marketplace. */
+export {
+  publishListing,
+  searchListings,
+  getListing,
+  createTransaction,
+  completeTransaction,
+  cancelTransaction,
+  createInquiry,
+  getListingInquiries,
+  getOrgTransactions,
+  getMarketplaceStats,
+  clearExchangeData,
+  anonymizeText,
+  generateOrgAlias,
+  IdeaListingSchema,
+  TransactionSchema,
+  InquirySchema,
+  SearchFiltersSchema,
+  AnonymizationLevelSchema,
+} from "./idea-exchange/index.js";
+export type {
+  AnonymizationLevel,
+  IdeaListing,
+  Transaction,
+  Inquiry,
+  SearchFilters,
+} from "./idea-exchange/index.js";
