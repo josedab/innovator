@@ -1,7 +1,7 @@
-// Core types
+/** Core domain types — Investigation, AngleResult, Synthesis, PipelineProgress, and all shared interfaces. */
 export * from "./types.js";
 
-// Copilot client
+/** GitHub Copilot LLM client — text generation, streaming, and JSON extraction. */
 export {
   getCopilotClient,
   stopCopilotClient,
@@ -10,10 +10,10 @@ export {
   extractJson,
 } from "./copilot/client.js";
 
-// Re-export GenerateOptions for consumers that need the type
+/** Options for {@link generateText} and {@link generateTextStream}. */
 export type { GenerateOptions } from "./copilot/client.js";
 
-// Innovation engine
+/** Innovation engine — angles, investigation, generation, synthesis, custom angles, and angle packs. */
 export {
   ANGLES,
   getAngleById,
@@ -31,17 +31,20 @@ export {
   runComparativePipeline,
   buildComparativeSynthesisPrompt,
 } from "./innovation/index.js";
+/** Types for comparative pipeline runs across multiple models. */
 export type { ComparativeProgress, ComparativeSynthesis } from "./innovation/index.js";
 
-// Prompts (for advanced usage)
+/** Prompt builders for investigation and synthesis LLM calls. */
 export { buildInvestigationPrompt, buildSynthesisPrompt } from "./prompts/investigation.js";
+/** Prompt sanitization — defense against prompt injection attacks. */
 export { sanitizeUserInput, wrapUserInput, sanitizeLlmOutput } from "./prompts/sanitize.js";
 
-// Retry utility
+/** Retry utility with exponential backoff for unreliable async operations. */
 export { withRetry } from "./copilot/retry.js";
+/** Configuration options for {@link withRetry}. */
 export type { RetryOptions } from "./copilot/retry.js";
 
-// Plugin system
+/** Plugin system — register, discover, and load angle/exporter/visualizer plugins. */
 export {
   registerPlugin,
   unregisterPlugin,
@@ -52,7 +55,7 @@ export {
   loadPlugin,
 } from "./plugins/index.js";
 
-// Presets
+/** Domain presets — pre-configured angle sets for common innovation domains. */
 export {
   BUILT_IN_PRESETS,
   getPresets,
@@ -61,7 +64,7 @@ export {
   getPresetsByTag,
 } from "./presets/index.js";
 
-// History
+/** Session history — save, query, and compare innovation sessions. */
 export {
   saveSession,
   getSession,
@@ -72,7 +75,7 @@ export {
   compareSessions,
 } from "./history/index.js";
 
-// Export
+/** Export — render sessions as Markdown, JSON, or GitHub Issues. */
 export {
   exportToMarkdown,
   exportToJson,
@@ -81,7 +84,7 @@ export {
 } from "./export/index.js";
 export type { ExportResult, IntegrationAdapter } from "./export/index.js";
 
-// Models
+/** LLM model registry — capabilities, smart routing, and model comparison. */
 export {
   getModelRegistry,
   registerModel,
@@ -91,11 +94,11 @@ export {
   clearCustomModels,
 } from "./models/index.js";
 
-// Visualization
+/** Visualization — build idea relationship graphs with nodes and edges. */
 export { buildIdeaGraph, getAngleColor } from "./visualization/index.js";
 export type { IdeaNode, IdeaEdge, IdeaGraph } from "./visualization/index.js";
 
-// Extension
+/** Copilot Extension — slash commands, chat formatters, and agent manifests for GitHub Copilot integration. */
 export {
   parseSlashCommand,
   formatInvestigationForChat,
@@ -111,9 +114,14 @@ export {
   formatWithCollapsible,
   buildStreamingResponse,
 } from "./extension/index.js";
-export type { SlashCommand, ChatResponse, CopilotAgentConfig, CopilotCommandDef } from "./extension/index.js";
+export type {
+  SlashCommand,
+  ChatResponse,
+  CopilotAgentConfig,
+  CopilotCommandDef,
+} from "./extension/index.js";
 
-// Collaboration
+/** Collaborative sessions — real-time multi-user brainstorming with voting and merging. */
 export {
   createSession as createCollaborativeSession,
   findSessionByCode,
@@ -133,7 +141,7 @@ export {
   clearAllSessions,
 } from "./collaboration/index.js";
 
-// Scoring
+/** Idea scoring — novelty, feasibility, impact scoring and priority quadrant classification. */
 export {
   scoreIdeas,
   computePriorityScore,
@@ -145,7 +153,7 @@ export {
 } from "./scoring/index.js";
 export type { IdeaScore, ScoringResult } from "./scoring/index.js";
 
-// Conversation
+/** Interactive refinement conversations — iterative deepening of pipeline results. */
 export {
   createConversation,
   getConversation,
@@ -162,7 +170,7 @@ export type {
   RefinementResponse,
 } from "./conversation/index.js";
 
-// Providers
+/** LLM provider abstraction — Copilot, OpenAI, Anthropic, and Ollama backends. */
 export {
   CopilotProvider,
   OpenAIProvider,
@@ -186,7 +194,7 @@ export type {
   InnovatorConfig,
 } from "./providers/index.js";
 
-// Workspaces
+/** Workspaces — team-scoped containers for sessions, presets, and shared angles. */
 export {
   createWorkspace,
   getWorkspace,
@@ -209,7 +217,7 @@ export {
 } from "./workspaces/index.js";
 export type { Workspace, WorkspaceMember, MemberRole, ActivityEvent } from "./workspaces/index.js";
 
-// Artifacts
+/** Artifact generation — PRDs, tech specs, pitch decks, and other structured documents from ideas. */
 export {
   generateArtifact,
   generateArtifactStream,
@@ -221,7 +229,7 @@ export {
 } from "./artifacts/index.js";
 export type { Artifact, ArtifactType, ArtifactContext } from "./artifacts/index.js";
 
-// Knowledge Graph
+/** Knowledge graph — ingest investigations and query cross-subject entity relationships. */
 export {
   ingestInvestigation,
   queryRelatedSubjects,
@@ -235,7 +243,7 @@ export {
 } from "./knowledge-graph/index.js";
 export type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./knowledge-graph/index.js";
 
-// Benchmark
+/** Benchmark — evaluate and compare innovation quality across LLM models. */
 export {
   runBenchmark,
   evaluateAngleResult,
@@ -252,7 +260,7 @@ export type {
   EvaluationCriterion,
 } from "./benchmark/index.js";
 
-// Content Extractors
+/** Content extractors — pull context from URLs, files, and code repositories. */
 export {
   extractContent,
   buildSubjectFromContent,
@@ -263,7 +271,7 @@ export {
 } from "./extractors/index.js";
 export type { ExtractedContent, ExtractorOptions, ContentExtractor } from "./extractors/index.js";
 
-// Validation
+/** Idea validation — patent, market, and feasibility checks against registered validators. */
 export {
   validateIdea,
   validateIdeas,
@@ -285,7 +293,7 @@ export type {
   IdeaValidator,
 } from "./validation/index.js";
 
-// Replay & A/B Testing
+/** Replay and A/B testing — record, replay, and compare pipeline runs. */
 export {
   startRunRecord,
   recordPrompt,
@@ -306,7 +314,7 @@ export {
 } from "./replay/index.js";
 export type { PromptRecord, RunRecord, RunComparison, ReplayOverrides } from "./replay/index.js";
 
-// Audience-Adaptive Output
+/** Audience-adaptive output — transform results for executive, technical, pitch, or research audiences. */
 export {
   transformForAudience,
   transformForAllAudiences,
@@ -318,7 +326,7 @@ export {
 } from "./audience/index.js";
 export type { OutputMode, OutputModeDefinition, AudienceOutput } from "./audience/index.js";
 
-// Idea Dependency Graph
+/** Idea dependency graph — map prerequisite, synergy, and conflict relationships between ideas. */
 export {
   buildIdeaDependencyGraph,
   dependencyGraphToMarkdown,
@@ -334,7 +342,7 @@ export type {
   RelationshipType,
 } from "./dependency-graph/index.js";
 
-// Market Signals
+/** Market signals — fetch trends from Product Hunt, Hacker News, Google Trends, arXiv, and patent databases. */
 export {
   fetchMarketSignals,
   buildMarketSignalContext,
@@ -357,7 +365,7 @@ export type {
   MarketSignalProvider,
 } from "./market-signals/index.js";
 
-// Sprint Mode
+/** Sprint mode — time-boxed innovation sprints with phased progression and retrospectives. */
 export {
   createSprint,
   getSprint,
@@ -389,7 +397,7 @@ export type {
   SprintPhaseDefinition,
 } from "./sprint/index.js";
 
-// Idea Deduplication & Clustering
+/** Idea deduplication — cluster and merge semantically similar ideas. */
 export {
   deduplicateIdeas,
   EmbeddedIdeaSchema,
@@ -403,7 +411,7 @@ export type {
   DeduplicationConfig,
 } from "./deduplication/index.js";
 
-// Sharing
+/** Sharing — publish, fork, and share investigations via unique URLs. */
 export {
   shareInvestigation,
   getSharedInvestigation,
@@ -419,7 +427,7 @@ export {
 } from "./sharing/index.js";
 export type { SharedInvestigation, ShareOptions, ForkResult } from "./sharing/index.js";
 
-// Voice
+/** Voice interface — parse voice commands and build narration segments for TTS. */
 export {
   parseVoiceCommand,
   buildNarrationSegments,
@@ -448,7 +456,7 @@ export type {
   TextToSpeechProvider,
 } from "./voice/index.js";
 
-// Compliance & IP Guard Rails
+/** Compliance and IP guard rails — screen ideas for regulatory and intellectual property risks. */
 export {
   screenIdea,
   screenIdeas,
@@ -470,7 +478,7 @@ export type {
   RiskLevel,
 } from "./compliance/index.js";
 
-// Depth Tiers
+/** Depth tiers — shallow, standard, and deep investigation configurations with sub-topic analysis. */
 export {
   DepthSchema,
   DEPTH_CONFIGS,
@@ -485,7 +493,7 @@ export {
 } from "./depth/index.js";
 export type { Depth, DepthConfig, SubTopicResult, DeepDiveResult } from "./depth/index.js";
 
-// Angle Chaining
+/** Angle chaining — compose multi-step angle sequences for deeper innovation. */
 export {
   DEFAULT_CHAINS,
   AngleChainSchema,
@@ -496,7 +504,7 @@ export {
 } from "./chaining/index.js";
 export type { AngleChain, AngleChainStep, ChainProgress } from "./chaining/index.js";
 
-// Feedback
+/** Feedback — collect and aggregate idea quality ratings to improve angle selection. */
 export {
   submitFeedback,
   loadAllFeedback,
@@ -514,7 +522,7 @@ export type {
   FeedbackSummary,
 } from "./feedback/index.js";
 
-// Internationalization
+/** Internationalization — language detection and prompt localization. */
 export {
   detectLanguage,
   localizePrompt,
@@ -525,7 +533,7 @@ export {
 } from "./i18n/index.js";
 export type { SupportedLanguage, LanguageConfig } from "./i18n/index.js";
 
-// Idea Fitness Tracker
+/** Idea fitness tracker — track ideas through external platforms (Jira, Linear, GitHub) with status sync. */
 export {
   trackIdea,
   loadTrackedIdeas,
@@ -543,7 +551,7 @@ export type {
   TrackerDashboard,
 } from "./tracker/index.js";
 
-// Offline / Local-First
+/** Offline / local-first — Ollama detection, network status, and recommended local models. */
 export {
   detectOllama,
   checkNetworkStatus,
@@ -553,7 +561,7 @@ export {
 } from "./offline/index.js";
 export type { OllamaStatus, OfflineStatus, RecommendedModel } from "./offline/index.js";
 
-// RAG / Knowledge Grounding
+/** RAG / knowledge grounding — document loading, chunking, embedding, and similarity search. */
 export {
   KnowledgeBase,
   loadDocument,
@@ -575,7 +583,7 @@ export type {
   ChunkingOptions,
 } from "./rag/index.js";
 
-// Cost Tracking & Budget Management
+/** Cost tracking and budget management — estimate, track, and cap LLM spend. */
 export {
   CostTracker,
   getCostTracker,
@@ -589,7 +597,7 @@ export {
 } from "./cost/index.js";
 export type { TokenUsage, CostSummary, BudgetConfig, ModelPricing } from "./cost/index.js";
 
-// Deep Research
+/** Deep research — multi-step research agent that iteratively investigates sub-questions. */
 export {
   ResearchAgent,
   deepInvestigate,
@@ -608,7 +616,7 @@ export type {
   ResearchConfig,
 } from "./research/index.js";
 
-// Portfolio
+/** Portfolio — idea lifecycle management with stage transitions and portfolio-level metrics. */
 export {
   addPortfolioItem,
   getPortfolioItem,
@@ -632,7 +640,7 @@ export type {
   PortfolioInsight,
 } from "./portfolio/types.js";
 
-// Theming / White-Label
+/** Theming / white-label — customizable themes with CSS variables and prompt preambles. */
 export {
   loadTheme,
   clearThemeCache,
@@ -643,7 +651,7 @@ export {
 export { ThemeConfigSchema, DEFAULT_THEME } from "./theming/types.js";
 export type { ThemeConfig } from "./theming/types.js";
 
-// Event Bus & Webhooks
+/** Event bus and webhooks — publish/subscribe pipeline events with webhook delivery and dead-letter queue. */
 export {
   EventBus,
   getEventBus,
@@ -661,7 +669,7 @@ export type {
   DeadLetterEntry,
 } from "./events/index.js";
 
-// Analytics
+/** Analytics — track usage events, generate summaries, and surface insights. */
 export {
   trackEvent,
   readEvents,
@@ -678,7 +686,7 @@ export type {
   AnalyticsInsight,
 } from "./analytics/index.js";
 
-// Coaching
+/** Coaching — AI coach that asks clarifying questions, detects assumptions, and recommends pivots. */
 export {
   generateClarificationQuestions,
   generateMidAngleIntervention,
@@ -700,7 +708,7 @@ export type {
   CoachConfig,
 } from "./coaching/index.js";
 
-// Recommendation (Smart Angle Selection)
+/** Smart angle recommendation — classify subjects and recommend optimal angle sets. */
 export {
   classifySubject,
   recommendAngles,
@@ -725,7 +733,7 @@ export type {
   AngleFeedbackEntry,
 } from "./recommendation/index.js";
 
-// Mining (Cross-Investigation Pattern Mining)
+/** Cross-investigation pattern mining — effectiveness heatmaps, correlations, and statistical analysis. */
 export {
   ingestDataPoints,
   getDataPoints,
@@ -753,7 +761,7 @@ export type {
   MiningReport,
 } from "./mining/index.js";
 
-// Temporal Innovation Lens
+/** Temporal innovation lens — generate ideas across near-term, mid-term, and far-future horizons. */
 export {
   buildTemporalPrompt,
   generateForHorizon,
@@ -772,7 +780,7 @@ export type {
   TemporalLensConfig,
 } from "./prompts/temporal/index.js";
 
-// Simulation (Stakeholder + Scenario)
+/** Simulation — stakeholder persona reactions and scenario modeling (adoption curves, sensitivity analysis). */
 export {
   simulatePersonaReaction,
   simulateStakeholders,
@@ -802,7 +810,7 @@ export type {
   ScenarioModel,
 } from "./simulation/index.js";
 
-// Gallery (Idea Marketplace)
+/** Gallery — idea marketplace with publishing, upvoting, forking, and featured collections. */
 export {
   publishToGallery,
   getGalleryListing,
@@ -832,7 +840,7 @@ export type {
   FeaturedCollection,
 } from "./gallery/index.js";
 
-// Gamification
+/** Gamification — achievements, challenges, leaderboards, and activity feeds. */
 export {
   awardAchievement,
   getUserAchievements,
@@ -866,7 +874,7 @@ export type {
   GamificationConfig,
 } from "./gamification/index.js";
 
-// Sustainability (ESG Assessment)
+/** Sustainability / ESG assessment — environmental, social, and governance scoring for ideas. */
 export {
   scoreSustainability,
   scorePortfolioSustainability,
@@ -892,7 +900,7 @@ export type {
   PortfolioSustainability,
 } from "./sustainability/index.js";
 
-// Versioning (Semantic Idea Version Control)
+/** Semantic idea versioning — branch, commit, diff, and merge idea versions. */
 export {
   createVersion,
   commitVersion,
@@ -917,7 +925,7 @@ export type {
   MergeResult,
 } from "./versioning/index.js";
 
-// Fingerprint (Idea DNA)
+/** Idea fingerprint (DNA) — novelty vectors, domain blends, and similarity search. */
 export {
   generateFingerprint,
   findSimilar,
@@ -944,7 +952,7 @@ export type {
   SimilarityMatch,
 } from "./fingerprint/index.js";
 
-// Red Team (Adversarial Analysis)
+/** Red team — adversarial attack/defense analysis to find and address idea weaknesses. */
 export {
   attackIdea,
   defendIdea,
@@ -968,7 +976,7 @@ export type {
   RedTeamSession,
 } from "./redteam/index.js";
 
-// Industry Vertical Packs
+/** Industry vertical packs — HealthTech, FinTech, EdTech, CleanTech, and GovTech domain configs. */
 export {
   getVerticalPack,
   listVerticalPacks,
@@ -998,7 +1006,7 @@ export type {
   VerticalPack,
 } from "./verticals/index.js";
 
-// Memory & Learning
+/** Memory and preference learning — track user signals, build preference profiles, run A/B tests. */
 export {
   recordSignal,
   getUserSignals,
@@ -1022,7 +1030,7 @@ export type {
   ABTestResult,
 } from "./memory/index.js";
 
-// Hypothesis-Driven Innovation
+/** Hypothesis-driven innovation — parse, analyze, and track structured hypotheses with experiment cards. */
 export {
   parseHypothesis,
   analyzeHypothesis,
@@ -1050,7 +1058,7 @@ export type {
   HypothesisSession,
 } from "./hypothesis/index.js";
 
-// Workflow (Innovation Sprints as Code)
+/** Workflow — define innovation sprints as YAML and execute them as multi-stage pipelines. */
 export {
   parseWorkflowYaml,
   validateWorkflow,
@@ -1075,7 +1083,7 @@ export type {
   WorkflowProgressCallback,
 } from "./workflow/index.js";
 
-// Competitive Intelligence
+/** Competitive intelligence — analyze competitors, identify gaps, and generate positioning strategies. */
 export {
   analyzeCompetitors,
   getCompetitiveAnalysis,
@@ -1098,7 +1106,7 @@ export type {
   CompetitiveAnalysis,
 } from "./competitive/index.js";
 
-// Impact Simulator
+/** Impact simulator — model ROI, resource requirements, timelines, and go/no-go milestones. */
 export {
   simulateImpact,
   getSimulation,
@@ -1124,7 +1132,7 @@ export type {
   ImpactSimulation,
 } from "./impact-simulator/index.js";
 
-// Vision (Multi-Modal Input)
+/** Vision — multi-modal input: extract innovation subjects from images using visual analysis. */
 export {
   extractFromImage,
   validateImage,
@@ -1138,7 +1146,7 @@ export {
 } from "./vision/index.js";
 export type { VisualElement, ImageExtraction, ImageMetadata } from "./vision/index.js";
 
-// Retrospective Engine
+/** Retrospective engine — track idea outcomes, analyze success/failure patterns, and detect diminishing returns. */
 export {
   trackOutcome,
   getOutcome,
@@ -1168,7 +1176,7 @@ export type {
   RetrospectiveReport,
 } from "./retrospective/index.js";
 
-// Natural Language Pipeline Builder
+/** Natural language pipeline builder — parse English descriptions into pipeline configs with phases and angles. */
 export {
   parsePipelineRequest,
   resolvePhases,
@@ -1183,7 +1191,7 @@ export type {
   OutputFormat as PipelineOutputFormat,
 } from "./pipeline-builder/index.js";
 
-// Innovation Diff
+/** Innovation diff — compare two subject snapshots and identify emerged, disappeared, and evolved ideas. */
 export {
   runInnovationDiff,
   buildDiffPrompt,
@@ -1192,7 +1200,7 @@ export {
 } from "./diff/index.js";
 export type { DiffResult, DiffItem } from "./diff/index.js";
 
-// Idea Provenance
+/** Idea provenance — trace idea origins through prompt chains with content hashes. */
 export {
   buildProvenanceRecords,
   createProvenanceChain,
@@ -1204,13 +1212,9 @@ export {
   ProvenanceRecordSchema,
   ProvenanceChainSchema,
 } from "./provenance/index.js";
-export type {
-  ProvenanceRecord,
-  ProvenanceChain,
-  ProvenanceTreeNode,
-} from "./provenance/index.js";
+export type { ProvenanceRecord, ProvenanceChain, ProvenanceTreeNode } from "./provenance/index.js";
 
-// Constraint Satisfaction Optimizer
+/** Constraint satisfaction — evaluate ideas against budget, timeline, and custom constraints. */
 export {
   evaluateConstraints,
   flattenIdeas,
@@ -1229,19 +1233,16 @@ export type {
   ConstraintResult,
 } from "./constraints/index.js";
 
-// Cross-Session Serendipity Engine
+/** Cross-session serendipity — discover unexpected connections between past investigations. */
 export {
   findSerendipitousConnections,
   embedSession,
   SerendipitousConnectionSchema,
   SerendipityResultSchema,
 } from "./serendipity/index.js";
-export type {
-  SerendipitousConnection,
-  SerendipityResult,
-} from "./serendipity/index.js";
+export type { SerendipitousConnection, SerendipityResult } from "./serendipity/index.js";
 
-// Investigation Confidence Scoring
+/** Investigation confidence scoring — measure coverage, depth, and identify knowledge gaps. */
 export {
   scoreInvestigationQuality,
   formatGapSuggestions,
@@ -1250,20 +1251,12 @@ export {
   ConfidenceDimensionSchema,
   KnowledgeGapSchema,
 } from "./confidence/index.js";
-export type {
-  ConfidenceScore,
-  ConfidenceDimension,
-  KnowledgeGap,
-} from "./confidence/index.js";
+export type { ConfidenceScore, ConfidenceDimension, KnowledgeGap } from "./confidence/index.js";
 
-// Embeddable Widget SDK
-export {
-  generateEmbedCode,
-  getWidgetSource,
-  WIDGET_SOURCE,
-} from "./widget/index.js";
+/** Embeddable widget SDK — generate embed code for third-party websites. */
+export { generateEmbedCode, getWidgetSource, WIDGET_SOURCE } from "./widget/index.js";
 
-// Idea Genealogy — Evolution Tracking
+/** Idea genealogy — track how ideas evolve across investigation runs. */
 export {
   compareInvestigationRuns,
   findPreviousInvestigation,
@@ -1271,13 +1264,9 @@ export {
   IdeaEvolutionSchema,
   GenealogyResultSchema,
 } from "./genealogy/index.js";
-export type {
-  IdeaStatus,
-  IdeaEvolution,
-  GenealogyResult,
-} from "./genealogy/index.js";
+export type { IdeaStatus, IdeaEvolution, GenealogyResult } from "./genealogy/index.js";
 
-// LLM Output Quality Gate
+/** LLM output quality gate — detect hallucinated statistics, vague platitudes, duplications, and contradictions. */
 export {
   runQualityGate,
   checkHallucinatedStatistics,
@@ -1295,7 +1284,7 @@ export type {
   QualityGateConfig,
 } from "./quality-gate/index.js";
 
-// Debate Engine
+/** Debate engine — structured pro/con debates with verdicts and quality scoring. */
 export {
   runDebate,
   debateIdeas,
@@ -1319,7 +1308,7 @@ export type {
   DebateConfig,
 } from "./debate/index.js";
 
-// Evolution Engine
+/** Evolution engine — genetic-algorithm-inspired crossover, mutation, and selection of ideas. */
 export {
   crossover,
   mutate,
@@ -1342,7 +1331,7 @@ export type {
   EvolutionProgress,
 } from "./evolution/index.js";
 
-// API Gateway
+/** API gateway — API key management, usage tracking, billing tiers, rate limiting, and webhooks. */
 export {
   createApiKey,
   getApiKey,
@@ -1375,7 +1364,7 @@ export type {
   WebhookEvent,
 } from "./api-gateway/index.js";
 
-// Decision Packet
+/** Decision packet — executive-ready decision documents with options, risks, and resource asks. */
 export {
   generateDecisionPacket,
   decisionPacketToMarkdown,
@@ -1393,7 +1382,7 @@ export type {
   DecisionPacketConfig,
 } from "./decision/index.js";
 
-// Investigation Ontology
+/** Investigation ontology — extract entities, relationships, and taxonomies for knowledge accumulation. */
 export {
   extractOntology,
   getOntology,
@@ -1417,7 +1406,7 @@ export type {
   OntologyConfig,
 } from "./ontology/index.js";
 
-// Stress Testing
+/** Stress testing — generate extreme scenarios and assess idea resilience. */
 export {
   generateStressScenarios,
   stressTestIdeas,
@@ -1439,7 +1428,7 @@ export type {
   StressTestConfig,
 } from "./stress-testing/index.js";
 
-// Angle Effectiveness Learning
+/** Angle effectiveness learning — track angle performance over time with A/B testing and domain affinity. */
 export {
   recordAngleEvent,
   getAngleEvents,
@@ -1463,7 +1452,7 @@ export type {
   EffectivenessReport,
 } from "./angle-learning/index.js";
 
-// Prompt Observatory
+/** Prompt observatory — record, timeline, diff, and A/B-compare all LLM prompt calls. */
 export {
   setObservatoryEnabled,
   isObservatoryEnabled,
@@ -1487,7 +1476,7 @@ export type {
   ABComparison,
 } from "./observatory/index.js";
 
-// Team Innovation Rituals
+/** Team innovation rituals — scheduled cadences with participant management and digest generation. */
 export {
   createRitual,
   getRitual,
@@ -1520,7 +1509,7 @@ export type {
   InnovationRitual,
 } from "./rituals/index.js";
 
-// Innovation Playbook Generator
+/** Innovation playbook generator — polished documents with executive summary, roadmap, and risk assessment. */
 export {
   generatePlaybook,
   generatePlaybookFromPipeline,
