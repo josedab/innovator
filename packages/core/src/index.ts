@@ -2459,3 +2459,23 @@ export type {
   RoutingDecision,
   CostReport,
 } from "./cost-optimizer/index.js";
+
+/** Team Innovation DNA Profiler — behavioral analytics with Shannon entropy blind spot detection. */
+export {
+  recordActivity,
+  recordActivities,
+  buildMemberProfile,
+  analyzeTeamDNA,
+  teamDNAToMarkdown,
+  shannonEntropy,
+  clearTeamDNAData,
+  MemberProfileSchema,
+  BlindSpotSchema,
+  TeamDNASchema,
+} from "./team-dna/index.js";
+export type {
+  MemberProfile,
+  BlindSpot,
+  TeamDNA,
+  MemberActivity,
+} from "./team-dna/index.js";
