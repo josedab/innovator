@@ -2057,4 +2057,160 @@ program
     }
   });
 
+// ── migrate ───────────────────────────────────────────────────────────
+program
+  .command("migrate")
+  .description("Migrate file-based data (~/.innovator/) into a SQLite database")
+  .option("--db <path>", "SQLite database file path", "~/.innovator/innovator.db")
+  .action(async (opts: { db: string }) => {
+    const { createSQLiteStorage, migrateFileDataToStorage } = await import(
+      "@innovator/core"
+    );
+    const dbPath = opts.db.replace("~", process.env.HOME ?? "");
+    const spinner = ora("Initializing SQLite database…").start();
+    try {
+      const storage = await createSQLiteStorage(dbPath);
+      spinner.text = "Migrating data…";
+      const result = await migrateFileDataToStorage(storage);
+      await storage.close();
+      spinner.succeed("Migration complete");
+      console.log(
+        chalk.green(
+          `  Sessions: ${result.sessions}\n` +
+            `  Workspaces: ${result.workspaces}\n` +
+            `  Analytics events: ${result.analyticsEvents}\n` +
+            `  Knowledge graph: ${result.knowledgeGraph ? "yes" : "no"}`
+        )
+      );
+      if (result.errors.length > 0) {
+        console.log(chalk.yellow(`  Errors (${result.errors.length}):`));
+        for (const err of result.errors.slice(0, 10)) {
+          console.log(chalk.yellow(`    - ${err}`));
+        }
+      }
+    } catch (err) {
+      spinner.fail(`Migration failed: ${(err as Error).message}`);
+      process.exitCode = 1;
+    }
+  });
+
+// ── marketplace ──────────────────────────────────────────────────────
+const marketplace = program
+  .command("marketplace")
+  .description("Plugin marketplace commands");
+
+marketplace
+  .command("search [query]")
+  .description("Search the plugin marketplace")
+  .option("--category <category>", "Filter by category")
+  .action(async (query: string | undefined, opts: { category?: string }) => {
+    const { searchPlugins } = await import("@innovator/core");
+    const results = searchPlugins({ query, category: opts.category as never });
+    if (results.length === 0) {
+      console.log(chalk.yellow("No plugins found."));
+      return;
+    }
+    for (const p of results) {
+      console.log(
+        `  ${p.verified ? "✅" : "  "} ${chalk.bold(p.name)} ${chalk.dim(`v${p.version}`)} — ${p.description}`
+      );
+      console.log(
+        `    ${chalk.dim(`by ${p.author.name} | ⬇ ${p.downloads} | ⭐ ${p.rating || "–"} | ${p.category}`)}`
+      );
+    }
+  });
+
+marketplace
+  .command("install <pluginId>")
+  .description("Install a plugin from the marketplace")
+  .action(async (pluginId: string) => {
+    const { installMarketplacePlugin } = await import("@innovator/core");
+    const result = installMarketplacePlugin(pluginId);
+    if (result) {
+      console.log(chalk.green(`✅ Installed ${result.name} v${result.version}`));
+    } else {
+      console.log(chalk.red(`Plugin ${pluginId} not found.`));
+    }
+  });
+
+marketplace
+  .command("publish")
+  .description("Publish a plugin to the marketplace")
+  .requiredOption("--name <name>", "Plugin name")
+  .requiredOption("--description <desc>", "Plugin description")
+  .requiredOption("--category <category>", "Plugin category")
+  .requiredOption("--source <source>", "npm package or git URL")
+  .requiredOption("--version <version>", "Plugin version")
+  .requiredOption("--author <author>", "Author name")
+  .action(async (opts: { name: string; description: string; category: string; source: string; version: string; author: string }) => {
+    const { publishPlugin } = await import("@innovator/core");
+    const plugin = publishPlugin({
+      name: opts.name,
+      description: opts.description,
+      category: opts.category as never,
+      source: opts.source,
+      version: opts.version,
+      author: { name: opts.author },
+    });
+    console.log(chalk.green(`✅ Published ${plugin.name} v${plugin.version} (${plugin.id})`));
+  });
+
+// ── radar ────────────────────────────────────────────────────────────
+const radar = program
+  .command("radar")
+  .description("Innovation Radar — watch subjects for landscape changes");
+
+radar
+  .command("watch <subject>")
+  .description("Add a subject to the innovation radar")
+  .option("--frequency <freq>", "Check frequency: daily, weekly, monthly", "weekly")
+  .option("--webhook <url>", "Webhook URL for alerts")
+  .action(async (subject: string, opts: { frequency: string; webhook?: string }) => {
+    const { createWatch } = await import("@innovator/core");
+    const watch = createWatch({
+      subject,
+      frequency: opts.frequency as "daily" | "weekly" | "monthly",
+      alertChannels: opts.webhook ? ["webhook"] : ["in-app"],
+      webhookUrl: opts.webhook,
+    });
+    console.log(chalk.green(`✅ Watching "${subject}" (${opts.frequency})`));
+    console.log(chalk.dim(`  ID: ${watch.id}`));
+    console.log(chalk.dim(`  Next scan: ${watch.nextRunAt}`));
+  });
+
+radar
+  .command("list")
+  .description("List watched subjects")
+  .action(async () => {
+    const { listWatches } = await import("@innovator/core");
+    const watches = listWatches();
+    if (watches.length === 0) {
+      console.log(chalk.yellow("No watches configured."));
+      return;
+    }
+    for (const w of watches) {
+      const status = w.enabled ? chalk.green("●") : chalk.red("●");
+      console.log(`  ${status} ${chalk.bold(w.subject)} — ${w.frequency} | Next: ${w.nextRunAt.split("T")[0]}`);
+    }
+  });
+
+// ── scaffold ─────────────────────────────────────────────────────────
+program
+  .command("scaffold")
+  .description("Generate implementation scaffolding from an idea")
+  .requiredOption("--title <title>", "Idea title")
+  .requiredOption("--description <desc>", "Idea description")
+  .option("--impact <impact>", "Potential impact", "High impact innovation")
+  .option("--stack <stack>", "Tech stack: typescript, python, go, rust", "typescript")
+  .option("--name <name>", "Project name")
+  .action(async (opts: { title: string; description: string; impact: string; stack: string; name?: string }) => {
+    const { generateScaffold, scaffoldToMarkdown } = await import("@innovator/core");
+    const scaffold = generateScaffold({
+      idea: { title: opts.title, description: opts.description, potentialImpact: opts.impact, implementationHint: "" },
+      stack: opts.stack as "typescript" | "python" | "go" | "rust",
+      projectName: opts.name,
+    });
+    console.log(scaffoldToMarkdown(scaffold));
+  });
+
 program.parse();
