@@ -142,3 +142,65 @@ Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`
    npm run test:ci   # full CI simulation (includes build + coverage)
    ```
 5. Open a pull request with a clear description
+
+## Testing
+
+### Running tests
+
+```bash
+# Run all tests
+npm test
+
+# Run a specific test file
+npx vitest run packages/core/src/__tests__/angles.test.ts
+
+# Run tests matching a name pattern
+npx vitest -t "extractJson"
+
+# Run tests in watch mode for a specific file
+npx vitest packages/core/src/__tests__/angles.test.ts
+
+# Run all tests for a specific workspace
+npx vitest run packages/core/
+npx vitest run apps/web/
+```
+
+### Test categories
+
+- **Unit tests** — Located in `packages/*/src/__tests__/` and `apps/*/src/__tests__/`. Run with `npm test`.
+- **End-to-end tests** — Located in `apps/web/e2e/`. Run with `npm run test:e2e` **from the `apps/web/` directory**.
+
+### Mocking the LLM layer
+
+All tests that touch LLM functionality mock the Copilot SDK and client to avoid real API calls:
+
+```typescript
+// Mock the Copilot SDK (required in every test file that imports core modules)
+vi.mock("@github/copilot-sdk", () => ({
+  CopilotClient: vi.fn(),
+}));
+
+// Mock the client wrapper
+vi.mock("../copilot/client.js", () => ({
+  generateText: vi.fn(),
+  extractJson: vi.fn(),
+}));
+```
+
+### Test fixtures
+
+Tests use a shared `MOCK_INVESTIGATION` fixture to simulate investigation results:
+
+```typescript
+const MOCK_INVESTIGATION: Investigation = {
+  summary: "Test summary",
+  keyAspects: [{ title: "Aspect", description: "Description" }],
+  currentState: "Current state",
+  challenges: ["Challenge"],
+  opportunities: ["Opportunity"],
+};
+```
+
+### Coverage thresholds
+
+CI enforces a **35% minimum** for lines, functions, and branches (configured in `vitest.config.ts`). Run `npm run test:coverage` to check locally.
