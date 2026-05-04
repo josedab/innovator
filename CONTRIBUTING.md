@@ -28,6 +28,32 @@ npm run dev
 
 > **Prefer `make`?** A full Makefile with common targets is available. Run `make help` to see all options.
 
+### Using Make
+
+The repository includes a `Makefile` that wraps common npm scripts. All targets mirror their npm equivalents:
+
+| Target               | Description                                           |
+| -------------------- | ----------------------------------------------------- |
+| `make help`          | Show all available targets                            |
+| `make install`       | Install dependencies                                  |
+| `make dev`           | Start web dev server (builds core first)              |
+| `make dev-all`       | Run core watch + web dev in parallel                  |
+| `make dev-docs`      | Start Docusaurus docs server                          |
+| `make dev-cli`       | Run CLI in dev mode via tsx                           |
+| `make build`         | Build all packages for production                     |
+| `make build-check`   | Verify expected build outputs exist                   |
+| `make clean`         | Remove build artifacts                                |
+| `make clean-all`     | Clean artifacts + all `node_modules/`                 |
+| `make test`          | Run all tests                                         |
+| `make test-coverage` | Run tests with coverage report                        |
+| `make test-ci`       | Simulate full CI pipeline                             |
+| `make check`         | Run all quality gates (lint, typecheck, format, test) |
+| `make lint`          | Run ESLint                                            |
+| `make lint-fix`      | Auto-fix linting and formatting issues                |
+| `make typecheck`     | Run TypeScript type checking                          |
+| `make format`        | Format all files with Prettier                        |
+| `make doctor`        | Check prerequisites (Node, gh CLI, auth, core build)  |
+
 > **💻 Dev Container / Codespaces:** This repo includes a `.devcontainer/devcontainer.json` with Node.js 20, GitHub CLI, and ESLint/Prettier extensions pre-configured. Open in Codespaces or VS Code Dev Containers to skip manual setup.
 
 ## Project Structure
@@ -38,7 +64,10 @@ innovator/
 │   ├── web/          # Next.js web application
 │   └── cli/          # Command-line interface
 ├── packages/
-│   └── core/         # Shared innovation engine (types, prompts, pipeline)
+│   ├── core/             # Shared innovation engine (types, prompts, pipeline)
+│   ├── bot/              # Chat platform bot (Slack, Discord, Teams)
+│   ├── create-innovator/ # `npx create-innovator` scaffolding CLI
+│   └── mcp-server/       # Model Context Protocol server (stdio & SSE)
 ├── website/          # Docusaurus documentation site
 └── package.json      # Workspace root
 ```
