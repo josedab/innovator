@@ -325,3 +325,190 @@ function buildRationale(angleId: string, classification: SubjectClassification):
     rationales[angleId] ?? `This angle offers a useful lens for ${classification.domain} innovation`
   );
 }
+
+// ---- ML-Based Learning ----
+
+/** Historical session result for learning. */
+export interface HistoricalSession {
+  domain: SubjectDomain;
+  complexity: ComplexityLevel;
+  intent: InnovationIntent;
+  anglesUsed: string[];
+  /** Per-angle quality scores (0-10). */
+  angleScores: Record<string, number>;
+  overallScore: number;
+  keywords: string[];
+  timestamp: number;
+}
+
+const historicalSessions: HistoricalSession[] = [];
+
+/**
+ * Record a historical session result for ML learning.
+ *
+ * @param session - The session data to record
+ */
+export function recordHistoricalSession(session: HistoricalSession): void {
+  historicalSessions.push(session);
+}
+
+/**
+ * Get all historical sessions.
+ */
+export function getHistoricalSessions(): HistoricalSession[] {
+  return [...historicalSessions];
+}
+
+/**
+ * Clear historical session data.
+ */
+export function clearHistoricalSessions(): void {
+  historicalSessions.length = 0;
+}
+
+/**
+ * ML-based angle recommendation using historical session data.
+ * Uses k-nearest-neighbors approach: finds similar past sessions
+ * and recommends angles that produced the best results.
+ *
+ * @param classification - The subject classification
+ * @param topN - Number of angles to recommend
+ * @returns Angle recommendations based on historical patterns
+ */
+export function recommendAnglesML(
+  classification: SubjectClassification,
+  topN: number = 4
+): AngleRecommendation[] {
+  if (historicalSessions.length < 3) {
+    // Fall back to heuristic if insufficient data
+    return recommendAngles(classification, topN);
+  }
+
+  // Compute similarity to each historical session
+  const similarities = historicalSessions.map((session) => ({
+    session,
+    similarity: computeSessionSimilarity(classification, session),
+  }));
+
+  // Take top-k most similar sessions
+  const k = Math.min(10, Math.ceil(historicalSessions.length * 0.3));
+  const topSessions = similarities.sort((a, b) => b.similarity - a.similarity).slice(0, k);
+
+  // Aggregate angle scores weighted by similarity
+  const angleAggregates = new Map<
+    string,
+    { totalScore: number; totalWeight: number; count: number }
+  >();
+
+  for (const { session, similarity } of topSessions) {
+    for (const [angleId, score] of Object.entries(session.angleScores)) {
+      const existing = angleAggregates.get(angleId) ?? { totalScore: 0, totalWeight: 0, count: 0 };
+      existing.totalScore += score * similarity;
+      existing.totalWeight += similarity;
+      existing.count++;
+      angleAggregates.set(angleId, existing);
+    }
+  }
+
+  // Convert to recommendations
+  const recommendations: AngleRecommendation[] = [];
+  for (const angleId of ANGLE_IDS) {
+    const agg = angleAggregates.get(angleId);
+    if (!agg || agg.count === 0) {
+      // No historical data for this angle — use heuristic weight
+      const heuristicWeight =
+        (DOMAIN_ANGLE_WEIGHTS[classification.domain] ?? {})[angleId] ??
+        DEFAULT_WEIGHTS[angleId] ??
+        0.5;
+      recommendations.push({
+        angleId,
+        relevance: Math.round(heuristicWeight * 100) / 100,
+        rationale: `No historical data — using heuristic weight for ${classification.domain}`,
+      });
+      continue;
+    }
+
+    const weightedAvg = agg.totalScore / agg.totalWeight;
+    const relevance = Math.min(1, Math.max(0, weightedAvg / 10));
+
+    recommendations.push({
+      angleId,
+      relevance: Math.round(relevance * 100) / 100,
+      rationale: `Based on ${agg.count} similar sessions — weighted avg score: ${weightedAvg.toFixed(1)}/10`,
+    });
+  }
+
+  return recommendations.sort((a, b) => b.relevance - a.relevance).slice(0, topN);
+}
+
+/**
+ * Compute similarity between a classification and a historical session.
+ * Uses weighted feature matching across domain, complexity, intent, and keywords.
+ */
+function computeSessionSimilarity(
+  classification: SubjectClassification,
+  session: HistoricalSession
+): number {
+  let similarity = 0;
+
+  // Domain match (weight: 0.4)
+  if (classification.domain === session.domain) {
+    similarity += 0.4;
+  }
+
+  // Complexity match (weight: 0.15)
+  if (classification.complexity === session.complexity) {
+    similarity += 0.15;
+  }
+
+  // Intent match (weight: 0.15)
+  if (classification.intent === session.intent) {
+    similarity += 0.15;
+  }
+
+  // Keyword overlap (weight: 0.3)
+  const classKeywords = new Set(classification.keywords.map((k) => k.toLowerCase()));
+  const sessionKeywords = new Set(session.keywords.map((k) => k.toLowerCase()));
+  if (classKeywords.size > 0 && sessionKeywords.size > 0) {
+    const intersection = [...classKeywords].filter((k) => sessionKeywords.has(k)).length;
+    const union = new Set([...classKeywords, ...sessionKeywords]).size;
+    similarity += (intersection / union) * 0.3;
+  }
+
+  return Math.round(similarity * 100) / 100;
+}
+
+/**
+ * Get angle effectiveness statistics from historical data.
+ *
+ * @param domain - Optional domain filter
+ * @returns Per-angle performance stats
+ */
+export function getAngleEffectivenessStats(
+  domain?: SubjectDomain
+): Array<{ angleId: string; avgScore: number; sampleSize: number; successRate: number }> {
+  const filtered = domain
+    ? historicalSessions.filter((s) => s.domain === domain)
+    : historicalSessions;
+
+  const stats = new Map<string, { totalScore: number; count: number; highScoreCount: number }>();
+
+  for (const session of filtered) {
+    for (const [angleId, score] of Object.entries(session.angleScores)) {
+      const existing = stats.get(angleId) ?? { totalScore: 0, count: 0, highScoreCount: 0 };
+      existing.totalScore += score;
+      existing.count++;
+      if (score >= 7) existing.highScoreCount++;
+      stats.set(angleId, existing);
+    }
+  }
+
+  return Array.from(stats.entries())
+    .map(([angleId, data]) => ({
+      angleId,
+      avgScore: Math.round((data.totalScore / data.count) * 10) / 10,
+      sampleSize: data.count,
+      successRate: Math.round((data.highScoreCount / data.count) * 100) / 100,
+    }))
+    .sort((a, b) => b.avgScore - a.avgScore);
+}
