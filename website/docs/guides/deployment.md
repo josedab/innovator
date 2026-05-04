@@ -317,6 +317,26 @@ web: npm start
 - [ ] Access logs are monitored for unusual Copilot quota usage
 - [ ] `gh auth` credentials are scoped to the minimum required permissions
 
+## Production Considerations
+
+The default deployment is designed for single-instance use. Before scaling to production, review these caveats:
+
+### Rate Limiting
+
+The built-in rate limiter (`apps/web/src/lib/rate-limit.ts`) uses an **in-memory Map**. In multi-instance deployments (e.g., Vercel serverless, Kubernetes), each instance maintains its own map, making rate limits less effective. For production, replace with a shared store:
+
+- [Upstash Redis rate limiting](https://upstash.com/docs/oss/sdks/ts/ratelimit/overview)
+- [Vercel's built-in rate limiting](https://vercel.com/docs/functions/ratelimit)
+- A shared Redis instance behind custom middleware
+
+### API Key Storage
+
+The API key authentication layer (`apps/web/src/lib/api-auth.ts`) reads keys from environment variables. For production deployments with many keys or key rotation requirements, consider using a database or secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault) instead.
+
+### Session & State Persistence
+
+Innovation sessions and history are stored in-memory by default. For multi-instance or long-running deployments, configure an external data store (e.g., PostgreSQL, Redis) to persist session data across restarts and instances.
+
 ## Security Headers
 
 The Next.js app sets the following security headers on all responses via `apps/web/next.config.ts`. If you deploy behind a reverse proxy (e.g., nginx, Cloudflare), be aware these are already set to avoid duplicate or conflicting headers.
