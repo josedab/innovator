@@ -10,20 +10,20 @@ Innovator is configured via environment variables. Copy `.env.local.example` to 
 
 ## Environment Variables
 
-| Variable                   | Description                                                              | Default   | Required |
-| -------------------------- | ------------------------------------------------------------------------ | --------- | -------- |
-| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime                         | `gpt-4.1` | No       |
-| `INNOVATOR_API_KEY`        | API key to protect web API routes via `X-API-Key` header (see below)     | _unset_   | No       |
-| `INNOVATOR_API_KEYS`       | Comma-separated API keys for multi-key auth (`X-API-Key` or Bearer)      | _unset_   | No       |
-| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for each LLM request in milliseconds                             | `90000`   | No       |
-| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs to allow                    | _unset_   | No       |
-| `INNOVATOR_EMBED_ORIGINS`  | Comma-separated CORS origins for the `/api/embed` widget endpoint        | `*`       | No       |
-| `OPENAI_API_KEY`           | OpenAI API key for direct OpenAI provider (non-Copilot usage)            | _unset_   | No       |
-| `ANTHROPIC_API_KEY`        | Anthropic API key for direct Anthropic provider (non-Copilot usage)      | _unset_   | No       |
-| `OLLAMA_BASE_URL`          | Base URL for local Ollama instance                                       | `http://localhost:11434` | No |
-| `PLAYWRIGHT_BASE_URL`     | Base URL for Playwright E2E tests                                        | `http://localhost:3000`  | No |
-| `MCP_PORT`                | Port for the MCP server SSE transport                                    | `3100`   | No       |
-| `PORT`                    | Port for the Next.js dev server                                          | `3000`   | No       |
+| Variable                   | Description                                                          | Default                  | Required |
+| -------------------------- | -------------------------------------------------------------------- | ------------------------ | -------- |
+| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime                     | `gpt-4.1`                | No       |
+| `INNOVATOR_API_KEY`        | API key to protect web API routes via `X-API-Key` header (see below) | _unset_                  | No       |
+| `INNOVATOR_API_KEYS`       | Comma-separated API keys for multi-key auth (`X-API-Key` or Bearer)  | _unset_                  | No       |
+| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for each LLM request in milliseconds                         | `90000`                  | No       |
+| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs to allow                | _unset_                  | No       |
+| `INNOVATOR_EMBED_ORIGINS`  | Comma-separated CORS origins for the `/api/embed` widget endpoint    | `*`                      | No       |
+| `OPENAI_API_KEY`           | OpenAI API key for direct OpenAI provider (non-Copilot usage)        | _unset_                  | No       |
+| `ANTHROPIC_API_KEY`        | Anthropic API key for direct Anthropic provider (non-Copilot usage)  | _unset_                  | No       |
+| `OLLAMA_BASE_URL`          | Base URL for local Ollama instance                                   | `http://localhost:11434` | No       |
+| `PLAYWRIGHT_BASE_URL`      | Base URL for Playwright E2E tests                                    | `http://localhost:3000`  | No       |
+| `MCP_PORT`                 | Port for the MCP server SSE transport                                | `3100`                   | No       |
+| `PORT`                     | Port for the Next.js dev server                                      | `3000`                   | No       |
 
 ## `INNOVATOR_DEFAULT_MODEL`
 
@@ -139,3 +139,45 @@ Port for the MCP server when using SSE transport (`npx @innovator/mcp-server --s
 ```bash
 MCP_PORT=3100
 ```
+
+## API Rate Limits & Security
+
+The Next.js middleware (`apps/web/src/middleware.ts`) applies several security layers to all API routes. These are enforced at the edge before requests reach your route handlers.
+
+### Rate Limiting
+
+| Route           | Limit          | Window   | Notes                                              |
+| --------------- | -------------- | -------- | -------------------------------------------------- |
+| All `/api/*`    | 10 requests/IP | 1 minute | Global rate limit across all API endpoints         |
+| `/api/auto`     | 3 requests/IP  | 1 minute | Stricter — each request triggers 10+ LLM calls     |
+| `/api/innovate` | 5 requests/IP  | 1 minute | Stricter — each request triggers up to 9 LLM calls |
+
+When a rate limit is exceeded, the API returns `429 Too Many Requests` with a `Retry-After` header indicating how many seconds to wait.
+
+### Concurrent Request Cap
+
+Each IP address is limited to **2 simultaneous in-flight requests**. Additional requests while 2 are already processing receive a `429` response. This prevents a single client from monopolizing server resources.
+
+### Body Size Limit
+
+Request bodies are capped at **100 KB**. Requests exceeding this limit receive a `413 Payload Too Large` response. Mutation requests (`POST`, `PUT`, `PATCH`) must include a `Content-Length` header or they receive a `411 Length Required` response.
+
+### Content Security Policy
+
+Non-API routes receive a nonce-based `Content-Security-Policy` header that restricts script and style sources to `'self'` plus a per-request nonce. This mitigates cross-site scripting (XSS) attacks.
+
+### Request Tracking
+
+Every API response includes an `X-Request-ID` header (a UUID) for tracing requests through logs.
+
+### Authentication
+
+When `INNOVATOR_API_KEY` or `INNOVATOR_API_KEYS` is set, all `/api/*` routes require a valid key via the `X-API-Key` or `Authorization: Bearer` header. See the [API Key](#innovator_api_key) and [Multi-Key Auth](#innovator_api_keys) sections above.
+
+### Self-Hosting Considerations
+
+The built-in rate limiter uses an **in-memory Map** and is effective for single-instance deployments. In multi-instance environments (e.g., Vercel serverless, Kubernetes), each instance maintains its own map — making rate limits less effective. For production multi-instance deployments, consider:
+
+- [Vercel's built-in rate limiting](https://vercel.com/docs/functions/ratelimit)
+- [Upstash Redis-based rate limiting](https://upstash.com/docs/oss/sdks/ts/ratelimit/overview)
+- A shared Redis store behind a custom middleware
