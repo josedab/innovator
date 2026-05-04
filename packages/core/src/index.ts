@@ -2496,3 +2496,27 @@ export type {
   SupplyChainGap,
   SupplyChainMap,
 } from "./supply-chain/index.js";
+
+/** Adaptive Context Window Manager — smart prompt compression with relevance scoring. */
+export {
+  manageContext,
+  createSegment,
+  estimateTokens,
+  getModelTokenLimit,
+  computeRelevance,
+  extractiveCompress,
+  hierarchicalCompress,
+  getCompressionHistory,
+  clearContextManagerData,
+  DEFAULT_BUDGETS,
+  ContextBudgetSchema,
+  ContextSegmentSchema,
+  CompressionResultSchema,
+  ContextStatusSchema,
+} from "./context-manager/index.js";
+export type {
+  ContextBudget,
+  ContextSegment,
+  CompressionResult,
+  ContextStatus,
+} from "./context-manager/index.js";
