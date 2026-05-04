@@ -25,13 +25,28 @@ graph TB
         Commander[Commander.js CLI]
     end
 
+    subgraph "MCP Server (packages/mcp-server)"
+        MCP[MCP Tools: investigate, innovate, auto]
+    end
+
+    subgraph "Bot (packages/bot)"
+        Bot[Slack / Discord / Teams Adapters]
+    end
+
     subgraph "Core Engine (packages/core)"
-        Client[Copilot SDK Client]
+        Client[LLM Provider Abstraction]
         Investigate[investigate]
         Generate[generateForAngle]
         Pipeline[runAutoPipeline]
         Prompts[Prompt Templates x10]
         Types[Zod Schemas]
+        Artifacts[Artifact Generation]
+        Observatory[Prompt Observatory]
+        Events[Event Bus & Webhooks]
+        RAG[RAG Knowledge Grounding]
+        Debate[Multi-Perspective Debate]
+        Evolution[Genetic Idea Evolution]
+        KGraph[Knowledge Graph]
 
         Investigate --> Client
         Generate --> Client
@@ -44,19 +59,29 @@ graph TB
 
     subgraph "External"
         CopilotSDK["@github/copilot-sdk"]
-        LLM[LLM Models via Copilot]
+        OpenAI[OpenAI API]
+        Anthropic[Anthropic API]
+        Ollama[Ollama Local]
     end
 
     User --> Pages
     User --> Commander
+    User --> MCP
+    User --> Bot
     Routes --> Investigate
     Routes --> Generate
     Routes --> Pipeline
     Commander --> Investigate
     Commander --> Generate
     Commander --> Pipeline
+    MCP --> Investigate
+    MCP --> Generate
+    MCP --> Pipeline
+    Bot --> Pipeline
     Client --> CopilotSDK
-    CopilotSDK --> LLM
+    Client --> OpenAI
+    Client --> Anthropic
+    Client --> Ollama
 ```
 
 ## Monorepo Structure
@@ -68,24 +93,32 @@ graph LR
     core["packages/core"]
     web["apps/web"]
     cli["apps/cli"]
+    mcp["packages/mcp-server"]
+    bot["packages/bot"]
     website["website"]
     root["root (workspace)"]
 
     web --> core
     cli --> core
+    mcp --> core
+    bot --> core
     root --> web
     root --> cli
     root --> core
+    root --> mcp
+    root --> bot
     root --> website
 ```
 
-The project uses **npm workspaces** with three packages:
+The project uses **npm workspaces** with four packages:
 
-| Package         | Purpose                  | Dependencies                                   |
-| --------------- | ------------------------ | ---------------------------------------------- |
-| `packages/core` | Shared innovation engine | `@github/copilot-sdk`, `zod`                   |
-| `apps/web`      | Next.js web application  | `@innovator/core`, `next`, `react`, `zod`      |
-| `apps/cli`      | Command-line interface   | `@innovator/core`, `commander`, `chalk`, `ora` |
+| Package               | Purpose                                 | Dependencies                                   |
+| --------------------- | --------------------------------------- | ---------------------------------------------- |
+| `packages/core`       | Shared innovation engine                | `@github/copilot-sdk`, `zod`                   |
+| `packages/mcp-server` | MCP server for AI tool integration      | `@innovator/core`, `@modelcontextprotocol/sdk` |
+| `packages/bot`        | Chat platform bot (Slack/Discord/Teams) | `@innovator/core`                              |
+| `apps/web`            | Next.js web application                 | `@innovator/core`, `next`, `react`, `zod`      |
+| `apps/cli`            | Command-line interface                  | `@innovator/core`, `commander`, `chalk`, `ora` |
 
 The core package is built with `tsc` and consumed by both apps. The web app uses `transpilePackages` in `next.config.ts` for seamless workspace resolution.
 
@@ -99,6 +132,68 @@ The npm workspaces setup enforces an implicit dependency hierarchy:
 - **Server components and API routes** can import from `@innovator/core` (full API including Node.js-only Copilot SDK).
 
 Violating these rules will cause build failures — for example, importing `@innovator/core` in a client component pulls in Node.js dependencies that don't exist in the browser.
+
+## LLM Provider Abstraction
+
+Innovator supports multiple LLM providers through a unified `LLMProvider` interface (`packages/core/src/providers/`). Each provider implements `generateText()`, `generateStream()`, and `listModels()`.
+
+| Provider      | Env Variable        | Default                  | Notes                           |
+| ------------- | ------------------- | ------------------------ | ------------------------------- |
+| **Copilot**   | _(none, uses `gh`)_ | —                        | Default provider via GitHub CLI |
+| **OpenAI**    | `OPENAI_API_KEY`    | —                        | Direct OpenAI API access        |
+| **Anthropic** | `ANTHROPIC_API_KEY` | —                        | Direct Anthropic API access     |
+| **Ollama**    | `OLLAMA_BASE_URL`   | `http://localhost:11434` | Local LLM inference             |
+
+The Copilot provider is the default and requires no API keys — it uses the authenticated GitHub CLI (`gh auth login`). Alternative providers are available for environments without Copilot access.
+
+## MCP Server
+
+The MCP (Model Context Protocol) server (`packages/mcp-server/`) exposes Innovator as tools for AI clients.
+
+```
+AI Client (Claude Desktop / Cursor / VS Code)
+  ↕ stdio or SSE
+MCP Server → @innovator/core → LLM Provider → LLM
+```
+
+**Architecture:**
+
+- `src/index.ts` — Server entry point, transport selection (stdio default, SSE via `--sse`)
+- `src/handlers.ts` — Tool implementations wrapping core functions (`handleInvestigate`, `handleGenerate`, `handleAutoPipeline`)
+- `src/schemas.ts` — Zod validation schemas for tool inputs
+
+**Exposed tools:** `investigate`, `innovate`, `auto`
+
+## Bot
+
+The bot package (`packages/bot/`) connects Innovator to chat platforms via platform adapters.
+
+```
+Chat Platform (Slack / Discord / Teams)
+  ↕ platform SDK
+Bot Adapter → InnovatorBot → @innovator/core → LLM Provider → LLM
+```
+
+Users send `/innovate <subject>` and receive streamed progress updates and a final innovation report.
+
+## Advanced Core Modules
+
+The core engine includes several advanced modules beyond the base pipeline:
+
+| Module                                | Purpose                                                                 |
+| ------------------------------------- | ----------------------------------------------------------------------- |
+| `packages/core/src/artifacts/`        | Structured artifact generation (PRD, tech spec, user story, pitch, OKR) |
+| `packages/core/src/observatory/`      | Prompt capture, token tracking, quality scoring, A/B comparison         |
+| `packages/core/src/events/`           | Event bus (pub/sub) and webhook delivery                                |
+| `packages/core/src/rag/`              | RAG knowledge grounding                                                 |
+| `packages/core/src/debate/`           | Multi-perspective structured debate                                     |
+| `packages/core/src/evolution/`        | Genetic-algorithm idea evolution                                        |
+| `packages/core/src/knowledge-graph/`  | Persistent concept knowledge graph                                      |
+| `packages/core/src/collaboration/`    | Collaborative sessions with voting and commenting                       |
+| `packages/core/src/research/`         | Deep research agent for extended investigations                         |
+| `packages/core/src/pipeline-builder/` | Natural language pipeline builder                                       |
+| `packages/core/src/analytics/`        | Innovation analytics and insights                                       |
+| `packages/core/src/cost/`             | LLM cost tracking and budget management                                 |
 
 ## Copilot SDK Client
 
