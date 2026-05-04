@@ -121,3 +121,69 @@ lsof -i :3000
 # Use a different port
 PORT=3001 npm run dev
 ```
+
+## Windows & WSL Compatibility
+
+Innovator is developed and tested primarily on macOS and Linux. If you're on Windows, we recommend using **WSL 2** (Windows Subsystem for Linux) for the best experience.
+
+### Recommended: WSL 2
+
+1. Install WSL 2 if you haven't already:
+   ```powershell
+   wsl --install
+   ```
+2. Open a WSL terminal (Ubuntu is the default distribution)
+3. Install Node.js 20+ inside WSL:
+   ```bash
+   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+   sudo apt install -y nodejs
+   ```
+4. Install GitHub CLI inside WSL:
+   ```bash
+   sudo apt install -y gh
+   gh auth login
+   ```
+5. Clone and run Innovator from within the WSL filesystem (not `/mnt/c/`):
+   ```bash
+   cd ~
+   git clone https://github.com/josedab/innovator.git
+   cd innovator
+   npm install
+   npm run dev
+   ```
+
+:::tip
+Always work within the WSL filesystem (`~/...`) rather than the mounted Windows filesystem (`/mnt/c/...`). File operations on `/mnt/c/` are significantly slower and can cause permission issues.
+:::
+
+### Native Windows (without WSL)
+
+If you prefer to run natively on Windows:
+
+- **Line endings** — Configure Git to use LF line endings:
+  ```powershell
+  git config --global core.autocrlf input
+  ```
+- **Shell scripts** — Some npm scripts use shell syntax. Install [Git Bash](https://gitforwindows.org/) and configure npm to use it:
+  ```powershell
+  npm config set script-shell "C:\\Program Files\\Git\\bin\\bash.exe"
+  ```
+- **Port conflicts** — Use `netstat -ano | findstr :3000` instead of `lsof` to find port conflicts.
+- **Environment variables** — Use `set` instead of `export`, or use [cross-env](https://www.npmjs.com/package/cross-env):
+  ```powershell
+  set INNOVATOR_API_KEY=your-key && npm start
+  ```
+- **Path length limits** — Enable long paths in Windows if you encounter `ENAMETOOLONG` errors:
+  ```powershell
+  # Run as Administrator
+  reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f
+  ```
+
+### Known Windows Issues
+
+| Issue                                  | Cause                             | Fix                                            |
+| -------------------------------------- | --------------------------------- | ---------------------------------------------- |
+| `ENOENT` on `gh` commands              | GitHub CLI not in PATH            | Reinstall `gh` or add to PATH manually         |
+| `npm run doctor` fails on shell syntax | Script uses Bash syntax           | Run from Git Bash or WSL                       |
+| Slow `npm install`                     | Antivirus scanning `node_modules` | Exclude project folder from real-time scanning |
+| `EPERM` errors during `npm install`    | File locked by another process    | Close VS Code / editors, retry                 |
