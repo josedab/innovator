@@ -2730,4 +2730,67 @@ program
     }
   });
 
+// ---- Idea Version Control Commands ----
+const ideaCmd = program.command("idea").description("Idea version control (IdeaGit)");
+
+ideaCmd
+  .command("log <ideaId>")
+  .description("Show version history for an idea")
+  .option("--branch <name>", "Filter by branch")
+  .action(async (ideaId: string, opts: { branch?: string }) => {
+    const { getVersionLog } = await import("@innovator/core");
+    const versions = getVersionLog(ideaId, opts.branch);
+    if (versions.length === 0) {
+      console.log(chalk.dim("No versions found for this idea."));
+      return;
+    }
+    console.log(chalk.bold(`\n📜 Version Log: ${ideaId}\n`));
+    for (const v of versions) {
+      const date = new Date(v.createdAt).toISOString().slice(0, 16);
+      console.log(`  ${chalk.yellow(v.id.slice(0, 8))} ${chalk.dim(date)} ${v.message ?? "(no message)"}`);
+      console.log(`    ${chalk.dim(`branch: ${v.branchName}${v.author ? ` | author: ${v.author}` : ""}`)}`);
+    }
+  });
+
+ideaCmd
+  .command("branch <versionId> <branchName>")
+  .description("Create a branch from a version")
+  .action(async (versionId: string, branchName: string) => {
+    const { createBranch } = await import("@innovator/core");
+    const branch = createBranch(versionId, branchName);
+    if (!branch) {
+      console.error(chalk.red("Failed to create branch. Version not found or branch already exists."));
+      process.exitCode = 1;
+      return;
+    }
+    console.log(chalk.green(`Branch "${branchName}" created from version ${versionId.slice(0, 8)}`));
+  });
+
+ideaCmd
+  .command("diff <fromId> <toId>")
+  .description("Semantic diff between two versions")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (fromId: string, toId: string, opts: { model?: string }) => {
+    if (opts.model && !validateModelWithLog(opts.model)) return;
+    const { semanticDiff } = await import("@innovator/core");
+    const spinner = ora("Computing semantic diff...").start();
+    try {
+      const diff = await semanticDiff(fromId, toId, opts.model);
+      spinner.stop();
+      console.log(chalk.bold(`\n📊 Diff: ${diff.fromVersion.slice(0, 8)} → ${diff.toVersion.slice(0, 8)}\n`));
+      console.log(`  Overall: ${chalk.bold(diff.overallSignificance)}`);
+      console.log(`  ${diff.summary}\n`);
+      for (const c of diff.changes) {
+        const color = c.changeType === "added" ? chalk.green : c.changeType === "removed" ? chalk.red : chalk.yellow;
+        console.log(`  ${color(`[${c.changeType}]`)} ${c.field} (${c.significance})`);
+        if (c.before) console.log(`    ${chalk.dim(`- ${c.before}`)}`);
+        if (c.after) console.log(`    ${chalk.dim(`+ ${c.after}`)}`);
+      }
+    } catch (err) {
+      spinner.fail("Diff failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
 program.parse();
