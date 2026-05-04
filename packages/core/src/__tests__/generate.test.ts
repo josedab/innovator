@@ -10,6 +10,11 @@ vi.mock("../copilot/client.js", () => ({
   extractJson: vi.fn(),
 }));
 
+vi.mock("../innovation/custom-angles.js", () => ({
+  getCustomAngle: vi.fn().mockReturnValue(undefined),
+  buildCustomAnglePrompt: vi.fn().mockReturnValue("custom angle prompt"),
+}));
+
 vi.mock("../prompts/angles/index.js", () => ({
   buildScamperPrompt: vi.fn().mockReturnValue("scamper prompt"),
   buildFirstPrinciplesPrompt: vi.fn().mockReturnValue("first-principles prompt"),
@@ -23,10 +28,13 @@ vi.mock("../prompts/angles/index.js", () => ({
 
 import { generateText, extractJson } from "../copilot/client.js";
 import { generateForAngle } from "../innovation/generate.js";
+import { getCustomAngle, buildCustomAnglePrompt } from "../innovation/custom-angles.js";
 import type { AngleId, AngleResult, Investigation } from "../types.js";
 
 const mockGenerateText = vi.mocked(generateText);
 const mockExtractJson = vi.mocked(extractJson);
+const mockGetCustomAngle = vi.mocked(getCustomAngle);
+const _mockBuildCustomAnglePrompt = vi.mocked(buildCustomAnglePrompt);
 
 const MOCK_INVESTIGATION: Investigation = {
   summary: "Test summary",
@@ -169,5 +177,50 @@ describe("generateForAngle", () => {
     await expect(generateForAngle("test", MOCK_INVESTIGATION, "scamper")).rejects.toThrow(
       "LLM timeout"
     );
+  });
+
+  // ---- Custom angle fallback ----
+  it("falls back to custom angle when ID not in built-in map", async () => {
+    const customAngle = {
+      id: "biomimicry",
+      name: "Biomimicry",
+      description: "Inspired by nature",
+      promptTemplate: "Apply biomimicry to {{subject}} given {{investigation}}",
+      createdAt: new Date().toISOString(),
+    };
+    mockGetCustomAngle.mockReturnValue(customAngle as unknown as ReturnType<typeof getCustomAngle>);
+    const customResult = { ...MOCK_ANGLE_RESULT, angleId: "biomimicry", angleName: "Biomimicry" };
+    mockExtractJson.mockReturnValue(JSON.stringify(customResult));
+
+    const result = await generateForAngle("test", MOCK_INVESTIGATION, "biomimicry");
+    expect(mockGetCustomAngle).toHaveBeenCalledWith("biomimicry");
+    expect(result.angleId).toBe("biomimicry");
+  });
+
+  it("throws for unknown angle when custom angle also not found", async () => {
+    mockGetCustomAngle.mockReturnValue(undefined);
+    await expect(generateForAngle("test", MOCK_INVESTIGATION, "nonexistent")).rejects.toThrow(
+      "Unknown angle: nonexistent"
+    );
+  });
+
+  // ---- AngleResult validation on malformed responses ----
+  it("rejects response missing required ideas array", async () => {
+    mockExtractJson.mockReturnValue(
+      JSON.stringify({ angleId: "scamper", angleName: "SCAMPER", reasoning: "test" })
+    );
+    await expect(generateForAngle("test", MOCK_INVESTIGATION, "scamper")).rejects.toThrow();
+  });
+
+  it("rejects response with invalid idea structure", async () => {
+    mockExtractJson.mockReturnValue(
+      JSON.stringify({
+        angleId: "scamper",
+        angleName: "SCAMPER",
+        ideas: [{ title: 123 }], // title should be string
+        reasoning: "test",
+      })
+    );
+    await expect(generateForAngle("test", MOCK_INVESTIGATION, "scamper")).rejects.toThrow();
   });
 });
