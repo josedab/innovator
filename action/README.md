@@ -57,12 +57,9 @@ jobs:
 
 ## Outputs
 
-| Output          | Description                                                    |
-| --------------- | -------------------------------------------------------------- |
-| `investigation` | JSON investigation result (aspects, challenges, opportunities) |
-| `ideas`         | JSON array of angle results with generated ideas               |
-| `synthesis`     | JSON synthesis result (top ideas, themes, recommendation)      |
-| `markdown`      | Full results as formatted Markdown                             |
+| Output     | Description                        |
+| ---------- | ---------------------------------- |
+| `markdown` | Full results as formatted Markdown |
 
 ## Examples
 
@@ -166,9 +163,9 @@ Use the `markdown` output to save results as an artifact:
     path: innovation-report.md
 ```
 
-### Use JSON outputs in downstream steps
+### Use Markdown output in downstream steps
 
-Use the `investigation`, `ideas`, or `synthesis` outputs to feed results into other workflow steps:
+Use the `markdown` output to feed results into other workflow steps:
 
 ```yaml
 - uses: josedab/innovator/action@main
@@ -176,9 +173,9 @@ Use the `investigation`, `ideas`, or `synthesis` outputs to feed results into ot
   with:
     subject: "developer onboarding"
 
-- name: Process top ideas
+- name: Process results
   run: |
-    echo '${{ steps.innovate.outputs.synthesis }}' | jq '.topIdeas[].title'
+    echo '${{ steps.innovate.outputs.markdown }}'
 ```
 
 ## Troubleshooting
