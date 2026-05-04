@@ -92,6 +92,8 @@ import {
   getRubric,
   listRubrics,
   scoreWithRubric,
+  generateCostReport,
+  costReportToMarkdown,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -2625,6 +2627,30 @@ rubricCmd
     for (const d of rubric.dimensions) {
       console.log(`  ${chalk.cyan(d.id)} — ${d.name} (weight: ${d.weight})`);
       console.log(`    ${chalk.dim(d.description)}`);
+    }
+  });
+
+// ---- Cost Report Command ----
+program
+  .command("cost-report")
+  .description("Generate LLM cost-performance report")
+  .option("--markdown", "Output as Markdown")
+  .action((opts: { markdown?: boolean }) => {
+    const report = generateCostReport();
+    if (opts.markdown) {
+      console.log(costReportToMarkdown(report));
+    } else {
+      console.log(chalk.bold("\n💰 LLM Cost Report\n"));
+      console.log(`  Total Cost: $${report.totalCostUsd.toFixed(4)}`);
+      console.log(`  Total Tokens: ${report.totalTokens.toLocaleString()}`);
+      console.log(`  Measurements: ${report.measurementCount}`);
+      console.log(`  Estimated Savings: $${report.savingsEstimate.toFixed(4)}\n`);
+      if (report.recommendations.length > 0) {
+        console.log(chalk.bold("  Routing Recommendations:"));
+        for (const r of report.recommendations) {
+          console.log(`    ${r.stage}: ${chalk.cyan(r.recommendedModel)} (quality: ${r.expectedQuality.toFixed(2)})`);
+        }
+      }
     }
   });
 

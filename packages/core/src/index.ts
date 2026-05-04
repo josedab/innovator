@@ -2438,3 +2438,24 @@ export type {
   RubricScore,
   RubricScoringResult,
 } from "./rubric/index.js";
+
+/** LLM Cost-Performance Optimizer — Thompson Sampling model selection with cost tracking. */
+export {
+  recordMeasurement,
+  selectModel as selectOptimalModel,
+  getRoutingRecommendations,
+  generateCostReport,
+  getArmStats,
+  costReportToMarkdown,
+  clearOptimizerData,
+  QualityMeasurementSchema,
+  ArmStatsSchema,
+  RoutingDecisionSchema,
+  CostReportSchema,
+} from "./cost-optimizer/index.js";
+export type {
+  QualityMeasurement,
+  ArmStats,
+  RoutingDecision,
+  CostReport,
+} from "./cost-optimizer/index.js";
