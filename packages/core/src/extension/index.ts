@@ -8,13 +8,7 @@
  * Commands: /investigate, /innovate, /auto, /angles, /presets
  */
 
-import type {
-  AngleId,
-  Investigation,
-  AngleResult,
-  Synthesis,
-  PipelineProgress,
-} from "../types.js";
+import type { AngleId, Investigation, AngleResult, Synthesis, PipelineProgress } from "../types.js";
 import { ANGLES } from "../innovation/angles.js";
 import { getPresets } from "../presets/index.js";
 
@@ -51,7 +45,16 @@ export function parseSlashCommand(input: string): SlashCommand | null {
   // Without slash, infer command from first word
   const words = withoutPrefix.split(/\s+/);
   const firstWord = words[0]?.toLowerCase();
-  const knownCommands = ["investigate", "innovate", "auto", "angles", "presets", "help"];
+  const knownCommands = [
+    "investigate",
+    "innovate",
+    "auto",
+    "angles",
+    "presets",
+    "help",
+    "score",
+    "status",
+  ];
   if (firstWord && knownCommands.includes(firstWord)) {
     return {
       command: firstWord,
@@ -117,7 +120,10 @@ export function formatAngleResultsForChat(results: AngleResult[]): ChatResponse 
 
   return {
     markdown: lines.join("\n"),
-    metadata: { angleCount: results.length, ideaCount: results.reduce((s, r) => s + r.ideas.length, 0) },
+    metadata: {
+      angleCount: results.length,
+      ideaCount: results.reduce((s, r) => s + r.ideas.length, 0),
+    },
   };
 }
 
@@ -172,7 +178,9 @@ export function formatAnglesForChat(): ChatResponse {
     lines.push(`- ${angle.icon} **${angle.name}** — ${angle.shortDescription}`);
   }
 
-  lines.push("\n*Use `@innovator innovate <subject> --angles scamper,first-principles` to select specific angles.*");
+  lines.push(
+    "\n*Use `@innovator innovate <subject> --angles scamper,first-principles` to select specific angles.*"
+  );
 
   return { markdown: lines.join("\n") };
 }
@@ -250,6 +258,16 @@ export interface CopilotCommandDef {
   }>;
 }
 
+/** Mutable context maintained across chat turns for follow-up support. */
+export interface CopilotAgentContext {
+  lastCommand?: string;
+  lastSubject?: string;
+  lastInvestigation?: Investigation;
+  lastResults?: AngleResult[];
+  lastSynthesis?: Synthesis | null;
+  turnCount?: number;
+}
+
 /** Build the Copilot Extensions agent manifest. */
 export function getCopilotAgentManifest(): CopilotAgentConfig {
   return {
@@ -261,21 +279,36 @@ export function getCopilotAgentManifest(): CopilotAgentConfig {
         name: "investigate",
         description: "Analyze a subject to identify aspects, challenges, and opportunities",
         parameters: [
-          { name: "subject", description: "The subject to investigate", required: true, type: "string" },
+          {
+            name: "subject",
+            description: "The subject to investigate",
+            required: true,
+            type: "string",
+          },
         ],
       },
       {
         name: "innovate",
         description: "Generate innovation ideas for a subject using multiple angles",
         parameters: [
-          { name: "subject", description: "The subject to innovate on", required: true, type: "string" },
+          {
+            name: "subject",
+            description: "The subject to innovate on",
+            required: true,
+            type: "string",
+          },
         ],
       },
       {
         name: "auto",
         description: "Run the full innovation pipeline (investigate + generate + synthesize)",
         parameters: [
-          { name: "subject", description: "The subject for the full pipeline", required: true, type: "string" },
+          {
+            name: "subject",
+            description: "The subject for the full pipeline",
+            required: true,
+            type: "string",
+          },
         ],
       },
       {
@@ -293,7 +326,12 @@ export function getCopilotAgentManifest(): CopilotAgentConfig {
         name: "evolve",
         description: "Evolve ideas through genetic-algorithm-inspired mutation",
         parameters: [
-          { name: "subject", description: "The subject to evolve ideas for", required: true, type: "string" },
+          {
+            name: "subject",
+            description: "The subject to evolve ideas for",
+            required: true,
+            type: "string",
+          },
         ],
       },
     ],
@@ -308,12 +346,25 @@ export async function handleCopilotRequest(
   input: string,
   handlers: {
     investigate: (subject: string) => Promise<Investigation>;
-    auto: (subject: string, onProgress: (text: string) => void) => Promise<{ results: AngleResult[]; synthesis: Synthesis | null }>;
-  }
+    auto: (
+      subject: string,
+      onProgress: (text: string) => void
+    ) => Promise<{ results: AngleResult[]; synthesis: Synthesis | null }>;
+    score?: (
+      ideas: Array<{ title: string; description: string }>
+    ) => Promise<Array<{ title: string; novelty: number; feasibility: number; impact: number }>>;
+  },
+  context?: CopilotAgentContext
 ): Promise<ChatResponse> {
   const cmd = parseSlashCommand(input);
   if (!cmd) {
     return formatHelpForChat();
+  }
+
+  // Track context for follow-up conversations
+  if (context) {
+    context.lastCommand = cmd.command;
+    context.turnCount = (context.turnCount ?? 0) + 1;
   }
 
   switch (cmd.command) {
@@ -325,27 +376,87 @@ export async function handleCopilotRequest(
       return formatPresetsForChat();
     case "investigate": {
       if (!cmd.args) {
-        return { markdown: "❌ Please provide a subject to investigate.\n\nExample: `@innovator investigate renewable energy`" };
+        return {
+          markdown:
+            "❌ Please provide a subject to investigate.\n\nExample: `@innovator investigate renewable energy`",
+        };
       }
       const investigation = await handlers.investigate(cmd.args);
+      if (context) {
+        context.lastSubject = cmd.args;
+        context.lastInvestigation = investigation;
+      }
       return formatInvestigationForChat(investigation);
     }
     case "auto":
     case "innovate": {
-      if (!cmd.args) {
-        return { markdown: "❌ Please provide a subject.\n\nExample: `@innovator auto AI education`" };
+      const subject = cmd.args || context?.lastSubject;
+      if (!subject) {
+        return {
+          markdown: "❌ Please provide a subject.\n\nExample: `@innovator auto AI education`",
+        };
       }
       const progressLines: string[] = [];
-      const { results, synthesis } = await handlers.auto(cmd.args, (text) => { progressLines.push(text); });
+      const { results, synthesis } = await handlers.auto(subject, (text) => {
+        progressLines.push(text);
+      });
+      if (context) {
+        context.lastSubject = subject;
+        context.lastResults = results;
+        context.lastSynthesis = synthesis;
+      }
       const angleResponse = formatAngleResultsForChat(results);
       const synthResponse = synthesis ? formatSynthesisForChat(synthesis) : null;
       return {
-        markdown: [angleResponse.markdown, synthResponse?.markdown ?? ""].filter(Boolean).join("\n\n---\n\n"),
+        markdown: [angleResponse.markdown, synthResponse?.markdown ?? ""]
+          .filter(Boolean)
+          .join("\n\n---\n\n"),
         metadata: { ...angleResponse.metadata, progressUpdates: progressLines.length },
       };
     }
+    case "score": {
+      if (!handlers.score) {
+        return { markdown: "❌ Scoring is not available in this context." };
+      }
+      // Score ideas from the last results in context
+      const ideas = context?.lastResults?.flatMap((r) =>
+        r.ideas.map((i) => ({ title: i.title, description: i.description }))
+      );
+      if (!ideas?.length) {
+        return { markdown: "❌ No ideas to score. Run `/investigate` or `/auto` first." };
+      }
+      const scored = await handlers.score(ideas);
+      const rows = scored
+        .sort(
+          (a, b) => b.novelty + b.feasibility + b.impact - (a.novelty + a.feasibility + a.impact)
+        )
+        .map(
+          (s, i) =>
+            `| ${i + 1} | ${s.title} | ${s.novelty}/10 | ${s.feasibility}/10 | ${s.impact}/10 |`
+        )
+        .join("\n");
+      return {
+        markdown: `## 📊 Idea Scores\n\n| # | Idea | Novelty | Feasibility | Impact |\n|---|------|---------|-------------|--------|\n${rows}`,
+        metadata: { ideasScored: scored.length },
+      };
+    }
+    case "status": {
+      if (!context) {
+        return { markdown: "No active session context." };
+      }
+      const parts = [`**Session Status**`, `- Turns: ${context.turnCount ?? 0}`];
+      if (context.lastSubject) parts.push(`- Subject: ${context.lastSubject}`);
+      if (context.lastResults)
+        parts.push(
+          `- Ideas generated: ${context.lastResults.reduce((s, r) => s + r.ideas.length, 0)}`
+        );
+      if (context.lastSynthesis) parts.push(`- Synthesis: ✅`);
+      return { markdown: parts.join("\n") };
+    }
     default:
-      return { markdown: `Unknown command: \`${cmd.command}\`. Type \`@innovator help\` for available commands.` };
+      return {
+        markdown: `Unknown command: \`${cmd.command}\`. Type \`@innovator help\` for available commands.`,
+      };
   }
 }
 
@@ -362,4 +473,3 @@ export function formatWithCollapsible(title: string, content: string, defaultOpe
 export function buildStreamingResponse(chunks: string[]): string {
   return chunks.join("");
 }
-
