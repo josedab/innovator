@@ -3,6 +3,7 @@
 import { useMemo, useState, useCallback } from "react";
 import type { AngleResult, Synthesis } from "@innovator/core/types";
 
+/** A node in the idea relationship graph, representing a single idea. */
 interface IdeaNode {
   id: string;
   label: string;
@@ -15,6 +16,7 @@ interface IdeaNode {
   y: number;
 }
 
+/** A weighted edge connecting two idea nodes that share keywords. */
 interface IdeaEdge {
   source: string;
   target: string;
@@ -67,6 +69,7 @@ const STOP_WORDS = new Set([
   "more",
 ]);
 
+/** Extract unique keywords from text, filtering out stop words and short tokens. */
 export function extractKeywords(text: string): string[] {
   return text
     .toLowerCase()
@@ -79,6 +82,7 @@ export function extractKeywords(text: string): string[] {
     }, []);
 }
 
+/** Compute Jaccard similarity (|intersection| / |union|) between two keyword lists. */
 export function jaccardSimilarity(a: string[], b: string[]): number {
   const setA = new Set(a);
   const setB = new Set(b);
@@ -87,6 +91,7 @@ export function jaccardSimilarity(a: string[], b: string[]): number {
   return union.size === 0 ? 0 : intersection.length / union.size;
 }
 
+/** Props for the {@link IdeaMap} component. */
 interface IdeaMapProps {
   angleResults: AngleResult[];
   synthesis?: Synthesis | null;
@@ -112,6 +117,7 @@ export function IdeaMap({ angleResults, synthesis }: IdeaMapProps) {
         keywordsMap.set(nodeId, keywords);
 
         const text = `${idea.potentialImpact} ${idea.description}`.toLowerCase();
+        // Heuristic impact score: base of 5, boosted by high-impact keywords
         let score = 5;
         if (text.match(/revolutionary|transformative|breakthrough/)) score += 2;
         if (text.match(/significant|substantial/)) score += 1;
@@ -136,12 +142,16 @@ export function IdeaMap({ angleResults, synthesis }: IdeaMapProps) {
     const cy = height / 2;
     const radius = Math.min(width, height) * 0.35;
 
+    // Circular layout: distribute angle groups evenly around a circle,
+    // then offset individual nodes within each group perpendicular to the radius
     const positioned: IdeaNode[] = nodesRaw.map((node, idx) => {
       const groupIdx = angleGroups.indexOf(node.angleId);
+      // Angle on the circle for this group (start at top: -π/2)
       const groupAngle = (groupIdx / angleGroups.length) * 2 * Math.PI - Math.PI / 2;
       const nodesInGroup = nodesRaw.filter((n) => n.angleId === node.angleId);
       const inGroupIdx = nodesInGroup.indexOf(node);
       const spread = 0.3;
+      // Offset along the tangent direction so nodes in the same group don't overlap
       const offset = (inGroupIdx - (nodesInGroup.length - 1) / 2) * 30;
 
       return {
@@ -151,7 +161,7 @@ export function IdeaMap({ angleResults, synthesis }: IdeaMapProps) {
       };
     });
 
-    // Build edges
+    // Build edges between all node pairs whose keyword similarity ≥ 0.1 (Jaccard threshold)
     const edgesArr: IdeaEdge[] = [];
     const nodeIds = positioned.map((n) => n.id);
     for (let i = 0; i < nodeIds.length; i++) {
