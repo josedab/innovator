@@ -18,6 +18,8 @@ const sidebars: SidebarsConfig = {
         "guides/events-webhooks",
         "guides/v1-api",
         "guides/bot",
+        "guides/provider-setup",
+        "guides/copilot-extension",
         "guides/deployment",
       ],
     },
