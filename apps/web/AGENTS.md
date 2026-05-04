@@ -80,7 +80,7 @@ apps/web/src/
 
 ### State Machine
 
-- `appReducer.ts` manages the UI flow: `idle → investigating → selecting → generating → complete`
+- `appReducer.ts` manages the UI flow: `input → investigating → explored → innovating → results | auto`
 - All UI state transitions go through this reducer
 
 ## Testing
