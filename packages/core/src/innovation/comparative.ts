@@ -180,3 +180,148 @@ export async function runComparativePipeline(
   onProgress({ ...progress });
   return progress;
 }
+
+// ---- Multi-Subject Parallel Investigation ----
+
+/** Result of a parallel multi-subject investigation without full pipeline. */
+export interface ParallelInvestigationResult {
+  subjects: string[];
+  investigations: Array<{
+    subject: string;
+    investigation: Investigation;
+    status: "completed" | "failed";
+    error?: string;
+  }>;
+  crossSubjectSynthesis?: ComparativeSynthesis;
+  competitiveMap?: CompetitiveMap;
+  stage: "completed" | "partial" | "failed";
+}
+
+/** Competitive positioning map across subjects. */
+export interface CompetitiveMap {
+  subjects: Array<{
+    subject: string;
+    strengths: string[];
+    weaknesses: string[];
+    uniqueAngles: string[];
+  }>;
+  overlapAreas: string[];
+  differentiators: Array<{ subject: string; differentiator: string }>;
+  recommendation: string;
+}
+
+/**
+ * Run parallel investigations across multiple subjects and produce
+ * cross-subject comparative synthesis with competitive mapping.
+ */
+export async function runParallelInvestigation(
+  subjects: string[],
+  options?: {
+    model?: string;
+    signal?: AbortSignal;
+    includeCompetitiveMap?: boolean;
+    onProgress?: (completed: number, total: number) => void;
+  }
+): Promise<ParallelInvestigationResult> {
+  if (subjects.length < 2 || subjects.length > 10) {
+    throw new Error("Parallel investigation requires 2-10 subjects");
+  }
+
+  const investigations: ParallelInvestigationResult["investigations"] = [];
+
+  // Investigate all subjects (sequentially to avoid rate limits)
+  for (let i = 0; i < subjects.length; i++) {
+    if (options?.signal?.aborted) break;
+    options?.onProgress?.(i, subjects.length);
+
+    try {
+      const inv = await investigate(subjects[i], options?.model, options?.signal);
+      investigations.push({ subject: subjects[i], investigation: inv, status: "completed" });
+    } catch (err) {
+      investigations.push({
+        subject: subjects[i],
+        investigation: {
+          summary: "",
+          keyAspects: [],
+          currentState: "",
+          challenges: [],
+          opportunities: [],
+        },
+        status: "failed",
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  const completed = investigations.filter((i) => i.status === "completed");
+  if (completed.length < 2) {
+    return { subjects, investigations, stage: "failed" };
+  }
+
+  // Cross-subject synthesis
+  let crossSubjectSynthesis: ComparativeSynthesis | undefined;
+  try {
+    const prompt = buildComparativeSynthesisPrompt(
+      completed.map((c) => c.subject),
+      completed
+    );
+    const raw = await generateText({
+      prompt,
+      model: options?.model,
+      serverMode: true,
+      signal: options?.signal,
+    });
+    const jsonStr = extractJson(raw);
+    crossSubjectSynthesis = JSON.parse(jsonStr) as ComparativeSynthesis;
+  } catch {
+    // Continue without synthesis
+  }
+
+  // Competitive map
+  let competitiveMap: CompetitiveMap | undefined;
+  if (options?.includeCompetitiveMap && completed.length >= 2) {
+    try {
+      competitiveMap = await buildCompetitiveMap(completed, options?.model, options?.signal);
+    } catch {
+      // Continue without competitive map
+    }
+  }
+
+  options?.onProgress?.(subjects.length, subjects.length);
+
+  return {
+    subjects,
+    investigations,
+    crossSubjectSynthesis,
+    competitiveMap,
+    stage: completed.length === subjects.length ? "completed" : "partial",
+  };
+}
+
+async function buildCompetitiveMap(
+  results: Array<{ subject: string; investigation: Investigation }>,
+  model?: string,
+  signal?: AbortSignal
+): Promise<CompetitiveMap> {
+  const prompt = `You are a competitive intelligence analyst. Compare the following subjects side by side and create a competitive positioning map.
+
+${results.map((r) => `SUBJECT: ${sanitizeUserInput(r.subject)}
+Summary: ${sanitizeUserInput(r.investigation.summary)}
+Opportunities: ${r.investigation.opportunities.map((o) => sanitizeUserInput(o)).join("; ")}
+Challenges: ${r.investigation.challenges.map((c) => sanitizeUserInput(c)).join("; ")}
+`).join("\n---\n")}
+
+You MUST respond with valid JSON only:
+{
+  "subjects": [
+    { "subject": "Subject name", "strengths": ["strength1"], "weaknesses": ["weakness1"], "uniqueAngles": ["unique angle"] }
+  ],
+  "overlapAreas": ["Area where subjects overlap"],
+  "differentiators": [{ "subject": "Subject name", "differentiator": "What makes it unique" }],
+  "recommendation": "Strategic recommendation for pursuing or prioritizing these subjects"
+}`;
+
+  const raw = await generateText({ prompt, model, serverMode: true, signal });
+  const jsonStr = extractJson(raw);
+  return JSON.parse(jsonStr) as CompetitiveMap;
+}
