@@ -174,7 +174,13 @@ Only include meaningful relationships (strength > 0.3). Identify 2-5 clusters.`;
         const jsonStr = extractJson(raw);
         try {
           return JSON.parse(jsonStr) as {
-            edges: Array<{ source: string; target: string; relationship: string; strength: number; reasoning: string }>;
+            edges: Array<{
+              source: string;
+              target: string;
+              relationship: string;
+              strength: number;
+              reasoning: string;
+            }>;
             ideaScores?: Array<{ id: string; impactScore: number; complexityScore: number }>;
             clusters?: Array<{ label: string; nodeIds: string[] }>;
           };
@@ -186,8 +192,7 @@ Only include meaningful relationships (strength > 0.3). Identify 2-5 clusters.`;
         signal,
         isRetryable: (err) =>
           err instanceof Error &&
-          (err.message.includes("Failed to parse") ||
-            err.message.includes("No JSON object found")),
+          (err.message.includes("Failed to parse") || err.message.includes("No JSON object found")),
       }
     );
 
@@ -215,9 +220,7 @@ Only include meaningful relationships (strength > 0.3). Identify 2-5 clusters.`;
     }
 
     if (parsed.clusters) {
-      clusters = parsed.clusters.filter((c) =>
-        c.nodeIds.every((id) => nodeIds.has(id))
-      );
+      clusters = parsed.clusters.filter((c) => c.nodeIds.every((id) => nodeIds.has(id)));
     }
   } catch {
     // Fall back to empty relationships if LLM fails
@@ -329,7 +332,10 @@ function findCriticalPath(
   for (const id of sorted) {
     const currentDist = dist.get(id) ?? 0;
     for (const edge of edges) {
-      if (edge.source === id && (edge.relationship === "enables" || edge.relationship === "requires")) {
+      if (
+        edge.source === id &&
+        (edge.relationship === "enables" || edge.relationship === "requires")
+      ) {
         const target = edge.relationship === "enables" ? edge.target : edge.source;
         const targetNode = nodes.find((n) => n.id === target);
         const newDist = currentDist + (targetNode?.impactScore ?? 0);
@@ -441,7 +447,9 @@ export function dependencyGraphToMarkdown(graph: IdeaDependencyGraph): string {
       const node = graph.nodes.find((n) => n.id === nodeId);
       if (node) {
         const cp = node.isCriticalPath ? " ⚡ CRITICAL PATH" : "";
-        lines.push(`- **${node.title}** (Impact: ${node.impactScore}/10, Complexity: ${node.complexityScore}/10)${cp}`);
+        lines.push(
+          `- **${node.title}** (Impact: ${node.impactScore}/10, Complexity: ${node.complexityScore}/10)${cp}`
+        );
       }
     }
     lines.push("");
@@ -466,10 +474,63 @@ export function dependencyGraphToMarkdown(graph: IdeaDependencyGraph): string {
     for (const edge of graph.edges) {
       const source = graph.nodes.find((n) => n.id === edge.source)?.title ?? edge.source;
       const target = graph.nodes.find((n) => n.id === edge.target)?.title ?? edge.target;
-      lines.push(`| ${source} | → | ${target} | ${edge.relationship} | ${(edge.strength * 100).toFixed(0)}% |`);
+      lines.push(
+        `| ${source} | → | ${target} | ${edge.relationship} | ${(edge.strength * 100).toFixed(0)}% |`
+      );
     }
     lines.push("");
   }
+
+  return lines.join("\n");
+}
+
+/**
+ * Export the dependency graph as a Mermaid diagram.
+ */
+export function dependencyGraphToMermaid(graph: IdeaDependencyGraph): string {
+  const lines: string[] = ["graph TD"];
+
+  // Add node definitions
+  for (const node of graph.nodes) {
+    const label = node.title.replace(/"/g, "'").slice(0, 60);
+    const shape = node.isCriticalPath ? `${node.id}[["${label}"]]` : `${node.id}["${label}"]`;
+    lines.push(`  ${shape}`);
+  }
+
+  lines.push("");
+
+  // Relationship type to Mermaid arrow style
+  const arrowStyles: Record<string, string> = {
+    enables: "-->",
+    requires: "-.->",
+    conflicts: "--x",
+    complements: "<-->",
+    extends: "==>",
+  };
+
+  for (const edge of graph.edges) {
+    const arrow = arrowStyles[edge.relationship] ?? "-->";
+    const label = edge.relationship;
+    lines.push(`  ${edge.source} ${arrow}|${label}| ${edge.target}`);
+  }
+
+  // Style critical path nodes
+  const criticalNodes = graph.nodes.filter((n) => n.isCriticalPath);
+  if (criticalNodes.length > 0) {
+    lines.push("");
+    lines.push(`  classDef critical fill:#ff6b6b,stroke:#c0392b,color:#fff`);
+    lines.push(`  class ${criticalNodes.map((n) => n.id).join(",")} critical`);
+  }
+
+  // Style clusters with colors
+  const clusterColors = ["#74b9ff", "#a29bfe", "#55efc4", "#ffeaa7", "#fab1a0"];
+  graph.clusters.forEach((cluster, idx) => {
+    if (cluster.nodeIds.length > 0) {
+      const color = clusterColors[idx % clusterColors.length];
+      lines.push(`  classDef cluster${idx} fill:${color},stroke:#636e72`);
+      lines.push(`  class ${cluster.nodeIds.join(",")} cluster${idx}`);
+    }
+  });
 
   return lines.join("\n");
 }
