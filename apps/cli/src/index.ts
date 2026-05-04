@@ -2968,4 +2968,42 @@ program
   });
 
 
+// ---- Regulatory Simulator ----
+program
+  .command("regulatory <ideaTitle>")
+  .description("Simulate regulatory compliance across jurisdictions")
+  .argument("[description]", "Idea description")
+  .option("-m, --model <model>", "LLM model to use")
+  .option("--jurisdictions <list>", "Comma-separated jurisdictions")
+  .action(async (ideaTitle: string, description: string | undefined, opts: { model?: string; jurisdictions?: string }) => {
+    if (opts.model && !validateModelWithLog(opts.model)) return;
+    const { simulateRegulatory } = await import("@innovator/core");
+    const spinner = ora("Simulating regulatory compliance...").start();
+    try {
+      const jurisdictions = opts.jurisdictions?.split(",").map((j) => j.trim());
+      const result = await simulateRegulatory(
+        { title: ideaTitle, description: description ?? ideaTitle, impact: "", implementationHint: "" },
+        { model: opts.model, jurisdictions }
+      );
+      spinner.stop();
+      console.log(chalk.bold(`\n⚖️  Regulatory Simulation: ${result.ideaTitle}\n`));
+      const statusColor = { green: chalk.green, yellow: chalk.yellow, red: chalk.red };
+      for (const j of result.jurisdictions) {
+        const color = statusColor[j.overallStatus];
+        console.log(`  ${color(`[${j.overallStatus.toUpperCase()}]`)} ${j.jurisdiction} — ${(j.overallScore * 100).toFixed(0)}% (${j.recommendation})`);
+      }
+      if (result.lowestRiskJurisdictions.length > 0) {
+        console.log(chalk.bold(`\n  Lowest risk:`), chalk.green(result.lowestRiskJurisdictions.join(", ")));
+      }
+      if (result.highestRiskJurisdictions.length > 0) {
+        console.log(chalk.bold(`  Highest risk:`), chalk.red(result.highestRiskJurisdictions.join(", ")));
+      }
+    } catch (err) {
+      spinner.fail("Regulatory simulation failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+
 program.parse();
