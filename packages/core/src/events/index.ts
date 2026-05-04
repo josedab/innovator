@@ -38,3 +38,15 @@ export type {
   AutomationRule,
   AutomationLogEntry,
 } from "./automation.js";
+
+// Webhook templates
+export {
+  getWebhookTemplate,
+  listWebhookTemplates,
+  WEBHOOK_TEMPLATES,
+  SLACK_TEMPLATE,
+  GITHUB_ISSUES_TEMPLATE,
+  JIRA_TEMPLATE,
+  EMAIL_TEMPLATE,
+} from "./templates.js";
+export type { WebhookTemplate } from "./templates.js";
