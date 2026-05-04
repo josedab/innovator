@@ -2736,3 +2736,36 @@ export type {
   VisualizationResult,
   NLVisualizationConfig,
 } from "./nl-visualization/index.js";
+
+/** Innovation Social Network — follow, like, share, trending, discussions. */
+export {
+  getProfile,
+  followUser,
+  unfollowUser,
+  shareIdea,
+  likeIdea,
+  unlikeIdea,
+  commentOnIdea,
+  repostIdea,
+  getTrendingIdeas,
+  getUserFeed,
+  getGlobalFeed,
+  publishStory,
+  getStories,
+  searchIdeas,
+  clearSocialData,
+  SocialProfileSchema,
+  SharedIdeaSchema,
+  SocialCommentSchema,
+  FeedEventSchema,
+  InnovationStorySchema,
+  TrendingIdeaSchema,
+} from "./social/index.js";
+export type {
+  SocialProfile,
+  SharedIdea,
+  SocialComment,
+  FeedEvent,
+  InnovationStory,
+  TrendingIdea,
+} from "./social/index.js";
