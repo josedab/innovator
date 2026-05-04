@@ -335,11 +335,21 @@ export {
   replayRun,
   compareRuns,
   comparisonToMarkdown,
+  buildTimeline,
+  getSnapshot,
+  createBranchFromSnapshot,
+  forkRun,
+  listBranchesForRun,
+  getExplorationTree as getReplayExplorationTree,
+  timeTravel,
+  clearTimeline,
   PromptRecordSchema,
   RunRecordSchema,
   RunComparisonSchema,
+  TimelineSnapshotSchema,
+  TimelineBranchSchema,
 } from "./replay/index.js";
-export type { PromptRecord, RunRecord, RunComparison, ReplayOverrides } from "./replay/index.js";
+export type { PromptRecord, RunRecord, RunComparison, ReplayOverrides, TimelineSnapshot, TimelineBranch } from "./replay/index.js";
 
 /** Audience-adaptive output — transform results for executive, technical, pitch, or research audiences. */
 export {
@@ -2036,3 +2046,226 @@ export type {
   Badge,
   CommunityLeaderboardEntry,
 } from "./gamification/challenges.js";
+
+/** Codebase analysis — AST-based code pattern detection and innovation subject generation. */
+export {
+  analyzeCodebase,
+  analyzeCodebaseSync,
+  discoverFiles,
+  analyzeFile,
+  detectPatterns,
+  analyzeDependencies,
+  discoverLayers,
+  generateSubjects,
+  analysisToMarkdown,
+  CodePatternSchema,
+  DependencyAnalysisSchema,
+  ArchitecturalLayerSchema,
+  FileComplexitySchema,
+  CodebaseSubjectSchema,
+  CodebaseAnalysisSchema,
+} from "./codebase-analysis/index.js";
+export type {
+  CodePattern,
+  DependencyAnalysis,
+  ArchitecturalLayer,
+  FileComplexity,
+  CodebaseSubject,
+  CodebaseAnalysis,
+  CodebaseAnalysisOptions,
+} from "./codebase-analysis/index.js";
+
+/** Output contracts — custom Zod schemas for structured innovation output. */
+export {
+  registerContract,
+  unregisterContract,
+  getContract,
+  listContracts,
+  clearContracts,
+  validateAgainstContract,
+  transformToContract,
+  registerBuiltInContracts,
+  createContractFromBuilder,
+  MinimalIdeaSchema,
+  JiraIssueSchema,
+  GitHubIssueSchema,
+  SlackMessageSchema,
+  OutputContractSchema,
+  ContractValidationResultSchema,
+  FieldMappingSchema,
+  TransformConfigSchema,
+} from "./output-contracts/index.js";
+export type {
+  OutputContract,
+  ContractValidationResult,
+  FieldMapping,
+  TransformConfig,
+  RegisteredContract,
+} from "./output-contracts/index.js";
+
+/** Innovation-as-PR — one-click workflow: top idea → branch → scaffold → PR. */
+export {
+  selectTopIdea,
+  generateBranchName,
+  generatePRBody,
+  buildPRWorkflow,
+  innovationToPR,
+  workflowToScript,
+  PRConfigSchema,
+  GitCommandSchema,
+  PRWorkflowPlanSchema,
+  PRResultSchema,
+} from "./innovation-pr/index.js";
+export type {
+  PRConfig,
+  GitCommand,
+  PRWorkflowPlan,
+  PRResult,
+} from "./innovation-pr/index.js";
+
+/** Angle Studio — visual pipeline editor for angle composition. */
+export {
+  createPipeline as createStudioPipeline,
+  getPipeline as getStudioPipeline,
+  listPipelines as listStudioPipelines,
+  deletePipeline as deleteStudioPipeline,
+  clearPipelines as clearStudioPipelines,
+  addNode as addStudioNode,
+  removeNode as removeStudioNode,
+  moveNode as moveStudioNode,
+  updateNodeConfig,
+  reorderNodes,
+  addConnection as addStudioConnection,
+  removeConnection as removeStudioConnection,
+  validatePipeline,
+  createFromTemplate,
+  extractAngleOrder,
+  serializePipeline,
+  importPipeline,
+  StudioPositionSchema,
+  StudioNodeSchema,
+  StudioConnectionSchema,
+  AnglePipelineSchema,
+  PipelineValidationSchema,
+} from "./angle-studio/index.js";
+export type {
+  StudioPosition,
+  StudioNode,
+  StudioConnection,
+  AnglePipeline,
+  PipelineValidation,
+} from "./angle-studio/index.js";
+
+/** Innovation Digest — periodic AI-generated summaries via email, Slack, RSS. */
+export {
+  createSubscription as createDigestSubscription,
+  getSubscription as getDigestSubscription,
+  listSubscriptions as listDigestSubscriptions,
+  updateSubscription as updateDigestSubscription,
+  deleteSubscription as deleteDigestSubscription,
+  generateDigest,
+  getGeneratedDigests,
+  digestToMarkdown,
+  digestToSlack,
+  digestToRSS,
+  getDueSubscriptions,
+  clearDigests,
+  DigestFrequencySchema,
+  DeliveryChannelSchema,
+  DigestSubscriptionSchema,
+  DigestIdeaSchema,
+  DigestSectionSchema,
+  InnovationDigestSchema,
+  RSSItemSchema,
+} from "./digest/index.js";
+export type {
+  DigestFrequency,
+  DeliveryChannel,
+  DigestSubscription,
+  DigestIdea,
+  DigestSection,
+  InnovationDigest,
+  RSSItem,
+  DigestInput,
+} from "./digest/index.js";
+
+/** Evidence-Based Idea Enrichment — market data, competitors, trends. */
+export {
+  enrichIdea,
+  enrichIdeaHeuristic,
+  enrichIdeas,
+  enrichmentToMarkdown,
+  registerEnrichmentProvider,
+  unregisterEnrichmentProvider,
+  listEnrichmentProviders,
+  clearEnrichmentProviders,
+  EvidenceItemSchema as EnrichmentEvidenceItemSchema,
+  MarketSizeSchema,
+  CompetitorSchema,
+  EnrichedIdeaSchema,
+  EnrichmentConfigSchema,
+} from "./enrichment/index.js";
+export type {
+  EvidenceItem as EnrichmentEvidenceItem,
+  MarketSize,
+  Competitor,
+  EnrichedIdea,
+  EnrichmentConfig,
+  EnrichmentProvider,
+} from "./enrichment/index.js";
+
+/** Innovation Skill Trees — XP system, skill progression, unlockable features. */
+export {
+  awardXP,
+  getUserProgress,
+  getUserLevel,
+  hasSkill,
+  isFeatureUnlocked,
+  getSkillTreeWithProgress,
+  unlockSkill,
+  getXPHistory,
+  getXPLeaderboard,
+  clearSkillTrees,
+  SKILL_TREE,
+  LEVELS,
+  XP_REWARDS,
+  SkillCategorySchema,
+  SkillNodeSchema,
+  XPEventSchema,
+  UserSkillProgressSchema,
+  LevelDefinitionSchema,
+} from "./gamification/skill-trees.js";
+export type {
+  SkillCategory,
+  SkillNode,
+  XPEvent,
+  UserSkillProgress,
+  LevelDefinition,
+} from "./gamification/skill-trees.js";
+
+/** Cross-Org Benchmarking — anonymous metrics comparison across organizations. */
+export {
+  submitMetrics,
+  compareToPeers,
+  getNetworkStats,
+  benchmarkToMarkdown as crossOrgBenchmarkToMarkdown,
+  clearBenchmarkData,
+  OrgMetricsSchema,
+  BenchmarkComparisonSchema,
+  NetworkStatsSchema,
+} from "./cross-org-benchmark/index.js";
+export type {
+  OrgMetrics,
+  BenchmarkComparison,
+  NetworkStats,
+} from "./cross-org-benchmark/index.js";
+
+/** ML-based angle recommendation — historical learning for angle suggestions. */
+export {
+  recommendAnglesML,
+  recordHistoricalSession,
+  getHistoricalSessions,
+  clearHistoricalSessions,
+  getAngleEffectivenessStats,
+} from "./recommendation/index.js";
+export type { HistoricalSession } from "./recommendation/index.js";
