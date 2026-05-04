@@ -39,3 +39,15 @@ GIT_USER=<Your GitHub username> npx docusaurus deploy
 ```
 
 If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+
+## Environment Variables
+
+The documentation site uses [Algolia DocSearch](https://docsearch.algolia.com/) for full-text search. Set these environment variables before building for production:
+
+| Variable             | Description                      | Default       |
+| -------------------- | -------------------------------- | ------------- |
+| `ALGOLIA_APP_ID`     | Algolia application ID           | `PLACEHOLDER` |
+| `ALGOLIA_SEARCH_KEY` | Algolia search-only API key      | `PLACEHOLDER` |
+| `ALGOLIA_INDEX_NAME` | Algolia index name for this site | `innovator`   |
+
+For local development, the defaults are fine — search will be non-functional but the site will build and run normally. For production, apply for [Algolia DocSearch](https://docsearch.algolia.com/apply/) or configure your own Algolia account and set these variables in your deployment environment.
