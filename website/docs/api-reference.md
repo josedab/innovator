@@ -9,7 +9,7 @@ sidebar_position: 5
 Complete reference for the `@innovator/core` package and web API routes.
 
 :::tip Auto-Generated API Docs
-For detailed, auto-generated documentation of every exported symbol, see the [TypeDoc API reference](/docs/api/).
+For detailed, auto-generated documentation of every exported symbol (including full type signatures and source links), see the [TypeDoc API reference](/docs/api/). This page provides a curated overview with usage examples; the TypeDoc reference covers the complete API surface.
 :::
 
 ## Client vs Server Imports
