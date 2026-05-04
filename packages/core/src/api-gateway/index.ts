@@ -45,15 +45,22 @@ export const UsageSummarySchema = z.object({
   averageLatencyMs: z.number(),
   errorRate: z.number().min(0).max(1),
   endpointBreakdown: z.record(z.number()),
-  dailyUsage: z.array(z.object({
-    date: z.string(),
-    calls: z.number(),
-  })),
+  dailyUsage: z.array(
+    z.object({
+      date: z.string(),
+      calls: z.number(),
+    })
+  ),
 });
 
 export const WebhookEventSchema = z.object({
   id: z.string(),
-  type: z.enum(["pipeline.complete", "investigation.complete", "usage.limit.warning", "usage.limit.reached"]),
+  type: z.enum([
+    "pipeline.complete",
+    "investigation.complete",
+    "usage.limit.warning",
+    "usage.limit.reached",
+  ]),
   payload: z.record(z.unknown()),
   timestamp: z.string(),
   keyId: z.string(),
@@ -166,15 +173,12 @@ export function getUsageSummary(keyId: string, periodDays: number = 30): UsageSu
   const key = apiKeys.get(keyId);
   const cutoff = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
 
-  const records = usageRecords.filter(
-    (r) => r.keyId === keyId && r.timestamp >= cutoff
-  );
+  const records = usageRecords.filter((r) => r.keyId === keyId && r.timestamp >= cutoff);
 
   const totalCalls = records.length;
   const totalTokens = records.reduce((s, r) => s + (r.tokensUsed ?? 0), 0);
-  const avgLatency = totalCalls > 0
-    ? records.reduce((s, r) => s + r.durationMs, 0) / totalCalls
-    : 0;
+  const avgLatency =
+    totalCalls > 0 ? records.reduce((s, r) => s + r.durationMs, 0) / totalCalls : 0;
   const errors = records.filter((r) => r.statusCode >= 400).length;
 
   const endpointBreakdown: Record<string, number> = {};
@@ -300,68 +304,247 @@ export function getOpenApiSpec(): Record<string, unknown> {
           name: "X-API-Key",
         },
       },
+      schemas: {
+        Investigation: {
+          type: "object",
+          properties: {
+            summary: { type: "string", description: "Brief summary of the investigation" },
+            currentState: { type: "string", description: "Current state of the subject area" },
+            keyAspects: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  description: { type: "string" },
+                },
+                required: ["title", "description"],
+              },
+            },
+            challenges: { type: "array", items: { type: "string" } },
+            opportunities: { type: "array", items: { type: "string" } },
+          },
+          required: ["summary", "currentState", "keyAspects", "challenges", "opportunities"],
+        },
+        AngleResult: {
+          type: "object",
+          properties: {
+            angleId: { type: "string", description: "Angle identifier" },
+            angleName: { type: "string", description: "Human-readable angle name" },
+            reasoning: { type: "string", description: "How the angle was applied" },
+            ideas: {
+              type: "array",
+              items: { $ref: "#/components/schemas/Idea" },
+            },
+          },
+          required: ["angleId", "angleName", "reasoning", "ideas"],
+        },
+        Idea: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            description: { type: "string" },
+            potentialImpact: { type: "string" },
+            implementationHint: { type: "string" },
+          },
+          required: ["title", "description", "potentialImpact", "implementationHint"],
+        },
+        Synthesis: {
+          type: "object",
+          properties: {
+            topIdeas: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  description: { type: "string" },
+                  sourceAngle: { type: "string" },
+                  potentialImpact: { type: "string" },
+                  feasibility: { type: "string", enum: ["low", "medium", "high"] },
+                },
+                required: ["title", "description", "sourceAngle", "potentialImpact", "feasibility"],
+              },
+            },
+            themes: { type: "array", items: { type: "string" } },
+            recommendation: { type: "string" },
+          },
+          required: ["topIdeas", "themes", "recommendation"],
+        },
+        Error: {
+          type: "object",
+          properties: {
+            error: { type: "string", description: "Error message" },
+            code: { type: "string", description: "Error code" },
+          },
+          required: ["error"],
+        },
+      },
     },
     paths: {
       "/investigate": {
         post: {
           summary: "Investigate a subject",
+          description:
+            "Analyze a subject to identify key aspects, challenges, and opportunities for innovation.",
           requestBody: {
+            required: true,
             content: {
               "application/json": {
                 schema: {
                   type: "object",
                   required: ["subject"],
                   properties: {
-                    subject: { type: "string", maxLength: 500 },
-                    model: { type: "string" },
+                    subject: {
+                      type: "string",
+                      maxLength: 500,
+                      description: "The subject to investigate",
+                    },
+                    model: { type: "string", description: "LLM model override" },
                   },
                 },
               },
             },
           },
-          responses: { "200": { description: "Investigation result" } },
+          responses: {
+            "200": {
+              description: "Investigation result",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/Investigation" },
+                },
+              },
+            },
+            "400": {
+              description: "Invalid request",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/Error" },
+                },
+              },
+            },
+            "401": { description: "Unauthorized — invalid or missing API key" },
+            "429": { description: "Rate limit exceeded" },
+          },
         },
       },
       "/innovate": {
         post: {
           summary: "Generate innovation ideas",
+          description: "Generate innovation ideas for a subject using specified creativity angles.",
           requestBody: {
+            required: true,
             content: {
               "application/json": {
                 schema: {
                   type: "object",
                   required: ["subject", "investigation", "angles"],
                   properties: {
-                    subject: { type: "string" },
-                    investigation: { type: "object" },
-                    angles: { type: "array", items: { type: "string" } },
-                    model: { type: "string" },
+                    subject: { type: "string", description: "The subject to innovate on" },
+                    investigation: { $ref: "#/components/schemas/Investigation" },
+                    angles: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "Array of angle IDs to use",
+                    },
+                    model: { type: "string", description: "LLM model override" },
                   },
                 },
               },
             },
           },
-          responses: { "200": { description: "Innovation results" } },
+          responses: {
+            "200": {
+              description: "Innovation results",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      results: {
+                        type: "array",
+                        items: { $ref: "#/components/schemas/AngleResult" },
+                      },
+                    },
+                    required: ["results"],
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "Invalid request",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/Error" },
+                },
+              },
+            },
+            "401": { description: "Unauthorized — invalid or missing API key" },
+            "429": { description: "Rate limit exceeded" },
+          },
         },
       },
       "/auto": {
         post: {
           summary: "Run full innovation pipeline with streaming",
+          description:
+            "Run the complete pipeline (investigate → generate → synthesize) with SSE streaming progress updates.",
           requestBody: {
+            required: true,
             content: {
               "application/json": {
                 schema: {
                   type: "object",
                   required: ["subject"],
                   properties: {
-                    subject: { type: "string", maxLength: 500 },
-                    model: { type: "string" },
+                    subject: {
+                      type: "string",
+                      maxLength: 500,
+                      description: "The subject for the full pipeline",
+                    },
+                    model: { type: "string", description: "LLM model override" },
                   },
                 },
               },
             },
           },
-          responses: { "200": { description: "SSE stream of pipeline progress" } },
+          responses: {
+            "200": {
+              description: "SSE stream of pipeline progress events",
+              content: {
+                "text/event-stream": {
+                  schema: {
+                    type: "object",
+                    description:
+                      "Server-Sent Events stream. Each event is a JSON object with stage, data, and progress fields.",
+                    properties: {
+                      stage: {
+                        type: "string",
+                        enum: ["investigating", "generating", "synthesizing", "complete", "error"],
+                      },
+                      investigation: { $ref: "#/components/schemas/Investigation" },
+                      angleResults: {
+                        type: "array",
+                        items: { $ref: "#/components/schemas/AngleResult" },
+                      },
+                      synthesis: { $ref: "#/components/schemas/Synthesis" },
+                      error: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "Invalid request",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/Error" },
+                },
+              },
+            },
+            "401": { description: "Unauthorized — invalid or missing API key" },
+            "429": { description: "Rate limit exceeded" },
+          },
         },
       },
     },
