@@ -24,7 +24,7 @@ const config: Config = {
     locales: ["en"],
   },
 
-  themes: ["@docusaurus/theme-search-algolia"].includes("") ? [] : [],
+  themes: [],
 
   presets: [
     [
@@ -105,6 +105,11 @@ const config: Config = {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
       additionalLanguages: ["bash", "json"],
+    },
+    algolia: {
+      appId: process.env.ALGOLIA_APP_ID ?? "PLACEHOLDER",
+      apiKey: process.env.ALGOLIA_SEARCH_KEY ?? "PLACEHOLDER",
+      indexName: process.env.ALGOLIA_INDEX_NAME ?? "innovator",
     },
   } satisfies Preset.ThemeConfig,
 };
