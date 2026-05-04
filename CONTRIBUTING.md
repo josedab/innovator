@@ -164,6 +164,7 @@ All commands are run from the monorepo root.
   | `tabWidth`      | `2`     |
 
 - **Linting** — ESLint is configured; pre-commit hooks run automatically via husky. On commit, husky runs [lint-staged](https://github.com/lint-staged/lint-staged) which auto-fixes ESLint issues and formats staged `.ts`/`.tsx` files, and formats `.json`, `.md`, and `.yml` files with Prettier. Staged files may be modified in place.
+- **Unused variables** — Prefix unused parameters, destructured items, or variables with an underscore (`_`) to suppress `no-unused-vars` lint errors (e.g., `_event`, `_unused`). This convention is configured in `eslint.config.mjs` via `argsIgnorePattern`, `destructuredArrayIgnorePattern`, and `varsIgnorePattern`.
 - **Commit messages** — [Conventional Commits](https://www.conventionalcommits.org/) are enforced automatically by [commitlint](https://commitlint.js.org/) (configured in `commitlint.config.mjs`) and [husky](https://typicode.github.io/husky/) git hooks. Non-conforming commits will be rejected locally.
 
   The `commit-msg` hook runs commitlint on every commit. If your message does not follow the conventional format, you will see an error like:
@@ -236,6 +237,8 @@ vi.mock("../copilot/client.js", () => ({
   extractJson: vi.fn(),
 }));
 ```
+
+> **Note:** These mock declarations are currently repeated inline in each test file. There are no shared test helpers or centralized mock setup files yet. If you find yourself writing the same mocks across multiple tests, consider extracting them into a shared helper — but keep the mocks co-located with the test files that use them until a formal convention is established.
 
 ### Test Fixtures
 
