@@ -232,7 +232,8 @@ export function middleware(request: NextRequest) {
     if (rateLimitResponse) return rateLimitResponse;
   }
 
-  // Concurrent in-flight request limit per IP
+  // Concurrent in-flight request limit per IP: prevents a single client from
+  // monopolizing server resources (e.g., holding open multiple long-running SSE streams)
   const currentInFlight = inFlightMap.get(ip) ?? 0;
   if (currentInFlight >= MAX_CONCURRENT_PER_IP) {
     return new NextResponse(
@@ -251,7 +252,8 @@ export function middleware(request: NextRequest) {
   if (inFlightMap.size < MAX_RATE_LIMIT_ENTRIES || inFlightMap.has(ip)) {
     inFlightMap.set(ip, currentInFlight + 1);
   } else {
-    // Map is full and this is a new IP — reject to prevent untracked requests
+    // Map is full and this is a new IP — reject to prevent unbounded memory growth
+    // from tracking too many unique IPs simultaneously
     return new NextResponse(
       JSON.stringify({ error: "Server is at capacity. Please try again later." }),
       {
@@ -269,8 +271,9 @@ export function middleware(request: NextRequest) {
   response.headers.set("X-Request-ID", requestId);
 
   // Decrement in-flight count after response completes.
-  // Note: Next.js middleware cannot hook into response completion, so we
-  // decrement after a generous timeout to prevent permanent counter leaks.
+  // Note: Next.js middleware cannot hook into response completion, so we use a
+  // 3-minute timeout as a safety net to prevent permanent counter leaks from
+  // dropped connections or long-running SSE streams.
   const decrementInFlight = () => {
     const count = inFlightMap.get(ip);
     if (count !== undefined) {
