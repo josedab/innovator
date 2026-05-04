@@ -30,9 +30,15 @@ export {
   buildCustomAnglePrompt,
   runComparativePipeline,
   buildComparativeSynthesisPrompt,
+  runParallelInvestigation,
 } from "./innovation/index.js";
 /** Types for comparative pipeline runs across multiple models. */
-export type { ComparativeProgress, ComparativeSynthesis } from "./innovation/index.js";
+export type {
+  ComparativeProgress,
+  ComparativeSynthesis,
+  ParallelInvestigationResult,
+  CompetitiveMap,
+} from "./innovation/index.js";
 
 /** Prompt builders for investigation and synthesis LLM calls. */
 export { buildInvestigationPrompt, buildSynthesisPrompt } from "./prompts/investigation.js";
@@ -75,12 +81,18 @@ export {
   compareSessions,
 } from "./history/index.js";
 
-/** Export — render sessions as Markdown, JSON, or GitHub Issues. */
+/** Export — render sessions as Markdown, JSON, GitHub Issues, PowerPoint, Jira, Confluence, Notion, and Google Slides. */
 export {
   exportToMarkdown,
   exportToJson,
   generateGitHubIssueBody,
   exportToClipboard,
+  exportToPowerPoint,
+  exportToJira,
+  exportToConfluence,
+  exportToNotion,
+  exportToGoogleSlides,
+  getAvailableFormats,
 } from "./export/index.js";
 export type { ExportResult, IntegrationAdapter } from "./export/index.js";
 
@@ -154,7 +166,7 @@ export {
 } from "./scoring/index.js";
 export type { IdeaScore, ScoringResult } from "./scoring/index.js";
 
-/** Interactive refinement conversations — iterative deepening of pipeline results. */
+/** Interactive refinement conversations — iterative deepening with branching exploration trees. */
 export {
   createConversation,
   getConversation,
@@ -162,13 +174,22 @@ export {
   listConversations,
   refineConversation,
   clearConversations,
+  createExplorationTree,
+  getExplorationTree,
+  drillDown,
+  getExplorationPath,
+  getNodeBranches,
   ConversationMessageSchema,
   RefinementResponseSchema,
+  ExplorationNodeSchema,
+  ExplorationTreeSchema,
 } from "./conversation/index.js";
 export type {
   ConversationMessage,
   ConversationContext,
   RefinementResponse,
+  ExplorationNode,
+  ExplorationTree,
 } from "./conversation/index.js";
 
 /** LLM provider abstraction — Copilot, OpenAI, Anthropic, and Ollama backends. */
@@ -272,10 +293,11 @@ export {
 } from "./extractors/index.js";
 export type { ExtractedContent, ExtractorOptions, ContentExtractor } from "./extractors/index.js";
 
-/** Idea validation — patent, market, and feasibility checks against registered validators. */
+/** Idea validation — patent, market, feasibility, market sizing, and regulatory checks. */
 export {
   validateIdea,
   validateIdeas,
+  validateComprehensive,
   registerValidator,
   unregisterValidator,
   listValidators,
@@ -283,15 +305,19 @@ export {
   PatentValidator,
   MarketValidator,
   FeasibilityValidator,
+  MarketSizingValidator,
+  RegulatoryValidator,
   ValidationCheckSchema,
   ValidationResultSchema,
   ValidationScorecardSchema,
+  ComprehensiveValidationSchema,
 } from "./validation/index.js";
 export type {
   ValidationCheck,
   ValidationResult,
   ValidationScorecard,
   IdeaValidator,
+  ComprehensiveValidation,
 } from "./validation/index.js";
 
 /** Replay and A/B testing — record, replay, and compare pipeline runs. */
@@ -654,7 +680,7 @@ export {
 export { ThemeConfigSchema, DEFAULT_THEME } from "./theming/types.js";
 export type { ThemeConfig } from "./theming/types.js";
 
-/** Event bus and webhooks — publish/subscribe pipeline events with webhook delivery and dead-letter queue. */
+/** Event bus, webhooks, and workflow automation — publish/subscribe pipeline events with webhook delivery, dead-letter queue, and automation chains. */
 export {
   EventBus,
   getEventBus,
@@ -663,6 +689,20 @@ export {
   EventTypeSchema,
   PipelineEventSchema,
   WebhookConfigSchema,
+  createAutomationRule,
+  getAutomationRule,
+  listAutomationRules,
+  toggleAutomationRule,
+  deleteAutomationRule,
+  getAutomationLog,
+  createHighScoreChain,
+  createPipelineNotificationChain,
+  clearAutomation,
+  TriggerConditionSchema,
+  ActionTypeSchema,
+  AutomationActionSchema,
+  AutomationRuleSchema,
+  AutomationLogEntrySchema,
 } from "./events/index.js";
 export type {
   EventType,
@@ -670,6 +710,11 @@ export type {
   WebhookConfig,
   WebhookDelivery,
   DeadLetterEntry,
+  TriggerCondition,
+  ActionType,
+  AutomationAction,
+  AutomationRule,
+  AutomationLogEntry,
 } from "./events/index.js";
 
 /** Analytics — track usage events, generate summaries, and surface insights. */
@@ -1019,11 +1064,19 @@ export {
   assignABTest,
   getABTestVariant,
   clearMemory,
+  recordOutcome,
+  getOutcomes,
+  getModelPerformanceStats,
+  compareModelPerformance,
+  autoTuneParameters,
   UserSignalSchema,
   PreferenceWeightsSchema,
   UserPreferenceProfileSchema,
   ABTestAssignmentSchema,
   ABTestResultSchema,
+  OutcomeRecordSchema,
+  ModelPerformanceSchema,
+  TunedParametersSchema,
 } from "./memory/index.js";
 export type {
   UserSignal,
@@ -1031,6 +1084,9 @@ export type {
   UserPreferenceProfile,
   ABTestAssignment,
   ABTestResult,
+  OutcomeRecord,
+  ModelPerformance,
+  TunedParameters,
 } from "./memory/index.js";
 
 /** Hypothesis-driven innovation — parse, analyze, and track structured hypotheses with experiment cards. */
@@ -1179,19 +1235,26 @@ export type {
   RetrospectiveReport,
 } from "./retrospective/index.js";
 
-/** Natural language pipeline builder — parse English descriptions into pipeline configs with phases and angles. */
+/** Natural language pipeline builder — parse English descriptions into pipeline configs, compile to DAGs, and execute. */
 export {
   parsePipelineRequest,
   resolvePhases,
   resolveAngles,
+  compilePipelineDAG,
+  executePipelineDAG,
+  dagToText,
   PipelineConfigSchema,
   PipelinePhaseSchema,
   OutputFormatSchema as PipelineOutputFormatSchema,
+  DAGNodeSchema,
+  PipelineDAGSchema,
 } from "./pipeline-builder/index.js";
 export type {
   PipelineConfig,
   PipelinePhase,
   OutputFormat as PipelineOutputFormat,
+  DAGNode,
+  PipelineDAG,
 } from "./pipeline-builder/index.js";
 
 /** Innovation diff — compare two subject snapshots and identify emerged, disappeared, and evolved ideas. */
@@ -1334,7 +1397,7 @@ export type {
   EvolutionProgress,
 } from "./evolution/index.js";
 
-/** API gateway — API key management, usage tracking, billing tiers, rate limiting, and webhooks. */
+/** API gateway — API key management, usage tracking, billing tiers, rate limiting, webhooks, and multi-tenant SaaS. */
 export {
   createApiKey,
   getApiKey,
@@ -1352,12 +1415,23 @@ export {
   removeWebhook,
   getOpenApiSpec,
   clearApiGateway,
+  createTenant,
+  getTenant,
+  findTenantBySlug,
+  listTenants,
+  updateTenantTier,
+  suspendTenant,
+  addTenantApiKey,
+  getDeveloperPortalInfo,
+  createDemoKey,
   TIER_LIMITS,
   BillingTierSchema,
   ApiKeySchema,
   UsageRecordSchema,
   UsageSummarySchema,
   WebhookEventSchema,
+  TenantSchema,
+  DeveloperPortalInfoSchema,
 } from "./api-gateway/index.js";
 export type {
   BillingTier,
@@ -1365,6 +1439,8 @@ export type {
   UsageRecord,
   UsageSummary,
   WebhookEvent,
+  Tenant,
+  DeveloperPortalInfo,
 } from "./api-gateway/index.js";
 
 /** Decision packet — executive-ready decision documents with options, risks, and resource asks. */
@@ -1672,3 +1748,49 @@ export type {
   MarketplaceSearchOptions,
   PluginReview,
 } from "./marketplace/index.js";
+
+/** Innovation Embeddings & Semantic Search — TF-IDF vector search, similarity clustering, and cross-investigation discovery. */
+export {
+  indexDocument,
+  indexDocuments,
+  removeDocument,
+  semanticSearch,
+  findSimilar as findSimilarDocuments,
+  clusterDocuments,
+  discoverConnections,
+  getIndexSize,
+  clearEmbeddingsIndex,
+  EmbeddingDocumentSchema,
+  SearchResultSchema,
+  ClusterSchema,
+  SemanticSearchResultSchema,
+  CrossDiscoveryResultSchema,
+} from "./embeddings/index.js";
+export type {
+  EmbeddingDocument,
+  SearchResult as EmbeddingSearchResult,
+  Cluster as EmbeddingCluster,
+  SemanticSearchResult,
+  CrossDiscoveryResult,
+} from "./embeddings/index.js";
+
+/** Innovation Telemetry & Quality Metrics — diversity scoring, prompt effectiveness, hallucination detection. */
+export {
+  scoreIdeaDiversity,
+  recordPromptEffectiveness,
+  getPromptEffectivenessByAngle,
+  detectHallucinations,
+  detectHallucinationsInResults,
+  getQualityTrends,
+  clearTelemetry,
+  DiversityScoreSchema,
+  PromptEffectivenessSchema,
+  HallucinationCheckSchema,
+  QualityTrendSchema,
+} from "./telemetry/index.js";
+export type {
+  DiversityScore,
+  PromptEffectiveness,
+  HallucinationCheck,
+  QualityTrend,
+} from "./telemetry/index.js";
