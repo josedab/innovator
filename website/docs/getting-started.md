@@ -23,6 +23,14 @@ cd innovator
 npm install
 ```
 
+## Verify your environment
+
+```bash
+npm run doctor
+```
+
+This checks Node.js version, GitHub CLI installation, Copilot authentication, and core package build status. Fix any ❌ items before continuing — see [Troubleshooting](/docs/troubleshooting#npm-run-doctor-checks) for details.
+
 ## Start the web app
 
 ```bash
