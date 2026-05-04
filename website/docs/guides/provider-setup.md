@@ -168,6 +168,10 @@ npx tsx apps/cli/src/index.ts investigate "test subject" --model llama3.1
 
 ## Switching Providers at Runtime
 
+:::info Provider Comparison
+See the [Provider Compatibility Matrix](#provider-compatibility-matrix) below for a full comparison of features across providers.
+:::
+
 You don't need to restart the server to switch providers. Pass the `--model` flag to the CLI or set the `model` field in API requests:
 
 ```bash
@@ -194,6 +198,55 @@ INNOVATOR_EXTRA_MODELS=my-custom-model,another-model
 ```
 
 These models will appear in the model selector in the web UI.
+
+---
+
+## Provider Compatibility Matrix
+
+Use this table to compare capabilities across providers and choose the right one for your use case.
+
+### Feature Support
+
+| Feature                  | Copilot (default) | OpenAI (Direct) | Anthropic      | Ollama (Local)     |
+| ------------------------ | ----------------- | --------------- | -------------- | ------------------ |
+| **Streaming (SSE)**      | ✅ Full           | ✅ Full         | ✅ Full        | ✅ Full            |
+| **Auto Mode**            | ✅                | ✅              | ✅             | ✅ (slow)          |
+| **JSON output parsing**  | ✅                | ✅              | ✅             | ⚠️ Model-dependent |
+| **Vision / image input** | ✅ (GPT-4.1+)     | ✅ (GPT-4.1+)   | ✅ (Claude 3+) | ⚠️ Few models      |
+| **Voice integration**    | ✅                | ✅              | ✅             | ✅                 |
+| **Custom angles**        | ✅                | ✅              | ✅             | ✅                 |
+| **Concurrent requests**  | ✅                | ✅              | ✅             | ⚠️ Limited by HW   |
+| **Requires API key**     | No (uses `gh`)    | Yes             | Yes            | No                 |
+| **Runs offline**         | ❌                | ❌              | ❌             | ✅                 |
+| **Data stays on-device** | ❌                | ❌              | ❌             | ✅                 |
+
+### Model Comparison
+
+| Model               | Provider         | Context Window | Relative Cost | Best For                          |
+| ------------------- | ---------------- | -------------- | ------------- | --------------------------------- |
+| `gpt-4.1`           | Copilot / OpenAI | 128K tokens    | $$            | Best quality, recommended default |
+| `gpt-4.1-mini`      | Copilot / OpenAI | 128K tokens    | $             | Faster, lower cost                |
+| `gpt-5`             | Copilot / OpenAI | 128K tokens    | $$$           | Latest capabilities               |
+| `gpt-5-mini`        | Copilot / OpenAI | 128K tokens    | $$            | Balance of speed and quality      |
+| `claude-sonnet-4-5` | Anthropic        | 200K tokens    | $$$           | Best balance of speed/quality     |
+| `claude-sonnet-4`   | Anthropic        | 200K tokens    | $$$           | High quality                      |
+| `claude-opus-4`     | Anthropic        | 200K tokens    | $$$$          | Highest quality                   |
+| `claude-haiku-3-5`  | Anthropic        | 200K tokens    | $             | Fastest, lowest cost              |
+| `llama3.1` (7B)     | Ollama           | 8K tokens      | Free          | Quick local experiments           |
+| `llama3.1` (70B)    | Ollama           | 8K tokens      | Free          | Best local quality                |
+| `mistral` (7B)      | Ollama           | 8K tokens      | Free          | Fast local alternative            |
+
+### Feature Degradation on Local Models
+
+When using Ollama with smaller models (7B–13B parameters), be aware of these limitations:
+
+- **JSON reliability** — Smaller models may produce malformed JSON. Innovator retries with prompt adjustments, but some requests may fail.
+- **Synthesis quality** — Cross-angle synthesis requires strong reasoning. Results may be less coherent with sub-13B models.
+- **Context limits** — Local models typically have 4K–8K token windows vs. 128K–200K for cloud models. Long investigations may be truncated.
+- **Speed** — Expect 30–120 seconds per angle on consumer hardware vs. 3–10 seconds with cloud providers.
+- **Concurrent requests** — Limited by local GPU/CPU. The default concurrency of 2 may cause slowdowns on modest hardware.
+
+**Recommendation:** For production use, cloud providers (Copilot, OpenAI, Anthropic) give the best results. Use Ollama for offline development, privacy-sensitive workloads, or experimentation.
 
 ---
 
