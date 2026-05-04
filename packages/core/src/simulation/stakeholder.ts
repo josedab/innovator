@@ -50,9 +50,36 @@ export type StakeholderPersona = z.infer<typeof StakeholderPersonaSchema>;
 export type StakeholderReaction = z.infer<typeof StakeholderReactionSchema>;
 export type StakeholderSimulation = z.infer<typeof StakeholderSimulationSchema>;
 
+/** Conflict between two stakeholders on a specific idea. */
+export const StakeholderConflictSchema = z.object({
+  personaA: z.string().max(200),
+  personaB: z.string().max(200),
+  enthusiasmDelta: z.number().min(0).max(9),
+  topic: z.string().max(500),
+  resolution: z.string().max(500).optional(),
+});
+
+/** Conflict matrix across all stakeholders for a set of ideas. */
+export const ConflictMatrixSchema = z.object({
+  ideaTitle: z.string().max(500),
+  conflicts: z.array(StakeholderConflictSchema).max(50),
+  alignmentScore: z.number().min(0).max(1).describe("0 = total conflict, 1 = full alignment"),
+  readinessScore: z
+    .number()
+    .min(0)
+    .max(100)
+    .describe("Readiness percentage based on support vs opposition"),
+  supportCount: z.number(),
+  oppositionCount: z.number(),
+  neutralCount: z.number(),
+});
+
+export type StakeholderConflict = z.infer<typeof StakeholderConflictSchema>;
+export type ConflictMatrix = z.infer<typeof ConflictMatrixSchema>;
+
 // ---- Default Personas ----
 
-/** The 6 default stakeholder personas. */
+/** The 10 default stakeholder personas. */
 export const DEFAULT_PERSONAS: StakeholderPersona[] = [
   {
     id: "early-adopter",
@@ -113,6 +140,63 @@ export const DEFAULT_PERSONAS: StakeholderPersona[] = [
       "The actual person who would use the product daily. Focused on usability, value, and solving real problems.",
     priorities: ["ease of use", "price", "reliability", "time saved", "learning curve"],
     riskTolerance: "medium",
+  },
+  {
+    id: "cto",
+    name: "CTO",
+    description:
+      "Chief Technology Officer responsible for technical strategy and architecture. Evaluates technical feasibility, scalability, and alignment with engineering roadmap.",
+    priorities: [
+      "technical feasibility",
+      "scalability",
+      "maintainability",
+      "tech debt",
+      "team capacity",
+      "architecture fit",
+    ],
+    riskTolerance: "medium",
+  },
+  {
+    id: "cfo",
+    name: "CFO",
+    description:
+      "Chief Financial Officer focused on financial viability, cost control, and return on investment. Needs clear business cases with measurable outcomes.",
+    priorities: [
+      "cost efficiency",
+      "ROI timeline",
+      "revenue impact",
+      "budget constraints",
+      "financial risk",
+    ],
+    riskTolerance: "low",
+  },
+  {
+    id: "product-manager",
+    name: "Product Manager",
+    description:
+      "Product leader balancing user needs, business goals, and technical constraints. Prioritizes features by impact and effort.",
+    priorities: [
+      "user value",
+      "market fit",
+      "prioritization",
+      "roadmap alignment",
+      "metrics impact",
+    ],
+    riskTolerance: "medium",
+  },
+  {
+    id: "data-privacy-officer",
+    name: "Data Privacy Officer",
+    description:
+      "Privacy and data protection specialist ensuring compliance with GDPR, CCPA, and other regulations. Guards against data misuse.",
+    priorities: [
+      "data privacy",
+      "GDPR compliance",
+      "consent management",
+      "data minimization",
+      "breach risk",
+    ],
+    riskTolerance: "low",
   },
 ];
 
@@ -265,4 +349,65 @@ export async function simulateStakeholdersBatch(
     results.push(simulation);
   }
   return results;
+}
+
+/**
+ * Build a conflict matrix from a stakeholder simulation result.
+ * Identifies conflicts (enthusiasm delta >= 3), computes alignment and readiness scores.
+ */
+export function buildConflictMatrix(simulation: StakeholderSimulation): ConflictMatrix {
+  const { reactions, ideaTitle } = simulation;
+  const conflicts: StakeholderConflict[] = [];
+
+  for (let i = 0; i < reactions.length; i++) {
+    for (let j = i + 1; j < reactions.length; j++) {
+      const delta = Math.abs(reactions[i].enthusiasm - reactions[j].enthusiasm);
+      if (delta >= 3) {
+        const higher =
+          reactions[i].enthusiasm > reactions[j].enthusiasm ? reactions[i] : reactions[j];
+        const lower =
+          reactions[i].enthusiasm > reactions[j].enthusiasm ? reactions[j] : reactions[i];
+        conflicts.push({
+          personaA: higher.personaName,
+          personaB: lower.personaName,
+          enthusiasmDelta: delta,
+          topic: `${higher.personaName} sees opportunity while ${lower.personaName} has concerns: ${lower.concerns[0] ?? "general skepticism"}`,
+        });
+      }
+    }
+  }
+
+  const supportThreshold = 7;
+  const oppositionThreshold = 4;
+  const supportCount = reactions.filter((r) => r.enthusiasm >= supportThreshold).length;
+  const oppositionCount = reactions.filter((r) => r.enthusiasm <= oppositionThreshold).length;
+  const neutralCount = reactions.length - supportCount - oppositionCount;
+
+  const maxDelta =
+    reactions.length > 1
+      ? Math.max(...reactions.map((r) => r.enthusiasm)) -
+        Math.min(...reactions.map((r) => r.enthusiasm))
+      : 0;
+  const alignmentScore = Math.round((1 - maxDelta / 9) * 100) / 100;
+
+  const readinessScore = Math.round(
+    ((supportCount * 2 + neutralCount) / (reactions.length * 2)) * 100
+  );
+
+  return ConflictMatrixSchema.parse({
+    ideaTitle,
+    conflicts: conflicts.slice(0, 50),
+    alignmentScore,
+    readinessScore: Math.min(readinessScore, 100),
+    supportCount,
+    oppositionCount,
+    neutralCount,
+  });
+}
+
+/**
+ * Compute readiness scores for multiple simulations, returning them sorted by readiness.
+ */
+export function computeReadinessScores(simulations: StakeholderSimulation[]): ConflictMatrix[] {
+  return simulations.map(buildConflictMatrix).sort((a, b) => b.readinessScore - a.readinessScore);
 }

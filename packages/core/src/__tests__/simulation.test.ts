@@ -17,8 +17,8 @@ import { DEFAULT_PERSONAS, StakeholderPersonaSchema } from "../simulation/stakeh
 import type { ScenarioModel } from "../simulation/scenario.js";
 
 describe("simulation - stakeholder", () => {
-  it("has 6 default personas", () => {
-    expect(DEFAULT_PERSONAS).toHaveLength(6);
+  it("has 10 default personas", () => {
+    expect(DEFAULT_PERSONAS).toHaveLength(10);
   });
 
   it("validates persona schema", () => {
