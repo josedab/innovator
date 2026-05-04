@@ -2414,3 +2414,27 @@ export type {
   WargamingResult,
   WargamingConfig,
 } from "./wargaming/index.js";
+
+/** Custom Scoring Rubric Builder — user-defined evaluation dimensions with reusable templates. */
+export {
+  createRubric,
+  getRubric,
+  listRubrics,
+  updateRubric,
+  deleteRubric,
+  scoreWithRubric,
+  clearRubrics,
+  BUILT_IN_RUBRICS,
+  RubricDimensionSchema,
+  ScoringRubricSchema as CustomScoringRubricSchema,
+  DimensionScoreSchema,
+  RubricScoreSchema,
+  RubricScoringResultSchema,
+} from "./rubric/index.js";
+export type {
+  RubricDimension,
+  ScoringRubric as CustomScoringRubric,
+  DimensionScore,
+  RubricScore,
+  RubricScoringResult,
+} from "./rubric/index.js";
