@@ -308,4 +308,149 @@ describe("debate", () => {
       ).toThrow();
     });
   });
+
+  describe("runDebate - single round", () => {
+    it("runs a 1-round debate successfully", async () => {
+      mockGenerateText
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            arguments: [{ point: "Pro point", evidence: "Pro ev", strength: 7 }],
+          })
+        )
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            arguments: [{ point: "Con point", evidence: "Con ev", strength: 6 }],
+          })
+        )
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            verdict: {
+              winner: "nuanced",
+              confidence: 0.5,
+              summary: "Balanced",
+              keyInsight: "Both valid",
+              conditions: [],
+            },
+            quality: {
+              argumentDepth: 6,
+              evidenceQuality: 6,
+              balanceScore: 8,
+              insightNovelty: 5,
+              overall: 6,
+            },
+          })
+        );
+
+      const result = await runDebate(TEST_IDEA, undefined, { rounds: 1 });
+      expect(result.rounds).toHaveLength(1);
+      expect(result.totalRounds).toBe(1);
+      // 1 round = 2 calls (pro + con) + 1 verdict = 3
+      expect(mockGenerateText).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe("runDebate - edge cases", () => {
+    it("rejects rounds = 0", async () => {
+      await expect(runDebate(TEST_IDEA, undefined, { rounds: 0 })).rejects.toThrow(
+        "Debate rounds must be between 1 and 5"
+      );
+    });
+
+    it("rejects rounds = 6", async () => {
+      await expect(runDebate(TEST_IDEA, undefined, { rounds: 6 })).rejects.toThrow(
+        "Debate rounds must be between 1 and 5"
+      );
+    });
+
+    it("runs max 5 rounds", async () => {
+      // Mock 5 rounds (10 pro/con calls) + 1 verdict = 11 calls
+      for (let i = 0; i < 10; i++) {
+        mockGenerateText.mockResolvedValueOnce(
+          JSON.stringify({
+            arguments: [{ point: `Point ${i}`, evidence: `Ev ${i}`, strength: 5 }],
+            rebuttal: i > 1 ? `Rebuttal ${i}` : undefined,
+          })
+        );
+      }
+      mockGenerateText.mockResolvedValueOnce(
+        JSON.stringify({
+          verdict: {
+            winner: "pro",
+            confidence: 0.8,
+            summary: "S",
+            keyInsight: "K",
+            conditions: [],
+          },
+          quality: {
+            argumentDepth: 7,
+            evidenceQuality: 7,
+            balanceScore: 7,
+            insightNovelty: 7,
+            overall: 7,
+          },
+        })
+      );
+
+      const result = await runDebate(TEST_IDEA, undefined, { rounds: 5 });
+      expect(result.rounds).toHaveLength(5);
+      expect(result.totalRounds).toBe(5);
+    });
+  });
+
+  describe("debateToMarkdown - edge cases", () => {
+    it("handles round without rebuttals", () => {
+      const result: DebateResult = {
+        idea: "No Rebuttals",
+        rounds: [
+          {
+            round: 1,
+            proArguments: [{ point: "P", evidence: "E", strength: 5 }],
+            conArguments: [{ point: "C", evidence: "E", strength: 5 }],
+          },
+        ],
+        verdict: {
+          winner: "pro",
+          confidence: 0.7,
+          summary: "Summary",
+          keyInsight: "Insight",
+          conditions: [],
+        },
+        quality: {
+          argumentDepth: 5,
+          evidenceQuality: 5,
+          balanceScore: 5,
+          insightNovelty: 5,
+          overall: 5,
+        },
+        totalRounds: 1,
+      };
+      const md = debateToMarkdown(result);
+      expect(md).not.toContain("*Pro Rebuttal:*");
+      expect(md).not.toContain("*Con Rebuttal:*");
+    });
+
+    it("handles empty conditions list", () => {
+      const result: DebateResult = {
+        idea: "No Conditions",
+        rounds: [
+          {
+            round: 1,
+            proArguments: [{ point: "P", evidence: "E", strength: 5 }],
+            conArguments: [{ point: "C", evidence: "E", strength: 5 }],
+          },
+        ],
+        verdict: { winner: "con", confidence: 0.6, summary: "S", keyInsight: "K", conditions: [] },
+        quality: {
+          argumentDepth: 5,
+          evidenceQuality: 5,
+          balanceScore: 5,
+          insightNovelty: 5,
+          overall: 5,
+        },
+        totalRounds: 1,
+      };
+      const md = debateToMarkdown(result);
+      expect(md).not.toContain("**Conditions for change:**");
+    });
+  });
 });
