@@ -337,3 +337,145 @@ export function generatePortfolioInsights(): PortfolioInsight[] {
 
   return insights;
 }
+
+// ---- Dashboard Data Builder ----
+
+/** Comprehensive dashboard data combining portfolio, analytics, and sessions. */
+export interface InnovationDashboardData {
+  portfolio: PortfolioMetrics;
+  insights: PortfolioInsight[];
+  funnel: {
+    subjects: number;
+    investigations: number;
+    ideas: number;
+    scored: number;
+    exported: number;
+    shipped: number;
+  };
+  angleEffectiveness: Array<{
+    angleId: string;
+    timesUsed: number;
+    totalIdeas: number;
+    avgIdeasPerRun: number;
+    shipRate: number;
+  }>;
+  activityTimeline: Array<{
+    date: string;
+    sessions: number;
+    ideas: number;
+  }>;
+  healthScore: {
+    overall: number;
+    velocity: number;
+    diversity: number;
+    quality: number;
+  };
+  topSubjects: Array<{ subject: string; count: number }>;
+  generatedAt: string;
+}
+
+/**
+ * Build comprehensive dashboard data from portfolio items and session history.
+ */
+export function buildDashboardData(
+  sessions: Array<{
+    subject: string;
+    createdAt: string;
+    angleResults: Array<{ angleId: string; angleName: string; ideas: Array<unknown> }>;
+  }>
+): InnovationDashboardData {
+  const metrics = getPortfolioMetrics();
+  const insights = generatePortfolioInsights();
+  const items = listPortfolioItems();
+
+  // Funnel
+  const subjectSet = new Set(sessions.map((s) => s.subject.toLowerCase().trim()));
+  const totalIdeas = sessions.reduce(
+    (sum, s) => sum + s.angleResults.reduce((a, ar) => a + ar.ideas.length, 0),
+    0
+  );
+
+  const funnel = {
+    subjects: subjectSet.size,
+    investigations: sessions.length,
+    ideas: totalIdeas,
+    scored: items.filter((i) => i.transitions.some((t) => t.to === "evaluation")).length,
+    exported: items.filter((i) => i.transitions.length > 0).length,
+    shipped: items.filter((i) => i.stage === "shipped").length,
+  };
+
+  // Angle effectiveness
+  const angleMap = new Map<string, { used: number; ideas: number; shipped: number }>();
+  for (const s of sessions) {
+    for (const ar of s.angleResults) {
+      const entry = angleMap.get(ar.angleId) ?? { used: 0, ideas: 0, shipped: 0 };
+      entry.used++;
+      entry.ideas += ar.ideas.length;
+      angleMap.set(ar.angleId, entry);
+    }
+  }
+  for (const item of items.filter((i) => i.stage === "shipped")) {
+    const entry = angleMap.get(item.sourceAngle);
+    if (entry) entry.shipped++;
+  }
+
+  const angleEffectiveness = Array.from(angleMap.entries())
+    .map(([angleId, d]) => ({
+      angleId,
+      timesUsed: d.used,
+      totalIdeas: d.ideas,
+      avgIdeasPerRun: d.used > 0 ? +(d.ideas / d.used).toFixed(1) : 0,
+      shipRate: d.ideas > 0 ? +(d.shipped / d.ideas).toFixed(3) : 0,
+    }))
+    .sort((a, b) => b.timesUsed - a.timesUsed);
+
+  // Activity timeline (last 30 days)
+  const dateMap = new Map<string, { sessions: number; ideas: number }>();
+  for (const s of sessions) {
+    const date = s.createdAt.split("T")[0];
+    const entry = dateMap.get(date) ?? { sessions: 0, ideas: 0 };
+    entry.sessions++;
+    entry.ideas += s.angleResults.reduce((a, ar) => a + ar.ideas.length, 0);
+    dateMap.set(date, entry);
+  }
+  const activityTimeline = Array.from(dateMap.entries())
+    .map(([date, d]) => ({ date, ...d }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-30);
+
+  // Health score
+  const distinctAngles = angleMap.size;
+  const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
+  const recentSessions = sessions.filter((s) => s.createdAt >= fourWeeksAgo);
+  const velocityScore = Math.min(100, Math.round((recentSessions.length / 4) * 20));
+  const diversityScore = Math.min(100, Math.round((distinctAngles / 8) * 100));
+  const qualityScore =
+    totalIdeas > 0 ? Math.min(100, Math.round((funnel.shipped / totalIdeas) * 500)) : 0;
+
+  // Top subjects
+  const subjectCounts = new Map<string, number>();
+  for (const s of sessions) {
+    const key = s.subject.toLowerCase().trim();
+    subjectCounts.set(key, (subjectCounts.get(key) ?? 0) + 1);
+  }
+  const topSubjects = Array.from(subjectCounts.entries())
+    .map(([subject, count]) => ({ subject, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  return {
+    portfolio: metrics,
+    insights,
+    funnel,
+    angleEffectiveness,
+    activityTimeline,
+    healthScore: {
+      overall: Math.round((velocityScore + diversityScore + qualityScore) / 3),
+      velocity: velocityScore,
+      diversity: diversityScore,
+      quality: qualityScore,
+    },
+    topSubjects,
+    generatedAt: new Date().toISOString(),
+  };
+}
