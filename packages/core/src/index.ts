@@ -3217,3 +3217,26 @@ export type {
   MarketTestOptions,
 } from "./market-testing-arena/index.js";
 
+/** Innovation Session Cinematics — auto-generate narrated video walkthrough scripts. */
+export {
+  generateCinematicScript,
+  getCinematicScript,
+  listCinematicScripts,
+  clearCinematicScripts,
+  scriptToStoryboard,
+  scriptToSrt,
+  scriptToRemotionConfig,
+  VisualElementSchema as CinematicVisualElementSchema,
+  SceneSchema,
+  CinematicScriptSchema,
+  ExportConfigSchema as CinematicExportConfigSchema,
+} from "./session-cinematics/index.js";
+export type {
+  VisualElement as CinematicVisualElement,
+  Scene,
+  CinematicScript,
+  ExportConfig as CinematicExportConfig,
+  SessionData,
+  GenerateScriptOptions,
+} from "./session-cinematics/index.js";
+
