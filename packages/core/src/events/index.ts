@@ -1,8 +1,9 @@
 /**
  * @module events
  *
- * Event bus and webhook delivery system — typed pipeline events,
- * in-process event emitter, webhook delivery with retry and HMAC signing.
+ * Event bus, webhook delivery, and workflow automation — typed pipeline events,
+ * in-process event emitter, webhook delivery with retry and HMAC signing,
+ * and event-driven automation chains with triggers and actions.
  */
 export { EventBus, getEventBus, resetEventBus } from "./emitter.js";
 export { WebhookManager } from "./webhooks.js";
@@ -14,3 +15,26 @@ export type {
   WebhookDelivery,
   DeadLetterEntry,
 } from "./types.js";
+export {
+  createAutomationRule,
+  getAutomationRule,
+  listAutomationRules,
+  toggleAutomationRule,
+  deleteAutomationRule,
+  getAutomationLog,
+  createHighScoreChain,
+  createPipelineNotificationChain,
+  clearAutomation,
+  TriggerConditionSchema,
+  ActionTypeSchema,
+  AutomationActionSchema,
+  AutomationRuleSchema,
+  AutomationLogEntrySchema,
+} from "./automation.js";
+export type {
+  TriggerCondition,
+  ActionType,
+  AutomationAction,
+  AutomationRule,
+  AutomationLogEntry,
+} from "./automation.js";
