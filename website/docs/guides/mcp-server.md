@@ -84,6 +84,7 @@ Add to `.vscode/mcp.json` in your project:
 Analyzes a subject and returns structured findings including key aspects, state of the art, challenges, and opportunities.
 
 **Parameters:**
+
 - `subject` (string, required) — the topic to investigate
 - `model` (string, optional) — LLM model override
 
@@ -92,6 +93,7 @@ Analyzes a subject and returns structured findings including key aspects, state 
 Generates innovation ideas using a specified angle (e.g., SCAMPER, First Principles).
 
 **Parameters:**
+
 - `subject` (string, required) — the topic to innovate on
 - `angle` (string, required) — one of the 8 innovation angles
 - `investigation` (object, optional) — prior investigation results for context
@@ -102,17 +104,18 @@ Generates innovation ideas using a specified angle (e.g., SCAMPER, First Princip
 Runs the complete pipeline: investigate → generate ideas across all angles → synthesize.
 
 **Parameters:**
+
 - `subject` (string, required) — the topic to analyze
 - `model` (string, optional) — LLM model override
 
 ## Environment Variables
 
-| Variable                  | Description                              | Default              |
-| ------------------------- | ---------------------------------------- | -------------------- |
-| `MCP_PORT`                | Port for SSE transport                   | `3100`               |
-| `INNOVATOR_DEFAULT_MODEL` | Default LLM model                        | `gpt-4.1`            |
+| Variable                  | Description            | Default   |
+| ------------------------- | ---------------------- | --------- |
+| `MCP_PORT`                | Port for SSE transport | `3100`    |
+| `INNOVATOR_DEFAULT_MODEL` | Default LLM model      | `gpt-4.1` |
 
-The MCP server uses the same LLM provider configuration as the rest of Innovator. See [Configuration](../configuration.md) for all environment variables.
+The MCP server uses the same LLM provider configuration as the rest of Innovator. See [Configuration](/docs/configuration) for all environment variables.
 
 ## Architecture
 
