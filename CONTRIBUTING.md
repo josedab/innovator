@@ -99,8 +99,8 @@ All commands are run from the monorepo root.
 | `npm run format:check` | Check formatting without writing changes                                       |
 | `npm test`             | Run all tests with vitest                                                      |
 | `npm run test:watch`   | Run tests in watch mode                                                        |
-| `npm run test:e2e`     | Run Playwright end-to-end tests (from `apps/web`)                              |
-| `npm run test:e2e:ui`  | Run Playwright E2E tests with interactive UI mode                              |
+| `npm run test:e2e`     | Run Playwright end-to-end tests (**run from `apps/web/`**, not the repo root)  |
+| `npm run test:e2e:ui`  | Run Playwright E2E tests with interactive UI (**run from `apps/web/`**)        |
 
 ### Build
 
@@ -175,7 +175,12 @@ Tests are configured in `vitest.config.ts` at the repository root. Key settings:
 ### Test Categories
 
 - **Unit tests** — Located in `packages/*/src/__tests__/` and `apps/*/src/__tests__/`. Run with `npm test`. These test individual modules (prompt builders, JSON extraction, retry logic, angle generation, pipeline orchestration).
-- **End-to-end tests** — Located in `apps/web/e2e/`. Run with `npm run test:e2e`. These use Playwright to test the web app in a real browser.
+- **End-to-end tests** — Located in `apps/web/e2e/`. Run with `npm run test:e2e` **from the `apps/web/` directory** (these scripts are defined in `apps/web/package.json`, not in the root `package.json`). These use Playwright to test the web app in a real browser.
+
+  ```bash
+  cd apps/web
+  npm run test:e2e
+  ```
 
 ### Mocking the LLM Layer
 
@@ -218,6 +223,69 @@ const MOCK_INVESTIGATION: Investigation = {
 ### Coverage Thresholds
 
 CI enforces a **35% minimum** for lines, functions, and branches (configured in `vitest.config.ts`). This threshold reflects the project's reliance on LLM integration code that is mocked in tests — the goal is to ensure utility and pipeline logic is well-tested while acknowledging that full coverage of SDK-dependent code requires integration tests. Run `npm run test:coverage` to check locally.
+
+## E2E Testing with Playwright
+
+End-to-end tests live in `apps/web/e2e/` and use [Playwright](https://playwright.dev/) to test the web app in a real browser. E2E scripts are defined in `apps/web/package.json` — run them from the `apps/web/` directory.
+
+### Setup
+
+1. Install Playwright browsers (one-time setup):
+
+   ```bash
+   cd apps/web
+   npx playwright install --with-deps chromium
+   ```
+
+2. Ensure the core package is built:
+
+   ```bash
+   npm run build --workspace=packages/core
+   ```
+
+### Running E2E Tests
+
+```bash
+cd apps/web
+
+# Run all E2E tests (headless)
+npm run test:e2e
+
+# Run with the interactive Playwright UI
+npm run test:e2e:ui
+```
+
+In local development, Playwright automatically starts the dev server (`npm run dev` on port 3000) and waits for it to be ready. In CI, set `PLAYWRIGHT_BASE_URL` to point to an already-running server.
+
+### Configuration
+
+The Playwright configuration is in `apps/web/playwright.config.ts`:
+
+| Setting         | Value                                            | Description                           |
+| --------------- | ------------------------------------------------ | ------------------------------------- |
+| `testDir`       | `./e2e`                                          | Test files directory                  |
+| `fullyParallel` | `true`                                           | Tests run in parallel                 |
+| `retries`       | 2 (CI) / 0 (local)                               | Automatic retries on failure in CI    |
+| `workers`       | 1 (CI) / auto (local)                            | Parallel workers                      |
+| `reporter`      | `html`                                           | Generates an HTML report              |
+| `baseURL`       | `PLAYWRIGHT_BASE_URL` or `http://localhost:3000` | Base URL for all page navigations     |
+| `trace`         | `on-first-retry`                                 | Captures traces for debugging retries |
+| Browser         | Chromium only                                    | Desktop Chrome device profile         |
+
+### Writing New E2E Tests
+
+Create test files in `apps/web/e2e/` with the `.spec.ts` extension:
+
+```typescript
+import { test, expect } from "@playwright/test";
+
+test("homepage loads and shows input", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("textbox")).toBeVisible();
+});
+```
+
+See `apps/web/e2e/innovation-flow.spec.ts` for an example of testing the full innovation flow.
 
 ## Making Changes
 
