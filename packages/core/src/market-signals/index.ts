@@ -179,7 +179,9 @@ You MUST respond with valid JSON only:
       },
       { signal }
     );
-    const parsed = JSON.parse(raw) as { signals: Array<{ title: string; summary: string; relevanceScore: number; category?: string }> };
+    const parsed = JSON.parse(raw) as {
+      signals: Array<{ title: string; summary: string; relevanceScore: number; category?: string }>;
+    };
 
     return parsed.signals.slice(0, limit).map((s) => ({
       source: sourceName,
@@ -223,7 +225,7 @@ export async function fetchMarketSignals(
     }
   }
 
-  // Sort by relevance
+  // Sort by relevance so the most pertinent signals appear first
   allSignals.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
   // Generate summary analysis
@@ -244,7 +246,11 @@ async function analyzeSignals(
   signals: MarketSignal[],
   model?: string,
   signal?: AbortSignal
-): Promise<{ summary: string; temperature: MarketSignalReport["marketTemperature"]; opportunities: string[] }> {
+): Promise<{
+  summary: string;
+  temperature: MarketSignalReport["marketTemperature"];
+  opportunities: string[];
+}> {
   if (signals.length === 0) {
     return {
       summary: "No market signals available for analysis.",
@@ -253,7 +259,10 @@ async function analyzeSignals(
     };
   }
 
-  const signalsSummary = signals.slice(0, 20).map((s) => `[${s.source}] ${s.title}: ${s.summary}`).join("\n");
+  const signalsSummary = signals
+    .slice(0, 20)
+    .map((s) => `[${s.source}] ${s.title}: ${s.summary}`)
+    .join("\n");
 
   const prompt = `You are a market analyst. Based on the following market signals, provide a summary analysis.
 
@@ -277,7 +286,11 @@ You MUST respond with valid JSON only:
       },
       { signal }
     );
-    const parsed = JSON.parse(raw) as { summary: string; temperature: string; opportunities: string[] };
+    const parsed = JSON.parse(raw) as {
+      summary: string;
+      temperature: string;
+      opportunities: string[];
+    };
     return {
       summary: parsed.summary,
       temperature: (["cold", "warming", "hot", "saturated"].includes(parsed.temperature)
