@@ -69,6 +69,7 @@ export type DebateVerdict = z.infer<typeof DebateVerdictSchema>;
 export type DebateQuality = z.infer<typeof DebateQualitySchema>;
 export type DebateResult = z.infer<typeof DebateResultSchema>;
 
+/** Configuration for a structured debate session. */
 export interface DebateConfig {
   rounds?: number;
   personas?: { pro: DebaterPersona; con: DebaterPersona };
@@ -78,6 +79,7 @@ export interface DebateConfig {
 
 // ---- Default Personas ----
 
+/** Default persona that argues in favor of an idea. */
 export const DEFAULT_PRO_PERSONA: DebaterPersona = {
   name: "Innovation Advocate",
   role: "Argues in favor of the idea, highlighting potential, market opportunity, and strategic value",
@@ -85,6 +87,7 @@ export const DEFAULT_PRO_PERSONA: DebaterPersona = {
   style: "optimistic but evidence-based",
 };
 
+/** Default persona that argues against an idea. */
 export const DEFAULT_CON_PERSONA: DebaterPersona = {
   name: "Critical Analyst",
   role: "Challenges the idea, identifying risks, feasibility concerns, and market barriers",

@@ -64,6 +64,7 @@ export type EvolvedIdea = z.infer<typeof EvolvedIdeaSchema>;
 export type GenerationResult = z.infer<typeof GenerationResultSchema>;
 export type EvolutionResult = z.infer<typeof EvolutionResultSchema>;
 
+/** Configuration for the evolutionary idea generation process. */
 export interface EvolutionConfig {
   populationSize?: number;
   mutationRate?: number;
@@ -73,6 +74,7 @@ export interface EvolutionConfig {
   signal?: AbortSignal;
 }
 
+/** Progress callback payload emitted during evolution. */
 export interface EvolutionProgress {
   generation: number;
   totalGenerations: number;

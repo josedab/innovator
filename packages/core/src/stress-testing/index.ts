@@ -70,6 +70,7 @@ export type Vulnerability = z.infer<typeof VulnerabilitySchema>;
 export type HedgingStrategy = z.infer<typeof HedgingStrategySchema>;
 export type StressTestResult = z.infer<typeof StressTestResultSchema>;
 
+/** Configuration options for stress testing operations. */
 export interface StressTestConfig {
   model?: string;
   signal?: AbortSignal;
