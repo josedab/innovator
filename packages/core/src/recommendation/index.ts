@@ -69,7 +69,7 @@ export type SubjectClassification = z.infer<typeof SubjectClassificationSchema>;
 export type AngleRecommendation = z.infer<typeof AngleRecommendationSchema>;
 export type RecommendationResult = z.infer<typeof RecommendationResultSchema>;
 
-/** Historical feedback entry for A/B tracking. */
+/** Feedback entry tracking angle quality and user rating for A/B testing. */
 export interface AngleFeedbackEntry {
   domain: SubjectDomain;
   angleId: string;

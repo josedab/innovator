@@ -86,6 +86,7 @@ export type VerticalPack = z.infer<typeof VerticalPackSchema>;
 
 // ---- Built-in Packs ----
 
+/** Built-in vertical pack for healthcare technology, digital health, and medical devices. */
 export const HEALTHTECH_PACK: VerticalPack = {
   id: "healthtech",
   name: "HealthTech",
@@ -203,6 +204,7 @@ export const HEALTHTECH_PACK: VerticalPack = {
     "You are innovating in the healthcare technology space. All ideas must consider patient safety, clinical validation requirements, regulatory compliance (HIPAA/FDA/GDPR), and health equity. Prioritize ideas with measurable health outcomes.",
 };
 
+/** Built-in vertical pack for financial technology, payments, and banking. */
 export const FINTECH_PACK: VerticalPack = {
   id: "fintech",
   name: "FinTech",
@@ -320,6 +322,7 @@ export const FINTECH_PACK: VerticalPack = {
     "You are innovating in the financial technology space. All ideas must consider regulatory compliance, consumer protection, data security, and financial inclusion. Prioritize ideas that reduce friction while maintaining trust and safety.",
 };
 
+/** Built-in vertical pack for education technology and learning platforms. */
 export const EDTECH_PACK: VerticalPack = {
   id: "edtech",
   name: "EdTech",
@@ -378,6 +381,7 @@ export const EDTECH_PACK: VerticalPack = {
     "You are innovating in education technology. Prioritize ideas that improve learning outcomes, are evidence-based, consider accessibility (WCAG), and comply with student data privacy regulations.",
 };
 
+/** Built-in vertical pack for clean energy, sustainability, and environmental technology. */
 export const CLEANTECH_PACK: VerticalPack = {
   id: "cleantech",
   name: "CleanTech",
@@ -451,6 +455,7 @@ export const CLEANTECH_PACK: VerticalPack = {
     "You are innovating in clean technology and sustainability. Prioritize ideas with measurable environmental impact, scalability potential, and alignment with global climate goals.",
 };
 
+/** Built-in vertical pack for government technology and civic tech. */
 export const GOVTECH_PACK: VerticalPack = {
   id: "govtech",
   name: "GovTech",

@@ -41,6 +41,7 @@ export const TrackedIdeaSchema = z.object({
 
 export type TrackedIdea = z.infer<typeof TrackedIdeaSchema>;
 
+/** Aggregated dashboard view of all tracked ideas with statistics and insights. */
 export interface TrackerDashboard {
   totalTracked: number;
   totalExported: number;
