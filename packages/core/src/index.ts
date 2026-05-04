@@ -3240,3 +3240,25 @@ export type {
   GenerateScriptOptions,
 } from "./session-cinematics/index.js";
 
+/** Innovation Flow State Engine — cognitive load monitoring and creative interventions. */
+export {
+  assessFlowState,
+  selectIntervention,
+  generateCustomIntervention,
+  recordFlowEntry,
+  getFlowTimeline,
+  getInterventionLibrary,
+  clearFlowData,
+  CognitiveLoadIndicatorsSchema,
+  FlowStateSchema,
+  InterventionSchema as FlowInterventionSchema,
+  FlowTimelineEntrySchema,
+} from "./flow-state/index.js";
+export type {
+  CognitiveLoadIndicators,
+  FlowState,
+  Intervention as FlowIntervention,
+  FlowTimelineEntry,
+  GenerateInterventionOptions,
+} from "./flow-state/index.js";
+

@@ -2936,4 +2936,36 @@ program
   });
 
 
+// ---- Flow State ----
+program
+  .command("flow-check")
+  .description("Check cognitive flow state for current session")
+  .option("--duration <min>", "Session duration in minutes", "30")
+  .option("--ideas <n>", "Ideas generated so far", "10")
+  .option("--stall <min>", "Minutes since last idea", "2")
+  .action(async (opts: { duration?: string; ideas?: string; stall?: string }) => {
+    const { assessFlowState, selectIntervention } = await import("@innovator/core");
+    const indicators = {
+      sessionDurationMinutes: parseInt(opts.duration ?? "30"),
+      ideasGenerated: parseInt(opts.ideas ?? "10"),
+      anglesExplored: 4,
+      timeSinceLastIdeaMinutes: parseInt(opts.stall ?? "2"),
+      ideaQualityTrend: "stable" as const,
+      repetitionRate: 0.1,
+      avgIdeaLengthTrend: "stable" as const,
+      userInteractionFrequency: "normal" as const,
+    };
+    const flowState = assessFlowState(indicators);
+    const intervention = selectIntervention(flowState);
+
+    console.log(chalk.bold(`\n🧠 Flow State: ${flowState.state}\n`));
+    console.log(`  Cognitive load: ${chalk.cyan(`${(flowState.cognitiveLoad * 100).toFixed(0)}%`)}`);
+    console.log(`  Creative energy: ${chalk.cyan(`${(flowState.creativeEnergy * 100).toFixed(0)}%`)}`);
+    console.log(`  Focus: ${chalk.cyan(`${(flowState.focusLevel * 100).toFixed(0)}%`)}`);
+    console.log(`  ${chalk.dim(flowState.recommendation)}`);
+    console.log(chalk.bold(`\n💡 Suggested: ${intervention.title}`));
+    console.log(`  ${intervention.description}`);
+  });
+
+
 program.parse();
