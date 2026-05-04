@@ -10,20 +10,22 @@ Innovator is configured via environment variables. Copy `.env.local.example` to 
 
 ## Environment Variables
 
-| Variable                   | Description                                                          | Default                  | Required |
-| -------------------------- | -------------------------------------------------------------------- | ------------------------ | -------- |
-| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime                     | `gpt-4.1`                | No       |
-| `INNOVATOR_API_KEY`        | API key to protect web API routes via `X-API-Key` header (see below) | _unset_                  | No       |
-| `INNOVATOR_API_KEYS`       | Comma-separated API keys for multi-key auth (`X-API-Key` or Bearer)  | _unset_                  | No       |
-| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for each LLM request in milliseconds                         | `90000`                  | No       |
-| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs to allow                | _unset_                  | No       |
-| `INNOVATOR_EMBED_ORIGINS`  | Comma-separated CORS origins for the `/api/embed` widget endpoint    | `*`                      | No       |
-| `OPENAI_API_KEY`           | OpenAI API key for direct OpenAI provider (non-Copilot usage)        | _unset_                  | No       |
-| `ANTHROPIC_API_KEY`        | Anthropic API key for direct Anthropic provider (non-Copilot usage)  | _unset_                  | No       |
-| `OLLAMA_BASE_URL`          | Base URL for local Ollama instance                                   | `http://localhost:11434` | No       |
-| `PLAYWRIGHT_BASE_URL`      | Base URL for Playwright E2E tests                                    | `http://localhost:3000`  | No       |
-| `MCP_PORT`                 | Port for the MCP server SSE transport                                | `3100`                   | No       |
-| `PORT`                     | Port for the Next.js dev server                                      | `3000`                   | No       |
+| Variable                   | Description                                                             | Default                  | Required |
+| -------------------------- | ----------------------------------------------------------------------- | ------------------------ | -------- |
+| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime                        | `gpt-4.1`                | No       |
+| `INNOVATOR_API_KEY`        | API key to protect web API routes via `X-API-Key` header (see below)    | _unset_                  | No       |
+| `INNOVATOR_API_KEYS`       | Comma-separated API keys for multi-key auth (`X-API-Key` or Bearer)     | _unset_                  | No       |
+| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for each LLM request in milliseconds                            | `90000`                  | No       |
+| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs to allow                   | _unset_                  | No       |
+| `INNOVATOR_EMBED_API_KEY`  | API key for the `/api/embed` widget endpoint (via `X-Embed-Key` header) | _unset_                  | No       |
+| `INNOVATOR_EMBED_ORIGINS`  | Comma-separated CORS origins for the `/api/embed` widget endpoint       | `*`                      | No       |
+| `OPENAI_API_KEY`           | OpenAI API key for direct OpenAI provider (non-Copilot usage)           | _unset_                  | No       |
+| `ANTHROPIC_API_KEY`        | Anthropic API key for direct Anthropic provider (non-Copilot usage)     | _unset_                  | No       |
+| `OLLAMA_BASE_URL`          | Base URL for local Ollama instance                                      | `http://localhost:11434` | No       |
+| `PLAYWRIGHT_BASE_URL`      | Base URL for Playwright E2E tests                                       | `http://localhost:3000`  | No       |
+| `MCP_PORT`                 | Port for the MCP server SSE transport                                   | `3100`                   | No       |
+| `GH_TOKEN`                 | GitHub token for Copilot SDK auth in non-interactive/CI environments    | _unset_                  | No       |
+| `PORT`                     | Port for the Next.js dev server                                         | `3000`                   | No       |
 
 ## `INNOVATOR_DEFAULT_MODEL`
 
@@ -60,6 +62,14 @@ Takes precedence over `INNOVATOR_API_KEY` when both are set.
 
 ```bash
 INNOVATOR_API_KEYS=team-key-abc,ci-key-xyz,partner-key-123
+```
+
+## `INNOVATOR_EMBED_API_KEY`
+
+When set, the `/api/embed` widget endpoint requires a matching `X-Embed-Key` header. Requests without the correct key receive a `401 Unauthorized` response. Leave unset to allow open access to the embed endpoint (CORS restrictions from `INNOVATOR_EMBED_ORIGINS` still apply).
+
+```bash
+INNOVATOR_EMBED_API_KEY=my-embed-secret
 ```
 
 ## `INNOVATOR_EMBED_ORIGINS`
@@ -139,6 +149,16 @@ Port for the MCP server when using SSE transport (`npx @innovator/mcp-server --s
 ```bash
 MCP_PORT=3100
 ```
+
+### `GH_TOKEN`
+
+GitHub personal access token used by the Copilot SDK when the GitHub CLI (`gh`) is not available — for example inside Docker containers, CI runners, or headless servers. When set, the SDK uses this token instead of the interactive `gh auth login` session.
+
+```bash
+GH_TOKEN=ghp_your_token
+```
+
+See the [Deployment guide](/docs/guides/deployment) for per-platform setup instructions.
 
 ## API Rate Limits & Security
 
