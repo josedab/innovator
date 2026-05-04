@@ -278,3 +278,202 @@ export function generateTimeline(
 
   return events.sort((a, b) => a.month - b.month);
 }
+
+// ---- Monte Carlo Simulation ----
+
+export const MonteCarloInputSchema = z.object({
+  marketSizeMin: z.number().min(0),
+  marketSizeMax: z.number().min(0),
+  implementationCostMin: z.number().min(0),
+  implementationCostMax: z.number().min(0),
+  adoptionRateMin: z.number().min(0).max(1),
+  adoptionRateMax: z.number().min(0).max(1),
+  revenuePerUserMin: z.number().min(0).optional(),
+  revenuePerUserMax: z.number().min(0).optional(),
+  timeToMarketMonthsMin: z.number().min(1).max(36).optional(),
+  timeToMarketMonthsMax: z.number().min(1).max(36).optional(),
+});
+
+export const MonteCarloResultSchema = z.object({
+  ideaTitle: z.string().max(500),
+  iterations: z.number(),
+  roiDistribution: z.object({
+    mean: z.number(),
+    median: z.number(),
+    stdDev: z.number(),
+    p5: z.number(),
+    p25: z.number(),
+    p75: z.number(),
+    p95: z.number(),
+    min: z.number(),
+    max: z.number(),
+  }),
+  breakEvenProbability: z.number().min(0).max(1),
+  positiveProbability: z.number().min(0).max(1),
+  sensitivityAnalysis: z.array(z.object({
+    variable: z.string().max(200),
+    lowValue: z.number(),
+    highValue: z.number(),
+    lowROI: z.number(),
+    highROI: z.number(),
+    sensitivity: z.number(),
+  })).max(10),
+  histogram: z.array(z.object({
+    bucketMin: z.number(),
+    bucketMax: z.number(),
+    count: z.number(),
+    percentage: z.number(),
+  })).max(50),
+  scenarioComparison: z.object({
+    optimistic: z.object({ roi: z.number(), probability: z.number() }),
+    base: z.object({ roi: z.number(), probability: z.number() }),
+    pessimistic: z.object({ roi: z.number(), probability: z.number() }),
+  }),
+});
+
+export type MonteCarloInput = z.infer<typeof MonteCarloInputSchema>;
+export type MonteCarloResult = z.infer<typeof MonteCarloResultSchema>;
+
+function randomUniform(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
+
+function randomTriangular(min: number, mode: number, max: number): number {
+  const u = Math.random();
+  const fc = (mode - min) / (max - min);
+  if (u < fc) {
+    return min + Math.sqrt(u * (max - min) * (mode - min));
+  }
+  return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+}
+
+/**
+ * Run Monte Carlo simulation for an idea's impact.
+ * Models uncertainty in market size, implementation cost, and adoption rate.
+ */
+export function runMonteCarloSimulation(
+  ideaTitle: string,
+  input: MonteCarloInput,
+  iterations: number = 10000
+): MonteCarloResult {
+  const rois: number[] = [];
+  const capped = Math.min(Math.max(iterations, 100), 100000);
+
+  for (let i = 0; i < capped; i++) {
+    const marketSize = randomTriangular(
+      input.marketSizeMin,
+      (input.marketSizeMin + input.marketSizeMax) / 2,
+      input.marketSizeMax
+    );
+    const cost = randomTriangular(
+      input.implementationCostMin,
+      (input.implementationCostMin + input.implementationCostMax) / 2,
+      input.implementationCostMax
+    );
+    const adoptionRate = randomUniform(input.adoptionRateMin, input.adoptionRateMax);
+    const revenuePerUser = input.revenuePerUserMin !== undefined && input.revenuePerUserMax !== undefined
+      ? randomUniform(input.revenuePerUserMin, input.revenuePerUserMax)
+      : 1;
+
+    const revenue = marketSize * adoptionRate * revenuePerUser;
+    const roi = cost > 0 ? ((revenue - cost) / cost) * 100 : 0;
+    rois.push(roi);
+  }
+
+  rois.sort((a, b) => a - b);
+  const n = rois.length;
+  const mean = rois.reduce((s, r) => s + r, 0) / n;
+  const variance = rois.reduce((s, r) => s + (r - mean) ** 2, 0) / (n - 1);
+  const stdDev = Math.sqrt(variance);
+
+  const percentile = (p: number) => rois[Math.floor((p / 100) * (n - 1))];
+  const median = percentile(50);
+
+  // Build histogram
+  const bucketCount = 20;
+  const minROI = rois[0];
+  const maxROI = rois[n - 1];
+  const bucketSize = (maxROI - minROI) / bucketCount || 1;
+  const histogram: MonteCarloResult["histogram"] = [];
+  for (let i = 0; i < bucketCount; i++) {
+    const bucketMin = minROI + i * bucketSize;
+    const bucketMax = bucketMin + bucketSize;
+    const count = rois.filter((r) => r >= bucketMin && (i === bucketCount - 1 ? r <= bucketMax : r < bucketMax)).length;
+    histogram.push({
+      bucketMin: Math.round(bucketMin * 100) / 100,
+      bucketMax: Math.round(bucketMax * 100) / 100,
+      count,
+      percentage: Math.round((count / n) * 10000) / 100,
+    });
+  }
+
+  // Sensitivity analysis (tornado diagram data)
+  const baseMarket = (input.marketSizeMin + input.marketSizeMax) / 2;
+  const baseCost = (input.implementationCostMin + input.implementationCostMax) / 2;
+  const baseAdoption = (input.adoptionRateMin + input.adoptionRateMax) / 2;
+  const baseRevPerUser = (input.revenuePerUserMin ?? 1 + (input.revenuePerUserMax ?? 1)) / 2;
+  const baseROI = baseCost > 0 ? ((baseMarket * baseAdoption * baseRevPerUser - baseCost) / baseCost) * 100 : 0;
+
+  const calcROI = (market: number, cost: number, adoption: number, rev: number) =>
+    cost > 0 ? ((market * adoption * rev - cost) / cost) * 100 : 0;
+
+  const sensitivityAnalysis = [
+    {
+      variable: "Market Size",
+      lowValue: input.marketSizeMin,
+      highValue: input.marketSizeMax,
+      lowROI: Math.round(calcROI(input.marketSizeMin, baseCost, baseAdoption, baseRevPerUser) * 100) / 100,
+      highROI: Math.round(calcROI(input.marketSizeMax, baseCost, baseAdoption, baseRevPerUser) * 100) / 100,
+      sensitivity: 0,
+    },
+    {
+      variable: "Implementation Cost",
+      lowValue: input.implementationCostMin,
+      highValue: input.implementationCostMax,
+      lowROI: Math.round(calcROI(baseMarket, input.implementationCostMin, baseAdoption, baseRevPerUser) * 100) / 100,
+      highROI: Math.round(calcROI(baseMarket, input.implementationCostMax, baseAdoption, baseRevPerUser) * 100) / 100,
+      sensitivity: 0,
+    },
+    {
+      variable: "Adoption Rate",
+      lowValue: input.adoptionRateMin,
+      highValue: input.adoptionRateMax,
+      lowROI: Math.round(calcROI(baseMarket, baseCost, input.adoptionRateMin, baseRevPerUser) * 100) / 100,
+      highROI: Math.round(calcROI(baseMarket, baseCost, input.adoptionRateMax, baseRevPerUser) * 100) / 100,
+      sensitivity: 0,
+    },
+  ];
+  // Calculate sensitivity as absolute ROI range
+  for (const s of sensitivityAnalysis) {
+    s.sensitivity = Math.round(Math.abs(s.highROI - s.lowROI) * 100) / 100;
+  }
+  sensitivityAnalysis.sort((a, b) => b.sensitivity - a.sensitivity);
+
+  // Scenario comparison
+  const breakEvenProbability = rois.filter((r) => r >= 0).length / n;
+
+  return MonteCarloResultSchema.parse({
+    ideaTitle,
+    iterations: capped,
+    roiDistribution: {
+      mean: Math.round(mean * 100) / 100,
+      median: Math.round(median * 100) / 100,
+      stdDev: Math.round(stdDev * 100) / 100,
+      p5: Math.round(percentile(5) * 100) / 100,
+      p25: Math.round(percentile(25) * 100) / 100,
+      p75: Math.round(percentile(75) * 100) / 100,
+      p95: Math.round(percentile(95) * 100) / 100,
+      min: Math.round(minROI * 100) / 100,
+      max: Math.round(maxROI * 100) / 100,
+    },
+    breakEvenProbability: Math.round(breakEvenProbability * 10000) / 10000,
+    positiveProbability: Math.round((rois.filter((r) => r > 0).length / n) * 10000) / 10000,
+    sensitivityAnalysis,
+    histogram,
+    scenarioComparison: {
+      pessimistic: { roi: Math.round(percentile(10) * 100) / 100, probability: 0.2 },
+      base: { roi: Math.round(median * 100) / 100, probability: 0.6 },
+      optimistic: { roi: Math.round(percentile(90) * 100) / 100, probability: 0.2 },
+    },
+  });
+}
