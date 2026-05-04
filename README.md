@@ -177,6 +177,13 @@ To get started, click **"Code → Codespaces → New codespace"** on GitHub, or 
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, coding standards, and PR guidelines.
 
+## Community
+
+Have a question or idea? Join the conversation on [GitHub Discussions](https://github.com/josedab/innovator/discussions):
+
+- **💡 [Ideas](https://github.com/josedab/innovator/discussions/categories/ideas)** — Propose new features, angles, or improvements
+- **❓ [Q&A](https://github.com/josedab/innovator/discussions/categories/q-a)** — Ask questions about setup, usage, or troubleshooting
+
 ## Security
 
 To report a vulnerability, please follow the instructions in [SECURITY.md](.github/SECURITY.md). **Do not open a public issue for security vulnerabilities.** We aim to acknowledge reports within 48 hours.
