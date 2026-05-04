@@ -36,6 +36,28 @@ See the [Configuration Reference](../configuration.md) for full details on each 
 
 ## Vercel
 
+The repository includes a `vercel.json` at the project root that pre-configures Vercel deployments:
+
+```json
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "apps/web/.next",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "rewrites": [{ "source": "/api/:path*", "destination": "/api/:path*" }]
+}
+```
+
+| Field             | Purpose                                                                 |
+| ----------------- | ----------------------------------------------------------------------- |
+| `buildCommand`    | Runs the full monorepo build (core → CLI → web) from the workspace root |
+| `outputDirectory` | Points Vercel to the Next.js build output inside `apps/web/.next`       |
+| `installCommand`  | Installs all workspace dependencies from the root                       |
+| `framework`       | Tells Vercel to use the Next.js adapter                                 |
+| `rewrites`        | Ensures API routes are forwarded correctly in the monorepo layout       |
+
+Because `vercel.json` handles build configuration, you generally do **not** need to set the Root Directory or Build Command manually in the Vercel dashboard — the file takes precedence.
+
 ### Setup
 
 1. Import the repository in the [Vercel dashboard](https://vercel.com/new)
