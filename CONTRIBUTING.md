@@ -529,6 +529,15 @@ The release pipeline is configured in `.releaserc.json` at the repository root. 
 
 Only pushes to `main` on the upstream repository (`josedab/innovator`) trigger a release. Fork pushes and pull request branches do not. The workflow uses the `GITHUB_TOKEN` secret provided by GitHub Actions — no additional credentials are needed.
 
+## Community
+
+Have a question, idea, or want to share what you've built? Use [GitHub Discussions](https://github.com/josedab/innovator/discussions):
+
+- **💡 [Ideas](https://github.com/josedab/innovator/discussions/categories/ideas)** — Propose features, new angles, or improvements. Use the [Ideas template](.github/DISCUSSION_TEMPLATE/ideas.yml) for structured submissions.
+- **❓ [Q&A](https://github.com/josedab/innovator/discussions/categories/q-a)** — Ask questions about setup, usage, or troubleshooting. Check the [documentation](https://josedab.github.io/innovator/docs/getting-started) first.
+
+Discussions are the best place for open-ended conversations — save GitHub Issues for concrete bug reports and feature requests with clear acceptance criteria.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
