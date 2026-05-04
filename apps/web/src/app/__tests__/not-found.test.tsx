@@ -8,7 +8,7 @@ import NotFound from "../not-found";
 describe("NotFound", () => {
   it("renders not found page with link home", () => {
     render(<NotFound />);
-    expect(screen.getByText("Page not found")).toBeDefined();
+    expect(screen.getByText("Page not found")).toBeInstanceOf(HTMLElement);
     const link = screen.getByText("Back to home");
     expect(link.getAttribute("href")).toBe("/");
   });

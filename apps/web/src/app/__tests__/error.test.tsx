@@ -10,8 +10,8 @@ describe("ErrorPage", () => {
     const reset = vi.fn();
     const error = new globalThis.Error("Something broke") as globalThis.Error & { digest?: string };
     render(<ErrorPage error={error} reset={reset} />);
-    expect(screen.getByText("Something broke")).toBeDefined();
-    expect(screen.getByText("Try again")).toBeDefined();
+    expect(screen.getByText("Something broke")).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText("Try again")).toBeInstanceOf(HTMLElement);
   });
 
   it("calls reset when button is clicked", () => {

@@ -20,18 +20,18 @@ const mockInvestigation: Investigation = {
 describe("InvestigationView", () => {
   it("renders without crashing", () => {
     render(<InvestigationView investigation={mockInvestigation} />);
-    expect(screen.getByText("Test summary of the investigation")).toBeDefined();
+    expect(screen.getByText("Test summary of the investigation")).toBeInstanceOf(HTMLElement);
   });
 
   it("displays key aspects", () => {
     render(<InvestigationView investigation={mockInvestigation} />);
-    expect(screen.getByText("Aspect 1")).toBeDefined();
-    expect(screen.getByText("Aspect 2")).toBeDefined();
+    expect(screen.getByText("Aspect 1")).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText("Aspect 2")).toBeInstanceOf(HTMLElement);
   });
 
   it("displays challenges and opportunities", () => {
     render(<InvestigationView investigation={mockInvestigation} />);
-    expect(screen.getByText("Challenge 1")).toBeDefined();
-    expect(screen.getByText("Opportunity 1")).toBeDefined();
+    expect(screen.getByText("Challenge 1")).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText("Opportunity 1")).toBeInstanceOf(HTMLElement);
   });
 });

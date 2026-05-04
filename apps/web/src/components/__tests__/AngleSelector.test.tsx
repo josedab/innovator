@@ -8,19 +8,19 @@ import { AngleSelector } from "../AngleSelector";
 describe("AngleSelector", () => {
   it("renders without crashing", () => {
     render(<AngleSelector onSubmit={vi.fn()} />);
-    expect(screen.getByText("Choose Innovation Angles")).toBeDefined();
+    expect(screen.getByText("Choose Innovation Angles")).toBeInstanceOf(HTMLElement);
   });
 
   it("renders Select All and Clear buttons", () => {
     render(<AngleSelector onSubmit={vi.fn()} />);
-    expect(screen.getByText("Select All")).toBeDefined();
-    expect(screen.getByText("Clear")).toBeDefined();
+    expect(screen.getByText("Select All")).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText("Clear")).toBeInstanceOf(HTMLElement);
   });
 
-  it("renders angle cards", () => {
+  it("renders angle cards with correct text", () => {
     render(<AngleSelector onSubmit={vi.fn()} />);
-    expect(screen.getByText("SCAMPER")).toBeDefined();
-    expect(screen.getByText("First Principles")).toBeDefined();
+    expect(screen.getByText("SCAMPER").textContent).toBe("SCAMPER");
+    expect(screen.getByText("First Principles").textContent).toBe("First Principles");
   });
 
   it("disables submit button when no angles selected", () => {
@@ -41,23 +41,23 @@ describe("AngleSelector", () => {
     const scamperBtn = screen.getByText("SCAMPER").closest("button")!;
 
     fireEvent.click(scamperBtn);
-    expect(screen.getByText(/Generate Innovations \(1 angle\)/)).toBeDefined();
+    expect(screen.getByText(/Generate Innovations \(1 angle\)/)).toBeInstanceOf(HTMLElement);
 
     fireEvent.click(scamperBtn);
-    expect(screen.getByText(/Generate Innovations \(0 angles\)/)).toBeDefined();
+    expect(screen.getByText(/Generate Innovations \(0 angles\)/)).toBeInstanceOf(HTMLElement);
   });
 
   it("selects all angles when Select All is clicked", () => {
     render(<AngleSelector onSubmit={vi.fn()} />);
     fireEvent.click(screen.getByText("Select All"));
-    expect(screen.getByText(/Generate Innovations \(8 angles\)/)).toBeDefined();
+    expect(screen.getByText(/Generate Innovations \(8 angles\)/)).toBeInstanceOf(HTMLElement);
   });
 
   it("clears all selections when Clear is clicked", () => {
     render(<AngleSelector onSubmit={vi.fn()} />);
     fireEvent.click(screen.getByText("Select All"));
     fireEvent.click(screen.getByText("Clear"));
-    expect(screen.getByText(/Generate Innovations \(0 angles\)/)).toBeDefined();
+    expect(screen.getByText(/Generate Innovations \(0 angles\)/)).toBeInstanceOf(HTMLElement);
   });
 
   it("calls onSubmit with selected angles", () => {
@@ -95,14 +95,14 @@ describe("AngleSelector", () => {
   it("shows correct count for singular angle", () => {
     render(<AngleSelector onSubmit={vi.fn()} />);
     fireEvent.click(screen.getByText("SCAMPER").closest("button")!);
-    expect(screen.getByText(/1 angle\b/)).toBeDefined();
+    expect(screen.getByText(/1 angle\b/)).toBeInstanceOf(HTMLElement);
   });
 
   it("shows correct count for plural angles", () => {
     render(<AngleSelector onSubmit={vi.fn()} />);
     fireEvent.click(screen.getByText("SCAMPER").closest("button")!);
     fireEvent.click(screen.getByText("First Principles").closest("button")!);
-    expect(screen.getByText(/2 angles/)).toBeDefined();
+    expect(screen.getByText(/2 angles/)).toBeInstanceOf(HTMLElement);
   });
 
   describe("all 8 angles", () => {
@@ -120,7 +120,7 @@ describe("AngleSelector", () => {
     it("renders all 8 angle names", () => {
       render(<AngleSelector onSubmit={vi.fn()} />);
       for (const name of allAngleNames) {
-        expect(screen.getByText(name)).toBeDefined();
+        expect(screen.getByText(name)).toBeInstanceOf(HTMLElement);
       }
     });
 
@@ -174,19 +174,19 @@ describe("AngleSelector", () => {
     it("'1 angle' singular form", () => {
       render(<AngleSelector onSubmit={vi.fn()} />);
       fireEvent.click(screen.getByText("SCAMPER").closest("button")!);
-      expect(screen.getByText(/1 angle\b/)).toBeDefined();
+      expect(screen.getByText(/1 angle\b/)).toBeInstanceOf(HTMLElement);
     });
 
     it("'2 angles' plural form", () => {
       render(<AngleSelector onSubmit={vi.fn()} />);
       fireEvent.click(screen.getByText("SCAMPER").closest("button")!);
       fireEvent.click(screen.getByText("First Principles").closest("button")!);
-      expect(screen.getByText(/2 angles/)).toBeDefined();
+      expect(screen.getByText(/2 angles/)).toBeInstanceOf(HTMLElement);
     });
 
     it("'0 angles' plural form when none selected", () => {
       render(<AngleSelector onSubmit={vi.fn()} />);
-      expect(screen.getByText(/0 angles/)).toBeDefined();
+      expect(screen.getByText(/0 angles/)).toBeInstanceOf(HTMLElement);
     });
   });
 });

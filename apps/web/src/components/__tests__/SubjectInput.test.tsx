@@ -6,15 +6,19 @@ import { describe, it, expect, vi } from "vitest";
 import { SubjectInput } from "../SubjectInput";
 
 describe("SubjectInput", () => {
-  it("renders without crashing", () => {
+  it("renders input with placeholder text", () => {
     render(<SubjectInput onSubmit={vi.fn()} onAutoMode={vi.fn()} />);
-    expect(screen.getByPlaceholderText(/code review/i)).toBeDefined();
+    const input = screen.getByPlaceholderText(/code review/i);
+    expect(input).toBeInstanceOf(HTMLInputElement);
+    expect((input as HTMLInputElement).value).toBe("");
   });
 
-  it("renders Investigate and Auto Mode buttons", () => {
+  it("renders Investigate and Auto Mode buttons with correct text", () => {
     render(<SubjectInput onSubmit={vi.fn()} onAutoMode={vi.fn()} />);
-    expect(screen.getByRole("button", { name: /Investigate subject/ })).toBeDefined();
-    expect(screen.getByRole("button", { name: /auto mode on subject/ })).toBeDefined();
+    const investigateBtn = screen.getByRole("button", { name: /Investigate subject/ });
+    const autoBtn = screen.getByRole("button", { name: /auto mode on subject/ });
+    expect(investigateBtn).toBeInstanceOf(HTMLButtonElement);
+    expect(autoBtn).toBeInstanceOf(HTMLButtonElement);
   });
 
   it("disables buttons when input is empty", () => {
