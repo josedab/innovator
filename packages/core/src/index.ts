@@ -2630,3 +2630,25 @@ export type {
   AnglePair,
   MorphologicalCell,
 } from "./combinatorial/index.js";
+
+/** Autonomous Innovation Agent — self-directed exploration with branching investigations. */
+export {
+  runAutonomousAgent,
+  autonomousRunToMarkdown,
+  ExplorationStrategySchema,
+  AgentStatusSchema,
+  InvestigationBranchSchema,
+  AgentDecisionSchema,
+  InnovationPortfolioSchema,
+  AutonomousRunSchema,
+} from "./autonomous-agent/index.js";
+export type {
+  ExplorationStrategy,
+  AgentStatus,
+  InvestigationBranch,
+  AgentDecision,
+  InnovationPortfolio,
+  AutonomousRun,
+  AutonomousProgress,
+  AutonomousAgentConfig,
+} from "./autonomous-agent/index.js";
