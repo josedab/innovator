@@ -2863,4 +2863,42 @@ program
   });
 
 
+// ---- Adaptive Scaling ----
+program
+  .command("classify <subject>")
+  .description("Classify subject complexity and generate adaptive execution plan")
+  .option("--depth <depth>", "Preferred depth: overview, standard, deep, exhaustive")
+  .action(async (subject: string, opts: { depth?: string }) => {
+    const { classifyComplexityHeuristic, generateExecutionPlan } = await import("@innovator/core");
+    const spinner = ora("Classifying complexity...").start();
+    try {
+      const complexity = classifyComplexityHeuristic(subject);
+      const plan = generateExecutionPlan(subject, complexity, {
+        level: "intermediate",
+        domains: [],
+        preferredDepth: (opts.depth as "overview" | "standard" | "deep" | "exhaustive") ?? "standard",
+        sessionCount: 0,
+      });
+      spinner.stop();
+      console.log(chalk.bold(`\n⚡ Adaptive Plan for: "${subject}"\n`));
+      console.log(`  Complexity: ${chalk.cyan(complexity.level)} (score: ${complexity.score.toFixed(2)})`);
+      console.log(`  Recommended depth: ${chalk.cyan(plan.recommendedDepth)}`);
+      console.log(`  Angles: ${chalk.cyan(String(plan.angleCount))} (${plan.recommendedAngles.join(", ")})`);
+      console.log(`  Model: ${chalk.cyan(plan.modelSelection.generation)}`);
+      console.log(`  Est. cost savings: ${chalk.green(`${plan.costSavingsPercent.toFixed(0)}%`)}`);
+      console.log(`  Est. time: ${chalk.cyan(`${plan.estimatedTimeSeconds}s`)}`);
+      if (plan.adjustments.length > 0) {
+        console.log(chalk.bold("\nAdjustments:"));
+        for (const a of plan.adjustments) {
+          console.log(`  ${a.parameter}: ${chalk.dim(a.original)} → ${chalk.green(a.adjusted)} (${a.reason})`);
+        }
+      }
+    } catch (err) {
+      spinner.fail("Classification failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+
 program.parse();

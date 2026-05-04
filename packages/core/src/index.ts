@@ -3173,3 +3173,24 @@ export type {
   CostDashboard,
 } from "./knowledge-distillation/index.js";
 
+/** Adaptive Investigation Auto-Scaling — complexity classification and adaptive execution planning. */
+export {
+  classifyComplexityHeuristic,
+  classifyComplexity,
+  generateExecutionPlan,
+  recordExecution as recordAdaptiveExecution,
+  getExecutionStats,
+  clearExecutionHistory,
+  ComplexityClassificationSchema,
+  ExpertiseProfileSchema,
+  BudgetConstraintSchema,
+  AdaptiveExecutionPlanSchema,
+} from "./adaptive-scaling/index.js";
+export type {
+  ComplexityClassification,
+  ExpertiseProfile,
+  BudgetConstraint,
+  AdaptiveExecutionPlan,
+  ClassifyComplexityOptions,
+} from "./adaptive-scaling/index.js";
+
