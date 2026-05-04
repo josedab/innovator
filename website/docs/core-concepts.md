@@ -247,6 +247,160 @@ After generating ideas across multiple angles, the **dependency graph** module a
 
 Beyond the 8 built-in angles, you can **create custom angles** with your own prompt templates. Custom angles are registered via the API and appear alongside built-in angles in the UI and CLI. They can be scoped to specific domains and tagged for discoverability.
 
+### Ontology
+
+The **ontology module** extracts entity-relationship graphs and taxonomies from investigations, enabling cross-investigation knowledge accumulation. Unlike the knowledge-graph module (which focuses on idea connections), ontology operates on the investigation text itself, identifying concepts, technologies, organizations, trends, and the relationships between them.
+
+Key concepts:
+
+- **Entities** — typed nodes (concept, technology, organization, person, market, regulation, trend, product) with attributes.
+- **Relationships** — directed edges between entities with strength scores describing how strongly two entities are related.
+- **Taxonomies** — hierarchical classification trees built from extracted entities.
+- **Versioned Graphs** — each extraction is versioned, and ontologies from different investigations can be merged.
+
+When a prior ontology exists for a subject, it is injected into the investigation prompt via `buildInvestigationPrompt`, enriching subsequent investigations with accumulated knowledge.
+
+#### Ontology API
+
+| Function                   | Description                                              |
+| -------------------------- | -------------------------------------------------------- |
+| `extractOntology`          | Extract an ontology graph from investigation text        |
+| `getOntology`              | Retrieve a stored ontology by subject                    |
+| `listOntologies`           | List all stored ontology subjects                        |
+| `queryEntities`            | Query entities across all ontologies, optionally by type |
+| `buildInvestigationPrompt` | Build an enriched prompt using a prior ontology          |
+| `clearOntologies`          | Clear all stored ontologies                              |
+
+The ontology module is architecturally distinct from the [knowledge-graph](#dependency-graphs) module: ontology operates on investigation text to extract domain knowledge, while the knowledge graph focuses on relationships between generated ideas.
+
+### Decision Packets
+
+The **decision module** generates executive-ready decision documents from pipeline results. A decision packet consolidates the investigation and synthesis into a structured format suitable for leadership review.
+
+Each packet includes:
+
+- **Options Matrix** — ranked alternatives with pros, cons, and confidence scores.
+- **Risk Assessment** — identified risks with likelihood, impact, and mitigation strategies.
+- **Resource Asks** — estimated resources, timeline, and budget for each option.
+- **Success Criteria** — measurable outcomes for tracking progress.
+
+Decision packets can be exported to Markdown or Google Slides JSON format via `decisionPacketToMarkdown` and `decisionPacketToSlidesJson`.
+
+### Hypothesis-Driven Innovation
+
+The **hypothesis module** provides an alternative workflow to the standard angle-based pipeline. Instead of divergent brainstorming, you start with a specific hypothesis and subject it to rigorous analysis.
+
+Key concepts:
+
+- **Parsed Hypothesis** — the hypothesis text is decomposed into structured components (claim, assumptions, variables).
+- **Experiment Cards** — generated designs for testing the hypothesis, with metrics and success criteria.
+- **Counter-Evidence** — the LLM actively searches for evidence that contradicts the hypothesis.
+- **Alternative Hypotheses** — related but different hypotheses the LLM generates.
+- **Pivot Suggestions** — if the hypothesis is invalidated, the module suggests pivot directions.
+- **Sessions** — hypotheses are tracked through a lifecycle: `draft` → `analyzing` → `analyzed` → `testing` → `validated` / `invalidated` / `pivoted`.
+
+See the [Hypothesis Guide](/docs/guides/hypothesis) for workflow examples.
+
+### Playbook Generation
+
+The **playbook module** generates polished innovation documents from pipeline results. A playbook is a comprehensive, presentation-ready artifact that packages the entire innovation session into an actionable format.
+
+Each playbook includes:
+
+- **Executive Summary** — a high-level overview suitable for stakeholders.
+- **Implementation Roadmap** — a phased plan (typically 3–4 phases) with activities and deliverables per phase.
+- **Risk Assessment** — identified risks with likelihood/impact matrices and mitigation strategies.
+- **Next Steps** — immediate action items to move forward.
+
+Playbooks can be rendered as Markdown or styled HTML via `generatePlaybook` or directly from pipeline results via `generatePlaybookFromPipeline`.
+
+See the [Playbook Guide](/docs/guides/playbook) for usage details.
+
+### Genealogy
+
+The **genealogy module** tracks how ideas evolve across multiple investigation runs on the same subject. When you re-investigate a topic, genealogy compares the new results against previous runs and classifies each idea:
+
+| Status        | Description                                             |
+| ------------- | ------------------------------------------------------- |
+| **Net-new**   | Idea has low similarity to any previous idea            |
+| **Evolved**   | Same core idea but with meaningful changes              |
+| **Converged** | Multiple angles now produce similar ideas (convergence) |
+| **Extinct**   | A previously generated idea no longer appears           |
+
+Similarity is computed via embeddings, and the result includes diff details showing what changed between runs.
+
+### Angle Learning
+
+The **angle-learning module** tracks how effective each angle is and adapts weights over time. It records user events — exports, ratings, dwell-time, selections, dismissals, bookmarks, and shares — and uses them to compute per-angle quality scores.
+
+Key concepts:
+
+- **Event Recording** — every user interaction with an angle's output is recorded as an event.
+- **Effectiveness Scoring** — a quality score (0–100) is computed for each angle, with trend direction (improving, declining, stable).
+- **Domain Affinity** — a matrix maps which angles perform best in which domains.
+- **A/B Testing** — sessions can be assigned to `tuned` (weight-adapted) or `default` variants to measure whether personalisation improves outcomes.
+- **Weighted Angles** — `getWeightedAngles` returns recommended angle weights based on accumulated data.
+
+See the [Angle Learning A/B Testing](#angle-learning-ab-testing) section below for details on the A/B testing system.
+
+### Confidence
+
+The **confidence module** scores investigation quality before ideas are generated, acting as a quality gate. It evaluates the investigation across five dimensions:
+
+| Dimension           | What it measures                                 |
+| ------------------- | ------------------------------------------------ |
+| **Specificity**     | How concrete and specific the investigation is   |
+| **Domain Coverage** | How thoroughly the domain is explored            |
+| **Recency**         | Whether the information reflects current state   |
+| **Actionability**   | Whether the findings lead to actionable insights |
+| **Depth**           | How deeply the subject is analyzed               |
+
+The overall score (0–100) is accompanied by identified **knowledge gaps** — topics that should be investigated further, with importance levels and suggestions. Use `meetsConfidenceThreshold` to gate the pipeline on investigation quality.
+
+## Angle Learning A/B Testing
+
+The angle-learning module includes a built-in A/B testing system that measures whether personalised angle weights improve innovation outcomes compared to default weights.
+
+### How It Works
+
+1. **Variant Assignment** — each session is assigned to either the `tuned` variant (using learned weights) or the `default` variant (equal weights). Assignment is deterministic per session ID via `assignABVariant`.
+
+2. **Event Collection** — as users interact with angle outputs (export, rate, bookmark, share, dismiss), events are recorded via `recordAngleEvent`. Each event includes the angle ID, event type, and optional metadata.
+
+3. **Effectiveness Computation** — `computeAngleEffectiveness` aggregates events into a per-angle quality score (0–100) with a trend direction (improving, declining, stable). An optional domain parameter narrows the analysis.
+
+4. **Weight Adaptation** — `getWeightedAngles` returns recommended angle weights based on accumulated effectiveness data. In `tuned` sessions, these weights influence angle selection and ordering.
+
+5. **Results Comparison** — `getABTestResults` compares outcomes between `tuned` and `default` variants, showing whether personalisation improves ratings, exports, and engagement.
+
+### API Reference
+
+| Function                    | Description                                                       |
+| --------------------------- | ----------------------------------------------------------------- |
+| `recordAngleEvent`          | Record a user event (export, rating, dwell-time, selection, etc.) |
+| `computeAngleEffectiveness` | Compute per-angle quality scores with trends                      |
+| `getWeightedAngles`         | Get recommended angle weights, optionally filtered by domain      |
+| `assignABVariant`           | Assign a session to `tuned` or `default` variant                  |
+| `getABTestResults`          | Compare outcomes between A/B test variants                        |
+| `getAngleEvents`            | Retrieve recorded events, optionally filtered by angle            |
+| `buildAvoidanceHints`       | Generate hints for consistently low-performing angles             |
+
+### Interpreting Results
+
+Call `getABTestResults()` to see a comparison:
+
+```typescript
+import { getABTestResults } from "@innovator/core";
+
+const results = getABTestResults();
+// Compare tuned vs. default variant metrics:
+// - Average rating per angle
+// - Export rate
+// - Engagement (dwell time, bookmarks, shares)
+```
+
+If the `tuned` variant consistently outperforms `default`, the learned weights are validated. If not, consider resetting learning data with `clearAngleLearning()` and adjusting the event recording strategy.
+
 ## Multi-Language Support (i18n)
 
 Innovator supports generating investigations and innovations in multiple languages. The system detects the language of your input automatically and instructs the LLM to respond in that language.
