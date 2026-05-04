@@ -2583,3 +2583,30 @@ export type {
   CrossOrgConfig,
   NoiseMechanism,
 } from "./privacy/index.js";
+
+/** Self-Healing Pipeline — circuit breakers, provider switching, adaptive recovery. */
+export {
+  getCircuitBreaker,
+  isCircuitOpen,
+  recordFailure,
+  recordSuccess,
+  classifyError,
+  selectRecoveryStrategy,
+  withSelfHealing,
+  getPipelineHealth,
+  getRecentFailures,
+  resetSelfHealing,
+  CircuitStateSchema,
+  PipelineFailureSchema,
+  CircuitBreakerSchema,
+  RecoveryStrategySchema,
+  PipelineHealthSchema,
+} from "./self-healing/index.js";
+export type {
+  CircuitState,
+  PipelineFailure,
+  CircuitBreaker,
+  RecoveryStrategy,
+  PipelineHealth,
+  SelfHealingConfig,
+} from "./self-healing/index.js";
