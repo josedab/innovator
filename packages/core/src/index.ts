@@ -367,6 +367,7 @@ export type { OutputMode, OutputModeDefinition, AudienceOutput } from "./audienc
 export {
   buildIdeaDependencyGraph,
   dependencyGraphToMarkdown,
+  dependencyGraphToMermaid,
   IdeaDependencyNodeSchema,
   IdeaDependencyEdgeSchema,
   IdeaDependencyGraphSchema,
@@ -598,17 +599,30 @@ export {
 } from "./offline/index.js";
 export type { OllamaStatus, OfflineStatus, RecommendedModel } from "./offline/index.js";
 
-/** RAG / knowledge grounding — document loading, chunking, embedding, and similarity search. */
+/** RAG / knowledge grounding — document loading, chunking, embedding, similarity search, and source connectors. */
 export {
   KnowledgeBase,
   loadDocument,
   chunkText,
   generateEmbedding,
   cosineSimilarity,
+  GitHubConnector,
+  ConfluenceConnector,
+  NotionConnector,
+  LocalFileConnector,
+  registerConnector,
+  listConnectors,
+  syncConnector,
+  removeConnector,
+  buildContextInjection,
+  clearConnectors,
   DocumentTypeSchema,
   DocumentChunkSchema,
   KnowledgeDocumentSchema,
   KnowledgeBaseConfigSchema,
+  ConnectorTypeSchema,
+  ConnectorConfigSchema,
+  ConnectorStatusSchema,
   DEFAULT_CHUNKING_OPTIONS,
 } from "./rag/index.js";
 export type {
@@ -618,6 +632,10 @@ export type {
   KnowledgeBaseConfig,
   SearchResult,
   ChunkingOptions,
+  ConnectorType,
+  ConnectorConfig,
+  ConnectorStatus,
+  KnowledgeConnector,
 } from "./rag/index.js";
 
 /** Cost tracking and budget management — estimate, track, and cap LLM spend. */
@@ -708,6 +726,13 @@ export {
   createHighScoreChain,
   createPipelineNotificationChain,
   clearAutomation,
+  getWebhookTemplate,
+  listWebhookTemplates,
+  WEBHOOK_TEMPLATES,
+  SLACK_TEMPLATE,
+  GITHUB_ISSUES_TEMPLATE,
+  JIRA_TEMPLATE,
+  EMAIL_TEMPLATE,
   TriggerConditionSchema,
   ActionTypeSchema,
   AutomationActionSchema,
@@ -725,6 +750,7 @@ export type {
   AutomationAction,
   AutomationRule,
   AutomationLogEntry,
+  WebhookTemplate,
 } from "./events/index.js";
 
 /** Analytics — track usage events, generate summaries, and surface insights. */
@@ -843,10 +869,14 @@ export {
   simulatePersonaReaction,
   simulateStakeholders,
   simulateStakeholdersBatch,
+  buildConflictMatrix,
+  computeReadinessScores,
   DEFAULT_PERSONAS,
   StakeholderPersonaSchema,
   StakeholderReactionSchema,
   StakeholderSimulationSchema,
+  StakeholderConflictSchema,
+  ConflictMatrixSchema,
   modelScenarios,
   modelScenariosBatch,
   scenarioToMarkdown,
@@ -861,6 +891,8 @@ export type {
   StakeholderPersona,
   StakeholderReaction,
   StakeholderSimulation,
+  StakeholderConflict,
+  ConflictMatrix,
   ScenarioType,
   AdoptionDataPoint,
   ScenarioProjection,
@@ -1161,11 +1193,23 @@ export {
   rankGaps,
   rankStrategies,
   generatePositioningMatrix,
+  createMonitor,
+  listMonitors,
+  getMonitor,
+  deleteMonitor,
+  recordSignal,
+  getSignals,
+  detectTrends,
+  generateInvestigationSuggestions,
+  clearMonitoring,
   CompetitorProfileSchema,
   CompetitiveGapSchema,
   DifferentiationStrategySchema,
   FlankingOpportunitySchema,
   CompetitiveAnalysisSchema,
+  CompetitiveSignalSchema,
+  MonitorConfigSchema,
+  MonitorReportSchema,
 } from "./competitive/index.js";
 export type {
   CompetitorProfile,
@@ -1173,6 +1217,9 @@ export type {
   DifferentiationStrategy,
   FlankingOpportunity,
   CompetitiveAnalysis,
+  CompetitiveSignal,
+  MonitorConfig,
+  MonitorReport,
 } from "./competitive/index.js";
 
 /** Impact simulator — model ROI, resource requirements, timelines, and go/no-go milestones. */
@@ -1185,12 +1232,15 @@ export {
   getGoNoGoMilestones,
   calculateExpectedROI,
   generateTimeline,
+  runMonteCarloSimulation,
   MonthlyDataPointSchema,
   MilestoneSchema,
   ResourceRequirementSchema,
   DecisionPointSchema,
   ScenarioSimulationSchema,
   ImpactSimulationSchema,
+  MonteCarloInputSchema,
+  MonteCarloResultSchema,
 } from "./impact-simulator/index.js";
 export type {
   MonthlyDataPoint,
@@ -1199,6 +1249,8 @@ export type {
   DecisionPoint,
   ScenarioSimulation,
   ImpactSimulation,
+  MonteCarloInput,
+  MonteCarloResult,
 } from "./impact-simulator/index.js";
 
 /** Vision — multi-modal input: extract innovation subjects from images using visual analysis. */
@@ -1283,12 +1335,39 @@ export {
   buildProvenanceTree,
   getIdeaProvenance,
   formatProvenance,
+  computeRecordHash,
+  computeChainHash,
+  verifyChainIntegrity,
+  provenanceToJsonLd,
+  buildLineageGraph,
+  provenanceToMarkdown,
   hashPrompt,
   estimateInputTokens,
   ProvenanceRecordSchema,
   ProvenanceChainSchema,
 } from "./provenance/index.js";
-export type { ProvenanceRecord, ProvenanceChain, ProvenanceTreeNode } from "./provenance/index.js";
+export type { ProvenanceRecord, ProvenanceChain, ProvenanceTreeNode, LineageNode, LineageEdge } from "./provenance/index.js";
+
+/** Interactive Idea Negotiation — multi-turn structured dialogue for collaborative idea refinement. */
+export {
+  startNegotiation,
+  negotiateStep,
+  getNegotiation,
+  listNegotiations,
+  completeNegotiation,
+  computeIdeaDeltaScore,
+  clearNegotiations,
+  NegotiationPhaseSchema,
+  NegotiationMessageSchema,
+  IdeaDeltaSchema,
+  NegotiationSessionSchema,
+} from "./negotiation/index.js";
+export type {
+  NegotiationPhase,
+  NegotiationMessage,
+  IdeaDelta,
+  NegotiationSession,
+} from "./negotiation/index.js";
 
 /** Constraint satisfaction — evaluate ideas against budget, timeline, and custom constraints. */
 export {
@@ -1784,7 +1863,7 @@ export type {
   CrossDiscoveryResult,
 } from "./embeddings/index.js";
 
-/** Innovation Telemetry & Quality Metrics — diversity scoring, prompt effectiveness, hallucination detection. */
+/** Innovation Telemetry & Quality Metrics — diversity scoring, prompt effectiveness, hallucination detection, span tracing, metrics aggregation. */
 export {
   scoreIdeaDiversity,
   recordPromptEffectiveness,
@@ -1793,17 +1872,61 @@ export {
   detectHallucinationsInResults,
   getQualityTrends,
   clearTelemetry,
+  startSpan,
+  endSpan,
+  addSpanEvent,
+  getSpans,
+  recordPipelineMetric,
+  getAggregatedMetrics,
+  buildTelemetryDashboard,
+  getMetrics,
   DiversityScoreSchema,
   PromptEffectivenessSchema,
   HallucinationCheckSchema,
   QualityTrendSchema,
+  TelemetrySpanSchema,
+  PipelineMetricSchema,
 } from "./telemetry/index.js";
 export type {
   DiversityScore,
   PromptEffectiveness,
   HallucinationCheck,
   QualityTrend,
+  TelemetrySpan,
+  PipelineMetric,
 } from "./telemetry/index.js";
+
+/** Prompt A/B Testing Lab — experiment framework for prompt variations with statistical analysis and versioning. */
+export {
+  createExperiment,
+  startExperiment,
+  getExperiment,
+  listExperiments,
+  assignVariant,
+  recordExperimentScore,
+  welchTTest,
+  analyzeExperiment,
+  commitPromptVersion,
+  activatePromptVersion,
+  getActivePromptVersion,
+  getPromptVersionHistory,
+  rollbackPromptVersion,
+  clearPromptLab,
+  PromptVariantSchema,
+  AllocationStrategySchema,
+  PromptExperimentSchema,
+  ExperimentResultSchema,
+  StatisticalTestResultSchema,
+  PromptVersionSchema,
+} from "./prompt-lab/index.js";
+export type {
+  PromptVariant,
+  AllocationStrategy,
+  PromptExperiment,
+  ExperimentResult,
+  StatisticalTestResult,
+  PromptVersion,
+} from "./prompt-lab/index.js";
 
 /** Outcome Tracking & ROI Dashboard — track ideas from generation through implementation to business outcome. */
 export {
