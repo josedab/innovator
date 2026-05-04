@@ -119,3 +119,104 @@ export type {
   IdeaDelta,
   NegotiationSession,
 } from "./negotiation/index.js";
+export type {
+  EcosystemSnapshot,
+  TeamMember,
+  IdeaPipelineEntry,
+  MarketContext,
+  BudgetConstraints,
+  TwinAngleEffectiveness,
+  Strategy,
+  SimulationResult,
+  StrategyComparison,
+} from "./digital-twin/index.js";
+export type {
+  ContentFormat,
+  ContentTone,
+  ContentAudience,
+  ContentPiece,
+  ContentSection,
+  ContentContext,
+  RevisionRequest,
+} from "./content-pipeline/index.js";
+export type {
+  RepoHealthScore,
+  HealthDimension,
+  WeeklyDigest,
+  GitHubAppConfig,
+  ArchitectureFreshness,
+  DependencyStaleness,
+  ContributionDiversity,
+  IssueVelocity,
+  CompetitiveLandscape,
+} from "./github-health/index.js";
+export type {
+  CognitiveBiasId,
+  BiasDefinition,
+  UserActivity,
+  BiasDetection,
+  BiasAnalysis,
+  DebiasingChallenge,
+  TeamBiasDashboard,
+} from "./bias-calibration/index.js";
+export type {
+  TenantConfig,
+  BrandingConfig,
+  TerminologyMap,
+  FeatureToggles,
+  BillingPlan,
+  PartnerProfile,
+  TenantResolutionResult,
+} from "./white-label/index.js";
+export type {
+  MeetingPlatform,
+  MeetingTranscript,
+  SignalType,
+  MeetingSignal,
+  ExtractionResult,
+  MeetingConnectorConfig,
+} from "./meeting-intelligence/index.js";
+export type {
+  OrchestrationConfig,
+  OrchestrationPipelineStage,
+  QualityGate,
+  TeamAssignment,
+  Schedule,
+  IntegrationConfig,
+  PlanChange,
+  OrchestrationPlan,
+  ApplyResult,
+  DriftReport,
+} from "./orchestration/index.js";
+export type {
+  CaptureSourceType,
+  RelevanceCategory,
+  CapturedSignal,
+  TopicCluster,
+  InvestigationDraft,
+  CaptureSettings,
+} from "./ambient-capture/index.js";
+export type {
+  MobileCaptureType,
+  MobileCapture,
+  QueueItemStatus,
+  OfflineQueueItem,
+  SyncOperation,
+  SyncState,
+  SyncResult,
+  NotificationType,
+  PushNotification,
+  IdeaCard,
+  MobileConfig,
+} from "./mobile-companion/index.js";
+export type {
+  InnovationSkill,
+  DifficultyLevel,
+  LearningModule,
+  LearningPath,
+  ModuleProgress,
+  LearnerProfile,
+  Certificate,
+  QuizQuestion,
+  PracticeExercise,
+} from "./curriculum/index.js";
