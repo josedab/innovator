@@ -86,6 +86,8 @@ import {
   stressTestToMarkdown,
   simulateStakeholdersBatch,
   computeReadinessScores,
+  runWargaming,
+  wargamingToMarkdown,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -2544,6 +2546,44 @@ program
       console.log(`  Records: ${chain.records.length}`);
       console.log(`  Integrity: ${chalk.dim(computeChainHash(chain))}\n`);
       console.log(formatProvenance(chain.records));
+    }
+  });
+
+// ---- Wargaming Command ----
+program
+  .command("wargame")
+  .description("Run competitive wargaming simulation on an idea")
+  .argument("<subject>", "Innovation subject")
+  .requiredOption("--idea <title>", "Idea title to wargame")
+  .requiredOption("--description <desc>", "Idea description")
+  .option("-m, --model <model>", "LLM model to use")
+  .option("--rounds <n>", "Number of wargaming rounds (1-5)", "3")
+  .option("--markdown", "Output as Markdown")
+  .action(async (subject: string, opts: { idea: string; description: string; model?: string; rounds?: string; markdown?: boolean }) => {
+    if (!validateSubjectWithLog(subject)) return;
+    if (opts.model && !validateModelWithLog(opts.model)) return;
+    const spinner = ora("Running wargaming simulation...").start();
+    try {
+      const result = await runWargaming(opts.idea, opts.description, subject, {
+        model: opts.model,
+        rounds: parseInt(opts.rounds ?? "3", 10),
+      });
+      spinner.stop();
+      if (opts.markdown) {
+        console.log(wargamingToMarkdown(result));
+      } else {
+        console.log(chalk.bold.red(`\n🎯 Wargaming: ${result.ideaTitle}\n`));
+        console.log(`  Resilience Score: ${chalk.bold(String(result.overallResilienceScore))}/100`);
+        console.log(`  Competitors: ${result.competitors.map((c) => c.name).join(", ")}`);
+        console.log(`  Rounds: ${result.rounds.length}`);
+        console.log(`  Vulnerabilities: ${result.vulnerabilities.length}`);
+        console.log(`  Counter-strategies: ${result.counterStrategies.length}\n`);
+        console.log(chalk.dim(result.strategicBrief));
+      }
+    } catch (err) {
+      spinner.fail("Wargaming failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
     }
   });
 

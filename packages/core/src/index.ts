@@ -2392,3 +2392,25 @@ export {
   getAngleEffectivenessStats,
 } from "./recommendation/index.js";
 export type { HistoricalSession } from "./recommendation/index.js";
+
+/** Innovation Scenario Wargaming — adversarial competitive simulation with resilience scoring. */
+export {
+  runWargaming,
+  getWargamingSession,
+  listWargamingSessions,
+  wargamingToMarkdown,
+  clearWargamingSessions,
+  CompetitorPersonaSchema,
+  WargamingMoveSchema,
+  WargamingRoundSchema,
+  CounterStrategySchema,
+  WargamingResultSchema,
+} from "./wargaming/index.js";
+export type {
+  CompetitorPersona,
+  WargamingMove,
+  WargamingRound,
+  CounterStrategy,
+  WargamingResult,
+  WargamingConfig,
+} from "./wargaming/index.js";
