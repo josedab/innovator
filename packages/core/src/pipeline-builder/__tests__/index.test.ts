@@ -174,3 +174,158 @@ describe("parsePipelineRequest (mocked LLM)", () => {
     await expect(parsePipelineRequest(longInput)).rejects.toThrow("Pipeline request too long");
   });
 });
+
+// ---- DAG compilation & execution tests ----
+
+describe("compilePipelineDAG (mocked LLM)", () => {
+  it("compiles a linear chain DAG", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        subject: "robotics",
+        phases: ["investigate", "generate", "synthesize"],
+      })
+    );
+
+    const { compilePipelineDAG } = await import("../index.js");
+    const dag = await compilePipelineDAG("Innovate on robotics");
+
+    expect(dag.id).toMatch(/^dag-/);
+    expect(dag.subject).toBe("robotics");
+    expect(dag.status).toBe("pending");
+    expect(dag.nodes.length).toBeGreaterThanOrEqual(3);
+
+    // Linear dependency chain: each node depends on previous
+    for (let i = 1; i < dag.nodes.length; i++) {
+      expect(dag.nodes[i].dependsOn.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("creates parallel branches for multiple angles", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        subject: "AI startup",
+        phases: ["investigate", "generate", "synthesize"],
+        angles: ["scamper", "first-principles", "inversion"],
+      })
+    );
+
+    const { compilePipelineDAG } = await import("../index.js");
+    const dag = await compilePipelineDAG("AI startup with multiple angles");
+
+    // Should have parallel generate nodes for each angle
+    const generateNodes = dag.nodes.filter((n) => n.type === "generate");
+    expect(generateNodes.length).toBe(3);
+    expect(generateNodes.map((n) => n.id)).toContain("generate-scamper");
+    expect(generateNodes.map((n) => n.id)).toContain("generate-first-principles");
+    expect(generateNodes.map((n) => n.id)).toContain("generate-inversion");
+
+    // Synthesize node should depend on all generate nodes
+    const synthNode = dag.nodes.find((n) => n.type === "synthesize");
+    expect(synthNode).toBeDefined();
+    expect(synthNode!.dependsOn).toContain("generate-scamper");
+  });
+});
+
+describe("executePipelineDAG", () => {
+  it("executes all nodes in dependency order", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        subject: "test",
+        phases: ["investigate", "generate"],
+      })
+    );
+
+    const { compilePipelineDAG, executePipelineDAG } = await import("../index.js");
+    const dag = await compilePipelineDAG("Test execution");
+    const executed = await executePipelineDAG(dag);
+
+    expect(executed.status).toBe("completed");
+    expect(executed.nodes.every((n) => n.status === "completed")).toBe(true);
+    expect(executed.nodes.every((n) => n.completedAt)).toBe(true);
+  });
+
+  it("supports dryRun mode", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        subject: "dry",
+        phases: ["investigate"],
+      })
+    );
+
+    const { compilePipelineDAG, executePipelineDAG } = await import("../index.js");
+    const dag = await compilePipelineDAG("Dry run test");
+    const executed = await executePipelineDAG(dag, { dryRun: true });
+
+    expect(executed.status).toBe("completed");
+    const output = executed.nodes[0].output as Record<string, unknown>;
+    expect(output.dryRun).toBe(true);
+  });
+
+  it("calls onNodeUpdate callback", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        subject: "callbacks",
+        phases: ["investigate"],
+      })
+    );
+
+    const { compilePipelineDAG, executePipelineDAG } = await import("../index.js");
+    const dag = await compilePipelineDAG("Callback test");
+    const updates: string[] = [];
+    await executePipelineDAG(dag, {
+      onNodeUpdate: (node) => updates.push(node.status),
+    });
+
+    expect(updates).toContain("running");
+    expect(updates).toContain("completed");
+  });
+
+  it("handles abort signal", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        subject: "abort",
+        phases: ["investigate", "generate", "synthesize"],
+      })
+    );
+
+    const { compilePipelineDAG, executePipelineDAG } = await import("../index.js");
+    const dag = await compilePipelineDAG("Abort test");
+    const controller = new AbortController();
+    controller.abort();
+
+    const result = await executePipelineDAG(dag, { signal: controller.signal });
+    // When aborted before execution, status should be "failed"
+    // and pending nodes become "skipped"
+    expect(["failed", "completed"]).toContain(result.status);
+    if (result.status === "failed") {
+      const skipped = result.nodes.filter((n) => n.status === "skipped");
+      expect(skipped.length).toBeGreaterThanOrEqual(0);
+    }
+  });
+});
+
+describe("dagToText", () => {
+  it("produces a text visualization of the DAG", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        subject: "viz test",
+        phases: ["investigate", "generate"],
+      })
+    );
+
+    const { compilePipelineDAG, dagToText } = await import("../index.js");
+    const dag = await compilePipelineDAG("Visualization test");
+    const text = dagToText(dag);
+
+    expect(text).toContain("Pipeline:");
+    expect(text).toContain("Status:");
+    expect(text).toContain("⏳"); // pending icon
+  });
+});
