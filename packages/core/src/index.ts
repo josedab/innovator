@@ -3098,3 +3098,24 @@ export type {
   QuizQuestion,
   PracticeExercise,
 } from "./curriculum/index.js";
+
+/** Inverse Innovation Decoder — analyze products and reverse-engineer innovation recipes. */
+export {
+  analyzeProduct,
+  getRecipe,
+  listRecipes,
+  clearRecipes,
+  recipeToMarkdown,
+  InnovationPatternSchema,
+  ThinkingStepSchema,
+  ProductAnalysisSchema,
+  InnovationRecipeSchema,
+} from "./inverse-decoder/index.js";
+export type {
+  InnovationPattern,
+  ThinkingStep,
+  ProductAnalysis,
+  InnovationRecipe,
+  AnalyzeProductOptions,
+} from "./inverse-decoder/index.js";
+
