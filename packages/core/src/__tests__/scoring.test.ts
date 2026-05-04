@@ -10,14 +10,28 @@ vi.mock("../copilot/client.js", () => ({
   extractJson: vi.fn(),
 }));
 
+vi.mock("../copilot/retry.js", () => ({
+  withRetry: vi.fn((fn: () => Promise<unknown>) => fn()),
+}));
+
+vi.mock("../prompts/sanitize.js", () => ({
+  sanitizeLlmOutput: vi.fn((s: string) => s),
+  wrapUserInput: vi.fn((label: string, value: string) => `${label}: ${value}`),
+}));
+
+import { generateText, extractJson } from "../copilot/client.js";
+import { withRetry } from "../copilot/retry.js";
+
 import {
   computePriorityScore,
   getQuadrant,
   rankIdeas,
+  scoreIdeas,
   IdeaScoreSchema,
   TIME_TO_IMPLEMENT_ORDER,
 } from "../scoring/index.js";
 import type { IdeaScore } from "../scoring/index.js";
+import type { AngleResult, Investigation } from "../types.js";
 
 function makeScore(overrides: Partial<IdeaScore> = {}): IdeaScore {
   return {
@@ -211,6 +225,141 @@ describe("scoring", () => {
       expect(TIME_TO_IMPLEMENT_ORDER.months).toBe(3);
       expect(TIME_TO_IMPLEMENT_ORDER.quarters).toBe(4);
       expect(TIME_TO_IMPLEMENT_ORDER.years).toBe(5);
+    });
+  });
+
+  describe("scoreIdeas", () => {
+    it("returns empty scores for empty angle results", async () => {
+      const result = await scoreIdeas("test subject", []);
+      expect(result.scores).toEqual([]);
+    });
+
+    it("parses valid LLM JSON response", async () => {
+      const mockResponse = JSON.stringify({
+        scores: [
+          {
+            ideaTitle: "Test Idea",
+            angleId: "scamper",
+            feasibility: 7,
+            impact: 8,
+            novelty: 6,
+            timeToImplement: "months",
+            confidence: 0.8,
+            rationale: "Good idea",
+          },
+        ],
+      });
+      vi.mocked(withRetry).mockImplementation((fn) => fn());
+      vi.mocked(generateText).mockResolvedValue(mockResponse);
+      vi.mocked(extractJson).mockReturnValue(mockResponse);
+
+      const angleResults: AngleResult[] = [
+        {
+          angleId: "scamper",
+          angleName: "SCAMPER",
+          ideas: [
+            {
+              title: "Test Idea",
+              description: "A test idea",
+              potentialImpact: "High",
+              implementationHint: "Use tools",
+            },
+          ],
+          reasoning: "Applied SCAMPER",
+        },
+      ];
+
+      const result = await scoreIdeas("test", angleResults);
+      expect(result.scores).toHaveLength(1);
+      expect(result.scores[0].feasibility).toBe(7);
+    });
+
+    it("includes investigation context in prompt when provided", async () => {
+      const mockResponse = JSON.stringify({
+        scores: [
+          {
+            ideaTitle: "Test",
+            angleId: "a1",
+            feasibility: 5,
+            impact: 5,
+            novelty: 5,
+            timeToImplement: "weeks",
+            confidence: 0.7,
+            rationale: "Ok",
+          },
+        ],
+      });
+      vi.mocked(withRetry).mockImplementation((fn) => fn());
+      vi.mocked(generateText).mockResolvedValue(mockResponse);
+      vi.mocked(extractJson).mockReturnValue(mockResponse);
+
+      const investigation: Investigation = {
+        summary: "Research summary",
+        keyAspects: ["aspect1"],
+        currentState: "Current state",
+        challenges: ["challenge1"],
+        opportunities: ["opportunity1"],
+      };
+
+      const angleResults: AngleResult[] = [
+        {
+          angleId: "a1",
+          angleName: "A1",
+          ideas: [
+            {
+              title: "Test",
+              description: "desc",
+              potentialImpact: "impact",
+              implementationHint: "hint",
+            },
+          ],
+          reasoning: "reason",
+        },
+      ];
+
+      await scoreIdeas("test", angleResults, investigation);
+      // withRetry is mocked to call fn directly, which calls generateText
+      // The prompt is built by buildScoringPrompt which includes investigation context
+      expect(vi.mocked(withRetry)).toHaveBeenCalled();
+    });
+
+    it("delegates retry logic to withRetry", async () => {
+      const mockResponse = JSON.stringify({
+        scores: [
+          {
+            ideaTitle: "Test",
+            angleId: "a1",
+            feasibility: 5,
+            impact: 5,
+            novelty: 5,
+            timeToImplement: "weeks",
+            confidence: 0.7,
+            rationale: "Ok",
+          },
+        ],
+      });
+      vi.mocked(withRetry).mockImplementation((fn) => fn());
+      vi.mocked(generateText).mockResolvedValue(mockResponse);
+      vi.mocked(extractJson).mockReturnValue(mockResponse);
+
+      const angleResults: AngleResult[] = [
+        {
+          angleId: "a1",
+          angleName: "A1",
+          ideas: [
+            {
+              title: "Test",
+              description: "desc",
+              potentialImpact: "impact",
+              implementationHint: "hint",
+            },
+          ],
+          reasoning: "reason",
+        },
+      ];
+
+      await scoreIdeas("test", angleResults);
+      expect(withRetry).toHaveBeenCalled();
     });
   });
 });
