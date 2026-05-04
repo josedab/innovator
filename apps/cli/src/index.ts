@@ -2826,4 +2826,41 @@ program
   });
 
 
+// ---- Diffusion Simulator ----
+program
+  .command("diffusion <ideaTitle>")
+  .description("Simulate idea diffusion and adoption using Bass model")
+  .argument("[description]", "Idea description")
+  .option("-m, --model <model>", "LLM model to use")
+  .option("--no-monte-carlo", "Skip Monte Carlo simulation")
+  .option("--iterations <n>", "Monte Carlo iterations", "500")
+  .action(async (ideaTitle: string, description: string | undefined, opts: { model?: string; monteCarlo?: boolean; iterations?: string }) => {
+    if (opts.model && !validateModelWithLog(opts.model)) return;
+    const { simulateDiffusion, diffusionToMarkdown } = await import("@innovator/core");
+    const spinner = ora("Simulating diffusion...").start();
+    try {
+      const result = await simulateDiffusion(
+        { title: ideaTitle, description: description ?? ideaTitle, impact: "", implementationHint: "" },
+        { model: opts.model, runMonteCarlo: opts.monteCarlo !== false, monteCarloIterations: parseInt(opts.iterations ?? "500") }
+      );
+      spinner.stop();
+      console.log(chalk.bold(`\n📈 Diffusion: ${result.ideaTitle}\n`));
+      console.log(`  Peak adoption month: ${chalk.cyan(String(result.peakAdoptionMonth))}`);
+      console.log(`  Time to majority: ${chalk.cyan(`${result.timeToMajority} months`)}`);
+      console.log(`  Market size: ${chalk.cyan(result.parameters.m.toLocaleString())}`);
+      if (result.monteCarlo) {
+        console.log(`  Adoption probability: ${chalk.green(`${(result.monteCarlo.adoptionProbability * 100).toFixed(1)}%`)}`);
+      }
+      console.log(chalk.bold("\nStrategies:"));
+      for (const s of result.strategies) {
+        console.log(`  ${chalk.yellow(s.phase)}: ${s.recommendation.slice(0, 80)}`);
+      }
+    } catch (err) {
+      spinner.fail("Diffusion simulation failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+
 program.parse();
