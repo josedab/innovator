@@ -356,3 +356,188 @@ function buildRecommendation(checks: ValidationCheck[], overallScore: number): s
   }
   return `Significant risks identified. Address before proceeding: ${warnings}`;
 }
+
+// ---- Market Sizing Validator ----
+
+/** LLM-based market sizing validator — estimates TAM, SAM, SOM for an idea. */
+export const MarketSizingValidator: IdeaValidator = {
+  id: "market-sizing",
+  name: "Market Sizing Assessment",
+  category: "market",
+  async validate(idea, domain, signal) {
+    const prompt = `You are a market sizing analyst. Estimate the market opportunity for the following idea.
+
+${wrapUserInput("IDEA", `${idea.title}: ${idea.description}`)}
+${wrapUserInput("DOMAIN", domain)}
+
+Analyze:
+1. Total Addressable Market (TAM) — the total market demand
+2. Serviceable Addressable Market (SAM) — the reachable segment
+3. Serviceable Obtainable Market (SOM) — realistic short-term capture
+4. Market growth trajectory (growing, stable, declining)
+5. Key market drivers and headwinds
+
+You MUST respond with valid JSON only:
+{
+  "score": <0-100, where 0=huge market opportunity, 100=no viable market>,
+  "summary": "Brief market sizing assessment",
+  "details": "TAM: $X, SAM: $Y, SOM: $Z. Growth: X%. Key drivers: ...",
+  "references": ["Market segment or trend reference"]
+}`;
+
+    const raw = await generateText({ prompt, serverMode: true, signal });
+    const jsonStr = extractJson(raw);
+    const parsed = JSON.parse(jsonStr) as {
+      score: number;
+      summary: string;
+      details?: string;
+      references?: string[];
+    };
+
+    return {
+      source: "Market Sizing Assessment",
+      category: "market",
+      status: parsed.score > 70 ? "fail" : parsed.score > 40 ? "warn" : "pass",
+      score: parsed.score,
+      summary: parsed.summary,
+      details: parsed.details,
+      references: parsed.references,
+    };
+  },
+};
+
+/** LLM-based regulatory compliance validator. */
+export const RegulatoryValidator: IdeaValidator = {
+  id: "regulatory-check",
+  name: "Regulatory Compliance Check",
+  category: "regulatory",
+  async validate(idea, domain, signal) {
+    const prompt = `You are a regulatory compliance analyst. Evaluate potential regulatory risks for the following idea.
+
+${wrapUserInput("IDEA", `${idea.title}: ${idea.description}`)}
+${wrapUserInput("DOMAIN", domain)}
+
+Analyze:
+1. Relevant regulations and compliance requirements
+2. Data privacy implications (GDPR, CCPA, etc.)
+3. Industry-specific regulations
+4. Licensing or certification requirements
+5. Potential legal barriers
+
+You MUST respond with valid JSON only:
+{
+  "score": <0-100, where 0=no regulatory risk, 100=major regulatory barriers>,
+  "summary": "Brief regulatory assessment",
+  "details": "Detailed regulatory analysis",
+  "references": ["Relevant regulation or standard"]
+}`;
+
+    const raw = await generateText({ prompt, serverMode: true, signal });
+    const jsonStr = extractJson(raw);
+    const parsed = JSON.parse(jsonStr) as {
+      score: number;
+      summary: string;
+      details?: string;
+      references?: string[];
+    };
+
+    return {
+      source: "Regulatory Compliance Check",
+      category: "regulatory",
+      status: parsed.score > 70 ? "fail" : parsed.score > 40 ? "warn" : "pass",
+      score: parsed.score,
+      summary: parsed.summary,
+      details: parsed.details,
+      references: parsed.references,
+    };
+  },
+};
+
+// Register extended validators
+registerValidator(MarketSizingValidator);
+registerValidator(RegulatoryValidator);
+
+/** Schema for a comprehensive validation report with market context. */
+export const ComprehensiveValidationSchema = z.object({
+  scorecard: ValidationScorecardSchema,
+  marketContext: z.object({
+    marketTemperature: z.enum(["cold", "warming", "hot", "saturated"]),
+    competitorCount: z.number().min(0),
+    regulatoryComplexity: z.enum(["low", "medium", "high"]),
+    overallViability: z.enum(["strong", "moderate", "weak", "unknown"]),
+  }),
+  topRecommendations: z.array(z.string().max(1000)).max(10),
+});
+
+export type ComprehensiveValidation = z.infer<typeof ComprehensiveValidationSchema>;
+
+/**
+ * Run comprehensive validation including market sizing, competitive scanning,
+ * and regulatory checks, producing an enriched validation report.
+ */
+export async function validateComprehensive(
+  ideas: InnovationIdea[],
+  domain: string,
+  model?: string,
+  signal?: AbortSignal
+): Promise<ComprehensiveValidation> {
+  const scorecard = await validateIdeas(ideas, domain, model, signal);
+
+  // Derive market context from validation checks
+  const marketChecks = scorecard.results.flatMap((r) =>
+    r.checks.filter((c) => c.category === "market")
+  );
+  const competitorChecks = scorecard.results.flatMap((r) =>
+    r.checks.filter((c) => c.category === "competitor")
+  );
+  const regulatoryChecks = scorecard.results.flatMap((r) =>
+    r.checks.filter((c) => c.category === "regulatory")
+  );
+
+  const avgMarketScore = marketChecks.length > 0
+    ? marketChecks.reduce((s, c) => s + c.score, 0) / marketChecks.length
+    : 50;
+  const avgCompetitorScore = competitorChecks.length > 0
+    ? competitorChecks.reduce((s, c) => s + c.score, 0) / competitorChecks.length
+    : 50;
+  const avgRegulatoryScore = regulatoryChecks.length > 0
+    ? regulatoryChecks.reduce((s, c) => s + c.score, 0) / regulatoryChecks.length
+    : 50;
+
+  const marketTemperature: ComprehensiveValidation["marketContext"]["marketTemperature"] =
+    avgMarketScore < 25 ? "hot" : avgMarketScore < 50 ? "warming" : avgMarketScore < 75 ? "cold" : "saturated";
+
+  const regulatoryComplexity: ComprehensiveValidation["marketContext"]["regulatoryComplexity"] =
+    avgRegulatoryScore < 30 ? "low" : avgRegulatoryScore < 60 ? "medium" : "high";
+
+  const overallViability: ComprehensiveValidation["marketContext"]["overallViability"] =
+    scorecard.results.length === 0
+      ? "unknown"
+      : scorecard.results.filter((r) => r.overallStatus === "validated").length > scorecard.results.length / 2
+        ? "strong"
+        : scorecard.results.filter((r) => r.overallStatus !== "risky").length > scorecard.results.length / 2
+          ? "moderate"
+          : "weak";
+
+  const topRecommendations: string[] = [];
+  for (const result of scorecard.results.slice(0, 5)) {
+    if (result.overallStatus === "validated") {
+      topRecommendations.push(`✅ "${result.ideaTitle}" — validated, ready for deeper exploration`);
+    } else if (result.overallStatus === "caution") {
+      topRecommendations.push(`⚠️ "${result.ideaTitle}" — ${result.recommendation}`);
+    } else if (result.overallStatus === "risky") {
+      topRecommendations.push(`❌ "${result.ideaTitle}" — ${result.recommendation}`);
+    }
+  }
+
+  return {
+    scorecard,
+    marketContext: {
+      marketTemperature,
+      competitorCount: competitorChecks.length,
+      regulatoryComplexity,
+      overallViability,
+    },
+    topRecommendations,
+  };
+}
