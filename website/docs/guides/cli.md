@@ -110,3 +110,30 @@ npx tsx apps/cli/src/index.ts auto "developer onboarding" --model gpt-5
 # Pipe output to a file
 npx tsx apps/cli/src/index.ts auto "sustainable packaging" > ideas.txt
 ```
+
+## Language Support
+
+The CLI supports multi-language output. Use the `--lang` flag to set the response language, or let Innovator auto-detect it from your subject text.
+
+### Supported Languages
+
+| Code | Language   |
+| ---- | ---------- |
+| `en` | English    |
+| `es` | Spanish    |
+| `ja` | Japanese   |
+| `de` | German     |
+| `pt` | Portuguese |
+
+### Examples
+
+```bash
+# Explicit language selection
+npx tsx apps/cli/src/index.ts investigate "energía solar" --lang es
+npx tsx apps/cli/src/index.ts auto "再生可能エネルギー" --lang ja
+
+# Auto-detection: Japanese characters are detected automatically
+npx tsx apps/cli/src/index.ts investigate "人工知能の教育応用"
+```
+
+If `--lang` is omitted, the language is auto-detected from the subject. English is the default fallback. See [Core Concepts — Multi-Language Support](../core-concepts.md#multi-language-support-i18n) for details on detection behavior.
