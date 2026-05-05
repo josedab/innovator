@@ -354,4 +354,221 @@ export function clearMemory(): void {
   profiles.clear();
   abTests.clear();
   signalCounter = 0;
+  outcomeRecords.length = 0;
+  modelPerformance.clear();
+}
+
+// ---- Cross-Session Outcome Tracking ----
+
+/** Schema for a pipeline outcome record tied to a session. */
+export const OutcomeRecordSchema = z.object({
+  sessionId: z.string().max(100),
+  subject: z.string().max(500),
+  domain: z.string().max(200).optional(),
+  model: z.string().max(100).optional(),
+  anglesUsed: z.array(z.string().max(100)).max(20),
+  ideaCount: z.number().min(0),
+  averageScore: z.number().min(0).max(100).optional(),
+  exportCount: z.number().min(0),
+  userRating: z.number().min(0).max(10).optional(),
+  dwellTimeMs: z.number().min(0).optional(),
+  pipelineDurationMs: z.number().min(0).optional(),
+  timestamp: z.string(),
+});
+
+/** Schema for per-model performance statistics. */
+export const ModelPerformanceSchema = z.object({
+  model: z.string().max(100),
+  totalRuns: z.number().min(0),
+  averageScore: z.number().min(0).max(100),
+  averageRating: z.number().min(0).max(10),
+  averageDurationMs: z.number().min(0),
+  successRate: z.number().min(0).max(1),
+  topDomains: z.array(z.string().max(200)).max(10),
+});
+
+/** Schema for auto-tuned pipeline parameters. */
+export const TunedParametersSchema = z.object({
+  recommendedModel: z.string().max(100).optional(),
+  angleWeights: z.record(z.number().min(0).max(1)),
+  preferredAngles: z.array(z.string().max(100)).max(20),
+  avoidAngles: z.array(z.string().max(100)).max(20),
+  confidenceScore: z.number().min(0).max(1),
+  basedOnSessions: z.number().min(0),
+  lastTunedAt: z.string(),
+});
+
+export type OutcomeRecord = z.infer<typeof OutcomeRecordSchema>;
+export type ModelPerformance = z.infer<typeof ModelPerformanceSchema>;
+export type TunedParameters = z.infer<typeof TunedParametersSchema>;
+
+// ---- In-memory stores for outcomes ----
+
+const outcomeRecords: OutcomeRecord[] = [];
+const modelPerformance = new Map<string, OutcomeRecord[]>();
+
+/**
+ * Record a pipeline outcome for cross-session learning.
+ */
+export function recordOutcome(outcome: Omit<OutcomeRecord, "timestamp">): OutcomeRecord {
+  const record: OutcomeRecord = {
+    ...outcome,
+    timestamp: new Date().toISOString(),
+  };
+  const validated = OutcomeRecordSchema.parse(record);
+  outcomeRecords.push(validated);
+
+  if (validated.model) {
+    const modelRecords = modelPerformance.get(validated.model) ?? [];
+    modelRecords.push(validated);
+    modelPerformance.set(validated.model, modelRecords);
+  }
+
+  return validated;
+}
+
+/**
+ * Get all outcome records, optionally filtered by domain.
+ */
+export function getOutcomes(domain?: string): OutcomeRecord[] {
+  if (!domain) return [...outcomeRecords];
+  return outcomeRecords.filter((r) => r.domain === domain);
+}
+
+/**
+ * Compute performance stats for a specific model across all recorded outcomes.
+ */
+export function getModelPerformanceStats(model: string): ModelPerformance {
+  const records = modelPerformance.get(model) ?? [];
+  if (records.length === 0) {
+    return {
+      model,
+      totalRuns: 0,
+      averageScore: 0,
+      averageRating: 0,
+      averageDurationMs: 0,
+      successRate: 0,
+      topDomains: [],
+    };
+  }
+
+  const scored = records.filter((r) => r.averageScore !== undefined);
+  const rated = records.filter((r) => r.userRating !== undefined);
+  const timed = records.filter((r) => r.pipelineDurationMs !== undefined);
+  const successful = records.filter((r) => r.ideaCount > 0);
+
+  const domainCounts = new Map<string, number>();
+  for (const r of records) {
+    if (r.domain) domainCounts.set(r.domain, (domainCounts.get(r.domain) ?? 0) + 1);
+  }
+
+  return {
+    model,
+    totalRuns: records.length,
+    averageScore: scored.length > 0
+      ? Math.round(scored.reduce((s, r) => s + (r.averageScore ?? 0), 0) / scored.length)
+      : 0,
+    averageRating: rated.length > 0
+      ? Math.round((rated.reduce((s, r) => s + (r.userRating ?? 0), 0) / rated.length) * 100) / 100
+      : 0,
+    averageDurationMs: timed.length > 0
+      ? Math.round(timed.reduce((s, r) => s + (r.pipelineDurationMs ?? 0), 0) / timed.length)
+      : 0,
+    successRate: records.length > 0 ? Math.round((successful.length / records.length) * 100) / 100 : 0,
+    topDomains: Array.from(domainCounts.entries())
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .map(([d]) => d),
+  };
+}
+
+/**
+ * Get performance comparison across all tracked models.
+ */
+export function compareModelPerformance(): ModelPerformance[] {
+  const models = Array.from(modelPerformance.keys());
+  return models.map((m) => getModelPerformanceStats(m)).sort((a, b) => b.averageScore - a.averageScore);
+}
+
+/**
+ * Auto-tune pipeline parameters based on accumulated outcome data.
+ * Returns recommended model, angle weights, and preferred/avoided angles
+ * derived from historical performance.
+ */
+export function autoTuneParameters(domain?: string): TunedParameters {
+  const records = domain
+    ? outcomeRecords.filter((r) => r.domain === domain)
+    : outcomeRecords;
+
+  if (records.length < 3) {
+    return {
+      angleWeights: {},
+      preferredAngles: [],
+      avoidAngles: [],
+      confidenceScore: 0,
+      basedOnSessions: records.length,
+      lastTunedAt: new Date().toISOString(),
+    };
+  }
+
+  // Find best model
+  const modelScores = new Map<string, { total: number; count: number }>();
+  for (const r of records) {
+    if (!r.model || r.averageScore === undefined) continue;
+    const entry = modelScores.get(r.model) ?? { total: 0, count: 0 };
+    entry.total += r.averageScore;
+    entry.count++;
+    modelScores.set(r.model, entry);
+  }
+
+  let recommendedModel: string | undefined;
+  let bestModelScore = 0;
+  for (const [model, { total, count }] of modelScores) {
+    const avg = total / count;
+    if (avg > bestModelScore && count >= 2) {
+      bestModelScore = avg;
+      recommendedModel = model;
+    }
+  }
+
+  // Compute angle weights from outcomes
+  const angleScores = new Map<string, { totalScore: number; count: number }>();
+  for (const r of records) {
+    const score = r.averageScore ?? (r.userRating ? r.userRating * 10 : 50);
+    for (const angle of r.anglesUsed) {
+      const entry = angleScores.get(angle) ?? { totalScore: 0, count: 0 };
+      entry.totalScore += score;
+      entry.count++;
+      angleScores.set(angle, entry);
+    }
+  }
+
+  const angleWeights: Record<string, number> = {};
+  const ranked: Array<{ angle: string; avg: number }> = [];
+
+  for (const [angle, { totalScore, count }] of angleScores) {
+    const avg = totalScore / count;
+    ranked.push({ angle, avg });
+  }
+
+  const maxAvg = Math.max(...ranked.map((r) => r.avg), 1);
+  for (const { angle, avg } of ranked) {
+    angleWeights[angle] = Math.round((avg / maxAvg) * 100) / 100;
+  }
+
+  ranked.sort((a, b) => b.avg - a.avg);
+  const preferredAngles = ranked.filter((r) => r.avg >= maxAvg * 0.7).map((r) => r.angle);
+  const avoidAngles = ranked.filter((r) => r.avg < maxAvg * 0.3).map((r) => r.angle);
+
+  const confidence = Math.min(records.length / 20, 1);
+
+  return {
+    recommendedModel,
+    angleWeights,
+    preferredAngles,
+    avoidAngles,
+    confidenceScore: Math.round(confidence * 100) / 100,
+    basedOnSessions: records.length,
+    lastTunedAt: new Date().toISOString(),
+  };
 }
