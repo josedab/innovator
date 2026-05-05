@@ -2610,3 +2610,23 @@ export type {
   PipelineHealth,
   SelfHealingConfig,
 } from "./self-healing/index.js";
+
+/** Combinatorial Idea Synthesis — morphological analysis combining ideas across angles. */
+export {
+  runCombinatorialSynthesis,
+  combinatorialToMarkdown,
+  generateAnglePairs,
+  buildMorphologicalMatrix,
+  CombinatorialIdeaSchema,
+  PairwiseResultSchema,
+  CombinatorialResultSchema,
+} from "./combinatorial/index.js";
+export type {
+  CombinatorialConfig,
+  CombinatorialProgress,
+  CombinatorialResult,
+  CombinatorialIdea,
+  PairwiseResult,
+  AnglePair,
+  MorphologicalCell,
+} from "./combinatorial/index.js";
