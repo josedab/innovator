@@ -289,3 +289,203 @@ export function generatePositioningMatrix(
           : "low",
   }));
 }
+
+// ---- Continuous Monitoring ----
+
+export const CompetitiveSignalSchema = z.object({
+  id: z.string().max(100),
+  source: z.enum(["github-trending", "product-hunt", "news", "patent", "manual"]),
+  title: z.string().max(500),
+  description: z.string().max(2000),
+  url: z.string().max(1000).optional(),
+  relevanceScore: z.number().min(0).max(1),
+  detectedAt: z.string(),
+  domain: z.string().max(200).optional(),
+  competitor: z.string().max(200).optional(),
+  signalType: z.enum(["new-product", "funding", "partnership", "feature-launch", "market-entry", "acquisition", "trend"]),
+});
+
+export const MonitorConfigSchema = z.object({
+  id: z.string().max(100),
+  domain: z.string().max(200),
+  competitors: z.array(z.string().max(200)).max(20),
+  keywords: z.array(z.string().max(100)).max(20),
+  enabled: z.boolean().default(true),
+  frequency: z.enum(["hourly", "daily", "weekly"]).default("daily"),
+  lastRunAt: z.string().optional(),
+  nextRunAt: z.string().optional(),
+});
+
+export const MonitorReportSchema = z.object({
+  monitorId: z.string().max(100),
+  generatedAt: z.string(),
+  signals: z.array(CompetitiveSignalSchema).max(100),
+  trendSummary: z.array(z.object({
+    trend: z.string().max(200),
+    direction: z.enum(["rising", "stable", "declining"]),
+    signalCount: z.number(),
+  })).max(20),
+  suggestedInvestigations: z.array(z.string().max(500)).max(10),
+});
+
+export type CompetitiveSignal = z.infer<typeof CompetitiveSignalSchema>;
+export type MonitorConfig = z.infer<typeof MonitorConfigSchema>;
+export type MonitorReport = z.infer<typeof MonitorReportSchema>;
+
+// ---- Monitor Store ----
+
+const monitors = new Map<string, MonitorConfig>();
+const signalStore: CompetitiveSignal[] = [];
+
+/**
+ * Create a competitive monitor for a domain.
+ */
+export function createMonitor(
+  config: Omit<MonitorConfig, "id">
+): MonitorConfig {
+  const id = `monitor-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const nextRun = new Date();
+  if (config.frequency === "hourly") nextRun.setHours(nextRun.getHours() + 1);
+  else if (config.frequency === "daily") nextRun.setDate(nextRun.getDate() + 1);
+  else nextRun.setDate(nextRun.getDate() + 7);
+
+  const monitor: MonitorConfig = {
+    ...config,
+    id,
+    nextRunAt: nextRun.toISOString(),
+  };
+  monitors.set(id, monitor);
+  return monitor;
+}
+
+/**
+ * List all monitors.
+ */
+export function listMonitors(): MonitorConfig[] {
+  return [...monitors.values()];
+}
+
+/**
+ * Get a monitor by ID.
+ */
+export function getMonitor(id: string): MonitorConfig | undefined {
+  return monitors.get(id);
+}
+
+/**
+ * Delete a monitor.
+ */
+export function deleteMonitor(id: string): boolean {
+  return monitors.delete(id);
+}
+
+/**
+ * Record a competitive signal.
+ */
+export function recordSignal(signal: Omit<CompetitiveSignal, "id" | "detectedAt">): CompetitiveSignal {
+  const record: CompetitiveSignal = {
+    ...signal,
+    id: `signal-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    detectedAt: new Date().toISOString(),
+  };
+
+  // Deduplicate by title similarity
+  const isDuplicate = signalStore.some(
+    (s) => s.title.toLowerCase() === record.title.toLowerCase() && s.source === record.source
+  );
+  if (!isDuplicate) {
+    signalStore.push(record);
+  }
+  return record;
+}
+
+/**
+ * Get competitive signals, optionally filtered.
+ */
+export function getSignals(options?: {
+  domain?: string;
+  source?: CompetitiveSignal["source"];
+  minRelevance?: number;
+  limit?: number;
+}): CompetitiveSignal[] {
+  let filtered = [...signalStore];
+
+  if (options?.domain) {
+    filtered = filtered.filter((s) => s.domain === options.domain);
+  }
+  if (options?.source) {
+    filtered = filtered.filter((s) => s.source === options.source);
+  }
+  if (options?.minRelevance) {
+    filtered = filtered.filter((s) => s.relevanceScore >= options.minRelevance!);
+  }
+
+  filtered.sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime());
+
+  if (options?.limit) {
+    filtered = filtered.slice(0, options.limit);
+  }
+
+  return filtered;
+}
+
+/**
+ * Detect trends from accumulated signals.
+ */
+export function detectTrends(domain?: string): MonitorReport["trendSummary"] {
+  const signals = domain ? signalStore.filter((s) => s.domain === domain) : signalStore;
+  const trendMap = new Map<string, CompetitiveSignal[]>();
+
+  for (const signal of signals) {
+    // Group by signal type
+    const key = signal.signalType;
+    const group = trendMap.get(key) ?? [];
+    group.push(signal);
+    trendMap.set(key, group);
+  }
+
+  return [...trendMap.entries()].map(([trend, sigs]) => {
+    // Determine direction based on recency
+    const now = Date.now();
+    const recentCount = sigs.filter((s) => now - new Date(s.detectedAt).getTime() < 7 * 24 * 60 * 60 * 1000).length;
+    const olderCount = sigs.length - recentCount;
+    const direction = recentCount > olderCount ? "rising" : recentCount === olderCount ? "stable" : "declining";
+
+    return {
+      trend,
+      direction: direction as "rising" | "stable" | "declining",
+      signalCount: sigs.length,
+    };
+  }).sort((a, b) => b.signalCount - a.signalCount);
+}
+
+/**
+ * Generate investigation subjects from detected signals.
+ */
+export function generateInvestigationSuggestions(
+  domain?: string,
+  limit: number = 5
+): string[] {
+  const signals = getSignals({ domain, minRelevance: 0.5, limit: 20 });
+  const suggestions: string[] = [];
+
+  for (const signal of signals) {
+    if (signal.signalType === "new-product") {
+      suggestions.push(`Competitive response to "${signal.title}" — how can we differentiate?`);
+    } else if (signal.signalType === "market-entry") {
+      suggestions.push(`Market impact of ${signal.competitor ?? "competitor"} entering ${signal.domain ?? "our space"}`);
+    } else if (signal.signalType === "trend") {
+      suggestions.push(`Innovation opportunities from trend: ${signal.title}`);
+    } else if (signal.signalType === "funding") {
+      suggestions.push(`Strategic implications of ${signal.title}`);
+    }
+  }
+
+  return [...new Set(suggestions)].slice(0, limit);
+}
+
+/** Clear all monitoring data (for testing). */
+export function clearMonitoring(): void {
+  monitors.clear();
+  signalStore.length = 0;
+}
