@@ -97,6 +97,8 @@ import {
   recordActivity,
   analyzeTeamDNA,
   teamDNAToMarkdown,
+  mapSupplyChain,
+  supplyChainToMarkdown,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -2654,6 +2656,39 @@ program
           console.log(`    ${r.stage}: ${chalk.cyan(r.recommendedModel)} (quality: ${r.expectedQuality.toFixed(2)})`);
         }
       }
+    }
+  });
+
+// ---- Supply Chain Command ----
+program
+  .command("supply-chain")
+  .description("Map innovation supply chain for an idea")
+  .argument("<subject>", "Innovation subject")
+  .requiredOption("--idea <title>", "Idea title")
+  .requiredOption("--description <desc>", "Idea description")
+  .option("-m, --model <model>", "LLM model to use")
+  .option("--markdown", "Output as Markdown")
+  .action(async (subject: string, opts: { idea: string; description: string; model?: string; markdown?: boolean }) => {
+    if (!validateSubjectWithLog(subject)) return;
+    if (opts.model && !validateModelWithLog(opts.model)) return;
+    const spinner = ora("Mapping supply chain...").start();
+    try {
+      const result = await mapSupplyChain(opts.idea, opts.description, subject, opts.model);
+      spinner.stop();
+      if (opts.markdown) {
+        console.log(supplyChainToMarkdown(result));
+      } else {
+        console.log(chalk.bold.blue(`\n🔗 Supply Chain: ${result.ideaTitle}\n`));
+        console.log(`  Readiness: ${result.readinessScore}/100`);
+        console.log(`  Total Cost: $${result.totalEstimatedCostUsd.toLocaleString()}`);
+        console.log(`  Build: ${result.buildItems} | Buy: ${result.buyItems} | Partner: ${result.partnerItems}`);
+        console.log(`  Gaps: ${result.gaps.length}\n`);
+        console.log(chalk.dim(result.summary));
+      }
+    } catch (err) {
+      spinner.fail("Supply chain mapping failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
     }
   });
 
