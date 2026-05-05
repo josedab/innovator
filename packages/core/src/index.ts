@@ -3194,3 +3194,26 @@ export type {
   ClassifyComplexityOptions,
 } from "./adaptive-scaling/index.js";
 
+/** Synthetic Market Testing Arena — agent-based consumer persona simulation. */
+export {
+  runMarketTest,
+  generatePersonas,
+  getMarketTest,
+  listMarketTests,
+  clearMarketTests,
+  marketTestToMarkdown,
+  ConsumerPersonaSchema,
+  InteractionOutcomeSchema,
+  SegmentAnalysisSchema,
+  PricingSensitivityPointSchema,
+  MarketTestResultSchema,
+} from "./market-testing-arena/index.js";
+export type {
+  ConsumerPersona,
+  InteractionOutcome,
+  SegmentAnalysis,
+  PricingSensitivityPoint,
+  MarketTestResult,
+  MarketTestOptions,
+} from "./market-testing-arena/index.js";
+

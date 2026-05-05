@@ -2901,4 +2901,39 @@ program
   });
 
 
+// ---- Market Test ----
+program
+  .command("market-test <ideaTitle>")
+  .description("Run synthetic market test with AI consumer personas")
+  .argument("[description]", "Idea description")
+  .option("-m, --model <model>", "LLM model to use")
+  .option("--personas <n>", "Number of personas", "1000")
+  .option("--price <usd>", "Base price in USD")
+  .action(async (ideaTitle: string, description: string | undefined, opts: { model?: string; personas?: string; price?: string }) => {
+    if (opts.model && !validateModelWithLog(opts.model)) return;
+    const { runMarketTest } = await import("@innovator/core");
+    const spinner = ora(`Testing with ${opts.personas ?? "1000"} personas...`).start();
+    try {
+      const result = await runMarketTest(
+        { title: ideaTitle, description: description ?? ideaTitle, impact: "", implementationHint: "" },
+        { model: opts.model, personaCount: parseInt(opts.personas ?? "1000"), basePrice: opts.price ? parseFloat(opts.price) : undefined }
+      );
+      spinner.stop();
+      console.log(chalk.bold(`\n🏪 Market Test: ${result.ideaTitle}\n`));
+      console.log(`  Personas: ${chalk.cyan(result.totalPersonas.toLocaleString())}`);
+      console.log(`  Adoption: ${chalk.cyan(`${(result.overallAdoptionRate * 100).toFixed(1)}%`)}`);
+      console.log(`  Viability: ${chalk.bold(result.marketViability)}`);
+      console.log(`  Optimal price: ${chalk.green(`$${result.optimalPriceUsd}`)}`);
+      console.log(chalk.bold("\nTop Segments:"));
+      for (const s of result.segmentAnalysis.sort((a, b) => b.adoptionRate - a.adoptionRate).slice(0, 5)) {
+        console.log(`  ${chalk.cyan(s.segment)}: ${(s.adoptionRate * 100).toFixed(1)}% adoption, $${s.avgWillingnessToPayUsd} WTP`);
+      }
+    } catch (err) {
+      spinner.fail("Market test failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+
 program.parse();
