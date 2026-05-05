@@ -2793,4 +2793,37 @@ ideaCmd
     }
   });
 
+// ---- Inverse Innovation Decoder ----
+program
+  .command("decode <productDescription>")
+  .description("Analyze a product and reverse-engineer its innovation recipe")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (productDescription: string, opts: { model?: string }) => {
+    if (opts.model && !validateModelWithLog(opts.model)) return;
+    const { analyzeProduct, recipeToMarkdown } = await import("@innovator/core");
+    const spinner = ora("Analyzing product...").start();
+    try {
+      const recipe = await analyzeProduct(productDescription, { model: opts.model });
+      spinner.stop();
+      console.log(chalk.bold(`\n🔍 ${recipe.recipe.title}\n`));
+      console.log(chalk.dim(`Disruption: ${recipe.productAnalysis.disruptionType} | Difficulty: ${recipe.recipe.estimatedDifficulty}`));
+      console.log(`\n${chalk.bold("Key Insight:")} ${recipe.recipe.keyInsight}\n`);
+      console.log(chalk.bold(`Patterns (${recipe.patterns.length}):`));
+      for (const p of recipe.patterns) {
+        console.log(`  ${chalk.cyan(p.name)} (${p.angle}, ${(p.confidence * 100).toFixed(0)}%)`);
+      }
+      console.log(chalk.bold(`\nRecipe Steps (${recipe.recipe.steps.length}):`));
+      for (const s of recipe.recipe.steps.slice(0, 5)) {
+        console.log(`  ${chalk.yellow(`${s.order}.`)} ${s.technique}: ${s.prompt.slice(0, 80)}...`);
+      }
+      if (recipe.recipe.steps.length > 5) console.log(chalk.dim(`  ...and ${recipe.recipe.steps.length - 5} more steps`));
+      console.log(chalk.bold(`\nSuggested Angles:`), recipe.recipe.suggestedAngles.join(", "));
+    } catch (err) {
+      spinner.fail("Product analysis failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+
 program.parse();
