@@ -23,3 +23,26 @@ export type {
   SearchResult,
   ChunkingOptions,
 } from "./types.js";
+
+// Connectors
+export {
+  GitHubConnector,
+  ConfluenceConnector,
+  NotionConnector,
+  LocalFileConnector,
+  registerConnector,
+  listConnectors,
+  syncConnector,
+  removeConnector,
+  buildContextInjection,
+  clearConnectors,
+  ConnectorTypeSchema,
+  ConnectorConfigSchema,
+  ConnectorStatusSchema,
+} from "./connectors.js";
+export type {
+  ConnectorType,
+  ConnectorConfig,
+  ConnectorStatus,
+  KnowledgeConnector,
+} from "./connectors.js";
