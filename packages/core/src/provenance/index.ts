@@ -185,3 +185,207 @@ export function formatProvenance(records: ProvenanceRecord[]): string {
     )
     .join("\n");
 }
+
+// ---- Cryptographic Integrity ----
+
+/**
+ * Compute a cryptographic integrity hash for a provenance record.
+ * Ensures records haven't been tampered with.
+ */
+export function computeRecordHash(record: ProvenanceRecord): string {
+  const content = [
+    record.ideaTitle,
+    record.angleId,
+    record.promptHash,
+    record.modelUsed,
+    record.timestamp,
+    String(record.inputTokensEstimate ?? 0),
+    record.investigationSnippet ?? "",
+  ].join("|");
+  return createHash("sha256").update(content).digest("hex");
+}
+
+/**
+ * Compute an integrity hash for an entire provenance chain.
+ * Uses a Merkle-like structure where each record hash includes the previous.
+ */
+export function computeChainHash(chain: ProvenanceChain): string {
+  let runningHash = "";
+  for (const record of chain.records) {
+    const recordHash = computeRecordHash(record);
+    runningHash = createHash("sha256")
+      .update(runningHash + recordHash)
+      .digest("hex");
+  }
+  return runningHash;
+}
+
+/**
+ * Verify the integrity of a provenance chain.
+ * Returns true if the chain has not been tampered with.
+ */
+export function verifyChainIntegrity(
+  chain: ProvenanceChain,
+  expectedHash: string
+): boolean {
+  return computeChainHash(chain) === expectedHash;
+}
+
+// ---- JSON-LD Export ----
+
+/**
+ * Export provenance chain as JSON-LD for enterprise compliance.
+ */
+export function provenanceToJsonLd(chain: ProvenanceChain): Record<string, unknown> {
+  return {
+    "@context": {
+      "@vocab": "https://schema.org/",
+      prov: "http://www.w3.org/ns/prov#",
+      innovator: "https://innovator.dev/ns/",
+    },
+    "@type": "prov:Bundle",
+    "@id": `innovator:session/${chain.sessionId}`,
+    "prov:generatedAtTime": chain.createdAt,
+    "innovator:subject": chain.subject,
+    "innovator:integrityHash": computeChainHash(chain),
+    "prov:wasGeneratedBy": chain.records.map((record) => ({
+      "@type": "prov:Activity",
+      "@id": `innovator:idea/${record.id}`,
+      "prov:generatedAtTime": record.timestamp,
+      "innovator:ideaTitle": record.ideaTitle,
+      "innovator:angle": record.angleId,
+      "innovator:angleName": record.angleName,
+      "innovator:model": record.modelUsed,
+      "innovator:promptHash": record.promptHash,
+      "innovator:inputTokens": record.inputTokensEstimate,
+      ...(record.parentId
+        ? { "prov:wasInformedBy": { "@id": `innovator:idea/${record.parentId}` } }
+        : {}),
+      ...(record.investigationSnippet
+        ? { "prov:used": { "@type": "prov:Entity", "prov:value": record.investigationSnippet } }
+        : {}),
+    })),
+  };
+}
+
+// ---- Lineage Graph ----
+
+export interface LineageNode {
+  id: string;
+  type: "investigation" | "angle" | "idea" | "artifact";
+  label: string;
+  metadata?: Record<string, string>;
+}
+
+export interface LineageEdge {
+  source: string;
+  target: string;
+  relationship: "produced" | "refined" | "evolved" | "used";
+}
+
+/**
+ * Build a lineage graph showing the full investigation→angle→idea chain.
+ */
+export function buildLineageGraph(chain: ProvenanceChain): {
+  nodes: LineageNode[];
+  edges: LineageEdge[];
+} {
+  const nodes: LineageNode[] = [];
+  const edges: LineageEdge[] = [];
+  const seenAngles = new Set<string>();
+
+  // Investigation node
+  const investigationId = `inv-${chain.sessionId}`;
+  nodes.push({
+    id: investigationId,
+    type: "investigation",
+    label: chain.subject.slice(0, 100),
+    metadata: { sessionId: chain.sessionId },
+  });
+
+  for (const record of chain.records) {
+    // Angle node (one per unique angle)
+    const angleNodeId = `angle-${record.angleId}`;
+    if (!seenAngles.has(record.angleId)) {
+      seenAngles.add(record.angleId);
+      nodes.push({
+        id: angleNodeId,
+        type: "angle",
+        label: record.angleName,
+        metadata: { angleId: record.angleId },
+      });
+      edges.push({
+        source: investigationId,
+        target: angleNodeId,
+        relationship: "produced",
+      });
+    }
+
+    // Idea node
+    nodes.push({
+      id: `idea-${record.id}`,
+      type: "idea",
+      label: record.ideaTitle,
+      metadata: {
+        model: record.modelUsed,
+        promptHash: record.promptHash,
+        timestamp: record.timestamp,
+      },
+    });
+
+    edges.push({
+      source: angleNodeId,
+      target: `idea-${record.id}`,
+      relationship: "produced",
+    });
+
+    // Parent link for evolved ideas
+    if (record.parentId) {
+      edges.push({
+        source: `idea-${record.parentId}`,
+        target: `idea-${record.id}`,
+        relationship: "evolved",
+      });
+    }
+  }
+
+  return { nodes, edges };
+}
+
+/**
+ * Format a provenance chain for CLI display.
+ */
+export function provenanceToMarkdown(chain: ProvenanceChain): string {
+  const lines: string[] = [
+    `# Provenance Chain`,
+    ``,
+    `**Session:** ${chain.sessionId}`,
+    `**Subject:** ${chain.subject}`,
+    `**Created:** ${chain.createdAt}`,
+    `**Integrity Hash:** \`${computeChainHash(chain)}\``,
+    `**Records:** ${chain.records.length}`,
+    ``,
+    `## Idea Lineage`,
+    ``,
+  ];
+
+  const byAngle = new Map<string, ProvenanceRecord[]>();
+  for (const record of chain.records) {
+    const group = byAngle.get(record.angleId) ?? [];
+    group.push(record);
+    byAngle.set(record.angleId, group);
+  }
+
+  for (const [angleId, records] of byAngle) {
+    lines.push(`### ${records[0].angleName} (${angleId})`);
+    for (const r of records) {
+      lines.push(`- **${r.ideaTitle}**`);
+      lines.push(`  - Model: ${r.modelUsed} | Prompt: \`${r.promptHash}\` | Tokens: ~${r.inputTokensEstimate ?? "?"}`);
+      lines.push(`  - Generated: ${r.timestamp}`);
+      if (r.parentId) lines.push(`  - Evolved from: ${r.parentId}`);
+    }
+    lines.push(``);
+  }
+
+  return lines.join("\n");
+}
