@@ -88,6 +88,10 @@ import {
   computeReadinessScores,
   runWargaming,
   wargamingToMarkdown,
+  createRubric,
+  getRubric,
+  listRubrics,
+  scoreWithRubric,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -2584,6 +2588,43 @@ program
       spinner.fail("Wargaming failed");
       console.error(chalk.red(err instanceof Error ? err.message : String(err)));
       process.exitCode = 1;
+    }
+  });
+
+// ---- Rubric Commands ----
+const rubricCmd = program.command("rubric").description("Manage custom scoring rubrics");
+
+rubricCmd
+  .command("list")
+  .description("List available scoring rubrics")
+  .action(() => {
+    const rubrics = listRubrics();
+    if (rubrics.length === 0) {
+      console.log(chalk.dim("No rubrics found."));
+      return;
+    }
+    console.log(chalk.bold("\n📋 Scoring Rubrics\n"));
+    for (const r of rubrics) {
+      console.log(`  ${chalk.cyan(r.id)} — ${r.name} (${r.dimensions.length} dimensions)`);
+      console.log(`    ${chalk.dim(r.description)}`);
+    }
+  });
+
+rubricCmd
+  .command("show <id>")
+  .description("Show rubric details")
+  .action((id: string) => {
+    const rubric = getRubric(id);
+    if (!rubric) {
+      console.error(chalk.red(`Rubric not found: ${id}`));
+      process.exitCode = 1;
+      return;
+    }
+    console.log(chalk.bold(`\n📋 ${rubric.name}\n`));
+    console.log(`  ${rubric.description}\n`);
+    for (const d of rubric.dimensions) {
+      console.log(`  ${chalk.cyan(d.id)} — ${d.name} (weight: ${d.weight})`);
+      console.log(`    ${chalk.dim(d.description)}`);
     }
   });
 
