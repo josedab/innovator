@@ -27,3 +27,76 @@ export type {
   CanvasAnnotation,
   InnovationCanvas,
 } from "./canvas/index.js";
+export type {
+  OutcomeStage,
+  ExternalLinkType,
+  ExternalLink,
+  RevenueMetric,
+  StageTransition,
+  OutcomeRecord as ROIOutcomeRecord,
+  ROISummary,
+  ROITimeSeriesPoint,
+  ROIDashboard,
+} from "./outcome-tracking/index.js";
+export type {
+  CoachMessageRole,
+  CoachSessionStatus,
+  CoachMessage,
+  CoachDomain,
+  CoachSession,
+} from "./coaching/coach-session.js";
+export type {
+  FederationPatternType,
+  FederationPattern,
+  FederationNode,
+  PeerNode,
+  NetworkTrend,
+  NetworkDashboard,
+} from "./federation/index.js";
+export type {
+  SprintTemplateId,
+  SprintTemplate,
+  FacilitatedSprint,
+  SprintParticipant,
+  SprintPhaseConfig,
+} from "./sprint/facilitation.js";
+export type {
+  KnowledgeEntity,
+  RegulatoryItem,
+  TrendItem,
+  ScoringRubric,
+  PersonaPrompt,
+  KnowledgePack,
+} from "./knowledge-packs/index.js";
+export type { ApiEndpoint, SdkLanguage } from "./api-gateway/api-spec.js";
+export type {
+  LifecycleStage,
+  EvidenceType,
+  EvidenceItem,
+  LifecycleIdea,
+  KanbanColumn,
+  KanbanBoard,
+} from "./lifecycle/index.js";
+export type {
+  MultiModalInputType,
+  MultiModalInput,
+  ProcessedInput,
+  MultiModalContext,
+} from "./vision/multi-modal.js";
+export type {
+  GuardrailType,
+  GuardrailSeverity,
+  Guardrail,
+  GuardrailResult,
+  RegulatoryCheck,
+  BiasCheck,
+  ComplianceAuditEntry,
+  ComplianceDashboard,
+} from "./compliance/governance.js";
+export type {
+  ChallengeStatus,
+  CommunitySubmission,
+  CommunityChallenge,
+  Badge,
+  CommunityLeaderboardEntry,
+} from "./gamification/challenges.js";

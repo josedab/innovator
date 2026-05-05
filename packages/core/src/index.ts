@@ -1794,3 +1794,245 @@ export type {
   HallucinationCheck,
   QualityTrend,
 } from "./telemetry/index.js";
+
+/** Outcome Tracking & ROI Dashboard — track ideas from generation through implementation to business outcome. */
+export {
+  createOutcome as createROIOutcome,
+  getOutcome as getROIOutcome,
+  listOutcomes as listROIOutcomes,
+  transitionOutcome,
+  addExternalLink,
+  addRevenueMetric,
+  deleteOutcome as deleteROIOutcome,
+  buildROIDashboard,
+  clearOutcomes,
+  OutcomeStageSchema,
+  ExternalLinkTypeSchema,
+  ExternalLinkSchema,
+  RevenueMetricSchema,
+  StageTransitionSchema,
+  OutcomeRecordSchema as ROIOutcomeRecordSchema,
+} from "./outcome-tracking/index.js";
+export type {
+  OutcomeStage,
+  ExternalLinkType,
+  ExternalLink,
+  RevenueMetric,
+  StageTransition,
+  OutcomeRecord as ROIOutcomeRecord,
+  ROISummary,
+  ROITimeSeriesPoint,
+  ROIDashboard,
+} from "./outcome-tracking/index.js";
+
+/** AI Innovation Coach — conversational coaching with domain detection and learning feedback. */
+export {
+  startCoachSession,
+  sendCoachMessage,
+  getCoachSession,
+  listCoachSessions,
+  endCoachSession,
+  clearCoachSessions,
+  CoachMessageRoleSchema,
+  CoachSessionStatusSchema,
+  CoachMessageSchema,
+  CoachDomainSchema,
+  CoachSessionSchema,
+} from "./coaching/coach-session.js";
+export type {
+  CoachMessageRole,
+  CoachSessionStatus,
+  CoachMessage,
+  CoachDomain,
+  CoachSession,
+  CoachSessionConfig,
+} from "./coaching/coach-session.js";
+
+/** Federated Innovation Networks — anonymized pattern sharing across organizations. */
+export {
+  createFederationNode,
+  getNode,
+  listNodes,
+  extractPatterns,
+  publishPatterns,
+  discoverPeers,
+  fetchRemotePatterns,
+  mergePatterns,
+  getNetworkDashboard,
+  clearFederation,
+  FederationPatternTypeSchema,
+  FederationPatternSchema,
+  FederationNodeSchema,
+  PeerNodeSchema,
+  NetworkDashboardSchema,
+} from "./federation/index.js";
+export type {
+  FederationPatternType,
+  FederationPattern,
+  FederationNode,
+  PeerNode,
+  NetworkTrend,
+  NetworkDashboard,
+} from "./federation/index.js";
+
+/** Innovation Sprints with Facilitation Engine — time-boxed sessions with automated facilitation. */
+export {
+  SPRINT_TEMPLATES,
+  getSprintTemplate,
+  createFacilitatedSprint,
+  autoAdvancePhase,
+  generatePhasePrompts,
+  generatePhaseSummary,
+  generateSprintReport,
+  SprintTemplateIdSchema,
+  SprintTemplateSchema,
+  FacilitatedSprintSchema,
+  SprintParticipantSchema,
+  SprintPhaseConfigSchema,
+  SprintReportSchema as FacilitatedSprintReportSchema,
+} from "./sprint/facilitation.js";
+export type {
+  SprintTemplateId,
+  SprintTemplate,
+  FacilitatedSprint,
+  SprintParticipant,
+  SprintPhaseConfig,
+  SprintReport as FacilitatedSprintReport,
+} from "./sprint/facilitation.js";
+
+/** Domain Knowledge Packs — curated knowledge bases for specific verticals. */
+export {
+  registerKnowledgePack,
+  getKnowledgePack,
+  listKnowledgePacks,
+  searchEntities,
+  validatePackSchema,
+  getPackEnrichmentContext,
+  removeKnowledgePack,
+  clearKnowledgePacks,
+  BUILT_IN_PACKS,
+  KnowledgeEntitySchema,
+  RegulatoryItemSchema,
+  TrendItemSchema,
+  ScoringRubricSchema,
+  PersonaPromptSchema,
+  KnowledgePackSchema,
+} from "./knowledge-packs/index.js";
+export type {
+  KnowledgeEntity,
+  RegulatoryItem,
+  TrendItem,
+  ScoringRubric,
+  PersonaPrompt,
+  KnowledgePack,
+} from "./knowledge-packs/index.js";
+
+/** Innovation API Specification — OpenAPI 3.1 spec generation and SDK embed helpers. */
+export {
+  generateOpenApiSpec,
+  generateSdkSnippet,
+  getApiEndpoints,
+  ApiEndpointSchema,
+  SdkLanguageSchema,
+} from "./api-gateway/api-spec.js";
+export type { ApiEndpoint, SdkLanguage } from "./api-gateway/api-spec.js";
+
+/** Idea Maturity Lifecycle — formal stage-gate process with evidence requirements. */
+export {
+  createLifecycleIdea,
+  getLifecycleIdea,
+  listLifecycleIdeas,
+  advanceLifecycleStage,
+  addEvidence,
+  getKanbanBoard,
+  getStaleIdeas,
+  deleteLifecycleIdea,
+  clearLifecycle,
+  LIFECYCLE_STAGES,
+  LifecycleStageSchema,
+  EvidenceTypeSchema,
+  EvidenceItemSchema,
+  LifecycleIdeaSchema,
+  KanbanColumnSchema,
+} from "./lifecycle/index.js";
+export type {
+  LifecycleStage,
+  EvidenceType,
+  EvidenceItem,
+  LifecycleIdea,
+  KanbanColumn,
+  KanbanBoard,
+} from "./lifecycle/index.js";
+
+/** Multi-Modal Innovation — process images, PDFs, and voice as investigation inputs. */
+export {
+  processMultiModalInput,
+  batchProcessInputs,
+  MultiModalInputTypeSchema,
+  MultiModalInputSchema,
+  ProcessedInputSchema,
+  MultiModalContextSchema,
+} from "./vision/multi-modal.js";
+export type {
+  MultiModalInputType,
+  MultiModalInput,
+  ProcessedInput,
+  MultiModalContext,
+} from "./vision/multi-modal.js";
+
+/** Innovation Governance & Compliance Engine — configurable guardrails, regulatory screening, audit trails. */
+export {
+  createGuardrail,
+  listGuardrails,
+  evaluateGuardrails,
+  runRegulatoryPreScreening,
+  detectBias,
+  getComplianceAuditTrail,
+  addAuditEntry,
+  getComplianceDashboard,
+  clearGovernance,
+  GuardrailTypeSchema,
+  GuardrailSeveritySchema,
+  GuardrailSchema,
+  GuardrailResultSchema,
+  RegulatoryCheckSchema,
+  BiasCheckSchema,
+  ComplianceAuditEntrySchema,
+} from "./compliance/governance.js";
+export type {
+  GuardrailType,
+  GuardrailSeverity,
+  Guardrail,
+  GuardrailResult,
+  RegulatoryCheck,
+  BiasCheck,
+  ComplianceAuditEntry,
+  ComplianceDashboard,
+} from "./compliance/governance.js";
+
+/** Community Innovation Challenges — challenge boards, submissions, voting, and leaderboards. */
+export {
+  createCommunityChallenge,
+  getCommunityChallenge,
+  listCommunityChallenges,
+  submitEntry,
+  voteForEntry,
+  getEntryRankings,
+  awardBadge,
+  getUserBadges,
+  getCommunityLeaderboard,
+  closeCommunityChallenge,
+  clearCommunityChallenges,
+  ChallengeStatusSchema,
+  CommunitySubmissionSchema,
+  CommunityChallengeSchema,
+  BadgeSchema,
+  CommunityLeaderboardEntrySchema,
+} from "./gamification/challenges.js";
+export type {
+  ChallengeStatus,
+  CommunitySubmission,
+  CommunityChallenge,
+  Badge,
+  CommunityLeaderboardEntry,
+} from "./gamification/challenges.js";
