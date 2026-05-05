@@ -2671,3 +2671,25 @@ export type {
   PatentScanProgress,
   PatentScanConfig,
 } from "./patent-scanner/index.js";
+
+/** Process Mining — Alpha/Inductive mining on innovation session data. */
+export {
+  mineProcess,
+  analyticsToProcessEvents,
+  processMiningToMarkdown,
+  ProcessEventSchema,
+  TransitionSchema,
+  BottleneckSchema,
+  ProcessNodeSchema,
+  ProcessEdgeSchema,
+  ProcessMiningResultSchema,
+} from "./process-mining/index.js";
+export type {
+  ProcessEvent,
+  Transition,
+  Bottleneck,
+  ProcessNode,
+  ProcessEdge,
+  ProcessMiningResult,
+  ProcessMiningConfig,
+} from "./process-mining/index.js";
