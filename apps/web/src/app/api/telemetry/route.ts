@@ -5,6 +5,7 @@ import {
   detectHallucinationsInResults,
   getQualityTrends,
   recordPromptEffectiveness,
+  buildTelemetryDashboard,
   AngleResultSchema,
 } from "@innovator/core";
 import { z } from "zod";
@@ -26,6 +27,10 @@ const TrendsSchema = z.object({
   action: z.literal("trends"),
 });
 
+const DashboardSchema = z.object({
+  action: z.literal("dashboard"),
+});
+
 const RecordEffectivenessSchema = z.object({
   action: z.literal("record-effectiveness"),
   promptId: z.string().min(1).max(200),
@@ -40,7 +45,7 @@ const RecordEffectivenessSchema = z.object({
 });
 
 const RequestSchema = z.discriminatedUnion("action", [
-  DiversitySchema, HallucinationSchema, TrendsSchema, RecordEffectivenessSchema,
+  DiversitySchema, HallucinationSchema, TrendsSchema, RecordEffectivenessSchema, DashboardSchema,
 ]);
 
 export async function POST(request: Request) {
@@ -69,6 +74,10 @@ export async function POST(request: Request) {
         const { action: _, ...metrics } = parsed;
         const record = recordPromptEffectiveness(metrics);
         return Response.json({ recorded: record }, { headers: API_RESPONSE_HEADERS });
+      }
+      case "dashboard": {
+        const dashboard = buildTelemetryDashboard();
+        return Response.json({ dashboard }, { headers: API_RESPONSE_HEADERS });
       }
     }
   } catch (error) {
