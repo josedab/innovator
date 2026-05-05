@@ -265,3 +265,212 @@ export async function refineConversation(
 export function clearConversations(): void {
   sessions.clear();
 }
+
+// ---- Branching Exploration Trees ----
+
+/** Schema for an exploration tree node. */
+export const ExplorationNodeSchema = z.object({
+  id: z.string().max(100),
+  parentId: z.string().max(100).optional(),
+  query: z.string().max(2000),
+  response: z.string().max(10000),
+  ideas: z.array(z.object({
+    title: z.string().max(500),
+    description: z.string().max(5000),
+    potentialImpact: z.string().max(2000),
+    implementationHint: z.string().max(2000),
+    sourceAngle: z.string().max(200).optional(),
+  })).max(20).optional(),
+  suggestions: z.array(z.string().max(500)).max(5).optional(),
+  depth: z.number().min(0).max(20),
+  createdAt: z.string(),
+});
+
+/** Schema for an exploration tree. */
+export const ExplorationTreeSchema = z.object({
+  sessionId: z.string().max(100),
+  subject: z.string().max(500),
+  rootNodeId: z.string().max(100),
+  nodes: z.record(ExplorationNodeSchema),
+  activeNodeId: z.string().max(100),
+  createdAt: z.string(),
+});
+
+export type ExplorationNode = z.infer<typeof ExplorationNodeSchema>;
+export type ExplorationTree = z.infer<typeof ExplorationTreeSchema>;
+
+const explorationTrees = new Map<string, ExplorationTree>();
+
+/**
+ * Create a branching exploration tree from a conversation session.
+ * Each branch allows users to explore a different direction from any node.
+ */
+export function createExplorationTree(sessionId: string): ExplorationTree | null {
+  const ctx = sessions.get(sessionId);
+  if (!ctx) return null;
+
+  const rootId = randomUUID();
+  const rootNode: ExplorationNode = {
+    id: rootId,
+    query: `Investigate: ${ctx.subject}`,
+    response: ctx.investigation?.summary ?? "Initial investigation",
+    ideas: ctx.synthesis?.topIdeas.map((i) => ({
+      title: i.title,
+      description: i.description,
+      potentialImpact: i.potentialImpact,
+      implementationHint: "",
+      sourceAngle: i.sourceAngle,
+    })),
+    suggestions: [
+      "Drill deeper into the top idea",
+      "Explore alternative approaches",
+      "Identify potential blockers",
+    ],
+    depth: 0,
+    createdAt: new Date().toISOString(),
+  };
+
+  const tree: ExplorationTree = {
+    sessionId,
+    subject: ctx.subject,
+    rootNodeId: rootId,
+    nodes: { [rootId]: rootNode },
+    activeNodeId: rootId,
+    createdAt: new Date().toISOString(),
+  };
+
+  explorationTrees.set(sessionId, tree);
+  return tree;
+}
+
+/** Get an exploration tree by session ID. */
+export function getExplorationTree(sessionId: string): ExplorationTree | undefined {
+  return explorationTrees.get(sessionId);
+}
+
+/**
+ * Drill down into a specific node, creating a new child branch.
+ */
+export async function drillDown(
+  sessionId: string,
+  parentNodeId: string,
+  query: string,
+  model?: string,
+  signal?: AbortSignal
+): Promise<ExplorationNode> {
+  const tree = explorationTrees.get(sessionId);
+  if (!tree) throw new Error(`Exploration tree not found for session "${sessionId}"`);
+
+  const parentNode = tree.nodes[parentNodeId];
+  if (!parentNode) throw new Error(`Parent node "${parentNodeId}" not found`);
+
+  if (parentNode.depth >= 20) throw new Error("Maximum exploration depth reached");
+
+  const ctx = sessions.get(sessionId);
+  const context = buildDrillDownPrompt(ctx, parentNode, query);
+
+  const parsed = await withRetry(
+    async () => {
+      const raw = await generateText({ prompt: context, model, serverMode: true, signal });
+      const jsonStr = extractJson(raw);
+      try {
+        return JSON.parse(jsonStr) as unknown;
+      } catch {
+        throw new Error(`Failed to parse drill-down response: ${jsonStr.slice(0, 200)}`);
+      }
+    },
+    {
+      signal,
+      isRetryable: (err) =>
+        err instanceof Error &&
+        (err.message.includes("Failed to parse") ||
+          err.message.includes("No JSON object found") ||
+          err.message.includes("Unbalanced JSON braces")),
+    }
+  );
+
+  const response = RefinementResponseSchema.parse(parsed);
+
+  const nodeId = randomUUID();
+  const newNode: ExplorationNode = {
+    id: nodeId,
+    parentId: parentNodeId,
+    query,
+    response: response.response,
+    ideas: response.updatedIdeas,
+    suggestions: response.suggestions,
+    depth: parentNode.depth + 1,
+    createdAt: new Date().toISOString(),
+  };
+
+  tree.nodes[nodeId] = newNode;
+  tree.activeNodeId = nodeId;
+  return newNode;
+}
+
+/**
+ * Get the path from root to a specific node in the exploration tree.
+ */
+export function getExplorationPath(sessionId: string, nodeId: string): ExplorationNode[] {
+  const tree = explorationTrees.get(sessionId);
+  if (!tree) return [];
+
+  const path: ExplorationNode[] = [];
+  let current: ExplorationNode | undefined = tree.nodes[nodeId];
+  while (current) {
+    path.unshift(current);
+    current = current.parentId ? tree.nodes[current.parentId] : undefined;
+  }
+  return path;
+}
+
+/**
+ * Get all branches (child nodes) from a specific node.
+ */
+export function getNodeBranches(sessionId: string, nodeId: string): ExplorationNode[] {
+  const tree = explorationTrees.get(sessionId);
+  if (!tree) return [];
+  return Object.values(tree.nodes).filter((n) => n.parentId === nodeId);
+}
+
+function buildDrillDownPrompt(
+  ctx: ConversationContext | undefined,
+  parentNode: ExplorationNode,
+  query: string
+): string {
+  let prompt = `You are an innovation analyst performing a deep-dive investigation.
+
+${wrapUserInput("SUBJECT", ctx?.subject ?? "Unknown")}
+
+PREVIOUS EXPLORATION CONTEXT:
+Question: ${sanitizeUserInput(parentNode.query)}
+Findings: ${sanitizeUserInput(parentNode.response)}
+`;
+
+  if (parentNode.ideas?.length) {
+    prompt += `\nIDEAS FROM PREVIOUS STEP:\n`;
+    for (const idea of parentNode.ideas) {
+      prompt += `- ${sanitizeUserInput(idea.title)}: ${sanitizeUserInput(idea.description)}\n`;
+    }
+  }
+
+  prompt += `\n${wrapUserInput("DRILL-DOWN QUESTION", query)}
+
+Provide a detailed analysis that goes deeper into this specific aspect. Explore nuances, identify sub-opportunities, and surface non-obvious insights.
+
+You MUST respond with valid JSON only:
+{
+  "response": "Your detailed drill-down analysis",
+  "updatedIdeas": [
+    {
+      "title": "Specific sub-idea",
+      "description": "Detailed description",
+      "potentialImpact": "Expected impact",
+      "implementationHint": "How to start"
+    }
+  ],
+  "suggestions": ["Next drill-down question 1", "Alternative exploration path", "Related area to investigate"]
+}`;
+
+  return prompt;
+}
