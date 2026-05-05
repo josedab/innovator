@@ -100,3 +100,22 @@ export type {
   Badge,
   CommunityLeaderboardEntry,
 } from "./gamification/challenges.js";
+export type {
+  StakeholderSimulation,
+  StakeholderReaction,
+  StakeholderPersona,
+  StakeholderConflict,
+  ConflictMatrix,
+} from "./simulation/stakeholder.js";
+export type {
+  IdeaDependencyNode,
+  IdeaDependencyEdge,
+  IdeaDependencyGraph,
+  RelationshipType,
+} from "./dependency-graph/index.js";
+export type {
+  NegotiationPhase,
+  NegotiationMessage,
+  IdeaDelta,
+  NegotiationSession,
+} from "./negotiation/index.js";
