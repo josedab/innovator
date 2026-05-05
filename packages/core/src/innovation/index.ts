@@ -18,5 +18,14 @@ export {
   importAnglePack,
   buildCustomAnglePrompt,
 } from "./custom-angles.js";
-export { runComparativePipeline, buildComparativeSynthesisPrompt } from "./comparative.js";
-export type { ComparativeProgress, ComparativeSynthesis } from "./comparative.js";
+export {
+  runComparativePipeline,
+  buildComparativeSynthesisPrompt,
+  runParallelInvestigation,
+} from "./comparative.js";
+export type {
+  ComparativeProgress,
+  ComparativeSynthesis,
+  ParallelInvestigationResult,
+  CompetitiveMap,
+} from "./comparative.js";
