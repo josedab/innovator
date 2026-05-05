@@ -37,14 +37,14 @@ describe("AutoModePanel", () => {
     await act(async () => {
       render(<AutoModePanel subject="test subject" onComplete={vi.fn()} onReset={vi.fn()} />);
     });
-    expect(screen.getByText("🚀 Auto Mode")).toBeDefined();
+    expect(screen.getByText("🚀 Auto Mode")).toBeInstanceOf(HTMLElement);
   });
 
   it("displays the subject", async () => {
     await act(async () => {
       render(<AutoModePanel subject="code review" onComplete={vi.fn()} onReset={vi.fn()} />);
     });
-    expect(screen.getByText(/code review/)).toBeDefined();
+    expect(screen.getByText(/code review/)).toBeInstanceOf(HTMLElement);
   });
 
   it("parses multi-chunk SSE stream and calls onComplete", async () => {
@@ -101,7 +101,7 @@ describe("AutoModePanel", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Connection lost/)).toBeDefined();
+      expect(screen.getByText(/Connection lost/)).toBeInstanceOf(HTMLElement);
     });
   });
 
@@ -123,7 +123,7 @@ describe("AutoModePanel", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Server failed")).toBeDefined();
+      expect(screen.getByText("Server failed")).toBeInstanceOf(HTMLElement);
     });
   });
 

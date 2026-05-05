@@ -73,17 +73,17 @@ const sampleAngleResults: AngleResult[] = [
 describe("IdeaWorkshop", () => {
   it("renders 4 columns (Backlog, Exploring, Planned, Building)", () => {
     render(<IdeaWorkshop angleResults={sampleAngleResults} subject="Test" />);
-    expect(screen.getByText(/Backlog/)).toBeDefined();
-    expect(screen.getByText(/Exploring/)).toBeDefined();
-    expect(screen.getByText(/Planned/)).toBeDefined();
-    expect(screen.getByText(/Building/)).toBeDefined();
+    expect(screen.getByText(/Backlog/)).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText(/Exploring/)).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText(/Planned/)).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText(/Building/)).toBeInstanceOf(HTMLElement);
   });
 
   it("renders idea cards in backlog column by default", () => {
     render(<IdeaWorkshop angleResults={sampleAngleResults} subject="Test" />);
-    expect(screen.getByText("Idea A")).toBeDefined();
-    expect(screen.getByText("Idea B")).toBeDefined();
-    expect(screen.getByText("Idea C")).toBeDefined();
+    expect(screen.getByText("Idea A")).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText("Idea B")).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText("Idea C")).toBeInstanceOf(HTMLElement);
   });
 
   it("renders with empty ideas array without crash", () => {
@@ -95,24 +95,24 @@ describe("IdeaWorkshop", () => {
 
   it("renders idea descriptions", () => {
     render(<IdeaWorkshop angleResults={sampleAngleResults} subject="Test" />);
-    expect(screen.getByText("Description A")).toBeDefined();
-    expect(screen.getByText("Description C")).toBeDefined();
+    expect(screen.getByText("Description A")).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText("Description C")).toBeInstanceOf(HTMLElement);
   });
 
   it("renders source angle badges", () => {
     render(<IdeaWorkshop angleResults={sampleAngleResults} subject="Test" />);
     expect(screen.getAllByText("SCAMPER")).toHaveLength(2);
-    expect(screen.getByText("First Principles")).toBeDefined();
+    expect(screen.getByText("First Principles")).toBeInstanceOf(HTMLElement);
   });
 
   it("renders workshop title", () => {
     render(<IdeaWorkshop angleResults={sampleAngleResults} subject="Test" />);
-    expect(screen.getByText(/Idea Workshop/)).toBeDefined();
+    expect(screen.getByText(/Idea Workshop/)).toBeInstanceOf(HTMLElement);
   });
 
   it("renders export markdown button", () => {
     render(<IdeaWorkshop angleResults={sampleAngleResults} subject="Test" />);
-    expect(screen.getByText(/Export MD/)).toBeDefined();
+    expect(screen.getByText(/Export MD/)).toBeInstanceOf(HTMLElement);
   });
 
   it("shows checkbox for selecting ideas", () => {
@@ -141,6 +141,6 @@ describe("IdeaWorkshop", () => {
   it("shows column counts", () => {
     render(<IdeaWorkshop angleResults={sampleAngleResults} subject="Test" />);
     // Backlog should show (3) since all ideas start there
-    expect(screen.getByText("(3)")).toBeDefined();
+    expect(screen.getByText("(3)")).toBeInstanceOf(HTMLElement);
   });
 });
