@@ -349,7 +349,14 @@ export {
   TimelineSnapshotSchema,
   TimelineBranchSchema,
 } from "./replay/index.js";
-export type { PromptRecord, RunRecord, RunComparison, ReplayOverrides, TimelineSnapshot, TimelineBranch } from "./replay/index.js";
+export type {
+  PromptRecord,
+  RunRecord,
+  RunComparison,
+  ReplayOverrides,
+  TimelineSnapshot,
+  TimelineBranch,
+} from "./replay/index.js";
 
 /** Audience-adaptive output — transform results for executive, technical, pitch, or research audiences. */
 export {
@@ -1346,7 +1353,13 @@ export {
   ProvenanceRecordSchema,
   ProvenanceChainSchema,
 } from "./provenance/index.js";
-export type { ProvenanceRecord, ProvenanceChain, ProvenanceTreeNode, LineageNode, LineageEdge } from "./provenance/index.js";
+export type {
+  ProvenanceRecord,
+  ProvenanceChain,
+  ProvenanceTreeNode,
+  LineageNode,
+  LineageEdge,
+} from "./provenance/index.js";
 
 /** Interactive Idea Negotiation — multi-turn structured dialogue for collaborative idea refinement. */
 export {
@@ -2239,12 +2252,7 @@ export {
   PRWorkflowPlanSchema,
   PRResultSchema,
 } from "./innovation-pr/index.js";
-export type {
-  PRConfig,
-  GitCommand,
-  PRWorkflowPlan,
-  PRResult,
-} from "./innovation-pr/index.js";
+export type { PRConfig, GitCommand, PRWorkflowPlan, PRResult } from "./innovation-pr/index.js";
 
 /** Angle Studio — visual pipeline editor for angle composition. */
 export {
@@ -2377,11 +2385,7 @@ export {
   BenchmarkComparisonSchema,
   NetworkStatsSchema,
 } from "./cross-org-benchmark/index.js";
-export type {
-  OrgMetrics,
-  BenchmarkComparison,
-  NetworkStats,
-} from "./cross-org-benchmark/index.js";
+export type { OrgMetrics, BenchmarkComparison, NetworkStats } from "./cross-org-benchmark/index.js";
 
 /** ML-based angle recommendation — historical learning for angle suggestions. */
 export {
@@ -2473,12 +2477,7 @@ export {
   BlindSpotSchema,
   TeamDNASchema,
 } from "./team-dna/index.js";
-export type {
-  MemberProfile,
-  BlindSpot,
-  TeamDNA,
-  MemberActivity,
-} from "./team-dna/index.js";
+export type { MemberProfile, BlindSpot, TeamDNA, MemberActivity } from "./team-dna/index.js";
 
 /** Innovation Supply Chain Mapper — build/buy/partner classification with gap analysis. */
 export {
@@ -2491,11 +2490,7 @@ export {
   SupplyChainGapSchema,
   SupplyChainMapSchema,
 } from "./supply-chain/index.js";
-export type {
-  SupplyChainItem,
-  SupplyChainGap,
-  SupplyChainMap,
-} from "./supply-chain/index.js";
+export type { SupplyChainItem, SupplyChainGap, SupplyChainMap } from "./supply-chain/index.js";
 
 /** Adaptive Context Window Manager — smart prompt compression with relevance scoring. */
 export {
@@ -2562,3 +2557,29 @@ export type {
   IdeaTiming,
   TimingAnalysis,
 } from "./timing/index.js";
+
+/** Privacy-Preserving Cross-Org Innovation — differential privacy and encrypted matching. */
+export {
+  privatizeIdea,
+  findCrossOrgMatches,
+  getPrivacyBudget,
+  consumeBudget,
+  storePrivateIdea,
+  loadPrivateIdeas,
+  clearPrivacyData,
+  laplaceMechanism,
+  gaussianMechanism,
+  PrivateIdeaSchema,
+  CrossOrgMatchSchema,
+  PrivacyBudgetSchema,
+  MatchingResultSchema,
+  NoiseMechanismSchema,
+} from "./privacy/index.js";
+export type {
+  PrivateIdea,
+  CrossOrgMatch,
+  PrivacyBudget,
+  MatchingResult,
+  CrossOrgConfig,
+  NoiseMechanism,
+} from "./privacy/index.js";
