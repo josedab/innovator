@@ -2542,3 +2542,23 @@ export type {
   PortfolioOptimization,
   PortfolioOptimizerConfig,
 } from "./portfolio-optimizer/index.js";
+
+/** Predictive Innovation Timing Engine — market signal analysis for optimal execution windows. */
+export {
+  analyzeTimings,
+  getTimingAnalysis,
+  listTimingAnalyses,
+  getActionableIdeas,
+  timingToMarkdown,
+  clearTimingData,
+  TimingSignalSchema,
+  TimingClassificationSchema,
+  IdeaTimingSchema,
+  TimingAnalysisSchema,
+} from "./timing/index.js";
+export type {
+  TimingSignal,
+  TimingClassification,
+  IdeaTiming,
+  TimingAnalysis,
+} from "./timing/index.js";
