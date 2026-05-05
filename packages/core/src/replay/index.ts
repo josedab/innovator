@@ -100,11 +100,7 @@ function generatePromptId(): string {
  * @param angles - The angles being run
  * @returns The run record ID
  */
-export function startRunRecord(
-  subject: string,
-  model?: string,
-  angles: string[] = []
-): string {
+export function startRunRecord(subject: string, model?: string, angles: string[] = []): string {
   if (!recordingEnabled) return "";
 
   const id = generateRunId();
@@ -190,9 +186,7 @@ export function getRunRecord(runId: string): RunRecord | undefined {
 export function listRunRecords(subject?: string): RunRecord[] {
   const records = Array.from(runRecords.values());
   if (subject) {
-    return records.filter((r) =>
-      r.subject.toLowerCase().includes(subject.toLowerCase())
-    );
+    return records.filter((r) => r.subject.toLowerCase().includes(subject.toLowerCase()));
   }
   return records.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
@@ -253,7 +247,9 @@ export function previewReplay(
   // Filter by angle overrides if specified
   const filteredPrompts = overrides.angles
     ? modifiedPrompts.filter(
-        (p) => p.stage !== "generation" || (p.angleId && overrides.angles!.includes(p.angleId as AngleId))
+        (p) =>
+          p.stage !== "generation" ||
+          (p.angleId && overrides.angles!.includes(p.angleId as AngleId))
       )
     : modifiedPrompts;
 
@@ -466,4 +462,274 @@ export function comparisonToMarkdown(comparison: RunComparison): string {
   lines.push("## Analysis", "", comparison.analysis, "");
 
   return lines.join("\n");
+}
+
+// ---- Time-Travel & Branching ----
+
+/** Schema for a time-travel snapshot at a specific pipeline point. */
+export const TimelineSnapshotSchema = z.object({
+  id: z.string(),
+  runId: z.string(),
+  stage: z.enum(["investigation", "generation", "synthesis"]),
+  angleId: z.string().optional(),
+  timestamp: z.string(),
+  promptIndex: z.number(),
+  investigation: z.unknown().optional(),
+  angleResults: z.array(z.unknown()).optional(),
+  synthesis: z.unknown().optional(),
+});
+
+/** Schema for a branch off a timeline snapshot. */
+export const TimelineBranchSchema = z.object({
+  id: z.string(),
+  parentRunId: z.string(),
+  parentSnapshotId: z.string(),
+  branchedAt: z.string(),
+  label: z.string().max(200).optional(),
+  overrides: z.record(z.unknown()).optional(),
+  runId: z.string().optional(),
+});
+
+export type TimelineSnapshot = z.infer<typeof TimelineSnapshotSchema>;
+export type TimelineBranch = z.infer<typeof TimelineBranchSchema>;
+
+// ---- In-memory stores for time-travel ----
+
+const timelineSnapshots: Map<string, TimelineSnapshot[]> = new Map();
+const timelineBranches: TimelineBranch[] = [];
+
+/**
+ * Build a timeline of snapshots from a recorded run.
+ * Each prompt invocation becomes a snapshot that can be branched from.
+ *
+ * @param runId - The run record ID
+ * @returns Array of timeline snapshots
+ */
+export function buildTimeline(runId: string): TimelineSnapshot[] {
+  const record = runRecords.get(runId);
+  if (!record) return [];
+
+  const existing = timelineSnapshots.get(runId);
+  if (existing) return existing;
+
+  const snapshots: TimelineSnapshot[] = record.prompts.map((prompt, index) => ({
+    id: `snap-${runId}-${index}`,
+    runId,
+    stage: prompt.stage,
+    angleId: prompt.angleId,
+    timestamp: prompt.timestamp,
+    promptIndex: index,
+    investigation:
+      index >= record.prompts.findIndex((p) => p.stage === "generation")
+        ? record.investigation
+        : undefined,
+    angleResults:
+      prompt.stage === "synthesis"
+        ? record.angleResults
+        : record.angleResults
+            ?.slice(0, index - (record.prompts.findIndex((p) => p.stage === "generation") - 1))
+            .filter(Boolean),
+    synthesis: prompt.stage === "synthesis" ? record.synthesis : undefined,
+  }));
+
+  timelineSnapshots.set(runId, snapshots);
+  return snapshots;
+}
+
+/**
+ * Get a specific snapshot by ID.
+ *
+ * @param snapshotId - The snapshot ID
+ * @returns The snapshot or undefined
+ */
+export function getSnapshot(snapshotId: string): TimelineSnapshot | undefined {
+  for (const snapshots of timelineSnapshots.values()) {
+    const found = snapshots.find((s) => s.id === snapshotId);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/**
+ * Create a branch from a specific point in a run's timeline.
+ * Returns a branch record that can be used to replay from that point.
+ *
+ * @param runId - The run to branch from
+ * @param snapshotId - The snapshot to branch at
+ * @param label - Optional label for the branch
+ * @param overrides - Optional overrides for the branched replay
+ * @returns The created branch
+ */
+export function createBranchFromSnapshot(
+  runId: string,
+  snapshotId: string,
+  label?: string,
+  overrides?: Record<string, unknown>
+): TimelineBranch | undefined {
+  const snapshots = buildTimeline(runId);
+  const snapshot = snapshots.find((s) => s.id === snapshotId);
+  if (!snapshot) return undefined;
+
+  const branch: TimelineBranch = {
+    id: `branch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    parentRunId: runId,
+    parentSnapshotId: snapshotId,
+    branchedAt: new Date().toISOString(),
+    label,
+    overrides,
+  };
+
+  timelineBranches.push(branch);
+  return branch;
+}
+
+/**
+ * Fork a run from a specific stage, creating a new run with results
+ * up to that point and allowing re-generation from there.
+ *
+ * @param runId - The run to fork
+ * @param fromStage - The stage to fork from ("investigation" keeps investigation, re-generates angles; "generation" keeps angles, re-synthesizes)
+ * @param overrides - Optional overrides for the forked run
+ * @returns A new partial run record ready for continuation
+ */
+export function forkRun(
+  runId: string,
+  fromStage: "investigation" | "generation",
+  overrides?: ReplayOverrides
+): RunRecord | undefined {
+  const original = runRecords.get(runId);
+  if (!original) return undefined;
+
+  const newRunId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const forkedRecord: RunRecord = {
+    id: newRunId,
+    subject: overrides?.subject ?? original.subject,
+    model: overrides?.model ?? original.model,
+    angles: (overrides?.angles as string[]) ?? original.angles,
+    prompts: [],
+    createdAt: new Date().toISOString(),
+    metadata: {
+      forkedFrom: runId,
+      forkStage: fromStage,
+      overrides: {
+        model: overrides?.model,
+        subject: overrides?.subject,
+        angles: overrides?.angles,
+      },
+    },
+  };
+
+  // Copy results up to the fork point
+  if (fromStage === "investigation" || fromStage === "generation") {
+    forkedRecord.investigation = original.investigation;
+    forkedRecord.prompts = original.prompts.filter((p) => p.stage === "investigation");
+  }
+
+  if (fromStage === "generation") {
+    forkedRecord.angleResults = original.angleResults;
+    forkedRecord.prompts = original.prompts.filter(
+      (p) => p.stage === "investigation" || p.stage === "generation"
+    );
+  }
+
+  // Create branch record
+  const branchId = `branch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  timelineBranches.push({
+    id: branchId,
+    parentRunId: runId,
+    parentSnapshotId: `fork-${fromStage}`,
+    branchedAt: new Date().toISOString(),
+    label: `Fork from ${fromStage}`,
+    runId: newRunId,
+  });
+
+  runRecords.set(newRunId, forkedRecord);
+  return forkedRecord;
+}
+
+/**
+ * List all branches for a given run.
+ *
+ * @param runId - The parent run ID
+ * @returns Array of branches
+ */
+export function listBranchesForRun(runId: string): TimelineBranch[] {
+  return timelineBranches.filter((b) => b.parentRunId === runId);
+}
+
+/**
+ * Get the full exploration tree: a run and all its branches/forks.
+ *
+ * @param runId - The root run ID
+ * @returns Tree structure of runs and branches
+ */
+export function getExplorationTree(runId: string):
+  | {
+      root: RunRecord;
+      branches: Array<TimelineBranch & { childRun?: RunRecord }>;
+    }
+  | undefined {
+  const root = runRecords.get(runId);
+  if (!root) return undefined;
+
+  const branches = listBranchesForRun(runId).map((branch) => ({
+    ...branch,
+    childRun: branch.runId ? runRecords.get(branch.runId) : undefined,
+  }));
+
+  return { root, branches };
+}
+
+/**
+ * Navigate to a specific point in history ("time-travel").
+ * Returns the state of the pipeline at that snapshot.
+ *
+ * @param runId - The run ID
+ * @param promptIndex - The prompt index to navigate to (0-based)
+ * @returns The pipeline state at that point
+ */
+export function timeTravel(
+  runId: string,
+  promptIndex: number
+):
+  | {
+      stage: string;
+      angleId?: string;
+      investigation?: unknown;
+      angleResults: unknown[];
+      completedPrompts: PromptRecord[];
+      remainingPrompts: PromptRecord[];
+    }
+  | undefined {
+  const record = runRecords.get(runId);
+  if (!record || promptIndex < 0 || promptIndex >= record.prompts.length) return undefined;
+
+  const currentPrompt = record.prompts[promptIndex];
+  const completedPrompts = record.prompts.slice(0, promptIndex + 1);
+  const remainingPrompts = record.prompts.slice(promptIndex + 1);
+
+  const completedAngles = completedPrompts
+    .filter((p) => p.stage === "generation" && p.angleId)
+    .map((p) => p.angleId!);
+
+  return {
+    stage: currentPrompt.stage,
+    angleId: currentPrompt.angleId,
+    investigation: completedPrompts.some((p) => p.stage === "investigation")
+      ? record.investigation
+      : undefined,
+    angleResults: ((record.angleResults as AngleResult[]) ?? []).filter((ar) =>
+      completedAngles.includes(ar.angleId)
+    ),
+    completedPrompts,
+    remainingPrompts,
+  };
+}
+
+/**
+ * Clear all time-travel data (for testing).
+ */
+export function clearTimeline(): void {
+  timelineSnapshots.clear();
+  timelineBranches.length = 0;
 }
