@@ -2693,3 +2693,26 @@ export type {
   ProcessMiningResult,
   ProcessMiningConfig,
 } from "./process-mining/index.js";
+
+/** Innovation Climate Assessment — 12-dimension org culture diagnostic. */
+export {
+  assessClimate,
+  quickAssess,
+  getSurveyQuestions,
+  climateToMarkdown,
+  CLIMATE_DIMENSIONS,
+  ClimateDimensionSchema,
+  DimensionScoreSchema as ClimateDimensionScoreSchema,
+  BenchmarkComparisonSchema as ClimateBenchmarkSchema,
+  InterventionSchema,
+  ClimateAssessmentSchema,
+} from "./climate/index.js";
+export type {
+  ClimateDimension,
+  DimensionScore as ClimateDimensionScore,
+  BenchmarkComparison as ClimateBenchmarkComparison,
+  Intervention,
+  ClimateAssessment,
+  ClimateSurveyResponse,
+  ClimateAssessmentConfig,
+} from "./climate/index.js";
