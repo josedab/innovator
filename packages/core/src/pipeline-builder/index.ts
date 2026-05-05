@@ -164,3 +164,277 @@ export function resolveAngles(config: PipelineConfig): AngleId[] {
   const validAngles = config.angles.filter((a) => (ANGLE_IDS as readonly string[]).includes(a));
   return (validAngles.length > 0 ? validAngles : [...ANGLE_IDS]) as AngleId[];
 }
+
+// ---- Pipeline DAG ----
+
+/** Schema for a DAG node representing a pipeline step. */
+export const DAGNodeSchema = z.object({
+  id: z.string().max(100),
+  type: PipelinePhaseSchema,
+  label: z.string().max(200),
+  config: z.record(z.unknown()).optional(),
+  dependsOn: z.array(z.string().max(100)).max(20),
+  status: z.enum(["pending", "running", "completed", "failed", "skipped"]).default("pending"),
+  output: z.unknown().optional(),
+  startedAt: z.string().optional(),
+  completedAt: z.string().optional(),
+  error: z.string().max(2000).optional(),
+});
+
+/** Schema for a full pipeline DAG. */
+export const PipelineDAGSchema = z.object({
+  id: z.string().max(100),
+  name: z.string().max(200),
+  description: z.string().max(2000).optional(),
+  nodes: z.array(DAGNodeSchema).min(1).max(50),
+  subject: z.string().max(2000),
+  model: z.string().max(100).optional(),
+  createdAt: z.string(),
+  status: z.enum(["pending", "running", "completed", "failed", "partial"]).default("pending"),
+  compiledFrom: z.string().max(5000).optional(),
+});
+
+export type DAGNode = z.infer<typeof DAGNodeSchema>;
+export type PipelineDAG = z.infer<typeof PipelineDAGSchema>;
+
+/**
+ * Compile a natural language description into an executable pipeline DAG.
+ * Parses the description to extract phases and their dependencies.
+ */
+export async function compilePipelineDAG(
+  naturalLanguage: string,
+  model?: string,
+  signal?: AbortSignal
+): Promise<PipelineDAG> {
+  // First parse the pipeline config
+  const config = await parsePipelineRequest(naturalLanguage, model, signal);
+  const phases = resolvePhases(config);
+
+  // Build DAG nodes with dependency chain
+  const nodes: DAGNode[] = [];
+  let previousNodeId: string | undefined;
+
+  for (let i = 0; i < phases.length; i++) {
+    const phase = phases[i];
+    const nodeId = `${phase}-${i}`;
+
+    const node: DAGNode = {
+      id: nodeId,
+      type: phase,
+      label: getPhaseLabel(phase),
+      config: buildPhaseConfig(phase, config),
+      dependsOn: previousNodeId ? [previousNodeId] : [],
+      status: "pending",
+    };
+
+    nodes.push(node);
+    previousNodeId = nodeId;
+  }
+
+  // Add parallel branches for angle-specific generation if multiple angles specified
+  if (config.angles && config.angles.length > 1 && phases.includes("generate")) {
+    const generateNodeIdx = nodes.findIndex((n) => n.type === "generate");
+    if (generateNodeIdx >= 0) {
+      const generateNode = nodes[generateNodeIdx];
+      const parentDeps = generateNode.dependsOn;
+
+      // Replace single generate node with parallel angle nodes
+      nodes.splice(generateNodeIdx, 1);
+
+      const angleNodeIds: string[] = [];
+      for (const angle of config.angles.slice(0, 10)) {
+        const angleNodeId = `generate-${angle}`;
+        nodes.push({
+          id: angleNodeId,
+          type: "generate",
+          label: `Generate: ${angle}`,
+          config: { angleId: angle, ...generateNode.config },
+          dependsOn: parentDeps,
+          status: "pending",
+        });
+        angleNodeIds.push(angleNodeId);
+      }
+
+      // Update any nodes that depended on the old generate node
+      for (const node of nodes) {
+        if (node.dependsOn.includes(generateNode.id)) {
+          node.dependsOn = node.dependsOn.filter((d) => d !== generateNode.id);
+          node.dependsOn.push(...angleNodeIds);
+        }
+      }
+    }
+  }
+
+  const dagId = `dag-${Date.now().toString(36)}`;
+
+  return {
+    id: dagId,
+    name: config.subject.slice(0, 200),
+    description: `Pipeline compiled from: "${naturalLanguage.slice(0, 200)}"`,
+    nodes,
+    subject: config.subject,
+    model: config.model,
+    createdAt: new Date().toISOString(),
+    status: "pending",
+    compiledFrom: naturalLanguage,
+  };
+}
+
+/**
+ * Execute a compiled pipeline DAG, running nodes in dependency order.
+ * Nodes with satisfied dependencies can run in parallel.
+ */
+export async function executePipelineDAG(
+  dag: PipelineDAG,
+  options?: {
+    signal?: AbortSignal;
+    onNodeUpdate?: (node: DAGNode) => void;
+    dryRun?: boolean;
+  }
+): Promise<PipelineDAG> {
+  dag.status = "running";
+  const nodeMap = new Map(dag.nodes.map((n) => [n.id, n]));
+
+  while (true) {
+    if (options?.signal?.aborted) {
+      dag.status = "failed";
+      break;
+    }
+
+    // Find nodes ready to execute (all dependencies completed)
+    const ready = dag.nodes.filter(
+      (n) =>
+        n.status === "pending" &&
+        n.dependsOn.every((dep) => nodeMap.get(dep)?.status === "completed")
+    );
+
+    if (ready.length === 0) {
+      // Check if any nodes are still running
+      const running = dag.nodes.filter((n) => n.status === "running");
+      if (running.length === 0) break;
+      await new Promise((r) => setTimeout(r, 100));
+      continue;
+    }
+
+    // Execute ready nodes
+    await Promise.all(
+      ready.map(async (node) => {
+        node.status = "running";
+        node.startedAt = new Date().toISOString();
+        options?.onNodeUpdate?.(node);
+
+        try {
+          if (options?.dryRun) {
+            node.output = { dryRun: true, type: node.type };
+          } else {
+            // Simulate execution — actual LLM calls would be wired here
+            node.output = { executed: true, type: node.type, label: node.label };
+          }
+          node.status = "completed";
+          node.completedAt = new Date().toISOString();
+        } catch (err) {
+          node.status = "failed";
+          node.error = err instanceof Error ? err.message : String(err);
+          node.completedAt = new Date().toISOString();
+        }
+
+        options?.onNodeUpdate?.(node);
+      })
+    );
+  }
+
+  // Determine overall status
+  const failed = dag.nodes.filter((n) => n.status === "failed");
+  const completed = dag.nodes.filter((n) => n.status === "completed");
+
+  if (failed.length > 0 && completed.length > 0) {
+    dag.status = "partial";
+  } else if (failed.length > 0) {
+    dag.status = "failed";
+  } else {
+    dag.status = "completed";
+  }
+
+  // Skip unreachable nodes
+  for (const node of dag.nodes) {
+    if (node.status === "pending") {
+      node.status = "skipped";
+    }
+  }
+
+  return dag;
+}
+
+/**
+ * Visualize a pipeline DAG as a text-based flow diagram.
+ */
+export function dagToText(dag: PipelineDAG): string {
+  const lines: string[] = [];
+  lines.push(`Pipeline: ${dag.name}`);
+  lines.push(`Status: ${dag.status}`);
+  lines.push(`Subject: ${dag.subject}`);
+  lines.push("");
+
+  const nodeMap = new Map(dag.nodes.map((n) => [n.id, n]));
+
+  // Find root nodes (no dependencies)
+  const roots = dag.nodes.filter((n) => n.dependsOn.length === 0);
+
+  function renderNode(node: DAGNode, indent: number): void {
+    const prefix = "  ".repeat(indent);
+    const statusIcon = {
+      pending: "⏳",
+      running: "🔄",
+      completed: "✅",
+      failed: "❌",
+      skipped: "⏭️",
+    }[node.status];
+
+    lines.push(`${prefix}${statusIcon} ${node.label} [${node.id}]`);
+
+    // Find children (nodes that depend on this one)
+    const children = dag.nodes.filter((n) => n.dependsOn.includes(node.id));
+    for (const child of children) {
+      renderNode(child, indent + 1);
+    }
+  }
+
+  for (const root of roots) {
+    renderNode(root, 0);
+  }
+
+  return lines.join("\n");
+}
+
+function getPhaseLabel(phase: PipelinePhase): string {
+  const labels: Record<PipelinePhase, string> = {
+    investigate: "Investigation",
+    generate: "Idea Generation",
+    synthesize: "Synthesis",
+    score: "Scoring",
+    validate: "Validation",
+  };
+  return labels[phase];
+}
+
+function buildPhaseConfig(phase: PipelinePhase, config: PipelineConfig): Record<string, unknown> {
+  const baseConfig: Record<string, unknown> = {};
+  if (config.model) baseConfig.model = config.model;
+  if (config.depth) baseConfig.depth = config.depth;
+
+  switch (phase) {
+    case "generate":
+      if (config.angles) baseConfig.angles = config.angles;
+      if (config.maxIdeas) baseConfig.maxIdeas = config.maxIdeas;
+      if (config.constraints) baseConfig.constraints = config.constraints;
+      break;
+    case "investigate":
+      if (config.focusArea) baseConfig.focusArea = config.focusArea;
+      break;
+    case "synthesize":
+      if (config.outputFormat) baseConfig.outputFormat = config.outputFormat;
+      break;
+  }
+
+  return baseConfig;
+}
