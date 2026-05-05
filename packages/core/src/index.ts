@@ -3145,3 +3145,31 @@ export type {
   DiffusionSimulationOptions,
 } from "./diffusion-simulator/index.js";
 
+/** Innovation Knowledge Distillation — pattern extraction, training datasets, model routing. */
+export {
+  extractPattern,
+  buildDataset,
+  generateFineTuneConfig,
+  routeRequest,
+  getCostDashboard,
+  getPatterns,
+  getDataset,
+  listDatasets,
+  clearDistillationData,
+  exportDatasetJsonl,
+  InvestigationPatternSchema as DistillationPatternSchema,
+  TrainingExampleSchema,
+  DistillationDatasetSchema,
+  FineTuneConfigSchema,
+  RoutingDecisionSchema as DistillationRoutingDecisionSchema,
+  CostDashboardSchema,
+} from "./knowledge-distillation/index.js";
+export type {
+  InvestigationPattern as DistillationPattern,
+  TrainingExample,
+  DistillationDataset,
+  FineTuneConfig,
+  RoutingDecision as DistillationRoutingDecision,
+  CostDashboard,
+} from "./knowledge-distillation/index.js";
+
