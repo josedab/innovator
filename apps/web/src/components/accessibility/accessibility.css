@@ -1,0 +1,83 @@
+/* Accessibility modes applied via class toggles on <html> by AccessibilityProvider */
+
+/* ── High Contrast Mode ── */
+.high-contrast {
+  --background: #000000;
+  --foreground: #ffffff;
+}
+.high-contrast * {
+  border-color: #ffffff !important;
+}
+.high-contrast button,
+.high-contrast a,
+.high-contrast [role="button"] {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+.high-contrast .text-neutral-500,
+.high-contrast .text-neutral-400,
+.high-contrast .text-gray-500,
+.high-contrast .text-gray-400 {
+  color: #e0e0e0 !important;
+}
+
+/* ── Dyslexia-Friendly Font ── */
+.dyslexia-font {
+  --font-sans: "OpenDyslexic", "Comic Sans MS", cursive, sans-serif;
+}
+.dyslexia-font * {
+  font-family: var(--font-sans) !important;
+  letter-spacing: 0.05em;
+  word-spacing: 0.15em;
+  line-height: 1.8;
+}
+
+/* ── Reduced Motion ── */
+.reduced-motion *,
+.reduced-motion *::before,
+.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ── Large Text ── */
+.large-text {
+  font-size: 18px;
+}
+.large-text h1 { font-size: 2.25rem; }
+.large-text h2 { font-size: 1.875rem; }
+.large-text h3 { font-size: 1.5rem; }
+.large-text p, .large-text li, .large-text td { font-size: 1.125rem; }
+
+/* ── Enhanced Focus Indicators ── */
+.focus-indicators *:focus-visible {
+  outline: 3px solid #2563eb !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.25) !important;
+}
+
+/* ── Cognitive Load Reduction ── */
+.cognitive-load-reduction .animate-pulse,
+.cognitive-load-reduction .animate-spin,
+.cognitive-load-reduction .animate-bounce {
+  animation: none !important;
+}
+.cognitive-load-reduction [class*="grid-cols-3"],
+.cognitive-load-reduction [class*="grid-cols-4"] {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+/* ── Screen Reader Only (utility class) ── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
