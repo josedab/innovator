@@ -3262,3 +3262,27 @@ export type {
   GenerateInterventionOptions,
 } from "./flow-state/index.js";
 
+/** 3D Innovation Embedding Explorer — dimensionality reduction, clustering, white space detection. */
+export {
+  buildEmbeddingSpace,
+  generateInWhiteSpace,
+  getEmbeddingSpace,
+  listEmbeddingSpaces,
+  clearEmbeddingSpaces,
+  Point3DSchema,
+  EmbeddedIdeaSchema as ExplorerEmbeddedIdeaSchema,
+  IdeaClusterSchema as ExplorerIdeaClusterSchema,
+  WhiteSpaceSchema,
+  EmbeddingSpaceSchema,
+} from "./embedding-explorer/index.js";
+export type {
+  Point3D,
+  EmbeddedIdea as ExplorerEmbeddedIdea,
+  IdeaCluster as ExplorerIdeaCluster,
+  WhiteSpace,
+  EmbeddingSpace,
+  IdeaInput,
+  BuildEmbeddingSpaceOptions,
+  GenerateInGapOptions,
+} from "./embedding-explorer/index.js";
+
