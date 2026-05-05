@@ -3286,3 +3286,25 @@ export type {
   GenerateInGapOptions,
 } from "./embedding-explorer/index.js";
 
+/** Multi-Jurisdiction Regulatory Simulator — regulatory compliance simulation across jurisdictions. */
+export {
+  simulateRegulatory,
+  getRegulatoryFrameworks,
+  getRegulatorySimulation,
+  listRegulatorySimulations,
+  clearRegulatorySimulations,
+  regulatoryToMarkdown,
+  REGULATORY_FRAMEWORKS,
+  RegulatoryFrameworkSchema,
+  ComplianceCheckSchema,
+  JurisdictionResultSchema,
+  RegulatorySimulationSchema,
+} from "./regulatory-simulator/index.js";
+export type {
+  RegulatoryFramework,
+  ComplianceCheck,
+  JurisdictionResult,
+  RegulatorySimulation,
+  RegulatorySimulationOptions,
+} from "./regulatory-simulator/index.js";
+
