@@ -17,6 +17,7 @@ const {
   addCustomAngle,
   removeCustomAngle,
   getCustomAngle,
+  updateCustomAngle,
   exportAnglePack,
   importAnglePack,
   buildCustomAnglePrompt,
@@ -107,8 +108,62 @@ describe("custom-angles", () => {
   });
 
   it("validates angle ID format", () => {
-    expect(() =>
-      addCustomAngle({ ...sampleAngle, id: "Invalid ID!" })
-    ).toThrow();
+    expect(() => addCustomAngle({ ...sampleAngle, id: "Invalid ID!" })).toThrow();
+  });
+
+  // ---- updateCustomAngle ----
+  it("updates an existing custom angle", () => {
+    addCustomAngle(sampleAngle);
+    updateCustomAngle({ ...sampleAngle, name: "Updated Angle" });
+    const angle = getCustomAngle("test-angle");
+    expect(angle?.name).toBe("Updated Angle");
+  });
+
+  it("throws when updating non-existent angle", () => {
+    expect(() => updateCustomAngle({ ...sampleAngle, id: "nonexistent" })).toThrow("not found");
+  });
+
+  // ---- Corrupt JSON handling ----
+  it("returns empty array when file contains corrupt JSON", () => {
+    const anglesFile = join(testDir, ".innovator", "custom-angles.json");
+    writeFileSync(anglesFile, "{ invalid json }", "utf-8");
+    expect(loadCustomAngles()).toEqual([]);
+  });
+
+  it("filters out invalid entries in JSON array", () => {
+    const anglesFile = join(testDir, ".innovator", "custom-angles.json");
+    writeFileSync(anglesFile, JSON.stringify([sampleAngle, { invalid: true }]), "utf-8");
+    const angles = loadCustomAngles();
+    expect(angles).toHaveLength(1);
+    expect(angles[0].id).toBe("test-angle");
+  });
+
+  it("returns empty array when file contains non-array JSON", () => {
+    const anglesFile = join(testDir, ".innovator", "custom-angles.json");
+    writeFileSync(anglesFile, JSON.stringify({ not: "an array" }), "utf-8");
+    expect(loadCustomAngles()).toEqual([]);
+  });
+
+  // ---- buildCustomAnglePrompt with multiple substitutions ----
+  it("replaces multiple occurrences of {{subject}}", () => {
+    const angle: CustomAngle = {
+      ...sampleAngle,
+      promptTemplate: "Topic: {{subject}}. Let me repeat: {{subject}}. Context: {{investigation}}.",
+    };
+    const prompt = buildCustomAnglePrompt(angle, "AI", "summary");
+    expect(prompt).toBe("Topic: AI. Let me repeat: AI. Context: summary.");
+  });
+
+  // ---- exportAnglePack with selective IDs ----
+  it("exports only selected angle IDs", () => {
+    addCustomAngle(sampleAngle);
+    addCustomAngle({ ...sampleAngle, id: "another-angle", name: "Another" });
+    const pack = exportAnglePack("selective", ["test-angle"]);
+    expect(pack.angles).toHaveLength(1);
+    expect(pack.angles[0].id).toBe("test-angle");
+  });
+
+  it("throws when exporting with no matching angles", () => {
+    expect(() => exportAnglePack("empty")).toThrow("No angles to export");
   });
 });
