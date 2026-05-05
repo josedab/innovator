@@ -3119,3 +3119,29 @@ export type {
   AnalyzeProductOptions,
 } from "./inverse-decoder/index.js";
 
+/** Idea Diffusion & Adoption Simulator — Bass diffusion models and Monte Carlo simulation. */
+export {
+  simulateDiffusion,
+  computeBassCurve,
+  runMonteCarloDiffusion,
+  getDiffusionSimulation,
+  listDiffusionSimulations,
+  clearDiffusionSimulations,
+  diffusionToMarkdown,
+  DiffusionParametersSchema,
+  DiffusionDataPointSchema,
+  NetworkNodeSchema as DiffusionNetworkNodeSchema,
+  DiffusionStrategySchema,
+  MonteCarloResultSchema as DiffusionMonteCarloResultSchema,
+  DiffusionSimulationSchema,
+} from "./diffusion-simulator/index.js";
+export type {
+  DiffusionParameters,
+  DiffusionDataPoint,
+  NetworkNode as DiffusionNetworkNode,
+  DiffusionStrategy,
+  MonteCarloResult as DiffusionMonteCarloResult,
+  DiffusionSimulation,
+  DiffusionSimulationOptions,
+} from "./diffusion-simulator/index.js";
+
