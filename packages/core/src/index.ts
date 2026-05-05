@@ -2716,3 +2716,23 @@ export type {
   ClimateSurveyResponse,
   ClimateAssessmentConfig,
 } from "./climate/index.js";
+
+/** NL Data Visualization — natural language to D3.js chart generation. */
+export {
+  generateVisualization,
+  generateSimpleBarChart,
+  extractInnovationData,
+  ChartTypeSchema,
+  DataSeriesSchema,
+  ChartConfigSchema,
+  D3SpecSchema,
+  VisualizationResultSchema,
+} from "./nl-visualization/index.js";
+export type {
+  ChartType,
+  DataSeries,
+  ChartConfig,
+  D3Spec,
+  VisualizationResult,
+  NLVisualizationConfig,
+} from "./nl-visualization/index.js";
