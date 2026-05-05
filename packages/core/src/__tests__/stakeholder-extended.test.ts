@@ -50,8 +50,8 @@ describe("simulation/stakeholder (extended)", () => {
   });
 
   describe("DEFAULT_PERSONAS completeness", () => {
-    it("has 6 default personas", () => {
-      expect(DEFAULT_PERSONAS).toHaveLength(6);
+    it("has 10 default personas", () => {
+      expect(DEFAULT_PERSONAS).toHaveLength(10);
     });
 
     it("each persona validates against StakeholderPersonaSchema", () => {
@@ -169,11 +169,7 @@ describe("simulation/stakeholder (extended)", () => {
 
   describe("simulateStakeholdersBatch", () => {
     it("processes multiple ideas and returns results for each", async () => {
-      const ideas = [
-        testIdea,
-        { ...testIdea, title: "Idea B" },
-        { ...testIdea, title: "Idea C" },
-      ];
+      const ideas = [testIdea, { ...testIdea, title: "Idea B" }, { ...testIdea, title: "Idea C" }];
       const persona = DEFAULT_PERSONAS[0];
 
       for (let i = 0; i < ideas.length; i++) {

@@ -10,15 +10,21 @@ export {
   simulatePersonaReaction,
   simulateStakeholders,
   simulateStakeholdersBatch,
+  buildConflictMatrix,
+  computeReadinessScores,
   DEFAULT_PERSONAS,
   StakeholderPersonaSchema,
   StakeholderReactionSchema,
   StakeholderSimulationSchema,
+  StakeholderConflictSchema,
+  ConflictMatrixSchema,
 } from "./stakeholder.js";
 export type {
   StakeholderPersona,
   StakeholderReaction,
   StakeholderSimulation,
+  StakeholderConflict,
+  ConflictMatrix,
 } from "./stakeholder.js";
 
 // Scenario Modeling
