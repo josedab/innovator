@@ -2652,3 +2652,22 @@ export type {
   AutonomousProgress,
   AutonomousAgentConfig,
 } from "./autonomous-agent/index.js";
+
+/** Patent Scanner — prior art detection and freedom-to-operate assessment. */
+export {
+  assessPriorArt,
+  runPatentScan,
+  patentScanToMarkdown,
+  PatentDatabaseSchema,
+  PatentReferenceSchema,
+  PriorArtAssessmentSchema,
+  PatentScanResultSchema,
+} from "./patent-scanner/index.js";
+export type {
+  PatentDatabase,
+  PatentReference,
+  PriorArtAssessment,
+  PatentScanResult,
+  PatentScanProgress,
+  PatentScanConfig,
+} from "./patent-scanner/index.js";
