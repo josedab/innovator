@@ -99,6 +99,8 @@ import {
   teamDNAToMarkdown,
   mapSupplyChain,
   supplyChainToMarkdown,
+  optimizePortfolio,
+  portfolioOptimizationToMarkdown,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";

@@ -2520,3 +2520,25 @@ export type {
   CompressionResult,
   ContextStatus,
 } from "./context-manager/index.js";
+
+/** Innovation Portfolio Optimizer — Markowitz portfolio theory with Monte Carlo simulation. */
+export {
+  ideasToAssets,
+  computeCorrelationMatrix as computePortfolioCorrelationMatrix,
+  computePortfolioMetrics,
+  computeEfficientFrontier,
+  runMonteCarloOptimization,
+  optimizePortfolio,
+  portfolioOptimizationToMarkdown,
+  PortfolioAssetSchema,
+  EfficientFrontierPointSchema,
+  MonteCarloPortfolioResultSchema,
+  PortfolioOptimizationSchema,
+} from "./portfolio-optimizer/index.js";
+export type {
+  PortfolioAsset,
+  EfficientFrontierPoint,
+  MonteCarloPortfolioResult,
+  PortfolioOptimization,
+  PortfolioOptimizerConfig,
+} from "./portfolio-optimizer/index.js";
