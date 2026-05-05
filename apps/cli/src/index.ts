@@ -84,6 +84,8 @@ import {
   decisionPacketToMarkdown,
   generateStressScenarios,
   stressTestToMarkdown,
+  simulateStakeholdersBatch,
+  computeReadinessScores,
 } from "@innovator/core";
 import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -377,7 +379,8 @@ program
   .option("--debate-rounds <n>", "Number of debate rounds (1-5)", "2")
   .option("--decision-packet", "Generate an executive decision packet from results")
   .option("--stress-test", "Run stress test scenarios on top ideas")
-  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; constraint?: string[]; minConfidence?: string; playbook?: string | boolean; debate?: boolean; debateRounds?: string; decisionPacket?: boolean; stressTest?: boolean }) => {
+  .option("--stakeholders", "Run stakeholder simulation on top ideas")
+  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; constraint?: string[]; minConfidence?: string; playbook?: string | boolean; debate?: boolean; debateRounds?: string; decisionPacket?: boolean; stressTest?: boolean; stakeholders?: boolean }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
 
@@ -802,6 +805,51 @@ program
           console.log(chalk.dim(`  ${packet.options.length} options, ${packet.risks.length} risks, ${packet.resourceAsk.length} resources\n`));
         } catch (err) {
           packetSpinner.fail("Decision packet generation failed");
+          if (verbose) {
+            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          }
+        }
+      }
+
+      // Run stakeholder simulation if --stakeholders flag is set
+      if (opts.stakeholders && result.synthesis && result.synthesis.topIdeas.length > 0) {
+        const topIdeas = result.synthesis.topIdeas.slice(0, 5);
+        const stakeholderSpinner = ora(`👥 Simulating stakeholder reactions for ${topIdeas.length} ideas...`).start();
+        try {
+          const ideas = topIdeas.map((ti) => ({
+            title: ti.title,
+            description: ti.description,
+            potentialImpact: ti.potentialImpact,
+            implementationHint: "",
+          }));
+          const simulations = await simulateStakeholdersBatch(ideas, undefined, opts.model, controller.signal);
+          stakeholderSpinner.succeed("Stakeholder simulation complete!\n");
+
+          const matrices = computeReadinessScores(simulations);
+
+          console.log(chalk.bold.blue("👥 STAKEHOLDER SIMULATION\n"));
+          for (const sim of simulations) {
+            console.log(chalk.bold(`  ${stripAnsi(sim.ideaTitle)}`));
+            console.log(chalk.dim("  " + "Persona".padEnd(25) + "Enthusiasm".padEnd(14) + "Likely Action"));
+            console.log(chalk.dim("  " + "─".repeat(65)));
+            for (const r of sim.reactions) {
+              const color = r.enthusiasm >= 7 ? chalk.green : r.enthusiasm >= 4 ? chalk.yellow : chalk.red;
+              console.log(`  ${stripAnsi(r.personaName).padEnd(25)}${color(String(r.enthusiasm) + "/10").padEnd(14)}${stripAnsi(r.likelyAction)}`);
+            }
+            console.log(chalk.dim(`  Consensus: ${sim.consensusScore}/10 | Most enthusiastic: ${sim.mostEnthusiastic} | Most concerned: ${sim.mostConcerned}\n`));
+          }
+
+          console.log(chalk.bold.blue("📊 READINESS SCORES\n"));
+          console.log(chalk.dim("  " + "Idea".padEnd(40) + "Readiness".padEnd(12) + "Alignment".padEnd(12) + "Support/Oppose/Neutral"));
+          console.log(chalk.dim("  " + "─".repeat(85)));
+          for (const m of matrices) {
+            const readColor = m.readinessScore >= 70 ? chalk.green : m.readinessScore >= 40 ? chalk.yellow : chalk.red;
+            const title = stripAnsi(m.ideaTitle).slice(0, 38).padEnd(40);
+            console.log(`  ${title}${readColor(`${m.readinessScore}%`).padEnd(12)}${String(Math.round(m.alignmentScore * 100) + "%").padEnd(12)}${m.supportCount}/${m.oppositionCount}/${m.neutralCount}`);
+          }
+          console.log();
+        } catch (err) {
+          stakeholderSpinner.fail("Stakeholder simulation failed");
           if (verbose) {
             console.error(chalk.red(err instanceof Error ? err.message : String(err)));
           }
@@ -2211,6 +2259,292 @@ program
       projectName: opts.name,
     });
     console.log(scaffoldToMarkdown(scaffold));
+  });
+
+// ── telemetry ────────────────────────────────────────────────────────
+program
+  .command("telemetry")
+  .description("View innovation pipeline telemetry and metrics")
+  .action(async () => {
+    const { buildTelemetryDashboard, getSpans, getQualityTrends } = await import("@innovator/core");
+    const dashboard = buildTelemetryDashboard();
+
+    console.log(chalk.bold.blue("\n📊 INNOVATION TELEMETRY\n"));
+    console.log(`  Pipelines run: ${dashboard.totalPipelines}`);
+    console.log(`  Total spans:   ${dashboard.totalSpans}`);
+    console.log(`  Quality trend: ${dashboard.qualityTrend.trend}\n`);
+
+    if (Object.keys(dashboard.stageMetrics).length > 0) {
+      console.log(chalk.bold("  Stage Metrics:"));
+      console.log(chalk.dim("  " + "Stage".padEnd(20) + "Count".padEnd(8) + "Avg Duration".padEnd(15) + "Tokens".padEnd(10) + "Cost".padEnd(10) + "Success"));
+      console.log(chalk.dim("  " + "─".repeat(75)));
+      for (const [stage, m] of Object.entries(dashboard.stageMetrics)) {
+        console.log(`  ${stage.padEnd(20)}${String(m.count).padEnd(8)}${(m.avgDurationMs + "ms").padEnd(15)}${String(m.totalTokens).padEnd(10)}$${m.totalCostUsd.toFixed(4).padEnd(9)}${(m.successRate * 100).toFixed(0)}%`);
+      }
+      console.log();
+    }
+
+    if (Object.keys(dashboard.angleMetrics).length > 0) {
+      console.log(chalk.bold("  Angle Performance:"));
+      console.log(chalk.dim("  " + "Angle".padEnd(25) + "Count".padEnd(8) + "Avg Duration".padEnd(15) + "Avg Ideas"));
+      console.log(chalk.dim("  " + "─".repeat(55)));
+      for (const [angle, m] of Object.entries(dashboard.angleMetrics)) {
+        console.log(`  ${angle.padEnd(25)}${String(m.count).padEnd(8)}${(m.avgDurationMs + "ms").padEnd(15)}${m.avgIdeaCount}`);
+      }
+      console.log();
+    }
+
+    if (dashboard.recentSpans.length > 0) {
+      console.log(chalk.bold("  Recent Spans (last 10):"));
+      for (const span of dashboard.recentSpans.slice(-10)) {
+        const statusIcon = span.status === "ok" ? chalk.green("✓") : span.status === "error" ? chalk.red("✗") : chalk.yellow("⋯");
+        const dur = span.durationMs ? `${span.durationMs}ms` : "in progress";
+        console.log(`  ${statusIcon} ${span.operationName.padEnd(30)} ${dur}`);
+      }
+    }
+
+    if (dashboard.totalPipelines === 0 && dashboard.totalSpans === 0) {
+      console.log(chalk.dim("  No telemetry data yet. Run some pipelines first.\n"));
+    }
+  });
+
+// ── context (RAG) ───────────────────────────────────────────────────
+const contextCmd = program
+  .command("context")
+  .description("Manage knowledge sources for RAG context grounding");
+
+contextCmd
+  .command("add")
+  .description("Add a knowledge source connector")
+  .requiredOption("--type <type>", "Connector type: github, confluence, notion, local-file")
+  .requiredOption("--name <name>", "Connector name")
+  .option("--repo <repo>", "GitHub repo (owner/repo)")
+  .option("--path <path>", "Local file or directory path")
+  .option("--url <url>", "Base URL (for Confluence)")
+  .option("--space <space>", "Space key (for Confluence)")
+  .option("--token <token>", "Auth token")
+  .action(async (opts: { type: string; name: string; repo?: string; path?: string; url?: string; space?: string; token?: string }) => {
+    const { registerConnector, ConnectorTypeSchema } = await import("@innovator/core");
+    const typeParse = ConnectorTypeSchema.safeParse(opts.type);
+    if (!typeParse.success) {
+      console.error(chalk.red(`Invalid connector type: ${opts.type}. Use: github, confluence, notion, local-file`));
+      return;
+    }
+    const config: Record<string, string> = {};
+    if (opts.repo) config.repo = opts.repo;
+    if (opts.path) config.path = opts.path;
+    if (opts.url) config.baseUrl = opts.url;
+    if (opts.space) config.spaceKey = opts.space;
+    if (opts.token) config.token = opts.token;
+
+    const id = `${opts.type}-${Date.now()}`;
+    registerConnector({
+      id,
+      type: typeParse.data,
+      name: opts.name,
+      enabled: true,
+      config,
+    });
+    console.log(chalk.green(`✓ Registered connector: ${opts.name} (${id})`));
+  });
+
+contextCmd
+  .command("list")
+  .description("List registered knowledge source connectors")
+  .action(async () => {
+    const { listConnectors } = await import("@innovator/core");
+    const connectors = listConnectors();
+    if (connectors.length === 0) {
+      console.log(chalk.dim("No connectors registered. Use `innovator context add` to add one."));
+      return;
+    }
+    console.log(chalk.bold.blue("\n📚 Knowledge Source Connectors\n"));
+    for (const c of connectors) {
+      const statusIcon = c.status.status === "connected" ? chalk.green("●") : c.status.status === "error" ? chalk.red("●") : chalk.yellow("●");
+      console.log(`  ${statusIcon} ${chalk.bold(c.name)} (${c.type}) — ${c.status.documentsIndexed} docs indexed`);
+      if (c.status.lastError) console.log(chalk.red(`    Error: ${c.status.lastError}`));
+    }
+    console.log();
+  });
+
+contextCmd
+  .command("sync <id>")
+  .description("Sync a connector to fetch latest documents")
+  .action(async (id: string) => {
+    const { syncConnector } = await import("@innovator/core");
+    const spinner = ora(`Syncing connector ${id}...`).start();
+    try {
+      const docs = await syncConnector(id);
+      spinner.succeed(`Synced ${docs.length} documents from ${id}`);
+    } catch (err) {
+      spinner.fail(`Sync failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  });
+
+// ── webhooks ────────────────────────────────────────────────────────
+const webhooksCmd = program
+  .command("webhooks")
+  .description("Manage webhook registrations for innovation events");
+
+webhooksCmd
+  .command("templates")
+  .description("List available webhook templates")
+  .action(async () => {
+    const { listWebhookTemplates } = await import("@innovator/core");
+    const templates = listWebhookTemplates();
+    console.log(chalk.bold.blue("\n🔗 Webhook Templates\n"));
+    for (const t of templates) {
+      console.log(`  ${chalk.bold(t.name)} (${t.id})`);
+      console.log(`  ${chalk.dim(t.description)}`);
+      console.log(`  URL pattern: ${chalk.cyan(t.urlPattern)}`);
+      console.log(`  Events: ${t.events.join(", ")}\n`);
+    }
+  });
+
+webhooksCmd
+  .command("list")
+  .description("List registered webhooks")
+  .action(async () => {
+    const { WebhookManager } = await import("@innovator/core");
+    const mgr = new WebhookManager();
+    const webhooks = mgr.listWebhooks();
+    if (webhooks.length === 0) {
+      console.log(chalk.dim("No webhooks registered."));
+      return;
+    }
+    for (const w of webhooks) {
+      const status = w.active ? chalk.green("●") : chalk.red("●");
+      console.log(`  ${status} ${chalk.bold(w.id)} → ${w.url}`);
+      console.log(`    Events: ${w.events.join(", ")}`);
+    }
+  });
+
+// ── monitor ─────────────────────────────────────────────────────────
+const monitorCmd = program
+  .command("monitor")
+  .description("Competitive intelligence monitoring");
+
+monitorCmd
+  .command("create")
+  .description("Create a competitive monitor")
+  .requiredOption("--domain <domain>", "Domain to monitor (e.g., 'AI code generation')")
+  .option("--competitors <list>", "Comma-separated competitor names")
+  .option("--keywords <list>", "Comma-separated keywords")
+  .option("--frequency <freq>", "Monitoring frequency: hourly, daily, weekly", "daily")
+  .action(async (opts: { domain: string; competitors?: string; keywords?: string; frequency?: string }) => {
+    const { createMonitor } = await import("@innovator/core");
+    const monitor = createMonitor({
+      domain: opts.domain,
+      competitors: opts.competitors ? opts.competitors.split(",").map((s) => s.trim()) : [],
+      keywords: opts.keywords ? opts.keywords.split(",").map((s) => s.trim()) : [],
+      enabled: true,
+      frequency: (opts.frequency ?? "daily") as "hourly" | "daily" | "weekly",
+    });
+    console.log(chalk.green(`✓ Monitor created: ${monitor.id}`));
+    console.log(chalk.dim(`  Domain: ${monitor.domain} | Frequency: ${monitor.frequency}`));
+  });
+
+monitorCmd
+  .command("list")
+  .description("List active monitors")
+  .action(async () => {
+    const { listMonitors } = await import("@innovator/core");
+    const monitors = listMonitors();
+    if (monitors.length === 0) {
+      console.log(chalk.dim("No monitors configured. Use `innovator monitor create` to add one."));
+      return;
+    }
+    console.log(chalk.bold.blue("\n🔍 Competitive Monitors\n"));
+    for (const m of monitors) {
+      const status = m.enabled ? chalk.green("●") : chalk.red("●");
+      console.log(`  ${status} ${chalk.bold(m.domain)} (${m.id})`);
+      console.log(`    Competitors: ${m.competitors.join(", ") || "none"}`);
+      console.log(`    Frequency: ${m.frequency} | Next run: ${m.nextRunAt?.split("T")[0] ?? "N/A"}\n`);
+    }
+  });
+
+monitorCmd
+  .command("signals")
+  .description("View detected competitive signals")
+  .option("--domain <domain>", "Filter by domain")
+  .option("--limit <n>", "Maximum signals to show", "20")
+  .action(async (opts: { domain?: string; limit?: string }) => {
+    const { getSignals, detectTrends, generateInvestigationSuggestions } = await import("@innovator/core");
+    const limit = parseInt(opts.limit ?? "20", 10);
+    const signals = getSignals({ domain: opts.domain, limit });
+
+    if (signals.length === 0) {
+      console.log(chalk.dim("No signals detected yet."));
+      return;
+    }
+
+    console.log(chalk.bold.blue("\n📡 Competitive Signals\n"));
+    for (const s of signals) {
+      const relColor = s.relevanceScore >= 0.7 ? chalk.green : s.relevanceScore >= 0.4 ? chalk.yellow : chalk.dim;
+      console.log(`  ${relColor("●")} ${chalk.bold(s.title)} [${s.signalType}]`);
+      console.log(`    ${chalk.dim(s.description.slice(0, 100))}${s.description.length > 100 ? "..." : ""}`);
+      console.log(`    Source: ${s.source} | Relevance: ${Math.round(s.relevanceScore * 100)}% | ${s.detectedAt.split("T")[0]}\n`);
+    }
+
+    const trends = detectTrends(opts.domain);
+    if (trends.length > 0) {
+      console.log(chalk.bold("  Trends:"));
+      for (const t of trends) {
+        const arrow = t.direction === "rising" ? "↑" : t.direction === "declining" ? "↓" : "→";
+        console.log(`    ${arrow} ${t.trend}: ${t.signalCount} signals (${t.direction})`);
+      }
+    }
+
+    const suggestions = generateInvestigationSuggestions(opts.domain);
+    if (suggestions.length > 0) {
+      console.log(chalk.bold("\n  💡 Suggested Investigations:"));
+      for (const s of suggestions) {
+        console.log(`    → ${s}`);
+      }
+    }
+  });
+
+// ── provenance ──────────────────────────────────────────────────────
+program
+  .command("provenance")
+  .description("View provenance and citation chain for ideas")
+  .argument("<session-id>", "Session ID to show provenance for")
+  .option("--format <format>", "Output format: text, markdown, json-ld", "text")
+  .action(async (sessionId: string, opts: { format?: string }) => {
+    const {
+      getSession,
+      createProvenanceChain,
+      provenanceToMarkdown,
+      provenanceToJsonLd,
+      formatProvenance,
+      computeChainHash,
+    } = await import("@innovator/core");
+
+    const session = await getSession(sessionId);
+    if (!session) {
+      console.error(chalk.red(`Session not found: ${sessionId}`));
+      return;
+    }
+
+    const chain = createProvenanceChain({
+      sessionId,
+      subject: session.subject ?? "Unknown",
+      angleResults: session.angleResults ?? [],
+      investigation: session.investigation,
+      model: session.model,
+    });
+
+    if (opts.format === "json-ld") {
+      console.log(JSON.stringify(provenanceToJsonLd(chain), null, 2));
+    } else if (opts.format === "markdown") {
+      console.log(provenanceToMarkdown(chain));
+    } else {
+      console.log(chalk.bold.blue(`\n🔗 Provenance Chain: ${sessionId}\n`));
+      console.log(`  Subject: ${chain.subject}`);
+      console.log(`  Records: ${chain.records.length}`);
+      console.log(`  Integrity: ${chalk.dim(computeChainHash(chain))}\n`);
+      console.log(formatProvenance(chain.records));
+    }
   });
 
 program.parse();
