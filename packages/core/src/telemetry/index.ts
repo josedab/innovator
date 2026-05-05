@@ -408,4 +408,229 @@ export function getQualityTrends(): QualityTrend {
 export function clearTelemetry(): void {
   effectivenessLog.length = 0;
   hallucinationLog.length = 0;
+  spanStore.length = 0;
+  metricsStore.length = 0;
+}
+
+// ---- Span Tracing (OTel-compatible) ----
+
+export const TelemetrySpanSchema = z.object({
+  traceId: z.string().max(64),
+  spanId: z.string().max(64),
+  parentSpanId: z.string().max(64).optional(),
+  operationName: z.string().max(200),
+  startTime: z.string(),
+  endTime: z.string().optional(),
+  durationMs: z.number().min(0).optional(),
+  status: z.enum(["ok", "error", "in_progress"]).default("in_progress"),
+  attributes: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).default({}),
+  events: z.array(z.object({
+    name: z.string().max(200),
+    timestamp: z.string(),
+    attributes: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
+  })).default([]),
+});
+
+export type TelemetrySpan = z.infer<typeof TelemetrySpanSchema>;
+
+const spanStore: TelemetrySpan[] = [];
+
+function generateId(): string {
+  return Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+}
+
+/**
+ * Start a new telemetry span for tracking pipeline operations.
+ */
+export function startSpan(
+  operationName: string,
+  attributes?: Record<string, string | number | boolean>,
+  parentSpanId?: string,
+  traceId?: string
+): TelemetrySpan {
+  const span: TelemetrySpan = {
+    traceId: traceId ?? generateId(),
+    spanId: generateId(),
+    parentSpanId,
+    operationName,
+    startTime: new Date().toISOString(),
+    status: "in_progress",
+    attributes: attributes ?? {},
+    events: [],
+  };
+  spanStore.push(span);
+  return span;
+}
+
+/**
+ * End a telemetry span, recording its duration and final status.
+ */
+export function endSpan(
+  spanId: string,
+  status: "ok" | "error" = "ok",
+  attributes?: Record<string, string | number | boolean>
+): TelemetrySpan | undefined {
+  const span = spanStore.find((s) => s.spanId === spanId);
+  if (!span) return undefined;
+  span.endTime = new Date().toISOString();
+  span.durationMs = new Date(span.endTime).getTime() - new Date(span.startTime).getTime();
+  span.status = status;
+  if (attributes) {
+    Object.assign(span.attributes, attributes);
+  }
+  return span;
+}
+
+/**
+ * Add an event to an active span.
+ */
+export function addSpanEvent(
+  spanId: string,
+  name: string,
+  attributes?: Record<string, string | number | boolean>
+): void {
+  const span = spanStore.find((s) => s.spanId === spanId);
+  if (span) {
+    span.events.push({ name, timestamp: new Date().toISOString(), attributes });
+  }
+}
+
+/**
+ * Get all recorded spans, optionally filtered by trace ID.
+ */
+export function getSpans(traceId?: string): TelemetrySpan[] {
+  if (traceId) return spanStore.filter((s) => s.traceId === traceId);
+  return [...spanStore];
+}
+
+// ---- Metrics Aggregation ----
+
+export const PipelineMetricSchema = z.object({
+  timestamp: z.string(),
+  pipelineId: z.string().max(100),
+  stage: z.enum(["investigate", "generate", "synthesize", "score", "full-pipeline"]),
+  durationMs: z.number().min(0),
+  tokenCount: z.number().min(0).default(0),
+  estimatedCostUsd: z.number().min(0).default(0),
+  ideaCount: z.number().min(0).default(0),
+  angleId: z.string().max(100).optional(),
+  model: z.string().max(100).optional(),
+  averageIdeaScore: z.number().min(0).max(10).optional(),
+  success: z.boolean().default(true),
+});
+
+export type PipelineMetric = z.infer<typeof PipelineMetricSchema>;
+
+const metricsStore: PipelineMetric[] = [];
+
+/**
+ * Record a pipeline metric data point.
+ */
+export function recordPipelineMetric(
+  metric: Omit<PipelineMetric, "timestamp">
+): PipelineMetric {
+  const record: PipelineMetric = {
+    ...metric,
+    timestamp: new Date().toISOString(),
+  };
+  metricsStore.push(record);
+  return record;
+}
+
+/**
+ * Get aggregated metrics grouped by stage or angle.
+ */
+export function getAggregatedMetrics(
+  groupBy: "stage" | "angle" | "model" = "stage"
+): Map<string, {
+  count: number;
+  avgDurationMs: number;
+  totalTokens: number;
+  totalCostUsd: number;
+  avgIdeaCount: number;
+  successRate: number;
+}> {
+  const grouped = new Map<string, PipelineMetric[]>();
+  for (const metric of metricsStore) {
+    const key =
+      groupBy === "stage"
+        ? metric.stage
+        : groupBy === "angle"
+          ? metric.angleId ?? "unknown"
+          : metric.model ?? "unknown";
+    const group = grouped.get(key) ?? [];
+    group.push(metric);
+    grouped.set(key, group);
+  }
+
+  const result = new Map<string, {
+    count: number;
+    avgDurationMs: number;
+    totalTokens: number;
+    totalCostUsd: number;
+    avgIdeaCount: number;
+    successRate: number;
+  }>();
+
+  for (const [key, records] of grouped) {
+    result.set(key, {
+      count: records.length,
+      avgDurationMs: Math.round(records.reduce((s, r) => s + r.durationMs, 0) / records.length),
+      totalTokens: records.reduce((s, r) => s + r.tokenCount, 0),
+      totalCostUsd: Math.round(records.reduce((s, r) => s + r.estimatedCostUsd, 0) * 10000) / 10000,
+      avgIdeaCount: Math.round((records.reduce((s, r) => s + r.ideaCount, 0) / records.length) * 10) / 10,
+      successRate: Math.round((records.filter((r) => r.success).length / records.length) * 100) / 100,
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Build a telemetry dashboard summary for the web UI.
+ */
+export function buildTelemetryDashboard(): {
+  totalPipelines: number;
+  totalSpans: number;
+  recentSpans: TelemetrySpan[];
+  stageMetrics: Record<string, { count: number; avgDurationMs: number; totalTokens: number; totalCostUsd: number; avgIdeaCount: number; successRate: number }>;
+  angleMetrics: Record<string, { count: number; avgDurationMs: number; totalTokens: number; totalCostUsd: number; avgIdeaCount: number; successRate: number }>;
+  qualityTrend: QualityTrend;
+  timeSeries: Array<{ timestamp: string; durationMs: number; tokenCount: number; ideaCount: number; stage: string }>;
+} {
+  const stageMap = getAggregatedMetrics("stage");
+  const angleMap = getAggregatedMetrics("angle");
+
+  const stageMetrics: Record<string, { count: number; avgDurationMs: number; totalTokens: number; totalCostUsd: number; avgIdeaCount: number; successRate: number }> = {};
+  for (const [key, value] of stageMap) stageMetrics[key] = value;
+
+  const angleMetrics: Record<string, { count: number; avgDurationMs: number; totalTokens: number; totalCostUsd: number; avgIdeaCount: number; successRate: number }> = {};
+  for (const [key, value] of angleMap) angleMetrics[key] = value;
+
+  const timeSeries = metricsStore
+    .slice(-100)
+    .map((m) => ({
+      timestamp: m.timestamp,
+      durationMs: m.durationMs,
+      tokenCount: m.tokenCount,
+      ideaCount: m.ideaCount,
+      stage: m.stage,
+    }));
+
+  return {
+    totalPipelines: metricsStore.filter((m) => m.stage === "full-pipeline").length,
+    totalSpans: spanStore.length,
+    recentSpans: spanStore.slice(-20),
+    stageMetrics,
+    angleMetrics,
+    qualityTrend: getQualityTrends(),
+    timeSeries,
+  };
+}
+
+/**
+ * Get all recorded metrics.
+ */
+export function getMetrics(): PipelineMetric[] {
+  return [...metricsStore];
 }
