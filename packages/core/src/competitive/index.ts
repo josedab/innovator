@@ -269,9 +269,7 @@ export function rankStrategies(strategies: DifferentiationStrategy[]): Different
 /**
  * Generate a competitive positioning matrix summary.
  */
-export function generatePositioningMatrix(
-  analysis: CompetitiveAnalysis
-): Array<{
+export function generatePositioningMatrix(analysis: CompetitiveAnalysis): Array<{
   competitor: string;
   strengths: number;
   weaknesses: number;
@@ -302,7 +300,15 @@ export const CompetitiveSignalSchema = z.object({
   detectedAt: z.string(),
   domain: z.string().max(200).optional(),
   competitor: z.string().max(200).optional(),
-  signalType: z.enum(["new-product", "funding", "partnership", "feature-launch", "market-entry", "acquisition", "trend"]),
+  signalType: z.enum([
+    "new-product",
+    "funding",
+    "partnership",
+    "feature-launch",
+    "market-entry",
+    "acquisition",
+    "trend",
+  ]),
 });
 
 export const MonitorConfigSchema = z.object({
@@ -320,11 +326,15 @@ export const MonitorReportSchema = z.object({
   monitorId: z.string().max(100),
   generatedAt: z.string(),
   signals: z.array(CompetitiveSignalSchema).max(100),
-  trendSummary: z.array(z.object({
-    trend: z.string().max(200),
-    direction: z.enum(["rising", "stable", "declining"]),
-    signalCount: z.number(),
-  })).max(20),
+  trendSummary: z
+    .array(
+      z.object({
+        trend: z.string().max(200),
+        direction: z.enum(["rising", "stable", "declining"]),
+        signalCount: z.number(),
+      })
+    )
+    .max(20),
   suggestedInvestigations: z.array(z.string().max(500)).max(10),
 });
 
@@ -340,9 +350,7 @@ const signalStore: CompetitiveSignal[] = [];
 /**
  * Create a competitive monitor for a domain.
  */
-export function createMonitor(
-  config: Omit<MonitorConfig, "id">
-): MonitorConfig {
+export function createMonitor(config: Omit<MonitorConfig, "id">): MonitorConfig {
   const id = `monitor-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const nextRun = new Date();
   if (config.frequency === "hourly") nextRun.setHours(nextRun.getHours() + 1);
@@ -382,7 +390,9 @@ export function deleteMonitor(id: string): boolean {
 /**
  * Record a competitive signal.
  */
-export function recordSignal(signal: Omit<CompetitiveSignal, "id" | "detectedAt">): CompetitiveSignal {
+export function recordCompetitiveSignal(
+  signal: Omit<CompetitiveSignal, "id" | "detectedAt">
+): CompetitiveSignal {
   const record: CompetitiveSignal = {
     ...signal,
     id: `signal-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -444,28 +454,30 @@ export function detectTrends(domain?: string): MonitorReport["trendSummary"] {
     trendMap.set(key, group);
   }
 
-  return [...trendMap.entries()].map(([trend, sigs]) => {
-    // Determine direction based on recency
-    const now = Date.now();
-    const recentCount = sigs.filter((s) => now - new Date(s.detectedAt).getTime() < 7 * 24 * 60 * 60 * 1000).length;
-    const olderCount = sigs.length - recentCount;
-    const direction = recentCount > olderCount ? "rising" : recentCount === olderCount ? "stable" : "declining";
+  return [...trendMap.entries()]
+    .map(([trend, sigs]) => {
+      // Determine direction based on recency
+      const now = Date.now();
+      const recentCount = sigs.filter(
+        (s) => now - new Date(s.detectedAt).getTime() < 7 * 24 * 60 * 60 * 1000
+      ).length;
+      const olderCount = sigs.length - recentCount;
+      const direction =
+        recentCount > olderCount ? "rising" : recentCount === olderCount ? "stable" : "declining";
 
-    return {
-      trend,
-      direction: direction as "rising" | "stable" | "declining",
-      signalCount: sigs.length,
-    };
-  }).sort((a, b) => b.signalCount - a.signalCount);
+      return {
+        trend,
+        direction: direction as "rising" | "stable" | "declining",
+        signalCount: sigs.length,
+      };
+    })
+    .sort((a, b) => b.signalCount - a.signalCount);
 }
 
 /**
  * Generate investigation subjects from detected signals.
  */
-export function generateInvestigationSuggestions(
-  domain?: string,
-  limit: number = 5
-): string[] {
+export function generateInvestigationSuggestions(domain?: string, limit: number = 5): string[] {
   const signals = getSignals({ domain, minRelevance: 0.5, limit: 20 });
   const suggestions: string[] = [];
 
@@ -473,7 +485,9 @@ export function generateInvestigationSuggestions(
     if (signal.signalType === "new-product") {
       suggestions.push(`Competitive response to "${signal.title}" — how can we differentiate?`);
     } else if (signal.signalType === "market-entry") {
-      suggestions.push(`Market impact of ${signal.competitor ?? "competitor"} entering ${signal.domain ?? "our space"}`);
+      suggestions.push(
+        `Market impact of ${signal.competitor ?? "competitor"} entering ${signal.domain ?? "our space"}`
+      );
     } else if (signal.signalType === "trend") {
       suggestions.push(`Innovation opportunities from trend: ${signal.title}`);
     } else if (signal.signalType === "funding") {

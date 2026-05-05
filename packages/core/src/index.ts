@@ -1204,7 +1204,7 @@ export {
   listMonitors,
   getMonitor,
   deleteMonitor,
-  recordSignal,
+  recordCompetitiveSignal,
   getSignals,
   detectTrends,
   generateInvestigationSuggestions,
