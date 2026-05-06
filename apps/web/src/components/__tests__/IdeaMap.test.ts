@@ -2,6 +2,24 @@
 import { describe, it, expect } from "vitest";
 import { extractKeywords, jaccardSimilarity } from "../IdeaMap";
 
+// Test data helpers
+function makeAngleResult(
+  angleId: string,
+  angleName: string,
+  ideas: Array<{ title: string; description: string }>
+) {
+  return {
+    angleId,
+    angleName,
+    ideas: ideas.map((i) => ({
+      ...i,
+      potentialImpact: "High impact",
+      implementationHint: "Start here",
+    })),
+    reasoning: "Test reasoning",
+  };
+}
+
 describe("extractKeywords", () => {
   it("filters stopwords and keeps words >3 chars", () => {
     const keywords = extractKeywords("the quick brown fox and the lazy dog");
