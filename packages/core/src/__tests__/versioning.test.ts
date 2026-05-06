@@ -84,7 +84,7 @@ describe("versioning", () => {
     const v1 = createVersion("idea-1", testIdea);
     commitVersion(v1.id, { title: "Updated" });
     const _log = getVersionLog("idea-1");
-    expect(log.length).toBeGreaterThanOrEqual(2);
+    expect(_log.length).toBeGreaterThanOrEqual(2);
   });
 
   it("filters version log by branch", () => {
