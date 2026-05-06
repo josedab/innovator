@@ -1,20 +1,49 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../copilot/client.js", () => ({
   generateText: vi.fn(),
   extractJson: vi.fn(),
 }));
+vi.mock("../copilot/retry.js", () => ({
+  withRetry: vi.fn((fn: () => Promise<unknown>) => fn()),
+}));
 
+import { generateText, extractJson } from "../copilot/client.js";
 import {
   scenarioToMarkdown,
   compareScenarioModels,
+  modelScenarios,
+  modelScenariosBatch,
   ScenarioTypeSchema,
   ScenarioModelSchema,
   AdoptionDataPointSchema,
   SensitivityFactorSchema,
 } from "../simulation/scenario.js";
-import { DEFAULT_PERSONAS, StakeholderPersonaSchema } from "../simulation/stakeholder.js";
+import {
+  DEFAULT_PERSONAS,
+  StakeholderPersonaSchema,
+  simulatePersonaReaction,
+  simulateStakeholders,
+  simulateStakeholdersBatch,
+  buildConflictMatrix,
+  computeReadinessScores,
+} from "../simulation/stakeholder.js";
 import type { ScenarioModel } from "../simulation/scenario.js";
+import type { StakeholderSimulation } from "../simulation/stakeholder.js";
+import type { InnovationIdea } from "../types.js";
+
+// Also test barrel exports
+import * as barrel from "../simulation/index.js";
+
+const mockGenerateText = vi.mocked(generateText);
+const mockExtractJson = vi.mocked(extractJson);
+
+const mockIdea: InnovationIdea = {
+  title: "Test Idea",
+  description: "A test idea for simulation",
+  potentialImpact: "High impact",
+  implementationHint: "Build with TypeScript",
+};
 
 describe("simulation - stakeholder", () => {
   it("has 10 default personas", () => {
@@ -197,5 +226,347 @@ describe("simulation - scenario", () => {
         })
       ).not.toThrow();
     });
+  });
+});
+
+// ---- Barrel re-exports ----
+
+describe("simulation barrel (index.ts)", () => {
+  it("re-exports stakeholder functions", () => {
+    expect(barrel.simulatePersonaReaction).toBe(simulatePersonaReaction);
+    expect(barrel.simulateStakeholders).toBe(simulateStakeholders);
+    expect(barrel.simulateStakeholdersBatch).toBe(simulateStakeholdersBatch);
+    expect(barrel.buildConflictMatrix).toBe(buildConflictMatrix);
+    expect(barrel.computeReadinessScores).toBe(computeReadinessScores);
+    expect(barrel.DEFAULT_PERSONAS).toBe(DEFAULT_PERSONAS);
+  });
+
+  it("re-exports scenario functions", () => {
+    expect(barrel.modelScenarios).toBe(modelScenarios);
+    expect(barrel.modelScenariosBatch).toBe(modelScenariosBatch);
+    expect(barrel.scenarioToMarkdown).toBe(scenarioToMarkdown);
+    expect(barrel.compareScenarioModels).toBe(compareScenarioModels);
+  });
+
+  it("re-exports schemas", () => {
+    expect(barrel.StakeholderPersonaSchema).toBe(StakeholderPersonaSchema);
+    expect(barrel.ScenarioTypeSchema).toBe(ScenarioTypeSchema);
+    expect(barrel.ScenarioModelSchema).toBe(ScenarioModelSchema);
+  });
+});
+
+// ---- Stakeholder simulation with LLM ----
+
+describe("simulation - stakeholder (extended)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const mockReaction = {
+    personaId: "early-adopter",
+    personaName: "Early Adopter",
+    enthusiasm: 8,
+    concerns: ["Scalability"],
+    opportunities: ["First mover advantage"],
+    likelyAction: "Adopt immediately",
+    quote: "I love it!",
+  };
+
+  it("simulates persona reaction with mocked LLM", async () => {
+    mockGenerateText.mockResolvedValue("json");
+    mockExtractJson.mockReturnValue(JSON.stringify(mockReaction));
+
+    const result = await simulatePersonaReaction(mockIdea, DEFAULT_PERSONAS[0]);
+    expect(result.personaId).toBe("early-adopter");
+    expect(result.enthusiasm).toBe(8);
+    expect(result.concerns).toHaveLength(1);
+  });
+
+  it("simulates all stakeholders with parallel execution", async () => {
+    mockGenerateText.mockResolvedValue("json");
+    mockExtractJson.mockReturnValue(JSON.stringify(mockReaction));
+
+    const twoPersonas = DEFAULT_PERSONAS.slice(0, 2);
+    const result = await simulateStakeholders(mockIdea, twoPersonas);
+
+    expect(result.ideaTitle).toBe("Test Idea");
+    expect(result.reactions).toHaveLength(2);
+    expect(result.consensusScore).toBeGreaterThan(0);
+    expect(result.mostEnthusiastic).toBeTruthy();
+    expect(result.mostConcerned).toBeTruthy();
+  });
+
+  it("handles LLM failure with fallback reaction", async () => {
+    mockGenerateText.mockRejectedValue(new Error("LLM error"));
+
+    const result = await simulateStakeholders(mockIdea, [DEFAULT_PERSONAS[0]]);
+    expect(result.reactions).toHaveLength(1);
+    expect(result.reactions[0].enthusiasm).toBe(5);
+    expect(result.reactions[0].concerns).toContain("Simulation unavailable");
+  });
+
+  it("uses default personas when none provided", async () => {
+    mockGenerateText.mockResolvedValue("json");
+    mockExtractJson.mockReturnValue(JSON.stringify(mockReaction));
+
+    const result = await simulateStakeholders(mockIdea);
+    expect(result.reactions).toHaveLength(10);
+  });
+
+  it("batch simulates multiple ideas", async () => {
+    mockGenerateText.mockResolvedValue("json");
+    mockExtractJson.mockReturnValue(JSON.stringify(mockReaction));
+
+    const results = await simulateStakeholdersBatch(
+      [mockIdea, { ...mockIdea, title: "Idea 2" }],
+      [DEFAULT_PERSONAS[0]]
+    );
+    expect(results).toHaveLength(2);
+  });
+
+  it("stops batch on AbortSignal", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    const results = await simulateStakeholdersBatch(
+      [mockIdea, mockIdea],
+      [DEFAULT_PERSONAS[0]],
+      undefined,
+      controller.signal
+    );
+    expect(results).toHaveLength(0);
+  });
+});
+
+// ---- Conflict matrix ----
+
+describe("simulation - conflict matrix", () => {
+  it("builds conflict matrix from contrasting reactions", () => {
+    const sim: StakeholderSimulation = {
+      ideaTitle: "Test",
+      reactions: [
+        {
+          personaId: "a",
+          personaName: "Supporter",
+          enthusiasm: 9,
+          concerns: [],
+          opportunities: ["Great!"],
+          likelyAction: "Adopt",
+        },
+        {
+          personaId: "b",
+          personaName: "Skeptic",
+          enthusiasm: 3,
+          concerns: ["Too risky"],
+          opportunities: [],
+          likelyAction: "Oppose",
+        },
+      ],
+      consensusScore: 6,
+      mostEnthusiastic: "Supporter",
+      mostConcerned: "Skeptic",
+      keyDebates: [],
+    };
+
+    const matrix = buildConflictMatrix(sim);
+    expect(matrix.conflicts.length).toBeGreaterThan(0);
+    expect(matrix.conflicts[0].enthusiasmDelta).toBe(6);
+    expect(matrix.supportCount).toBe(1);
+    expect(matrix.oppositionCount).toBe(1);
+    expect(matrix.alignmentScore).toBeLessThan(1);
+  });
+
+  it("returns no conflicts when all aligned", () => {
+    const sim: StakeholderSimulation = {
+      ideaTitle: "Test",
+      reactions: [
+        {
+          personaId: "a",
+          personaName: "A",
+          enthusiasm: 7,
+          concerns: [],
+          opportunities: [],
+          likelyAction: "OK",
+        },
+        {
+          personaId: "b",
+          personaName: "B",
+          enthusiasm: 8,
+          concerns: [],
+          opportunities: [],
+          likelyAction: "OK",
+        },
+      ],
+      consensusScore: 7.5,
+      mostEnthusiastic: "B",
+      mostConcerned: "A",
+      keyDebates: [],
+    };
+
+    const matrix = buildConflictMatrix(sim);
+    expect(matrix.conflicts).toHaveLength(0);
+    expect(matrix.alignmentScore).toBeGreaterThan(0.8);
+  });
+
+  it("computes readiness scores and sorts by readiness", () => {
+    const highReadiness: StakeholderSimulation = {
+      ideaTitle: "Good",
+      reactions: [
+        {
+          personaId: "a",
+          personaName: "A",
+          enthusiasm: 9,
+          concerns: [],
+          opportunities: [],
+          likelyAction: "Adopt",
+        },
+        {
+          personaId: "b",
+          personaName: "B",
+          enthusiasm: 8,
+          concerns: [],
+          opportunities: [],
+          likelyAction: "Adopt",
+        },
+      ],
+      consensusScore: 8.5,
+      mostEnthusiastic: "A",
+      mostConcerned: "B",
+      keyDebates: [],
+    };
+
+    const lowReadiness: StakeholderSimulation = {
+      ideaTitle: "Bad",
+      reactions: [
+        {
+          personaId: "a",
+          personaName: "A",
+          enthusiasm: 2,
+          concerns: ["Bad"],
+          opportunities: [],
+          likelyAction: "Oppose",
+        },
+        {
+          personaId: "b",
+          personaName: "B",
+          enthusiasm: 3,
+          concerns: ["Terrible"],
+          opportunities: [],
+          likelyAction: "Oppose",
+        },
+      ],
+      consensusScore: 2.5,
+      mostEnthusiastic: "B",
+      mostConcerned: "A",
+      keyDebates: [],
+    };
+
+    const scores = computeReadinessScores([lowReadiness, highReadiness]);
+    expect(scores[0].ideaTitle).toBe("Good");
+    expect(scores[0].readinessScore).toBeGreaterThan(scores[1].readinessScore);
+  });
+
+  it("handles single reaction (no conflicts)", () => {
+    const sim: StakeholderSimulation = {
+      ideaTitle: "Solo",
+      reactions: [
+        {
+          personaId: "a",
+          personaName: "Solo",
+          enthusiasm: 7,
+          concerns: [],
+          opportunities: [],
+          likelyAction: "OK",
+        },
+      ],
+      consensusScore: 7,
+      mostEnthusiastic: "Solo",
+      mostConcerned: "Solo",
+      keyDebates: [],
+    };
+
+    const matrix = buildConflictMatrix(sim);
+    expect(matrix.conflicts).toHaveLength(0);
+    expect(matrix.alignmentScore).toBe(1);
+  });
+});
+
+// ---- Scenario execution with LLM ----
+
+describe("simulation - scenario execution", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const mockScenarioResult: ScenarioModel = {
+    ideaTitle: "Test Idea",
+    scenarios: [
+      {
+        type: "optimistic",
+        probability: 0.2,
+        adoptionCurve: [{ month: 6, adoptionPercent: 40 }],
+        revenueEstimate: { year1: "$500K", year3: "$5M", year5: "$20M" },
+        implementationCost: {
+          estimate: "$200K",
+          confidence: 0.7,
+          breakdown: [{ category: "Dev", amount: "$150K" }],
+        },
+        timeToMarket: { months: 6, milestones: [{ name: "MVP", month: 3 }] },
+        keyAssumptions: ["Strong demand"],
+        risks: ["Competition"],
+        narrative: "Best case",
+      },
+      {
+        type: "baseline",
+        probability: 0.5,
+        adoptionCurve: [{ month: 12, adoptionPercent: 20 }],
+        revenueEstimate: { year1: "$100K", year3: "$1M", year5: "$5M" },
+        implementationCost: { estimate: "$200K", confidence: 0.7, breakdown: [] },
+        timeToMarket: { months: 12, milestones: [] },
+        keyAssumptions: ["Moderate demand"],
+        risks: ["Budget"],
+        narrative: "Expected case",
+      },
+      {
+        type: "pessimistic",
+        probability: 0.3,
+        adoptionCurve: [{ month: 24, adoptionPercent: 5 }],
+        revenueEstimate: { year1: "$10K", year3: "$50K", year5: "$100K" },
+        implementationCost: { estimate: "$200K", confidence: 0.5, breakdown: [] },
+        timeToMarket: { months: 24, milestones: [] },
+        keyAssumptions: ["Low demand"],
+        risks: ["Market collapse"],
+        narrative: "Worst case",
+      },
+    ],
+    sensitivityFactors: [],
+    overallConfidence: 0.6,
+    recommendation: "Proceed carefully",
+  };
+
+  it("models scenarios with mocked LLM", async () => {
+    mockGenerateText.mockResolvedValue("json");
+    mockExtractJson.mockReturnValue(JSON.stringify(mockScenarioResult));
+
+    const result = await modelScenarios(mockIdea);
+    expect(result.ideaTitle).toBe("Test Idea");
+    expect(result.scenarios).toHaveLength(3);
+    expect(result.overallConfidence).toBe(0.6);
+  });
+
+  it("batch models scenarios for multiple ideas", async () => {
+    mockGenerateText.mockResolvedValue("json");
+    mockExtractJson.mockReturnValue(JSON.stringify(mockScenarioResult));
+
+    const results = await modelScenariosBatch([mockIdea, { ...mockIdea, title: "Idea 2" }]);
+    expect(results).toHaveLength(2);
+  });
+
+  it("stops batch on AbortSignal", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    const results = await modelScenariosBatch([mockIdea], undefined, controller.signal);
+    expect(results).toHaveLength(0);
   });
 });
