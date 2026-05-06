@@ -146,4 +146,194 @@ describe("digital-twin", () => {
   it("getEcosystem returns undefined for unknown id", () => {
     expect(getEcosystem("unknown")).toBeUndefined();
   });
+
+  // ---- Additional coverage: computeEcosystemHealth edge cases ----
+
+  describe("computeEcosystemHealth - edge cases", () => {
+    it("handles 0 team members (empty team)", () => {
+      const snap = makeSnapshot();
+      snap.team = [];
+      const health = computeEcosystemHealth(snap);
+      expect(health.teamUtilization).toBe(0);
+    });
+
+    it("handles 0 budget total", () => {
+      const snap = makeSnapshot();
+      snap.budget = { totalBudget: 0, allocated: 0, remaining: 0, currency: "USD" };
+      const health = computeEcosystemHealth(snap);
+      expect(health.budgetHealth).toBe(0);
+    });
+
+    it("handles budget health at 100% remaining", () => {
+      const snap = makeSnapshot();
+      snap.budget = { totalBudget: 100000, allocated: 0, remaining: 100000, currency: "USD" };
+      const health = computeEcosystemHealth(snap);
+      expect(health.budgetHealth).toBe(1);
+    });
+
+    it("computes pipeline balance correctly", () => {
+      const snap = makeSnapshot();
+      const health = computeEcosystemHealth(snap);
+      expect(health.pipelineBalance["validation"]).toBe(1);
+      expect(health.pipelineBalance["discovery"]).toBe(1);
+    });
+
+    it("handles empty angle effectiveness", () => {
+      const snap = makeSnapshot();
+      snap.angleEffectiveness = [];
+      const health = computeEcosystemHealth(snap);
+      expect(health.avgAngleEffectiveness).toBe(0);
+    });
+
+    it("caps team utilization at 1", () => {
+      const snap = makeSnapshot();
+      snap.team = [
+        { id: "m1", name: "Alice", role: "Eng", capacity: 0.5, strengths: [], activeProjects: 20 },
+      ];
+      const health = computeEcosystemHealth(snap);
+      expect(health.teamUtilization).toBeLessThanOrEqual(1);
+    });
+
+    it("handles empty pipeline", () => {
+      const snap = makeSnapshot();
+      snap.pipeline = [];
+      const health = computeEcosystemHealth(snap);
+      expect(Object.keys(health.pipelineBalance)).toHaveLength(0);
+    });
+  });
+
+  // ---- simulateStrategy (mocked LLM) ----
+
+  describe("simulateStrategy", () => {
+    it("runs simulation and returns validated result", async () => {
+      const { generateText, extractJson } = await import("../copilot/client.js");
+      const mockResult = {
+        strategyId: "strat-1",
+        strategyName: "Growth",
+        projectedOutcomes: {
+          ideasLaunched: 5,
+          revenueImpact: "$1M",
+          teamUtilization: 0.8,
+          budgetUtilization: 0.7,
+          innovationVelocity: 3,
+          riskScore: 30,
+        },
+        milestones: [{ weekNumber: 4, event: "First launch", impact: "positive" }],
+        risks: ["Market downturn"],
+        opportunities: ["New market segment"],
+        recommendations: ["Hire more engineers"],
+        confidenceScore: 0.75,
+      };
+      vi.mocked(generateText).mockResolvedValue(JSON.stringify(mockResult));
+      vi.mocked(extractJson).mockReturnValue(JSON.stringify(mockResult));
+
+      const { simulateStrategy } = await import("../digital-twin/index.js");
+      const snap = makeSnapshot();
+      registerEcosystem(snap);
+
+      const strategy = {
+        id: "strat-1",
+        name: "Growth",
+        description: "Aggressive growth strategy",
+        timeHorizonWeeks: 26,
+      };
+
+      const result = await simulateStrategy(snap, strategy);
+      expect(result.strategyId).toBe("strat-1");
+      expect(result.projectedOutcomes.ideasLaunched).toBe(5);
+      expect(result.confidenceScore).toBe(0.75);
+    });
+  });
+
+  // ---- compareStrategies ----
+
+  describe("compareStrategies", () => {
+    it("throws for empty strategies array", async () => {
+      const { compareStrategies } = await import("../digital-twin/index.js");
+      const snap = makeSnapshot();
+      await expect(compareStrategies(snap, [])).rejects.toThrow("At least one strategy");
+    });
+
+    it("throws for more than 10 strategies", async () => {
+      const { compareStrategies } = await import("../digital-twin/index.js");
+      const snap = makeSnapshot();
+      const strategies = Array.from({ length: 11 }, (_, i) => ({
+        id: `s${i}`,
+        name: `Strategy ${i}`,
+        description: "desc",
+        timeHorizonWeeks: 12,
+      }));
+      await expect(compareStrategies(snap, strategies)).rejects.toThrow("Maximum 10 strategies");
+    });
+
+    it("compares strategies and picks winner", async () => {
+      const { generateText, extractJson } = await import("../copilot/client.js");
+
+      const simResult = {
+        strategyId: "strat-1",
+        strategyName: "Growth",
+        projectedOutcomes: {
+          ideasLaunched: 5,
+          revenueImpact: "$1M",
+          teamUtilization: 0.8,
+          budgetUtilization: 0.7,
+          innovationVelocity: 3,
+          riskScore: 30,
+        },
+        milestones: [],
+        risks: ["Risk 1"],
+        opportunities: ["Opp 1"],
+        recommendations: ["Rec 1"],
+        confidenceScore: 0.8,
+      };
+
+      const compResult = {
+        winner: "strat-1",
+        summary: "Growth strategy wins",
+        tradeoffs: ["Higher risk"],
+      };
+
+      // First call: simulate strategy, second call: comparison
+      vi.mocked(generateText)
+        .mockResolvedValueOnce(JSON.stringify(simResult))
+        .mockResolvedValueOnce(JSON.stringify(compResult));
+      vi.mocked(extractJson)
+        .mockReturnValueOnce(JSON.stringify(simResult))
+        .mockReturnValueOnce(JSON.stringify(compResult));
+
+      const { compareStrategies } = await import("../digital-twin/index.js");
+      const snap = makeSnapshot();
+      const strategy = { id: "strat-1", name: "Growth", description: "desc", timeHorizonWeeks: 12 };
+
+      const comparison = await compareStrategies(snap, [strategy]);
+      expect(comparison.results).toHaveLength(1);
+      expect(comparison.winner).toBe("strat-1");
+      expect(comparison.summary).toContain("Growth");
+    });
+  });
+
+  // ---- Schema validation ----
+
+  describe("registerEcosystem - schema validation", () => {
+    it("rejects invalid snapshot (missing required fields)", () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(() => registerEcosystem({} as unknown as any)).toThrow();
+    });
+
+    it("rejects snapshot with invalid team member", () => {
+      const snap = makeSnapshot();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      snap.team = [
+        {
+          id: "",
+          name: "",
+          role: "",
+          capacity: 2,
+          strengths: [],
+          activeProjects: 0,
+        } as unknown as any,
+      ];
+      expect(() => registerEcosystem(snap)).toThrow();
+    });
+  });
 });
