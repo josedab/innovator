@@ -3,6 +3,26 @@ import type { PermissionRequest } from "@github/copilot-sdk";
 
 const DEFAULT_MODEL = process.env.INNOVATOR_DEFAULT_MODEL || "gpt-4.1";
 
+/** Error codes that indicate the connection was already closed (client disconnect, broken pipe). */
+const EXPECTED_DISCONNECT_CODES = new Set(["ECONNRESET", "EPIPE", "ECONNABORTED"]);
+
+/** Check whether an error is an expected connection-close during session disconnect. */
+function isExpectedDisconnectError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const code = (err as NodeJS.ErrnoException).code;
+  if (code && EXPECTED_DISCONNECT_CODES.has(code)) return true;
+  return /aborted|socket hang up|broken pipe/i.test(err.message);
+}
+
+/** Disconnect a Copilot session, suppressing expected connection-close errors. */
+async function safeDisconnect(session: { disconnect(): Promise<void> }): Promise<void> {
+  try {
+    await session.disconnect();
+  } catch (err) {
+    if (!isExpectedDisconnectError(err)) throw err;
+  }
+}
+
 let clientPromise: Promise<CopilotClient> | null = null;
 
 /**
@@ -105,7 +125,7 @@ export async function generateText(options: GenerateOptions): Promise<string> {
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const abortHandler = () => {
-    session.disconnect().catch(() => {});
+    safeDisconnect(session).catch(() => {});
   };
 
   try {
@@ -124,7 +144,7 @@ export async function generateText(options: GenerateOptions): Promise<string> {
   } finally {
     if (timeoutId !== undefined) clearTimeout(timeoutId);
     options.signal?.removeEventListener("abort", abortHandler);
-    await session.disconnect();
+    await safeDisconnect(session);
   }
 }
 
@@ -150,7 +170,7 @@ export async function generateTextStream(
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   const abortHandler = () => {
-    session.disconnect().catch(() => {});
+    safeDisconnect(session).catch(() => {});
   };
 
   let unsubDelta: (() => void) | undefined;
@@ -167,15 +187,13 @@ export async function generateTextStream(
     };
 
     const idleListener = () => {
-      session
-        .disconnect()
+      safeDisconnect(session)
         .then(() => idleResolve(fullText))
         .catch(idleReject);
     };
 
     const errorListener = (err: { data: { message: string } }) => {
-      session
-        .disconnect()
+      safeDisconnect(session)
         .then(() => idleReject(new Error(err.data.message)))
         .catch(idleReject);
     };
@@ -196,7 +214,7 @@ export async function generateTextStream(
       }),
       new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
-          session.disconnect().catch(() => {});
+          safeDisconnect(session).catch(() => {});
           reject(new Error(`LLM streaming request timed out after ${timeoutMs / 1000}s`));
         }, timeoutMs);
       }),
@@ -207,7 +225,7 @@ export async function generateTextStream(
     unsubError?.();
     if (timeoutId !== undefined) clearTimeout(timeoutId);
     options.signal?.removeEventListener("abort", abortHandler);
-    await session.disconnect();
+    await safeDisconnect(session);
   }
 }
 
