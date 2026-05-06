@@ -8,6 +8,7 @@ import {
   forkInvestigation,
   buildShareUrl,
 } from "../sharing/index.js";
+import type { Investigation } from "../types.js";
 
 describe("sharing", () => {
   beforeEach(() => {
@@ -105,7 +106,7 @@ describe("sharing", () => {
 
     it("stores investigation data", () => {
       const shared = shareInvestigation("Test", {
-        investigation: { summary: "test" } as unknown as Record<string, unknown>,
+        investigation: { summary: "test" } as unknown as Investigation,
       });
       expect(shared.investigation).toEqual({ summary: "test" });
     });

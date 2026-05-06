@@ -340,8 +340,8 @@ describe("InMemoryStorageProvider — extended edge cases", () => {
       await provider.knowledgeGraph.saveGraph(graph as never);
       const loaded = await provider.knowledgeGraph.loadGraph();
       expect(loaded).toBeDefined();
-      expect((loaded as Record<string, unknown[]>).nodes).toHaveLength(2);
-      expect((loaded as Record<string, unknown[]>).edges).toHaveLength(1);
+      expect((loaded as any).nodes).toHaveLength(2);
+      expect((loaded as any).edges).toHaveLength(1);
       expect((loaded as { edges: Array<{ source: string }> }).edges[0].source).toBe("n1");
     });
 
@@ -352,7 +352,7 @@ describe("InMemoryStorageProvider — extended edge cases", () => {
       (loaded as { nodes: Array<{ id: string }> }).nodes.push({ id: "n2" });
 
       const loaded2 = await provider.knowledgeGraph.loadGraph();
-      expect((loaded2 as Record<string, unknown[]>).nodes).toHaveLength(1);
+      expect((loaded2 as any).nodes).toHaveLength(1);
     });
   });
 });

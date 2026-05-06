@@ -138,7 +138,7 @@ describe("meeting-intelligence", () => {
       const config = {
         platform: "zoom" as const,
         enabled: true,
-        filters: { excludePatterns: ["Sprint"] },
+        filters: { minDuration: 5, excludePatterns: ["Sprint"] },
       };
       expect(passesFilters(transcript, config)).toBe(false);
     });
@@ -148,7 +148,7 @@ describe("meeting-intelligence", () => {
       const config = {
         platform: "zoom" as const,
         enabled: true,
-        filters: { titlePatterns: ["Standup"] },
+        filters: { minDuration: 5, titlePatterns: ["Standup"] },
       };
       expect(passesFilters(transcript, config)).toBe(false);
     });

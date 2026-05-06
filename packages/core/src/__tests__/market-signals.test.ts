@@ -16,7 +16,7 @@ vi.mock("../prompts/sanitize.js", () => ({
 
 import {
   MarketSignalSchema,
-  _MarketSignalReportSchema,
+  MarketSignalReportSchema,
   registerSignalProvider,
   unregisterSignalProvider,
   listSignalProviders,

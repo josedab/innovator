@@ -28,6 +28,7 @@ import {
   runTemporalLens,
 } from "../prompts/temporal/index.js";
 import { generateText } from "../copilot/client.js";
+import type { GenerateOptions } from "../copilot/client.js";
 
 const mockGenerateText = vi.mocked(generateText);
 
@@ -118,7 +119,7 @@ describe("temporal", () => {
       await generateForHorizon("AI", "near", undefined, { model: "gpt-5" });
       // withRetry wraps the generateText call; model is inside the prompt call
       expect(mockGenerateText).toHaveBeenCalledTimes(1);
-      const callArgs = mockGenerateText.mock.calls[0][0] as Record<string, unknown>;
+      const callArgs = mockGenerateText.mock.calls[0][0] as GenerateOptions;
       expect(callArgs.model).toBe("gpt-5");
     });
 
@@ -128,7 +129,7 @@ describe("temporal", () => {
 
       await generateForHorizon("AI", "near", undefined, {}, ac.signal);
       expect(mockGenerateText).toHaveBeenCalledTimes(1);
-      const callArgs = mockGenerateText.mock.calls[0][0] as Record<string, unknown>;
+      const callArgs = mockGenerateText.mock.calls[0][0] as GenerateOptions;
       expect(callArgs.signal).toBe(ac.signal);
     });
   });

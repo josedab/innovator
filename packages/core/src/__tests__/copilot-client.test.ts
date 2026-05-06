@@ -165,7 +165,7 @@ describe("copilot/client", () => {
         }
         if (event === "session.idle") {
           setTimeout(() => {
-            listener();
+            listener(undefined);
           }, 30);
         }
         return vi.fn();

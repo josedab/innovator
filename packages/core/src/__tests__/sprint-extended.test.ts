@@ -27,6 +27,7 @@ import {
   getProgressionSuggestions,
   deleteSprint,
 } from "../sprint/index.js";
+import type { Investigation, AngleResult, Synthesis } from "../types.js";
 import { generateText, extractJson } from "../copilot/client.js";
 
 const mockGenerateText = vi.mocked(generateText);
@@ -52,7 +53,7 @@ describe("sprint (extended coverage)", () => {
     it("cannot advance from converge without selectedIdeas", () => {
       const sprint = createSprint("test");
       startSprint(sprint.id);
-      updateSprintData(sprint.id, { synthesis: { themes: [] } as unknown });
+      updateSprintData(sprint.id, { synthesis: { themes: [] } as unknown as Synthesis });
       const s = getSprint(sprint.id)!;
       s.currentPhase = "converge";
       const result = canAdvancePhase(s);
@@ -63,7 +64,7 @@ describe("sprint (extended coverage)", () => {
       const sprint = createSprint("test");
       startSprint(sprint.id);
       updateSprintData(sprint.id, {
-        synthesis: { themes: [] } as unknown,
+        synthesis: { themes: [] } as unknown as Synthesis,
         selectedIdeas: [],
       });
       const s = getSprint(sprint.id)!;
@@ -76,7 +77,7 @@ describe("sprint (extended coverage)", () => {
       const sprint = createSprint("test");
       startSprint(sprint.id);
       updateSprintData(sprint.id, {
-        synthesis: { themes: ["theme1"] } as unknown,
+        synthesis: { themes: ["theme1"] } as unknown as Synthesis,
         selectedIdeas: ["Idea 1"],
       });
       const s = getSprint(sprint.id)!;
@@ -111,8 +112,8 @@ describe("sprint (extended coverage)", () => {
       const sprint = createSprint("test");
       startSprint(sprint.id);
       updateSprintData(sprint.id, {
-        investigation: { summary: "Investigation done" } as unknown,
-        angleResults: [{ angleId: "a1", angleName: "A1", ideas: [{ title: "I1" }] }] as unknown,
+        investigation: { summary: "Investigation done" } as unknown as Investigation,
+        angleResults: [{ angleId: "a1", angleName: "A1", ideas: [{ title: "I1" }] }] as unknown as AngleResult[],
       });
 
       mockGenerateText.mockResolvedValue("json");
@@ -139,8 +140,8 @@ describe("sprint (extended coverage)", () => {
       const sprint = createSprint("test");
       startSprint(sprint.id);
       updateSprintData(sprint.id, {
-        investigation: { summary: "test" } as unknown,
-        angleResults: [{ angleId: "a1", angleName: "A1", ideas: [] }] as unknown,
+        investigation: { summary: "test" } as unknown as Investigation,
+        angleResults: [{ angleId: "a1", angleName: "A1", ideas: [] }] as unknown as AngleResult[],
       });
 
       const { withRetry } = await import("../copilot/retry.js");
@@ -207,7 +208,7 @@ describe("sprint (extended coverage)", () => {
 
     it("diverge phase with investigation but no angleResults suggests generating ideas", () => {
       const sprint = createSprint("test");
-      updateSprintData(sprint.id, { investigation: { summary: "done" } as unknown });
+      updateSprintData(sprint.id, { investigation: { summary: "done" } as unknown as Investigation });
       const s = getSprint(sprint.id)!;
       const suggestions = getProgressionSuggestions(s);
       expect(suggestions.some((s) => s.toLowerCase().includes("angle"))).toBe(true);
@@ -216,8 +217,8 @@ describe("sprint (extended coverage)", () => {
     it("diverge phase with investigation and angleResults suggests advancing", () => {
       const sprint = createSprint("test");
       updateSprintData(sprint.id, {
-        investigation: { summary: "done" } as unknown,
-        angleResults: [{ angleId: "a1" }] as unknown,
+        investigation: { summary: "done" } as unknown as Investigation,
+        angleResults: [{ angleId: "a1" }] as unknown as AngleResult[],
       });
       const s = getSprint(sprint.id)!;
       const suggestions = getProgressionSuggestions(s);
@@ -238,7 +239,7 @@ describe("sprint (extended coverage)", () => {
 
     it("converge phase with synthesis but no selectedIdeas suggests selecting", () => {
       const sprint = createSprint("test");
-      updateSprintData(sprint.id, { synthesis: { themes: [] } as unknown });
+      updateSprintData(sprint.id, { synthesis: { themes: [] } as unknown as Synthesis });
       const s = getSprint(sprint.id)!;
       s.currentPhase = "converge";
       const suggestions = getProgressionSuggestions(s);
@@ -248,7 +249,7 @@ describe("sprint (extended coverage)", () => {
     it("converge phase ready to advance", () => {
       const sprint = createSprint("test");
       updateSprintData(sprint.id, {
-        synthesis: { themes: [] } as unknown,
+        synthesis: { themes: [] } as unknown as Synthesis,
         selectedIdeas: ["Idea 1"],
       });
       const s = getSprint(sprint.id)!;

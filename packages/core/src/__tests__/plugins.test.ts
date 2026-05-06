@@ -8,7 +8,7 @@ import {
   clearPlugins,
   loadPlugin,
 } from "../plugins/index.js";
-import type { AnglePlugin, ExporterPlugin } from "../types.js";
+import type { AnglePlugin, ExporterPlugin, ExportData } from "../types.js";
 
 const sampleAnglePlugin: AnglePlugin = {
   id: "test-angle-plugin",
@@ -123,9 +123,10 @@ describe("plugin registry", () => {
 
   describe("ExporterPlugin", () => {
     it("export() async invocation returns string", async () => {
-      const result = await sampleExporterPlugin.export({ test: true }, "txt");
+      const exportData: ExportData = { subject: "test", angleResults: [] };
+      const result = await sampleExporterPlugin.export(exportData, "txt");
       expect(typeof result).toBe("string");
-      expect(result).toBe(JSON.stringify({ test: true }));
+      expect(result).toBe(JSON.stringify(exportData));
     });
 
     it("has valid formats with extension", () => {

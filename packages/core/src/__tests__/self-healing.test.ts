@@ -26,9 +26,9 @@ describe("self-healing", () => {
     });
 
     it("transitions CLOSED → OPEN after reaching failure threshold", () => {
-      recordFailure("provider-a", "generate", "timeout", "timed out", "gpt-4");
-      recordFailure("provider-a", "generate", "timeout", "timed out", "gpt-4");
-      recordFailure("provider-a", "generate", "timeout", "timed out", "gpt-4");
+      recordFailure("provider-a", "generation", "timeout", "timed out", "gpt-4");
+      recordFailure("provider-a", "generation", "timeout", "timed out", "gpt-4");
+      recordFailure("provider-a", "generation", "timeout", "timed out", "gpt-4");
       const cb = getCircuitBreaker("provider-a");
       expect(cb.state).toBe("open");
       expect(cb.failureCount).toBe(3);
@@ -36,9 +36,9 @@ describe("self-healing", () => {
 
     it("transitions OPEN → HALF-OPEN after recovery timeout", () => {
       vi.useFakeTimers();
-      recordFailure("provider-a", "generate", "timeout", "timed out");
-      recordFailure("provider-a", "generate", "timeout", "timed out");
-      recordFailure("provider-a", "generate", "timeout", "timed out");
+      recordFailure("provider-a", "generation", "timeout", "timed out");
+      recordFailure("provider-a", "generation", "timeout", "timed out");
+      recordFailure("provider-a", "generation", "timeout", "timed out");
       expect(getCircuitBreaker("provider-a").state).toBe("open");
 
       // Advance past recovery timeout (60s default)
@@ -51,9 +51,9 @@ describe("self-healing", () => {
 
     it("transitions HALF-OPEN → CLOSED on success", () => {
       vi.useFakeTimers();
-      recordFailure("provider-a", "generate", "timeout", "timed out");
-      recordFailure("provider-a", "generate", "timeout", "timed out");
-      recordFailure("provider-a", "generate", "timeout", "timed out");
+      recordFailure("provider-a", "generation", "timeout", "timed out");
+      recordFailure("provider-a", "generation", "timeout", "timed out");
+      recordFailure("provider-a", "generation", "timeout", "timed out");
 
       vi.advanceTimersByTime(61_000);
       isCircuitOpen("provider-a"); // triggers half-open
@@ -67,24 +67,24 @@ describe("self-healing", () => {
 
     it("transitions HALF-OPEN → OPEN on failure", () => {
       vi.useFakeTimers();
-      recordFailure("provider-a", "generate", "timeout", "timed out");
-      recordFailure("provider-a", "generate", "timeout", "timed out");
-      recordFailure("provider-a", "generate", "timeout", "timed out");
+      recordFailure("provider-a", "generation", "timeout", "timed out");
+      recordFailure("provider-a", "generation", "timeout", "timed out");
+      recordFailure("provider-a", "generation", "timeout", "timed out");
 
       vi.advanceTimersByTime(61_000);
       isCircuitOpen("provider-a"); // triggers half-open
       expect(getCircuitBreaker("provider-a").state).toBe("half-open");
 
-      recordFailure("provider-a", "generate", "timeout", "timed out");
+      recordFailure("provider-a", "generation", "timeout", "timed out");
       expect(getCircuitBreaker("provider-a").state).toBe("open");
       vi.useRealTimers();
     });
 
     it("half-open blocks after maxAttempts exceeded", () => {
       vi.useFakeTimers();
-      recordFailure("p", "generate", "timeout", "err");
-      recordFailure("p", "generate", "timeout", "err");
-      recordFailure("p", "generate", "timeout", "err");
+      recordFailure("p", "generation", "timeout", "err");
+      recordFailure("p", "generation", "timeout", "err");
+      recordFailure("p", "generation", "timeout", "err");
 
       vi.advanceTimersByTime(61_000);
       isCircuitOpen("p"); // half-open, attempts = 0
@@ -140,7 +140,7 @@ describe("self-healing", () => {
     ): PipelineFailure {
       return {
         id: "f1",
-        stage: "generate",
+        stage: "generation",
         provider,
         model,
         errorType,
@@ -170,7 +170,7 @@ describe("self-healing", () => {
     it("falls back to retry-backoff when no healthy providers", () => {
       // Open circuits for all fallback providers
       const config = { fallbackProviders: ["copilot"], failureThreshold: 1 };
-      recordFailure("copilot", "generate", "timeout", "err", "gpt-4", config);
+      recordFailure("copilot", "generation", "timeout", "err", "gpt-4", config);
       const strategy = selectRecoveryStrategy(makeFailure("rate-limit", "copilot"), config);
       expect(strategy.type).toBe("retry-backoff");
     });
@@ -211,7 +211,7 @@ describe("self-healing", () => {
       const { result, recoveries } = await withSelfHealing(async () => "success", {
         provider: "copilot",
         model: "gpt-4",
-        stage: "generate",
+        stage: "generation",
       });
       expect(result).toBe("success");
       expect(recoveries).toHaveLength(0);
@@ -225,7 +225,7 @@ describe("self-healing", () => {
           if (attempt < 2) throw new Error("timeout occurred");
           return "recovered";
         },
-        { provider: "copilot", model: "gpt-4", stage: "generate", maxAttempts: 3 }
+        { provider: "copilot", model: "gpt-4", stage: "generation", maxAttempts: 3 }
       );
       expect(result).toBe("recovered");
       expect(recoveries.length).toBeGreaterThan(0);
@@ -237,21 +237,21 @@ describe("self-healing", () => {
           async () => {
             throw new Error("persistent failure");
           },
-          { provider: "copilot", model: "gpt-4", stage: "generate", maxAttempts: 2 }
+          { provider: "copilot", model: "gpt-4", stage: "generation", maxAttempts: 2 }
         )
       ).rejects.toThrow("persistent failure");
     });
 
     it("switches provider when circuit is open", async () => {
       // Open the circuit for the primary provider
-      recordFailure("copilot", "generate", "timeout", "err");
-      recordFailure("copilot", "generate", "timeout", "err");
-      recordFailure("copilot", "generate", "timeout", "err");
+      recordFailure("copilot", "generation", "timeout", "err");
+      recordFailure("copilot", "generation", "timeout", "err");
+      recordFailure("copilot", "generation", "timeout", "err");
 
       const { result, recoveries } = await withSelfHealing(async (provider) => `from-${provider}`, {
         provider: "copilot",
         model: "gpt-4",
-        stage: "generate",
+        stage: "generation",
       });
       expect(result).toContain("from-");
       expect(recoveries.some((r) => r.type === "provider-switch")).toBe(true);
@@ -266,7 +266,7 @@ describe("self-healing", () => {
           if (attempt < 3) throw new Error("something unexpected");
           return "ok";
         },
-        { provider: "copilot", model: "gpt-4", stage: "generate", maxAttempts: 3 }
+        { provider: "copilot", model: "gpt-4", stage: "generation", maxAttempts: 3 }
       );
 
       // Advance timers for backoff delays
@@ -287,8 +287,8 @@ describe("self-healing", () => {
     });
 
     it("reflects failures in health metrics", () => {
-      recordFailure("copilot", "generate", "timeout", "err");
-      recordFailure("copilot", "generate", "timeout", "err");
+      recordFailure("copilot", "generation", "timeout", "err");
+      recordFailure("copilot", "generation", "timeout", "err");
       const health = getPipelineHealth();
       expect(health.totalFailures).toBe(2);
       expect(health.providerHealth.length).toBeGreaterThan(0);
@@ -298,7 +298,7 @@ describe("self-healing", () => {
   describe("failureLog cap", () => {
     it("caps failure log at 1000 entries", () => {
       for (let i = 0; i < 1010; i++) {
-        recordFailure("p", "generate", "timeout", `err-${i}`, "m", { failureThreshold: 99999 });
+        recordFailure("p", "generation", "timeout", `err-${i}`, "m", { failureThreshold: 99999 });
       }
       const failures = getRecentFailures(1100);
       expect(failures.length).toBeLessThanOrEqual(1000);
@@ -307,7 +307,7 @@ describe("self-healing", () => {
 
   describe("resetSelfHealing", () => {
     it("clears all circuit breakers and logs", () => {
-      recordFailure("copilot", "generate", "timeout", "err");
+      recordFailure("copilot", "generation", "timeout", "err");
       resetSelfHealing();
       const cb = getCircuitBreaker("copilot");
       expect(cb.state).toBe("closed");

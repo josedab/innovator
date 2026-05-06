@@ -22,6 +22,7 @@ import {
   SPRINT_PHASES,
   SprintSchema,
 } from "../sprint/index.js";
+import type { Investigation, AngleResult, Synthesis } from "../types.js";
 
 describe("sprint", () => {
   beforeEach(() => {
@@ -134,7 +135,7 @@ describe("sprint", () => {
     it("cannot advance from diverge without angle results", () => {
       const sprint = createSprint("test");
       startSprint(sprint.id);
-      updateSprintData(sprint.id, { investigation: { summary: "test" } as unknown });
+      updateSprintData(sprint.id, { investigation: { summary: "test" } as unknown as Investigation });
       const current = getSprint(sprint.id)!;
       const result = canAdvancePhase(current);
       expect(result.canAdvance).toBe(false);
@@ -144,8 +145,8 @@ describe("sprint", () => {
       const sprint = createSprint("test");
       startSprint(sprint.id);
       updateSprintData(sprint.id, {
-        investigation: { summary: "test" } as unknown,
-        angleResults: [{ angleId: "a1", angleName: "A1", ideas: [] }] as unknown,
+        investigation: { summary: "test" } as unknown as Investigation,
+        angleResults: [{ angleId: "a1", angleName: "A1", ideas: [] }] as unknown as AngleResult[],
       });
       const current = getSprint(sprint.id)!;
       const result = canAdvancePhase(current);
@@ -156,8 +157,8 @@ describe("sprint", () => {
       const sprint = createSprint("test");
       startSprint(sprint.id);
       updateSprintData(sprint.id, {
-        investigation: { summary: "test" } as unknown,
-        angleResults: [{ angleId: "a1", angleName: "A1", ideas: [] }] as unknown,
+        investigation: { summary: "test" } as unknown as Investigation,
+        angleResults: [{ angleId: "a1", angleName: "A1", ideas: [] }] as unknown as AngleResult[],
       });
       // Manually move to converge phase
       const s = getSprint(sprint.id)!;
@@ -171,9 +172,9 @@ describe("sprint", () => {
       const sprint = createSprint("test");
       startSprint(sprint.id);
       updateSprintData(sprint.id, {
-        investigation: { summary: "test" } as unknown,
-        angleResults: [{ angleId: "a1", angleName: "A1", ideas: [] }] as unknown,
-        synthesis: { themes: [] } as unknown,
+        investigation: { summary: "test" } as unknown as Investigation,
+        angleResults: [{ angleId: "a1", angleName: "A1", ideas: [] }] as unknown as AngleResult[],
+        synthesis: { themes: [] } as unknown as Synthesis,
         selectedIdeas: ["Idea 1"],
       });
       const s = getSprint(sprint.id)!;
@@ -196,7 +197,7 @@ describe("sprint", () => {
   describe("updateSprintData", () => {
     it("merges partial data without overwriting other fields", () => {
       const sprint = createSprint("test");
-      updateSprintData(sprint.id, { investigation: { summary: "inv" } as unknown });
+      updateSprintData(sprint.id, { investigation: { summary: "inv" } as unknown as Investigation });
       updateSprintData(sprint.id, { selectedIdeas: ["Idea 1"] });
       const s = getSprint(sprint.id)!;
       expect(s.investigation).toEqual({ summary: "inv" });
@@ -220,7 +221,7 @@ describe("sprint", () => {
     it("can update angleResults", () => {
       const sprint = createSprint("test");
       updateSprintData(sprint.id, {
-        angleResults: [{ angleId: "a1", angleName: "test", ideas: [] }] as unknown,
+        angleResults: [{ angleId: "a1", angleName: "test", ideas: [] }] as unknown as AngleResult[],
       });
       const s = getSprint(sprint.id)!;
       expect(s.angleResults).toHaveLength(1);

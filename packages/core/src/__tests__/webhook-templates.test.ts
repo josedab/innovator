@@ -32,7 +32,7 @@ describe("webhook templates", () => {
 
     it("returns a copy (not the original array)", () => {
       const list = listWebhookTemplates();
-      list.push({} as unknown);
+      list.push({} as any);
       expect(listWebhookTemplates()).toHaveLength(4);
     });
   });
@@ -69,7 +69,7 @@ describe("webhook templates", () => {
 
     it("includes subject in body when present", () => {
       const body = SLACK_TEMPLATE.bodyTemplate(sampleEvent);
-      const blocks = body.blocks as unknown[];
+      const blocks = body.blocks as any[];
       const blockText = blocks[0]?.text?.text as string;
       expect(blockText).toContain("Innovation brainstorm");
     });
@@ -114,7 +114,7 @@ describe("webhook templates", () => {
     it("produces Atlassian Document Format body", () => {
       const body = JIRA_TEMPLATE.bodyTemplate(sampleEvent);
       expect(body).toHaveProperty("fields");
-      const fields = body.fields as unknown;
+      const fields = body.fields as any;
       expect(fields.project.key).toBe("INNOV");
       expect(fields.issuetype.name).toBe("Task");
       expect(fields.summary).toContain("AI Assistant");
@@ -140,7 +140,7 @@ describe("webhook templates", () => {
       expect(body).toHaveProperty("subject");
       expect(body).toHaveProperty("content");
       expect(body.subject as string).toContain("idea.scored");
-      const content = (body.content as unknown[])[0];
+      const content = (body.content as any[])[0];
       expect(content.type).toBe("text/html");
       expect(content.value).toContain("<h2>");
     });

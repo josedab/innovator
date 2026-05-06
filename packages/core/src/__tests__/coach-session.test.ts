@@ -20,6 +20,7 @@ vi.mock("../prompts/sanitize.js", () => ({
 }));
 
 import { generateText } from "../copilot/client.js";
+import type { GenerateOptions } from "../copilot/client.js";
 import {
   startCoachSession,
   sendCoachMessage,
@@ -107,7 +108,7 @@ describe("coach-session", () => {
       mockGenerateText.mockResolvedValue(MOCK_START_RESPONSE);
 
       await startCoachSession("test", { personality: "provocateur" });
-      const callArgs = mockGenerateText.mock.calls[0][0] as Record<string, unknown>;
+      const callArgs = mockGenerateText.mock.calls[0][0] as GenerateOptions;
       expect(callArgs.prompt).toContain("provocative");
     });
 
@@ -166,7 +167,7 @@ describe("coach-session", () => {
       mockGenerateText.mockResolvedValueOnce(MOCK_MESSAGE_RESPONSE);
       await sendCoachMessage(session.id, "msg", { personality: "analytical" });
 
-      const callArgs = mockGenerateText.mock.calls[1][0] as Record<string, unknown>;
+      const callArgs = mockGenerateText.mock.calls[1][0] as GenerateOptions;
       expect(callArgs.prompt).toContain("analytical");
     });
   });

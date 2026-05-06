@@ -5,6 +5,7 @@ vi.mock("../innovation/generate.js", () => ({
 }));
 
 import { getChainById, listChains, AngleChainSchema, runChain } from "../chaining/index.js";
+import type { ChainProgress } from "../chaining/index.js";
 import { generateForAngle } from "../innovation/generate.js";
 import type { AngleResult, Investigation } from "../types.js";
 
@@ -156,7 +157,7 @@ describe("chaining", () => {
         makeAngleResult(angleId as string)
       );
 
-      const progressCalls: Record<string, unknown>[] = [];
+      const progressCalls: ChainProgress[] = [];
       await runChain(chain, "subject", MOCK_INVESTIGATION, (p) => progressCalls.push(p));
 
       expect(progressCalls).toHaveLength(chain.steps.length);

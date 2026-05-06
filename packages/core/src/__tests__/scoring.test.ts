@@ -295,7 +295,7 @@ describe("scoring", () => {
 
       const investigation: Investigation = {
         summary: "Research summary",
-        keyAspects: ["aspect1"],
+        keyAspects: [{ title: "aspect1", description: "aspect1" }],
         currentState: "Current state",
         challenges: ["challenge1"],
         opportunities: ["opportunity1"],

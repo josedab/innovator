@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("../emitter.js", () => {
   type EventHandler = (...args: unknown[]) => void;
@@ -50,8 +50,8 @@ describe("WebhookManager", () => {
       const webhook = manager.registerWebhook({
         url: "https://example.com/hook",
         events: ["pipeline.started"],
-        secret: "secret1234567890ab",
         active: true,
+        secret: "secret1234567890ab",
       });
 
       expect(webhook.id).toMatch(/^[0-9a-f]{8}-/);
@@ -64,6 +64,7 @@ describe("WebhookManager", () => {
       const webhook = manager.registerWebhook({
         url: "https://example.com/hook",
         events: ["pipeline.started"],
+        active: true,
         secret: "secret1234567890ab",
       });
       expect(webhook.active).toBe(true);
@@ -75,6 +76,7 @@ describe("WebhookManager", () => {
       const webhook = manager.registerWebhook({
         url: "https://example.com/hook",
         events: ["pipeline.started"],
+        active: true,
         secret: "secret1234567890ab",
       });
       expect(manager.unregisterWebhook(webhook.id)).toBe(true);
@@ -91,11 +93,13 @@ describe("WebhookManager", () => {
       manager.registerWebhook({
         url: "https://a.com/hook",
         events: ["pipeline.started"],
+        active: true,
         secret: "secret1234567890ab",
       });
       manager.registerWebhook({
         url: "https://b.com/hook",
         events: ["pipeline.completed"],
+        active: true,
         secret: "secret1234567890cd",
       });
 
@@ -127,6 +131,7 @@ describe("WebhookManager", () => {
       const webhook = manager.registerWebhook({
         url: "https://example.com/hook",
         events: ["pipeline.started"],
+        active: true,
         secret: "secret1234567890ab",
       });
 
@@ -146,6 +151,7 @@ describe("WebhookManager", () => {
       const webhook = manager.registerWebhook({
         url: "https://example.com/hook",
         events: ["pipeline.started"],
+        active: true,
         secret: "secret1234567890ab",
       });
 
@@ -164,6 +170,7 @@ describe("WebhookManager", () => {
       const webhook = manager.registerWebhook({
         url: "https://example.com/hook",
         events: ["pipeline.started"],
+        active: true,
         secret: "secret1234567890ab",
       });
 
@@ -207,11 +214,13 @@ describe("WebhookManager", () => {
       const wh1 = manager.registerWebhook({
         url: "https://a.com/hook",
         events: ["pipeline.started"],
+        active: true,
         secret: "secret1234567890ab",
       });
       const wh2 = manager.registerWebhook({
         url: "https://b.com/hook",
         events: ["pipeline.started"],
+        active: true,
         secret: "secret1234567890cd",
       });
 
@@ -237,6 +246,7 @@ describe("WebhookManager", () => {
       manager.registerWebhook({
         url: "https://example.com/hook",
         events: ["pipeline.started"],
+        active: true,
         secret: "secret1234567890ab",
       });
 

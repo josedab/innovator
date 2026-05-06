@@ -447,6 +447,8 @@ describe("telemetry", () => {
         stage: "generate",
         durationMs: 100,
         tokenCount: 50,
+        ideaCount: 0,
+        estimatedCostUsd: 0,
         angleId: "scamper",
         success: true,
       });
@@ -455,6 +457,8 @@ describe("telemetry", () => {
         stage: "generate",
         durationMs: 200,
         tokenCount: 100,
+        ideaCount: 0,
+        estimatedCostUsd: 0,
         angleId: "first-principles",
         success: true,
       });
@@ -470,6 +474,8 @@ describe("telemetry", () => {
         stage: "generate",
         durationMs: 100,
         tokenCount: 50,
+        ideaCount: 0,
+        estimatedCostUsd: 0,
         success: true,
       });
       const byModel = getAggregatedMetrics("model");
@@ -497,6 +503,8 @@ describe("telemetry", () => {
         stage: "investigate",
         durationMs: 100,
         tokenCount: 50,
+        ideaCount: 0,
+        estimatedCostUsd: 0,
         success: true,
       });
 
@@ -549,6 +557,8 @@ describe("telemetry", () => {
         stage: "full-pipeline",
         durationMs: 1000,
         tokenCount: 500,
+        ideaCount: 0,
+        estimatedCostUsd: 0,
         success: true,
       });
       startSpan("op");

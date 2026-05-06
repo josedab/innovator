@@ -78,6 +78,7 @@ describe("rubric", () => {
           id: "bad",
           name: "Bad",
           description: "Bad weights",
+          tags: [],
           dimensions: [
             { id: "d1", name: "A", description: "A", weight: 0.3, minScore: 1, maxScore: 10 },
             { id: "d2", name: "B", description: "B", weight: 0.3, minScore: 1, maxScore: 10 },
@@ -91,6 +92,7 @@ describe("rubric", () => {
         id: "close",
         name: "Close",
         description: "Close to 1.0",
+        tags: [],
         dimensions: [
           { id: "d1", name: "A", description: "A", weight: 0.505, minScore: 1, maxScore: 10 },
           { id: "d2", name: "B", description: "B", weight: 0.5, minScore: 1, maxScore: 10 },
@@ -123,6 +125,7 @@ describe("rubric", () => {
         id: "custom",
         name: "Custom",
         description: "Custom rubric",
+        tags: [],
         dimensions: testDimensions,
       });
       const rubrics = listRubrics();
@@ -136,6 +139,7 @@ describe("rubric", () => {
         id: "updatable",
         name: "Old Name",
         description: "Old",
+        tags: [],
         dimensions: testDimensions,
       });
 
@@ -153,6 +157,7 @@ describe("rubric", () => {
         id: "val",
         name: "Val",
         description: "Val",
+        tags: [],
         dimensions: testDimensions,
       });
 
@@ -172,6 +177,7 @@ describe("rubric", () => {
         id: "deletable",
         name: "Del",
         description: "Del",
+        tags: [],
         dimensions: testDimensions,
       });
       expect(deleteRubric("deletable")).toBe(true);

@@ -22,6 +22,7 @@ vi.mock("../prompts/sanitize.js", () => ({
 }));
 
 import { generateText } from "../copilot/client.js";
+import type { GenerateOptions } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 
 import {
@@ -108,7 +109,7 @@ describe("coaching functions", () => {
 
       expect(mockWithRetry).toHaveBeenCalledTimes(1);
       // Verify the prompt was constructed (generateText receives it)
-      const callArgs = mockGenerateText.mock.calls[0][0] as Record<string, unknown>;
+      const callArgs = mockGenerateText.mock.calls[0][0] as GenerateOptions;
       expect(callArgs.prompt).toContain("provocative");
     });
 
@@ -117,7 +118,7 @@ describe("coaching functions", () => {
 
       await generateClarificationQuestions("test", { model: "gpt-5" });
 
-      const callArgs = mockGenerateText.mock.calls[0][0] as Record<string, unknown>;
+      const callArgs = mockGenerateText.mock.calls[0][0] as GenerateOptions;
       expect(callArgs.model).toBe("gpt-5");
     });
 
@@ -127,7 +128,7 @@ describe("coaching functions", () => {
 
       await generateClarificationQuestions("test", {}, ac.signal);
 
-      const callArgs = mockGenerateText.mock.calls[0][0] as Record<string, unknown>;
+      const callArgs = mockGenerateText.mock.calls[0][0] as GenerateOptions;
       expect(callArgs.signal).toBe(ac.signal);
     });
   });
@@ -149,7 +150,7 @@ describe("coaching functions", () => {
 
       await detectAssumptions("test", "gpt-5");
 
-      const callArgs = mockGenerateText.mock.calls[0][0] as Record<string, unknown>;
+      const callArgs = mockGenerateText.mock.calls[0][0] as GenerateOptions;
       expect(callArgs.model).toBe("gpt-5");
     });
   });
@@ -170,7 +171,7 @@ describe("coaching functions", () => {
 
       await recommendPivots("edtech", ["Online courses"]);
 
-      const callArgs = mockGenerateText.mock.calls[0][0] as Record<string, unknown>;
+      const callArgs = mockGenerateText.mock.calls[0][0] as GenerateOptions;
       expect(callArgs.prompt).toContain("edtech");
       expect(callArgs.prompt).toContain("Online courses");
     });

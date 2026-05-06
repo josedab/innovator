@@ -20,6 +20,7 @@ import {
   clearFingerprints,
   fingerprintDistance,
 } from "../fingerprint/index.js";
+import type { IdeaFingerprint } from "../fingerprint/index.js";
 
 function makeFingerprint(overrides: Partial<IdeaFingerprint> = {}): IdeaFingerprint {
   return {

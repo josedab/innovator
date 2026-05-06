@@ -32,11 +32,12 @@ import {
   clearBiasCalibrationData,
   analyzeBiases,
 } from "../bias-calibration/index.js";
+import type { UserActivity } from "../bias-calibration/index.js";
 import { generateText } from "../copilot/client.js";
 
 const mockGenerateText = vi.mocked(generateText);
 
-function makeActivity(userId = "user-1", action = "investigate" as const) {
+function makeActivity(userId = "user-1", action: UserActivity["action"] = "investigate") {
   return { userId, sessionId: "session-1", timestamp: new Date().toISOString(), action };
 }
 

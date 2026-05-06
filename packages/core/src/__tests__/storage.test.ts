@@ -118,7 +118,7 @@ describe("InMemoryStorageProvider", () => {
                 angleId: "scamper",
                 ideas: [{ title: "Idea A", description: "desc A", score: 80 }],
               },
-            ] as unknown,
+            ] as any,
           })
         );
         await provider.sessions.saveSession(
@@ -196,7 +196,7 @@ describe("InMemoryStorageProvider", () => {
         rateLimit: { requestsPerMinute: 100, requestsPerDay: 10000 },
         scopes: ["read", "write"],
       };
-      await provider.apiGateway.saveApiKey(key as unknown);
+      await provider.apiGateway.saveApiKey(key as any);
       const result = await provider.apiGateway.getApiKey("key-1");
       expect(result).toBeDefined();
       expect(result!.name).toBe("Production Key");
@@ -213,7 +213,7 @@ describe("InMemoryStorageProvider", () => {
         rateLimit: { requestsPerMinute: 10, requestsPerDay: 100 },
         scopes: ["read"],
       };
-      await provider.apiGateway.saveApiKey(key as unknown);
+      await provider.apiGateway.saveApiKey(key as any);
       const found = await provider.apiGateway.findApiKeyByValue("sk-live-secret-value");
       expect(found).toBeDefined();
       expect(found!.id).toBe("key-1");
@@ -233,7 +233,7 @@ describe("InMemoryStorageProvider", () => {
         rateLimit: {},
         scopes: [],
       };
-      await provider.apiGateway.saveApiKey(key as unknown);
+      await provider.apiGateway.saveApiKey(key as any);
       expect(await provider.apiGateway.deleteApiKey("key-1")).toBe(true);
       expect(await provider.apiGateway.getApiKey("key-1")).toBeUndefined();
     });
@@ -249,8 +249,8 @@ describe("InMemoryStorageProvider", () => {
         rateLimit: {},
         scopes: [],
       };
-      await provider.apiGateway.saveApiKey(key as unknown);
-      expect(await provider.apiGateway.updateApiKey("key-1", { name: "New" } as unknown)).toBe(
+      await provider.apiGateway.saveApiKey(key as any);
+      expect(await provider.apiGateway.updateApiKey("key-1", { name: "New" } as any)).toBe(
         true
       );
       const updated = await provider.apiGateway.getApiKey("key-1");
@@ -290,7 +290,7 @@ describe("InMemoryStorageProvider", () => {
         },
       ];
       for (const r of records) {
-        await provider.apiGateway.recordUsage(r as unknown);
+        await provider.apiGateway.recordUsage(r as any);
       }
 
       const all = await provider.apiGateway.getUsageRecords("key-1");
@@ -337,7 +337,7 @@ describe("InMemoryStorageProvider", () => {
         createdAt: new Date().toISOString(),
         updatedAt: "2024-06-01T00:00:00Z",
       };
-      await provider.workspaces.saveWorkspace(ws as unknown);
+      await provider.workspaces.saveWorkspace(ws as any);
       const result = await provider.workspaces.getWorkspace("ws-1");
       expect(result!.name).toBe("My Workspace");
 
@@ -359,9 +359,9 @@ describe("InMemoryStorageProvider", () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      await provider.workspaces.saveWorkspace(ws as unknown);
+      await provider.workspaces.saveWorkspace(ws as any);
       const retrieved = await provider.workspaces.getWorkspace("ws-1");
-      (retrieved as unknown).name = "Mutated";
+      (retrieved as any).name = "Mutated";
       const again = await provider.workspaces.getWorkspace("ws-1");
       expect(again!.name).toBe("WS");
     });
@@ -377,7 +377,7 @@ describe("InMemoryStorageProvider", () => {
         events: [],
         createdAt: new Date().toISOString(),
       };
-      await provider.collaboration.saveSession(session as unknown);
+      await provider.collaboration.saveSession(session as any);
 
       const found = await provider.collaboration.findByCode("ABC123");
       expect(found).toBeDefined();
@@ -393,8 +393,8 @@ describe("InMemoryStorageProvider", () => {
     it("tracks, reads, and clears events", async () => {
       const event1 = { type: "session-start", timestamp: "2024-01-01T00:00:00Z", data: {} };
       const event2 = { type: "session-end", timestamp: "2024-06-01T00:00:00Z", data: {} };
-      await provider.analytics.trackEvent(event1 as unknown);
-      await provider.analytics.trackEvent(event2 as unknown);
+      await provider.analytics.trackEvent(event1 as any);
+      await provider.analytics.trackEvent(event2 as any);
 
       const events = await provider.analytics.readEvents();
       expect(events).toHaveLength(2);
@@ -413,16 +413,16 @@ describe("InMemoryStorageProvider", () => {
   describe("knowledgeGraph", () => {
     it("saves and loads with clone isolation", async () => {
       const graph = { nodes: [{ id: "n1", label: "AI" }], edges: [] };
-      await provider.knowledgeGraph.saveGraph(graph as unknown);
+      await provider.knowledgeGraph.saveGraph(graph as any);
 
       const loaded = await provider.knowledgeGraph.loadGraph();
       expect(loaded).toBeDefined();
-      expect((loaded as unknown).nodes).toHaveLength(1);
+      expect((loaded as any).nodes).toHaveLength(1);
 
       // Mutation should not affect stored data
-      (loaded as unknown).nodes.push({ id: "n2", label: "ML" });
+      (loaded as any).nodes.push({ id: "n2", label: "ML" });
       const loaded2 = await provider.knowledgeGraph.loadGraph();
-      expect((loaded2 as unknown).nodes).toHaveLength(1);
+      expect((loaded2 as any).nodes).toHaveLength(1);
     });
 
     it("returns undefined when no graph saved", async () => {

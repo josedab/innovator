@@ -182,6 +182,12 @@ describe("mobile-companion", () => {
         deviceId: "dev-1",
         userId: "user-1",
         pushToken: "token-abc",
+        enableVoiceCapture: true,
+        enableCameraCapture: true,
+        enableLocationCapture: false,
+        enableOfflineMode: true,
+        syncInterval: 300,
+        maxOfflineQueueSize: 500,
       };
       registerDevice(config);
       const retrieved = getDeviceConfig("dev-1");

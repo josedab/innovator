@@ -16,16 +16,17 @@ vi.mock("../prompts/sanitize.js", () => ({
 
 import {
   ScenarioTypeSchema,
-  _StressScenarioSchema,
-  _ImpactAssessmentSchema,
+  StressScenarioSchema,
+  ImpactAssessmentSchema,
   VulnerabilitySchema,
-  _HedgingStrategySchema,
+  HedgingStrategySchema,
   StressTestResultSchema,
   generateStressScenarios,
   stressTestIdeas,
   stressTestToMarkdown,
 } from "../stress-testing/index.js";
-import type { StressTestResult, InnovationIdea } from "../stress-testing/index.js";
+import type { StressTestResult } from "../stress-testing/index.js";
+import type { InnovationIdea } from "../types.js";
 import { generateText, extractJson } from "../copilot/client.js";
 
 const fakeIdea: InnovationIdea = {
@@ -38,84 +39,84 @@ const fakeIdea: InnovationIdea = {
 const fakeLLMResponse = {
   scenarios: [
     {
-      type: "regulatory-change",
+      type: "regulatory-change" as const,
       title: "New AI regulation",
       description: "Govt bans AI in education",
-      probability: "medium",
+      probability: "medium" as const,
       timeframe: "1-2 years",
     },
     {
-      type: "market-shift",
+      type: "market-shift" as const,
       title: "Market pivot",
       description: "Users move away",
-      probability: "low",
+      probability: "low" as const,
       timeframe: "2-3 years",
     },
     {
-      type: "tech-breakthrough",
+      type: "tech-breakthrough" as const,
       title: "Tech leap",
       description: "New tech emerges",
-      probability: "high",
+      probability: "high" as const,
       timeframe: "1 year",
     },
     {
-      type: "economic-downturn",
+      type: "economic-downturn" as const,
       title: "Recession",
       description: "Budget cuts",
-      probability: "medium",
+      probability: "medium" as const,
       timeframe: "1-3 years",
     },
     {
-      type: "competitor-move",
+      type: "competitor-move" as const,
       title: "Big tech enters",
       description: "Google launches competitor",
-      probability: "high",
+      probability: "high" as const,
       timeframe: "6 months",
     },
   ],
   impacts: [
     {
-      scenarioType: "regulatory-change",
+      scenarioType: "regulatory-change" as const,
       survives: true,
-      impactLevel: "moderate",
+      impactLevel: "moderate" as const,
       explanation: "Adapts to regulation",
       adaptationStrategy: "Lobby",
     },
     {
-      scenarioType: "market-shift",
+      scenarioType: "market-shift" as const,
       survives: true,
-      impactLevel: "minor",
+      impactLevel: "minor" as const,
       explanation: "Adjusts target",
       adaptationStrategy: "Pivot",
     },
     {
-      scenarioType: "tech-breakthrough",
+      scenarioType: "tech-breakthrough" as const,
       survives: true,
-      impactLevel: "none",
+      impactLevel: "none" as const,
       explanation: "Adopts new tech",
       adaptationStrategy: "Integrate",
     },
     {
-      scenarioType: "economic-downturn",
+      scenarioType: "economic-downturn" as const,
       survives: false,
-      impactLevel: "severe",
+      impactLevel: "severe" as const,
       explanation: "Funding dries up",
       adaptationStrategy: "Cut costs",
     },
     {
-      scenarioType: "competitor-move",
+      scenarioType: "competitor-move" as const,
       survives: true,
-      impactLevel: "moderate",
+      impactLevel: "moderate" as const,
       explanation: "Niche survives",
       adaptationStrategy: "Differentiate",
     },
   ],
-  vulnerabilities: [{ area: "Funding", severity: "high", description: "Dependent on VC funding" }],
+  vulnerabilities: [{ area: "Funding", severity: "high" as const, description: "Dependent on VC funding" }],
   hedgingStrategies: [
     {
       strategy: "Diversify revenue",
-      mitigates: ["economic-downturn", "market-shift"],
-      effort: "medium",
+      mitigates: ["economic-downturn" as const, "market-shift" as const],
+      effort: "medium" as const,
       description: "Add B2B revenue stream",
     },
   ],

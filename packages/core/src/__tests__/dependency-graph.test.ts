@@ -18,7 +18,7 @@ import {
   RelationshipTypeSchema,
   IdeaDependencyNodeSchema,
   IdeaDependencyEdgeSchema,
-  _IdeaDependencyGraphSchema,
+  IdeaDependencyGraphSchema,
   buildIdeaDependencyGraph,
   dependencyGraphToMarkdown,
 } from "../dependency-graph/index.js";
