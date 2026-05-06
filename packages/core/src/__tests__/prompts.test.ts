@@ -117,3 +117,75 @@ describe("investigationContext", () => {
     expect(ctx).toContain("Opportunities:");
   });
 });
+
+// ---- Angle Prompt Builders ----
+
+import {
+  buildScamperPrompt,
+  buildFirstPrinciplesPrompt,
+  buildCrossDomainPrompt,
+  buildConstraintsPrompt,
+  buildInversionPrompt,
+  buildPerspectivesPrompt,
+  buildWhatIfPrompt,
+  buildTrendCollisionPrompt,
+} from "../prompts/angles/index.js";
+import type { Investigation } from "../types.js";
+
+const mockInvestigation: Investigation = {
+  summary: "AI-driven automation is transforming industries",
+  keyAspects: [{ title: "ML", description: "Machine learning techniques" }],
+  currentState: "Rapid adoption phase",
+  challenges: ["Data quality"],
+  opportunities: ["Cost reduction"],
+};
+
+const emptyInvestigation: Investigation = {
+  summary: "",
+  keyAspects: [],
+  currentState: "",
+  challenges: [],
+  opportunities: [],
+};
+
+describe("angle prompts", () => {
+  const angleBuilders = [
+    { name: "SCAMPER", fn: buildScamperPrompt, angleId: "scamper" },
+    { name: "First Principles", fn: buildFirstPrinciplesPrompt, angleId: "first-principles" },
+    { name: "Cross-Domain", fn: buildCrossDomainPrompt, angleId: "cross-domain" },
+    { name: "Constraints", fn: buildConstraintsPrompt, angleId: "constraints" },
+    { name: "Inversion", fn: buildInversionPrompt, angleId: "inversion" },
+    { name: "Perspectives", fn: buildPerspectivesPrompt, angleId: "perspectives" },
+    { name: "What-If", fn: buildWhatIfPrompt, angleId: "what-if" },
+    { name: "Trend Collision", fn: buildTrendCollisionPrompt, angleId: "trend-collision" },
+  ];
+
+  for (const { name, fn, angleId } of angleBuilders) {
+    describe(name, () => {
+      it("includes subject and investigation context", () => {
+        const prompt = fn("home automation", mockInvestigation);
+        expect(prompt).toContain("home automation");
+        expect(prompt).toContain("INVESTIGATION CONTEXT");
+      });
+
+      it(`specifies angleId "${angleId}"`, () => {
+        const prompt = fn("test", mockInvestigation);
+        expect(prompt).toContain(`"${angleId}"`);
+      });
+
+      it("requests JSON output with ideas structure", () => {
+        const prompt = fn("test", mockInvestigation);
+        expect(prompt).toContain("angleId");
+        expect(prompt).toContain("angleName");
+        expect(prompt).toContain('"ideas"');
+        expect(prompt).toContain("JSON");
+      });
+
+      it("produces valid prompt with empty investigation", () => {
+        const prompt = fn("test", emptyInvestigation);
+        expect(prompt).not.toContain("undefined");
+        expect(prompt.length).toBeGreaterThan(100);
+      });
+    });
+  }
+});
