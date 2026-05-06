@@ -13,6 +13,10 @@
     "./types": {
       "import": "./dist/client.js",
       "types": "./dist/client.d.ts"
+    },
+    "./storage/sqlite": {
+      "import": "./dist/storage/sqlite.js",
+      "types": "./dist/storage/sqlite.d.ts"
     }
   },
   "scripts": {

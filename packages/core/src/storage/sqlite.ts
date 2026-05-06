@@ -555,3 +555,14 @@ export class SQLiteStorageProvider implements StorageProvider {
     this.db.close();
   }
 }
+
+/**
+ * Create and configure a SQLite storage provider from a file path.
+ * Convenience helper that handles the common case.
+ */
+export async function createSQLiteStorage(filepath: string): Promise<StorageProvider> {
+  const db = createBetterSqliteDB(filepath);
+  const provider = new SQLiteStorageProvider(db);
+  await provider.initialize();
+  return provider;
+}

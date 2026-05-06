@@ -20,8 +20,6 @@ export type {
 } from "./types.js";
 
 export { InMemoryStorageProvider } from "./memory.js";
-export { SQLiteStorageProvider, createBetterSqliteDB } from "./sqlite.js";
-export type { SQLiteDB, TursoConfig } from "./sqlite.js";
 
 let globalProvider: StorageProvider = new InMemoryStorageProvider();
 
@@ -43,16 +41,4 @@ export async function initializeStorage(): Promise<void> {
 /** Close the global storage provider (for graceful shutdown). */
 export async function closeStorage(): Promise<void> {
   await globalProvider.close();
-}
-
-/**
- * Create and configure a SQLite storage provider from a file path.
- * Convenience helper that handles the common case.
- */
-export async function createSQLiteStorage(filepath: string): Promise<StorageProvider> {
-  const { SQLiteStorageProvider, createBetterSqliteDB } = await import("./sqlite.js");
-  const db = createBetterSqliteDB(filepath);
-  const provider = new SQLiteStorageProvider(db);
-  await provider.initialize();
-  return provider;
 }

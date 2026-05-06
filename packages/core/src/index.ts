@@ -1714,10 +1714,7 @@ export {
   setStorage,
   initializeStorage,
   closeStorage,
-  createSQLiteStorage,
   InMemoryStorageProvider,
-  SQLiteStorageProvider,
-  createBetterSqliteDB,
 } from "./storage/index.js";
 export type {
   StorageProvider,
@@ -1727,8 +1724,6 @@ export type {
   CollaborationStorage,
   AnalyticsStorage,
   KnowledgeGraphStorage,
-  SQLiteDB,
-  TursoConfig,
 } from "./storage/index.js";
 
 /** Migration tool — import file-based data into a StorageProvider. */
