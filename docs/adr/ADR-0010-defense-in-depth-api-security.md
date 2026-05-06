@@ -17,7 +17,7 @@ The team needed a security model that works for both local development (minimal 
 
 ## Decision
 
-We implement **layered security** in Next.js middleware (`apps/web/src/middleware.ts`):
+We implement **layered security** in the web app's API layer (`apps/web/src/lib/rate-limit.ts` and `apps/web/src/lib/api-auth.ts`):
 
 ### 1. API Key Authentication (Optional)
 

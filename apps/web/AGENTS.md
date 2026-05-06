@@ -48,7 +48,7 @@ apps/web/src/
 │   ├── rate-limit.ts         # In-memory rate limiting
 │   ├── logger.ts             # Structured logging
 │   └── env.ts                # Environment configuration
-├── middleware.ts              # Rate limiting, auth, CSP headers, body size limits
+├── proxy.ts                   # Rate limiting, auth, CSP headers, body size limits
 └── instrumentation.ts         # CopilotClient lifecycle (env validation + graceful shutdown)
 ```
 
@@ -74,7 +74,7 @@ apps/web/src/
 
 ### Authentication
 
-- `src/middleware.ts` checks `INNOVATOR_API_KEY` on all `/api/*` routes when the env var is set
+- `src/proxy.ts` checks `INNOVATOR_API_KEY` on all `/api/*` routes when the env var is set
 - `INNOVATOR_API_KEYS` supports comma-separated multi-key auth
 - See `src/lib/api-auth.ts` for validation logic
 
@@ -98,7 +98,7 @@ apps/web/src/
 | ------------------- | -------------------------------------------------------------------------------------------------------- |
 | Add a new API route | Create `src/app/api/<name>/route.ts`, export `GET`/`POST`, validate with Zod, use `API_RESPONSE_HEADERS` |
 | Add a new component | Create in `src/components/`, add test in `src/components/__tests__/`                                     |
-| Modify auth         | Edit `src/lib/api-auth.ts` and `src/middleware.ts`                                                       |
+| Modify auth         | Edit `src/lib/api-auth.ts` and `src/proxy.ts`                                                       |
 | Start dev server    | `npm run dev` from monorepo root (builds core first, then starts Next.js)                                |
 | Run tests           | `npm test` from monorepo root                                                                            |
 
@@ -117,5 +117,5 @@ See `.env.local.example` at monorepo root. Key variables:
 
 - Do not add `"use client"` to API route files
 - Do not import from `@innovator/core` in client components (use `@innovator/core/types` for types only)
-- Do not modify `middleware.ts` without understanding the rate-limiting and auth flow
+- Do not modify `proxy.ts` without understanding the rate-limiting and auth flow
 - Do not use `fetch()` in server-side API routes to call other API routes — import the core functions directly
