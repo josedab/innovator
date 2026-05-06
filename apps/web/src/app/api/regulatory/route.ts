@@ -10,8 +10,8 @@ const RequestSchema = z.object({
   idea: z.object({
     title: z.string().min(1).max(500),
     description: z.string().min(1).max(3000),
-    impact: z.string().max(500).optional(),
-    implementationHint: z.string().max(500).optional(),
+    potentialImpact: z.string().max(500).default(""),
+    implementationHint: z.string().max(500).default(""),
   }),
   model: z.string().max(100).optional(),
   jurisdictions: z.array(z.string().max(100)).max(20).optional(),
