@@ -7,7 +7,11 @@ vi.mock("@github/copilot-sdk", () => ({
 
 vi.mock("../copilot/client.js", () => ({
   generateText: vi.fn(),
-  extractJson: vi.fn(),
+  extractJson: vi.fn((s: string) => s),
+}));
+
+vi.mock("../copilot/retry.js", () => ({
+  withRetry: vi.fn(async (fn: () => Promise<unknown>) => fn()),
 }));
 
 import {
@@ -18,12 +22,19 @@ import {
   getGoNoGoMilestones,
   calculateExpectedROI,
   generateTimeline,
+  runMonteCarloSimulation,
+  simulateImpact,
 } from "../impact-simulator/index.js";
 import type {
   ImpactSimulation,
   ResourceRequirement,
   ScenarioSimulation,
+  MonteCarloInput,
 } from "../impact-simulator/index.js";
+import { generateText, extractJson } from "../copilot/client.js";
+
+const mockGenerateText = vi.mocked(generateText);
+const mockExtractJson = vi.mocked(extractJson);
 
 function makeSimulation(): ImpactSimulation {
   return {
@@ -273,6 +284,210 @@ describe("impact-simulator", () => {
       const types = new Set(timeline.map((t) => t.type));
       expect(types.has("milestone") || types.has("decision")).toBe(true);
       expect(types.has("go-no-go")).toBe(true);
+    });
+  });
+
+  describe("runMonteCarloSimulation", () => {
+    const baseInput: MonteCarloInput = {
+      marketSizeMin: 10000,
+      marketSizeMax: 50000,
+      implementationCostMin: 100000,
+      implementationCostMax: 300000,
+      adoptionRateMin: 0.05,
+      adoptionRateMax: 0.3,
+      revenuePerUserMin: 50,
+      revenuePerUserMax: 200,
+    };
+
+    it("returns a valid result with correct iterations (capped to min 100)", () => {
+      const result = runMonteCarloSimulation("Test Idea", baseInput, 1000);
+      expect(result.ideaTitle).toBe("Test Idea");
+      expect(result.iterations).toBe(1000);
+      expect(result.histogram.length).toBe(20);
+    });
+
+    it("clamps iterations to minimum of 100", () => {
+      const result = runMonteCarloSimulation("Test", baseInput, 1);
+      expect(result.iterations).toBe(100);
+    });
+
+    it("clamps iterations to maximum of 100000", () => {
+      const result = runMonteCarloSimulation("Test", baseInput, 999999);
+      expect(result.iterations).toBe(100000);
+    });
+
+    it("histogram buckets sum to approximately total iterations", () => {
+      const result = runMonteCarloSimulation("Test", baseInput, 500);
+      const totalCount = result.histogram.reduce((sum, b) => sum + b.count, 0);
+      // Floating-point bucket boundaries may cause off-by-one
+      expect(totalCount).toBeGreaterThanOrEqual(result.iterations - 1);
+      expect(totalCount).toBeLessThanOrEqual(result.iterations);
+    });
+
+    it("histogram percentages sum to approximately 100", () => {
+      const result = runMonteCarloSimulation("Test", baseInput, 1000);
+      const totalPct = result.histogram.reduce((sum, b) => sum + b.percentage, 0);
+      expect(totalPct).toBeCloseTo(100, 0);
+    });
+
+    it("provides percentile values in increasing order", () => {
+      const result = runMonteCarloSimulation("Test", baseInput, 1000);
+      const d = result.roiDistribution;
+      expect(d.min).toBeLessThanOrEqual(d.p5);
+      expect(d.p5).toBeLessThanOrEqual(d.p25);
+      expect(d.p25).toBeLessThanOrEqual(d.median);
+      expect(d.median).toBeLessThanOrEqual(d.p75);
+      expect(d.p75).toBeLessThanOrEqual(d.p95);
+      expect(d.p95).toBeLessThanOrEqual(d.max);
+    });
+
+    it("scenario comparison p10 < p50 < p90", () => {
+      const result = runMonteCarloSimulation("Test", baseInput, 1000);
+      expect(result.scenarioComparison.pessimistic.roi).toBeLessThanOrEqual(
+        result.scenarioComparison.base.roi
+      );
+      expect(result.scenarioComparison.base.roi).toBeLessThanOrEqual(
+        result.scenarioComparison.optimistic.roi
+      );
+    });
+
+    it("breakEvenProbability is between 0 and 1", () => {
+      const result = runMonteCarloSimulation("Test", baseInput, 1000);
+      expect(result.breakEvenProbability).toBeGreaterThanOrEqual(0);
+      expect(result.breakEvenProbability).toBeLessThanOrEqual(1);
+    });
+
+    it("sensitivity analysis includes market size, cost, and adoption", () => {
+      const result = runMonteCarloSimulation("Test", baseInput, 500);
+      const vars = result.sensitivityAnalysis.map((s) => s.variable);
+      expect(vars).toContain("Market Size");
+      expect(vars).toContain("Implementation Cost");
+      expect(vars).toContain("Adoption Rate");
+    });
+
+    it("sensitivity values are sorted by descending sensitivity", () => {
+      const result = runMonteCarloSimulation("Test", baseInput, 500);
+      for (let i = 1; i < result.sensitivityAnalysis.length; i++) {
+        expect(result.sensitivityAnalysis[i].sensitivity).toBeLessThanOrEqual(
+          result.sensitivityAnalysis[i - 1].sensitivity
+        );
+      }
+    });
+
+    it("handles zero cost (division guard) — ROI should be 0", () => {
+      const input: MonteCarloInput = {
+        ...baseInput,
+        implementationCostMin: 0,
+        implementationCostMax: 0,
+      };
+      const result = runMonteCarloSimulation("Zero Cost", input, 100);
+      expect(result.roiDistribution.mean).toBe(0);
+    });
+
+    it("handles negative revenue scenario gracefully", () => {
+      const input: MonteCarloInput = {
+        marketSizeMin: 0,
+        marketSizeMax: 100,
+        implementationCostMin: 100000,
+        implementationCostMax: 500000,
+        adoptionRateMin: 0,
+        adoptionRateMax: 0.01,
+        revenuePerUserMin: 0,
+        revenuePerUserMax: 1,
+      };
+      const result = runMonteCarloSimulation("Low Revenue", input, 100);
+      // ROIs should be mostly negative (cost >> revenue)
+      expect(result.roiDistribution.mean).toBeLessThan(0);
+    });
+
+    it("works without optional revenuePerUser fields", () => {
+      const input: MonteCarloInput = {
+        marketSizeMin: 10000,
+        marketSizeMax: 50000,
+        implementationCostMin: 100000,
+        implementationCostMax: 200000,
+        adoptionRateMin: 0.1,
+        adoptionRateMax: 0.5,
+      };
+      const result = runMonteCarloSimulation("No Rev", input, 100);
+      expect(result.iterations).toBe(100);
+      expect(result.roiDistribution).toBeDefined();
+    });
+  });
+
+  describe("simulateImpact", () => {
+    it("calls LLM and returns validated simulation", async () => {
+      const mockSim = {
+        ideaTitle: "AI Dashboard",
+        scenarios: [
+          {
+            type: "baseline",
+            probability: 0.5,
+            assumptions: ["Normal"],
+            monthlyData: [
+              {
+                month: 1,
+                adoptionPercent: 2,
+                cost: 50000,
+                cumulativeInvestment: 50000,
+                keyActivity: "Build",
+              },
+            ],
+            totalInvestment: 600000,
+            projectedROI: 2.5,
+            breakEvenMonth: 9,
+            riskFactors: ["Competition"],
+          },
+        ],
+        milestones: [
+          {
+            month: 3,
+            title: "MVP",
+            description: "Launch",
+            type: "launch",
+            successMetric: "100 users",
+            isGoNoGo: true,
+          },
+        ],
+        resources: [
+          {
+            category: "engineering",
+            description: "Devs",
+            monthlyCost: 45000,
+            startMonth: 1,
+            endMonth: 12,
+          },
+        ],
+        decisionPoints: [
+          {
+            month: 3,
+            title: "Go/No-Go",
+            criteria: ["50 signups"],
+            goThreshold: "50+",
+            noGoThreshold: "<20",
+            fallbackPlan: "Pivot",
+          },
+        ],
+        overallRecommendation: "Proceed",
+        confidenceLevel: 0.7,
+      };
+
+      mockGenerateText.mockResolvedValue(JSON.stringify(mockSim));
+
+      const idea = {
+        title: "AI Dashboard",
+        description: "An AI-powered dashboard",
+        potentialImpact: "High",
+        implementationHint: "Start with MVP",
+      };
+
+      const result = await simulateImpact(idea);
+      expect(result.ideaTitle).toBe("AI Dashboard");
+      expect(result.simulatedAt).toBeDefined();
+      expect(result.scenarios).toHaveLength(1);
+
+      // Should be stored
+      expect(getSimulation("AI Dashboard")).toBeDefined();
     });
   });
 });
