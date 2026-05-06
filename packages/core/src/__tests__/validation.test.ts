@@ -10,12 +10,30 @@ vi.mock("../copilot/client.js", () => ({
   extractJson: vi.fn(),
 }));
 
+vi.mock("../copilot/retry.js", () => ({
+  withRetry: vi.fn((fn: () => Promise<unknown>) => fn()),
+}));
+
+vi.mock("../prompts/sanitize.js", () => ({
+  sanitizeLlmOutput: vi.fn((s: string) => s),
+  wrapUserInput: vi.fn((label: string, value: string) => `${label}: ${value}`),
+}));
+
+import { generateText, extractJson } from "../copilot/client.js";
+
 import {
   registerValidator,
   unregisterValidator,
   listValidators,
   clearValidators,
   validateIdea,
+  validateIdeas,
+  validateComprehensive,
+  PatentValidator,
+  MarketValidator,
+  FeasibilityValidator,
+  MarketSizingValidator,
+  RegulatoryValidator,
   ValidationScorecardSchema,
   ValidationResultSchema,
 } from "../validation/index.js";
@@ -222,6 +240,173 @@ describe("validation", () => {
         generatedAt: new Date().toISOString(),
       };
       expect(() => ValidationScorecardSchema.parse(scorecard)).toThrow();
+    });
+  });
+
+  describe("boundary value status mapping", () => {
+    it("score=70 → validated (risk 30, overall 70)", async () => {
+      registerValidator(makeValidator("v1", 30));
+      const result = await validateIdea(testIdea, "tech");
+      expect(result.overallScore).toBe(70);
+      expect(result.overallStatus).toBe("validated");
+    });
+
+    it("score=69 → caution (risk 31, overall 69)", async () => {
+      registerValidator(makeValidator("v1", 31));
+      const result = await validateIdea(testIdea, "tech");
+      expect(result.overallScore).toBe(69);
+      expect(result.overallStatus).toBe("caution");
+    });
+
+    it("score=40 → caution (risk 60, overall 40)", async () => {
+      registerValidator(makeValidator("v1", 60));
+      const result = await validateIdea(testIdea, "tech");
+      expect(result.overallScore).toBe(40);
+      expect(result.overallStatus).toBe("caution");
+    });
+
+    it("score=39 → risky (risk 61, overall 39)", async () => {
+      registerValidator(makeValidator("v1", 61));
+      const result = await validateIdea(testIdea, "tech");
+      expect(result.overallScore).toBe(39);
+      expect(result.overallStatus).toBe("risky");
+    });
+
+    it("score=0 → insufficient-data (risk 100, overall 0)", async () => {
+      registerValidator(makeValidator("v1", 100));
+      const result = await validateIdea(testIdea, "tech");
+      expect(result.overallScore).toBe(0);
+      expect(result.overallStatus).toBe("insufficient-data");
+    });
+  });
+
+  describe("built-in validators", () => {
+    it("PatentValidator has correct metadata", () => {
+      expect(PatentValidator.id).toBe("patent-search");
+      expect(PatentValidator.category).toBe("patent");
+    });
+
+    it("MarketValidator has correct metadata", () => {
+      expect(MarketValidator.id).toBe("market-analysis");
+      expect(MarketValidator.category).toBe("competitor");
+    });
+
+    it("FeasibilityValidator has correct metadata", () => {
+      expect(FeasibilityValidator.id).toBe("feasibility-check");
+      expect(FeasibilityValidator.category).toBe("feasibility");
+    });
+
+    it("MarketSizingValidator has correct metadata", () => {
+      expect(MarketSizingValidator.id).toBe("market-sizing");
+      expect(MarketSizingValidator.category).toBe("market");
+    });
+
+    it("RegulatoryValidator has correct metadata", () => {
+      expect(RegulatoryValidator.id).toBe("regulatory-check");
+      expect(RegulatoryValidator.category).toBe("regulatory");
+    });
+
+    it("PatentValidator returns pass/warn/fail based on score", async () => {
+      vi.mocked(generateText).mockResolvedValue('{"score": 30, "summary": "Low patent risk"}');
+      vi.mocked(extractJson).mockReturnValue('{"score": 30, "summary": "Low patent risk"}');
+      const check = await PatentValidator.validate(testIdea, "tech");
+      expect(check.status).toBe("pass");
+      expect(check.category).toBe("patent");
+    });
+
+    it("PatentValidator returns fail for high score", async () => {
+      vi.mocked(generateText).mockResolvedValue('{"score": 80, "summary": "High patent risk"}');
+      vi.mocked(extractJson).mockReturnValue('{"score": 80, "summary": "High patent risk"}');
+      const check = await PatentValidator.validate(testIdea, "tech");
+      expect(check.status).toBe("fail");
+    });
+
+    it("MarketSizingValidator parses TAM/SAM/SOM response", async () => {
+      const response = JSON.stringify({
+        score: 25,
+        summary: "Large market opportunity",
+        details: "TAM: $50B, SAM: $10B, SOM: $1B",
+        references: ["Cloud computing market"],
+      });
+      vi.mocked(generateText).mockResolvedValue(response);
+      vi.mocked(extractJson).mockReturnValue(response);
+      const check = await MarketSizingValidator.validate(testIdea, "tech");
+      expect(check.status).toBe("pass");
+      expect(check.details).toContain("TAM");
+    });
+
+    it("RegulatoryValidator parses compliance response", async () => {
+      const response = JSON.stringify({
+        score: 45,
+        summary: "Moderate regulatory complexity",
+        details: "GDPR compliance needed",
+        references: ["GDPR", "CCPA"],
+      });
+      vi.mocked(generateText).mockResolvedValue(response);
+      vi.mocked(extractJson).mockReturnValue(response);
+      const check = await RegulatoryValidator.validate(testIdea, "tech");
+      expect(check.status).toBe("warn");
+      expect(check.references).toContain("GDPR");
+    });
+
+    it("handles JSON parse errors gracefully in validateIdea", async () => {
+      clearValidators();
+      registerValidator({
+        id: "bad-json",
+        name: "Bad JSON Validator",
+        category: "feasibility",
+        async validate() {
+          throw new Error("JSON parse error");
+        },
+      });
+      const result = await validateIdea(testIdea, "tech");
+      expect(result.checks).toHaveLength(1);
+      expect(result.checks[0].status).toBe("unknown");
+      expect(result.checks[0].score).toBe(50);
+    });
+  });
+
+  describe("validateIdeas", () => {
+    it("validates multiple ideas and produces scorecard", async () => {
+      registerValidator(makeValidator("v1", 30));
+      const ideas = [testIdea, { ...testIdea, title: "Another Idea" }];
+      const scorecard = await validateIdeas(ideas, "tech");
+      expect(scorecard.results).toHaveLength(2);
+      expect(scorecard.domain).toBe("tech");
+      expect(scorecard.summary).toContain("2 ideas");
+    });
+  });
+
+  describe("validateComprehensive", () => {
+    it("produces comprehensive validation with market context", async () => {
+      registerValidator(makeValidator("v1", 30));
+      const result = await validateComprehensive([testIdea], "tech");
+      expect(result.scorecard).toBeDefined();
+      expect(result.marketContext).toBeDefined();
+      expect(result.marketContext.overallViability).toBeDefined();
+      expect(result.topRecommendations).toBeDefined();
+    });
+  });
+
+  describe("recommendation generation", () => {
+    it("recommends proceeding when all checks pass", async () => {
+      registerValidator(makeValidator("v1", 10));
+      const result = await validateIdea(testIdea, "tech");
+      expect(result.recommendation).toContain("viable");
+    });
+
+    it("includes concerns for score >= 70", async () => {
+      registerValidator(makeValidator("warn-v", 50));
+      const result = await validateIdea(testIdea, "tech");
+      // overallScore = 50, status = caution
+      expect(result.recommendation).toBeTruthy();
+    });
+
+    it("flags significant risks for low scores", async () => {
+      registerValidator(makeValidator("v1", 80));
+      const result = await validateIdea(testIdea, "tech");
+      // overallScore = 20, status = risky
+      expect(result.recommendation).toContain("risk");
     });
   });
 });
