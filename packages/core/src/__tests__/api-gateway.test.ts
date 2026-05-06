@@ -16,6 +16,15 @@ import {
   removeWebhook,
   getOpenApiSpec,
   clearApiGateway,
+  createTenant,
+  getTenant,
+  findTenantBySlug,
+  listTenants,
+  updateTenantTier,
+  suspendTenant,
+  addTenantApiKey,
+  getDeveloperPortalInfo,
+  createDemoKey,
   TIER_LIMITS,
 } from "../api-gateway/index.js";
 
@@ -345,6 +354,164 @@ describe("api-gateway", () => {
       expect(spec.openapi).toBe("3.1.0");
       expect((spec.info as Record<string, unknown>).title).toBe("Innovator API");
       expect(spec.paths).toBeDefined();
+    });
+  });
+
+  // ---- Multi-Tenant Management ----
+
+  describe("createTenant", () => {
+    it("creates a tenant with default free tier", () => {
+      const tenant = createTenant("Acme Corp", "admin@acme.com");
+      expect(tenant.name).toBe("Acme Corp");
+      expect(tenant.ownerEmail).toBe("admin@acme.com");
+      expect(tenant.tier).toBe("free");
+      expect(tenant.status).toBe("active");
+      expect(tenant.apiKeys).toHaveLength(1);
+      expect(tenant.settings.maxKeys).toBe(2);
+      expect(tenant.settings.webhooksEnabled).toBe(false);
+    });
+
+    it("creates a pro tenant with correct settings", () => {
+      const tenant = createTenant("Pro Corp", "admin@pro.com", "pro");
+      expect(tenant.tier).toBe("pro");
+      expect(tenant.settings.maxKeys).toBe(10);
+      expect(tenant.settings.webhooksEnabled).toBe(true);
+    });
+
+    it("creates an enterprise tenant with correct settings", () => {
+      const tenant = createTenant("Big Corp", "admin@big.com", "enterprise");
+      expect(tenant.tier).toBe("enterprise");
+      expect(tenant.settings.maxKeys).toBe(50);
+      expect(tenant.settings.webhooksEnabled).toBe(true);
+    });
+
+    it("generates a valid slug", () => {
+      const tenant = createTenant("My Great Company!", "a@b.com");
+      expect(tenant.slug).toMatch(/^[a-z0-9-]+$/);
+    });
+
+    it("creates an initial API key for the tenant", () => {
+      const tenant = createTenant("Test", "t@t.com", "free");
+      const key = getApiKey(tenant.apiKeys[0]);
+      expect(key).toBeDefined();
+      expect(key!.tier).toBe("free");
+    });
+  });
+
+  describe("getTenant / findTenantBySlug", () => {
+    it("retrieves tenant by ID", () => {
+      const tenant = createTenant("Find Me", "f@m.com");
+      expect(getTenant(tenant.id)).toBeDefined();
+      expect(getTenant(tenant.id)!.name).toBe("Find Me");
+    });
+
+    it("returns undefined for unknown ID", () => {
+      expect(getTenant("nonexistent")).toBeUndefined();
+    });
+
+    it("finds tenant by slug", () => {
+      const tenant = createTenant("Slug Test", "s@t.com");
+      const found = findTenantBySlug(tenant.slug);
+      expect(found).toBeDefined();
+      expect(found!.id).toBe(tenant.id);
+    });
+
+    it("returns undefined for unknown slug", () => {
+      expect(findTenantBySlug("nonexistent")).toBeUndefined();
+    });
+  });
+
+  describe("listTenants", () => {
+    it("returns all tenants", () => {
+      createTenant("A", "a@a.com");
+      createTenant("B", "b@b.com");
+      expect(listTenants()).toHaveLength(2);
+    });
+  });
+
+  describe("updateTenantTier", () => {
+    it("upgrades tenant tier and updates all keys", () => {
+      const tenant = createTenant("Upgrade Me", "u@m.com", "free");
+      expect(updateTenantTier(tenant.id, "pro")).toBe(true);
+      const updated = getTenant(tenant.id)!;
+      expect(updated.tier).toBe("pro");
+      expect(updated.settings.maxKeys).toBe(10);
+      expect(updated.settings.webhooksEnabled).toBe(true);
+      const key = getApiKey(tenant.apiKeys[0])!;
+      expect(key.tier).toBe("pro");
+    });
+
+    it("returns false for unknown tenant", () => {
+      expect(updateTenantTier("nonexistent", "pro")).toBe(false);
+    });
+  });
+
+  describe("suspendTenant", () => {
+    it("suspends tenant and revokes all API keys", () => {
+      const tenant = createTenant("Suspend Me", "s@m.com");
+      expect(suspendTenant(tenant.id)).toBe(true);
+      const suspended = getTenant(tenant.id)!;
+      expect(suspended.status).toBe("suspended");
+      const key = getApiKey(tenant.apiKeys[0])!;
+      expect(key.enabled).toBe(false);
+    });
+
+    it("returns false for unknown tenant", () => {
+      expect(suspendTenant("nonexistent")).toBe(false);
+    });
+  });
+
+  describe("addTenantApiKey", () => {
+    it("adds a new API key to an active tenant", () => {
+      const tenant = createTenant("Key Test", "k@t.com", "pro");
+      const newKey = addTenantApiKey(tenant.id, "Extra Key");
+      expect(newKey).not.toBeNull();
+      expect(newKey!.tier).toBe("pro");
+      expect(getTenant(tenant.id)!.apiKeys).toHaveLength(2);
+    });
+
+    it("returns null when tenant at max keys", () => {
+      const tenant = createTenant("Max Keys", "m@k.com", "free"); // maxKeys=2
+      addTenantApiKey(tenant.id, "Key 2");
+      const third = addTenantApiKey(tenant.id, "Key 3");
+      expect(third).toBeNull();
+    });
+
+    it("returns null for suspended tenant", () => {
+      const tenant = createTenant("Suspended", "s@s.com");
+      suspendTenant(tenant.id);
+      expect(addTenantApiKey(tenant.id, "New")).toBeNull();
+    });
+
+    it("returns null for unknown tenant", () => {
+      expect(addTenantApiKey("nonexistent", "Key")).toBeNull();
+    });
+  });
+
+  describe("getDeveloperPortalInfo", () => {
+    it("returns portal info for a tenant", () => {
+      const tenant = createTenant("Portal Test", "p@t.com", "pro");
+      const info = getDeveloperPortalInfo(tenant.id);
+      expect(info).not.toBeNull();
+      expect(info!.tenantName).toBe("Portal Test");
+      expect(info!.tier).toBe("pro");
+      expect(info!.apiKeys).toHaveLength(1);
+      expect(info!.endpoints.length).toBeGreaterThan(0);
+      expect(info!.usage.dailyLimit).toBe(TIER_LIMITS.pro.dailyLimit);
+    });
+
+    it("returns null for unknown tenant", () => {
+      expect(getDeveloperPortalInfo("nonexistent")).toBeNull();
+    });
+  });
+
+  describe("createDemoKey", () => {
+    it("creates a demo key with restricted limits", () => {
+      const demo = createDemoKey();
+      expect(demo.rateLimit.dailyLimit).toBe(5);
+      expect(demo.rateLimit.minuteLimit).toBe(2);
+      expect(demo.metadata).toBeDefined();
+      expect(demo.metadata!.demo).toBe("true");
     });
   });
 });
