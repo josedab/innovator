@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 vi.mock("node:fs", () => ({
   existsSync: vi.fn(),
@@ -263,6 +263,199 @@ describe("providers", () => {
       const p = new OllamaProvider();
       expect(p.id).toBe("ollama");
       expect(p.name).toBe("Ollama (Local)");
+    });
+  });
+
+  // ---- HTTP-level provider tests ----
+
+  describe("OpenAIProvider HTTP", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("sends correct headers and body format", async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ choices: [{ message: { content: "result" } }] }),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const p = new OpenAIProvider("sk-test", "https://api.openai.com/v1");
+      await p.generateText({ prompt: "hello", model: "gpt-4.1" });
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://api.openai.com/v1/chat/completions",
+        expect.objectContaining({ method: "POST" })
+      );
+      const opts = fetchMock.mock.calls[0][1];
+      expect(opts.headers.Authorization).toBe("Bearer sk-test");
+      const body = JSON.parse(opts.body);
+      expect(body.model).toBe("gpt-4.1");
+      expect(body.messages).toEqual([{ role: "user", content: "hello" }]);
+    });
+
+    it("parses SSE stream chunks", async () => {
+      let idx = 0;
+      const chunks = [
+        'data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n',
+        'data: {"choices":[{"delta":{"content":" there"}}]}\n\ndata: [DONE]\n\n',
+      ];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          body: {
+            getReader: () => ({
+              read: vi.fn().mockImplementation(() => {
+                if (idx >= chunks.length) return Promise.resolve({ done: true, value: undefined });
+                return Promise.resolve({
+                  done: false,
+                  value: new TextEncoder().encode(chunks[idx++]),
+                });
+              }),
+            }),
+          },
+        })
+      );
+
+      const p = new OpenAIProvider("sk-test");
+      const received: string[] = [];
+      const result = await p.generateStream({ prompt: "test" }, (c) => received.push(c));
+      expect(result).toBe("Hi there");
+      expect(received).toEqual(["Hi", " there"]);
+    });
+
+    it("throws on non-OK response", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: false, status: 429, statusText: "Too Many Requests" })
+      );
+      const p = new OpenAIProvider("sk-test");
+      await expect(p.generateText({ prompt: "test" })).rejects.toThrow("OpenAI API error: 429");
+    });
+  });
+
+  describe("AnthropicProvider HTTP", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("sends correct headers including anthropic-version", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ content: [{ type: "text", text: "Claude says hi" }] }),
+        })
+      );
+
+      const p = new AnthropicProvider("sk-ant-key");
+      const result = await p.generateText({ prompt: "hi" });
+      expect(result).toBe("Claude says hi");
+
+      const opts = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][1];
+      expect(opts.headers["x-api-key"]).toBe("sk-ant-key");
+      expect(opts.headers["anthropic-version"]).toBe("2023-06-01");
+      const body = JSON.parse(opts.body);
+      expect(body.max_tokens).toBe(4096);
+    });
+
+    it("parses SSE stream with content_block_delta events", async () => {
+      let idx = 0;
+      const chunks = [
+        'data: {"type":"content_block_delta","delta":{"text":"A"}}\n\n',
+        'data: {"type":"content_block_delta","delta":{"text":"B"}}\n\n',
+      ];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          body: {
+            getReader: () => ({
+              read: vi.fn().mockImplementation(() => {
+                if (idx >= chunks.length) return Promise.resolve({ done: true, value: undefined });
+                return Promise.resolve({
+                  done: false,
+                  value: new TextEncoder().encode(chunks[idx++]),
+                });
+              }),
+            }),
+          },
+        })
+      );
+
+      const p = new AnthropicProvider("sk-ant-key");
+      const received: string[] = [];
+      const result = await p.generateStream({ prompt: "test" }, (c) => received.push(c));
+      expect(result).toBe("AB");
+      expect(received).toEqual(["A", "B"]);
+    });
+  });
+
+  describe("OllamaProvider HTTP", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("sends correct body format with stream:false", async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ response: "local response" }),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const p = new OllamaProvider("http://localhost:11434");
+      const result = await p.generateText({ prompt: "hello", model: "llama3" });
+      expect(result).toBe("local response");
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(body.stream).toBe(false);
+      expect(body.model).toBe("llama3");
+      expect(body.prompt).toBe("hello");
+    });
+
+    it("parses newline-delimited JSON stream", async () => {
+      let idx = 0;
+      const chunks = [
+        '{"response":"X","done":false}\n',
+        '{"response":"Y","done":false}\n{"response":"","done":true}\n',
+      ];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          body: {
+            getReader: () => ({
+              read: vi.fn().mockImplementation(() => {
+                if (idx >= chunks.length) return Promise.resolve({ done: true, value: undefined });
+                return Promise.resolve({
+                  done: false,
+                  value: new TextEncoder().encode(chunks[idx++]),
+                });
+              }),
+            }),
+          },
+        })
+      );
+
+      const p = new OllamaProvider();
+      const received: string[] = [];
+      const result = await p.generateStream({ prompt: "test" }, (c) => received.push(c));
+      expect(result).toBe("XY");
+      expect(received).toEqual(["X", "Y"]);
+    });
+
+    it("lists models from /api/tags", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ models: [{ name: "llama3" }, { name: "mistral" }] }),
+        })
+      );
+      const p = new OllamaProvider();
+      const models = await p.listModels();
+      expect(models).toHaveLength(2);
+      expect(models[0].id).toBe("llama3");
+    });
+
+    it("returns empty array on connection error", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNREFUSED")));
+      const p = new OllamaProvider();
+      expect(await p.listModels()).toEqual([]);
     });
   });
 });
