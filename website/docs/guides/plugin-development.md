@@ -8,6 +8,93 @@ sidebar_position: 17
 
 This guide walks you through creating custom plugins for Innovator. Plugins let you extend the system with new innovation angles, export formats, and visualizations.
 
+## Quick Start — Hello World Plugin
+
+Copy and save this as `hello-plugin.ts`, then run it to verify your setup:
+
+```typescript
+// hello-plugin.ts — Minimal runnable plugin example
+import { investigate, generateForAngle, registerPlugin } from "@innovator/core";
+import type { AnglePlugin, CustomAngle } from "@innovator/core/types";
+
+// 1. Define a custom angle
+const helloAngle: CustomAngle = {
+  id: "hello-world",
+  name: "Hello World",
+  description: "A minimal example angle that generates beginner-friendly ideas",
+  promptTemplate: `You are a friendly innovation assistant.
+
+Given the subject: {{subject}}
+
+And this investigation context:
+{{investigation}}
+
+Generate 3 simple, beginner-friendly ideas for improving this subject.
+For each idea, provide:
+- "title": a short title
+- "description": one sentence explanation
+
+Respond with JSON: { "ideas": [...] }`,
+  icon: "👋",
+  author: "Example",
+  version: "1.0.0",
+  tags: ["example"],
+};
+
+// 2. Bundle into a plugin
+const helloPlugin: AnglePlugin = {
+  id: "example.hello-world",
+  name: "Hello World Plugin",
+  version: "1.0.0",
+  description: "A minimal example plugin",
+  type: "angle",
+  angles: [helloAngle],
+};
+
+// 3. Register and use
+async function main() {
+  registerPlugin(helloPlugin);
+
+  const subject = process.argv[2] || "morning coffee routine";
+  console.log(`🔍 Investigating: "${subject}"`);
+
+  const investigation = await investigate(subject);
+  console.log(`📋 Summary: ${investigation.summary}\n`);
+
+  console.log("👋 Running Hello World angle...\n");
+  const result = await generateForAngle(subject, "hello-world", investigation);
+
+  for (const idea of result.ideas) {
+    console.log(`  💡 ${idea.title}: ${idea.description}`);
+  }
+}
+
+main().catch((err) => {
+  console.error("Error:", err.message);
+  process.exit(1);
+});
+```
+
+```bash
+# Prerequisites: gh auth login + npm run build --workspace=packages/core
+npx tsx hello-plugin.ts "morning coffee routine"
+```
+
+Expected output:
+
+```
+🔍 Investigating: "morning coffee routine"
+📋 Summary: The morning coffee routine encompasses...
+
+👋 Running Hello World angle...
+
+  💡 Timed Brew Tracker: An app that tracks brew time for consistent quality.
+  💡 Community Bean Exchange: A neighborhood program for sharing specialty beans.
+  💡 Mindful Coffee Ritual: A guided routine combining coffee prep with meditation.
+```
+
+---
+
 ## Plugin Types
 
 Innovator supports three plugin types:
