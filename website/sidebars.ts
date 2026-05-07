@@ -30,6 +30,7 @@ const sidebars: SidebarsConfig = {
         "guides/voice",
         "guides/feature-catalog",
         "guides/testing",
+        "guides/github-action",
       ],
     },
     "api-reference",
