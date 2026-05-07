@@ -74,16 +74,71 @@ When complete, the app automatically transitions to the Results view with full s
 
 ## API routes
 
-The web app exposes three API endpoints:
+The web app exposes the following API endpoints. All routes validate request bodies with Zod and return structured JSON error responses on failure.
 
-| Route              | Method | Description                             |
-| ------------------ | ------ | --------------------------------------- |
-| `/api/health`      | GET    | Health check (returns status + version) |
-| `/api/investigate` | POST   | Investigate a subject                   |
-| `/api/innovate`    | POST   | Generate ideas for selected angles      |
-| `/api/auto`        | POST   | Run full pipeline with SSE streaming    |
+### Core Pipeline
 
-All routes validate request bodies with Zod and return structured JSON error responses on failure.
+| Route              | Method | Description                                                      |
+| ------------------ | ------ | ---------------------------------------------------------------- |
+| `/api/investigate` | POST   | Analyze a subject and return structured investigation            |
+| `/api/innovate`    | POST   | Generate innovations for selected angles with optional synthesis |
+| `/api/auto`        | POST   | Run full pipeline (all angles + synthesis) as an SSE stream      |
+| `/api/pipeline`    | POST   | Parse natural language pipeline description and execute via SSE  |
+
+### Ideas & Artifacts
+
+| Route            | Method            | Description                                                      |
+| ---------------- | ----------------- | ---------------------------------------------------------------- |
+| `/api/artifacts` | POST              | Generate structured artifacts (PRD, tech spec, user story, etc.) |
+| `/api/validate`  | POST              | Validate ideas against patent, market, and feasibility checks    |
+| `/api/refine`    | POST              | Create refinement sessions or send follow-up messages            |
+| `/api/angles`    | GET, POST, DELETE | List all angles, create custom angles, or delete by ID           |
+
+### Collaboration & Sharing
+
+| Route              | Method    | Description                                                      |
+| ------------------ | --------- | ---------------------------------------------------------------- |
+| `/api/collaborate` | GET, POST | Create/join collaborative sessions, submit ideas, vote, comment  |
+| `/api/share`       | GET, POST | Create shareable links or list shared investigations             |
+| `/api/export`      | POST      | Export innovation data (markdown, JSON, clipboard, GitHub issue) |
+
+### Dashboards & Analytics
+
+| Route              | Method    | Description                                                    |
+| ------------------ | --------- | -------------------------------------------------------------- |
+| `/api/analytics`   | GET, POST | Get analytics summary/insights or track events                 |
+| `/api/tracker`     | GET       | Retrieve idea fitness tracker dashboard                        |
+| `/api/observatory` | GET       | Get stats, timeline, or diff of LLM prompt calls for debugging |
+
+### Session & Configuration
+
+| Route          | Method                   | Description                                            |
+| -------------- | ------------------------ | ------------------------------------------------------ |
+| `/api/history` | GET, POST, DELETE, PATCH | Query/save/delete sessions or update tags/notes        |
+| `/api/presets` | GET                      | List pipeline presets, optionally filtered by category |
+| `/api/health`  | GET                      | Health check endpoint returning status and version     |
+
+### Embeddable Widget
+
+| Route         | Method        | Description                                     |
+| ------------- | ------------- | ----------------------------------------------- |
+| `/api/embed`  | POST, OPTIONS | Embeddable widget endpoint with CORS support    |
+| `/api/widget` | GET           | Serve innovator-widget web component JavaScript |
+
+### Authenticated API (v1)
+
+These routes require an `X-API-Key` header. See the [V1 API Guide](/docs/guides/v1-api) for details.
+
+| Route                 | Method            | Description                                                  |
+| --------------------- | ----------------- | ------------------------------------------------------------ |
+| `/api/v1/investigate` | POST              | Programmatic investigation with API key auth + rate limiting |
+| `/api/v1/innovate`    | POST              | Generate ideas with API key auth + rate limiting             |
+| `/api/v1/auto`        | POST              | Run full pipeline with optional streaming + auth             |
+| `/api/v1/keys`        | GET, POST, DELETE | Manage API keys: list, create, or revoke                     |
+| `/api/v1/openapi`     | GET               | Serve OpenAPI specification in JSON format                   |
+| `/api/v1/plugins`     | GET               | List registered plugins with API key authentication          |
+
+For full request/response schemas, see the [API Reference](/docs/api-reference#web-api-routes).
 
 ## PWA Support
 
