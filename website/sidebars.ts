@@ -26,6 +26,7 @@ const sidebars: SidebarsConfig = {
         "guides/hypothesis",
         "guides/plugin-development",
         "guides/cost-tracking",
+        "guides/monitoring",
         "guides/voice",
         "guides/feature-catalog",
       ],
