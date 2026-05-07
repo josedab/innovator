@@ -39,7 +39,16 @@ export interface ComparativeSynthesis {
 }
 
 /**
- * Build a prompt for comparative synthesis across multiple subjects.
+ * Build an LLM prompt for cross-subject comparative synthesis.
+ *
+ * Takes investigation results from multiple subjects and constructs a prompt
+ * that asks the LLM to identify synergies, trade-offs, combined opportunities,
+ * and a strategic recommendation across all subjects.
+ *
+ * @param subjects - Array of subject names being compared (2–5 items)
+ * @param results - Per-subject investigation results with optional synthesis data
+ * @returns A formatted prompt string ready to send to the LLM, requesting
+ *          a JSON response conforming to {@link ComparativeSynthesis}
  */
 export function buildComparativeSynthesisPrompt(
   subjects: string[],
