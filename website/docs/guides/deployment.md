@@ -81,9 +81,8 @@ Vercel deployment requires the Copilot SDK to support token-based auth. Check th
 
 ### Build and run
 
-:::note
-The Dockerfile below is an illustrative example — no `Dockerfile` is included in the repository yet. Copy it into your project root and adjust as needed for your deployment environment.
-:::
+````dockerfile
+# See Dockerfile in the repository root
 
 ```dockerfile
 FROM node:20-slim
@@ -102,7 +101,7 @@ RUN npm ci && npm run build
 ENV PORT=3000
 EXPOSE 3000
 CMD ["npm", "start"]
-```
+````
 
 ```bash
 docker build -t innovator .
