@@ -193,7 +193,7 @@ To get started, click **"Code → Codespaces → New codespace"** on GitHub, or 
 | **Build failures after upgrade**     | Run `npm run clean:all && rm -rf node_modules && npm install && npm run build` for a clean rebuild.                                                                      |
 | **LLM request timeouts**             | Increase `INNOVATOR_LLM_TIMEOUT_MS` (default: 90000). Complex subjects or slower models may need 120000+.                                                                |
 
-For the full troubleshooting guide, see the [documentation site](https://innovator-ai.vercel.app/docs/guides/troubleshooting).
+For the full troubleshooting guide, see the [documentation site](https://josedab.github.io/innovator/docs/guides/troubleshooting).
 
 ## Contributing
 
