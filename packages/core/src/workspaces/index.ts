@@ -6,7 +6,14 @@
  * Designed for SQLite migration later.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  unlinkSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -15,6 +22,11 @@ import type { SessionRecord } from "../types.js";
 
 const WORKSPACES_DIR = join(homedir(), ".innovator", "workspaces");
 
+/**
+ * Ensure a directory exists, creating it recursively if necessary.
+ *
+ * @param dir - Absolute path to the directory to ensure
+ */
 function ensureDir(dir: string): void {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 }
@@ -107,7 +119,19 @@ function addActivity(workspace: Workspace, event: Omit<ActivityEvent, "id" | "ti
 
 // ---- CRUD ----
 
-/** Create a new workspace. */
+/**
+ * Create a new team workspace with the given owner as the initial admin member.
+ *
+ * The workspace is persisted as a JSON file in `~/.innovator/workspaces/`.
+ *
+ * @param params - Workspace creation parameters
+ * @param params.name - Display name for the workspace
+ * @param params.description - Optional description of the workspace purpose
+ * @param params.ownerId - Unique identifier for the workspace owner
+ * @param params.ownerDisplayName - Display name of the owner
+ * @param params.ownerEmail - Optional email of the owner
+ * @returns The newly created {@link Workspace}
+ */
 export function createWorkspace(params: {
   name: string;
   description?: string;
@@ -150,12 +174,23 @@ export function createWorkspace(params: {
   return workspace;
 }
 
-/** Get a workspace by ID. */
+/**
+ * Get a workspace by its UUID.
+ *
+ * @param id - The UUID of the workspace
+ * @returns The {@link Workspace}, or `undefined` if not found or corrupt
+ */
 export function getWorkspace(id: string): Workspace | undefined {
   return readWorkspace(id);
 }
 
-/** Update workspace metadata. */
+/**
+ * Update workspace metadata (name, description, or tags).
+ *
+ * @param id - The UUID of the workspace to update
+ * @param updates - Fields to update (all optional)
+ * @returns `true` if the workspace was found and updated, `false` otherwise
+ */
 export function updateWorkspace(
   id: string,
   updates: { name?: string; description?: string; tags?: string[] }
@@ -170,7 +205,12 @@ export function updateWorkspace(
   return true;
 }
 
-/** Delete a workspace. */
+/**
+ * Delete a workspace by removing its JSON file from disk.
+ *
+ * @param id - The UUID of the workspace to delete
+ * @returns `true` if the workspace file existed and was removed
+ */
 export function deleteWorkspace(id: string): boolean {
   const path = workspacePath(id);
   if (!existsSync(path)) return false;
@@ -178,7 +218,14 @@ export function deleteWorkspace(id: string): boolean {
   return true;
 }
 
-/** List all workspaces. */
+/**
+ * List all workspaces, sorted by most recently updated first.
+ *
+ * Reads all JSON files from `~/.innovator/workspaces/` and returns
+ * valid workspace records. Corrupt files are silently skipped.
+ *
+ * @returns Array of {@link Workspace} sorted by `updatedAt` descending
+ */
 export function listWorkspaces(): Workspace[] {
   ensureDir(WORKSPACES_DIR);
   const files = readdirSync(WORKSPACES_DIR).filter((f) => f.endsWith(".json"));
@@ -194,14 +241,26 @@ export function listWorkspaces(): Workspace[] {
   return workspaces.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-/** List workspaces a user belongs to. */
+/**
+ * List all workspaces that a specific user belongs to.
+ *
+ * @param userId - The user ID to filter by
+ * @returns Array of {@link Workspace} where the user is a member
+ */
 export function listUserWorkspaces(userId: string): Workspace[] {
   return listWorkspaces().filter((ws) => ws.members.some((m) => m.userId === userId));
 }
 
 // ---- Members ----
 
-/** Add a member to a workspace. */
+/**
+ * Add a member to a workspace.
+ *
+ * @param workspaceId - The UUID of the workspace
+ * @param member - Member details including userId, displayName, role, and optional email
+ * @param invitedBy - The user performing the invitation (for activity tracking)
+ * @returns `true` if the member was added, `false` if workspace not found or user already a member
+ */
 export function addMember(
   workspaceId: string,
   member: { userId: string; displayName: string; email?: string; role: MemberRole },
@@ -229,7 +288,14 @@ export function addMember(
   return true;
 }
 
-/** Remove a member from a workspace. */
+/**
+ * Remove a member from a workspace.
+ *
+ * @param workspaceId - The UUID of the workspace
+ * @param userId - The user ID to remove
+ * @param removedBy - The user performing the removal (for activity tracking)
+ * @returns `true` if the member was found and removed, `false` otherwise
+ */
 export function removeMember(
   workspaceId: string,
   userId: string,
@@ -256,7 +322,15 @@ export function removeMember(
   return true;
 }
 
-/** Update a member's role. */
+/**
+ * Update a workspace member's role.
+ *
+ * @param workspaceId - The UUID of the workspace
+ * @param userId - The member whose role is being changed
+ * @param newRole - The new {@link MemberRole} (`"admin"`, `"contributor"`, or `"viewer"`)
+ * @param changedBy - The user performing the change (for activity tracking)
+ * @returns `true` if the role was updated, `false` if workspace or member not found
+ */
 export function updateMemberRole(
   workspaceId: string,
   userId: string,
@@ -284,7 +358,16 @@ export function updateMemberRole(
   return true;
 }
 
-/** Check if a user has a specific permission level. */
+/**
+ * Check if a user has at least the specified permission level in a workspace.
+ *
+ * Role hierarchy: `admin` (3) > `contributor` (2) > `viewer` (1).
+ *
+ * @param workspaceId - The UUID of the workspace
+ * @param userId - The user to check
+ * @param requiredRole - The minimum {@link MemberRole} required
+ * @returns `true` if the user's role meets or exceeds the required level
+ */
 export function hasPermission(
   workspaceId: string,
   userId: string,
@@ -307,7 +390,14 @@ export function hasPermission(
 
 // ---- Sessions ----
 
-/** Add a session to a workspace. */
+/**
+ * Add an innovation session to a workspace.
+ *
+ * @param workspaceId - The UUID of the workspace
+ * @param sessionId - The session ID to add
+ * @param addedBy - The user adding the session (for activity tracking)
+ * @returns `true` if the session was added, `false` if workspace not found or session already added
+ */
 export function addSessionToWorkspace(
   workspaceId: string,
   sessionId: string,
@@ -331,7 +421,16 @@ export function addSessionToWorkspace(
   return true;
 }
 
-/** Search sessions within a workspace by text query. */
+/**
+ * Search sessions within a workspace by text query.
+ *
+ * Searches across subject, investigation summary, tags, and idea titles/descriptions.
+ *
+ * @param workspaceId - The UUID of the workspace
+ * @param query - Case-insensitive text query
+ * @param getSessionFn - Callback to resolve session IDs to {@link SessionRecord} objects
+ * @returns Array of matching sessions sorted by creation date (newest first)
+ */
 export function searchWorkspaceSessions(
   workspaceId: string,
   query: string,
@@ -365,7 +464,13 @@ export function searchWorkspaceSessions(
   return sessions.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-/** Get the activity feed for a workspace. */
+/**
+ * Get the activity feed for a workspace.
+ *
+ * @param workspaceId - The UUID of the workspace
+ * @param limit - Maximum number of events to return (default: 50)
+ * @returns Array of {@link ActivityEvent} sorted by most recent first
+ */
 export function getActivityFeed(workspaceId: string, limit: number = 50): ActivityEvent[] {
   const ws = readWorkspace(workspaceId);
   if (!ws) return [];
@@ -374,7 +479,14 @@ export function getActivityFeed(workspaceId: string, limit: number = 50): Activi
 
 // ---- Shared resources ----
 
-/** Share a preset with a workspace. */
+/**
+ * Share a pipeline preset with all members of a workspace.
+ *
+ * @param workspaceId - The UUID of the workspace
+ * @param presetId - The preset ID to share
+ * @param sharedBy - The user sharing the preset (for activity tracking)
+ * @returns `true` if the preset was shared, `false` if workspace not found or already shared
+ */
 export function sharePreset(
   workspaceId: string,
   presetId: string,
@@ -398,7 +510,14 @@ export function sharePreset(
   return true;
 }
 
-/** Share a custom angle with a workspace. */
+/**
+ * Share a custom innovation angle with all members of a workspace.
+ *
+ * @param workspaceId - The UUID of the workspace
+ * @param angleId - The custom angle ID to share
+ * @param sharedBy - The user sharing the angle (for activity tracking)
+ * @returns `true` if the angle was shared, `false` if workspace not found or already shared
+ */
 export function shareAngle(
   workspaceId: string,
   angleId: string,
