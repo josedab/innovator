@@ -124,6 +124,96 @@ lsof -i :3000
 PORT=3001 npm run dev
 ```
 
+## LLM Rate Limiting (429 Errors)
+
+**Cause:** The LLM provider (GitHub Copilot, OpenAI, Anthropic) is returning HTTP 429 due to too many requests.
+
+**Symptoms:**
+
+- Errors during auto mode, especially with many angles running in sequence
+- `"Too many requests"` or `"Rate limit exceeded"` in server logs
+
+**Fix:**
+
+1. **Wait and retry** — most rate limits reset within 60 seconds
+2. **Reduce concurrency** — avoid running multiple auto pipelines simultaneously
+3. **Use a different model** — some models have higher rate limits:
+   ```bash
+   INNOVATOR_DEFAULT_MODEL=gpt-4o-mini npm run dev
+   ```
+4. **Check the built-in rate limiter** — Innovator's own middleware has limits (10 req/min global, 3 req/min for `/api/auto`). The 429 response includes a `Retry-After` header
+
+## Copilot Token Expiry Mid-Pipeline
+
+**Cause:** The GitHub Copilot authentication token expired during a long-running pipeline (auto mode can take 60+ seconds).
+
+**Symptoms:**
+
+- Pipeline fails partway through with authentication errors
+- Works for investigation but fails during angle generation
+
+**Fix:**
+
+1. Re-authenticate the GitHub CLI:
+   ```bash
+   gh auth login
+   gh auth status  # verify token is fresh
+   ```
+2. For CI/Docker environments, set `GH_TOKEN` with a long-lived token:
+   ```bash
+   export GH_TOKEN=ghp_your_token
+   ```
+3. If using Copilot in production, consider switching to a direct provider (OpenAI/Anthropic) that uses stable API keys
+
+## Request Timeout Tuning
+
+**Cause:** LLM calls timing out before completion, especially with larger models or complex subjects.
+
+**Symptoms:**
+
+- `"Investigation failed"` errors after a long wait
+- Auto mode stalls on specific angles
+- `ETIMEDOUT` or `AbortError` in server logs
+
+**Fix:**
+
+Increase the LLM timeout via the `INNOVATOR_LLM_TIMEOUT_MS` environment variable (default: 90,000 ms = 90 seconds):
+
+```bash
+# Increase to 3 minutes for complex subjects
+INNOVATOR_LLM_TIMEOUT_MS=180000 npm run dev
+```
+
+For production deployments, set this in your environment configuration. Note that some hosting platforms (e.g., Vercel) have their own function execution time limits that may also need adjustment.
+
+## CORS Errors with Embed Widget
+
+**Cause:** The `<innovator-widget>` or `/api/embed` endpoint is being called from a domain not in the allowed origins list.
+
+**Symptoms:**
+
+- Browser console shows `Access-Control-Allow-Origin` errors
+- Widget loads but API calls fail
+- `OPTIONS` preflight requests return 403
+
+**Fix:**
+
+1. Set `INNOVATOR_EMBED_ORIGINS` to include your domain(s):
+
+   ```bash
+   INNOVATOR_EMBED_ORIGINS=https://mysite.com,https://docs.mysite.com
+   ```
+
+   Leave unset or set to `*` to allow all origins (not recommended for production).
+
+2. If using `INNOVATOR_EMBED_API_KEY`, ensure the widget sends it via the `X-Embed-Key` header:
+
+   ```html
+   <innovator-widget api-key="your-embed-key"></innovator-widget>
+   ```
+
+3. Verify the `/api/embed` endpoint responds to `OPTIONS` requests — it should return CORS headers automatically
+
 ## Windows & WSL Compatibility
 
 Innovator is developed and tested primarily on macOS and Linux. If you're on Windows, we recommend using **WSL 2** (Windows Subsystem for Linux) for the best experience.
