@@ -37,7 +37,17 @@ function generateRoomCode(): string {
   return code;
 }
 
-/** Create a new collaborative session. */
+/**
+ * Create a new collaborative session for real-time idea generation.
+ *
+ * Initializes a session with a unique room code, registers the host as the
+ * first participant, and stores it in the in-memory session store.
+ *
+ * @param subject - The innovation subject to collaborate on
+ * @param hostUserId - Unique identifier for the session host
+ * @param hostDisplayName - Display name shown to other participants
+ * @returns The newly created {@link CollaborativeSession} with status `"waiting"`
+ */
 export function createSession(
   subject: string,
   hostUserId: string,
@@ -73,7 +83,12 @@ export function createSession(
   return session;
 }
 
-/** Find a session by room code. */
+/**
+ * Find a collaborative session by its human-friendly room code.
+ *
+ * @param roomCode - The 6-character alphanumeric room code (e.g. `"A3K9M2"`)
+ * @returns The matching {@link CollaborativeSession}, or `undefined` if not found
+ */
 export function findSessionByCode(roomCode: string): CollaborativeSession | undefined {
   for (const session of sessions.values()) {
     if (session.roomCode === roomCode) return session;
@@ -81,12 +96,28 @@ export function findSessionByCode(roomCode: string): CollaborativeSession | unde
   return undefined;
 }
 
-/** Get a session by ID. */
+/**
+ * Get a collaborative session by its unique ID.
+ *
+ * @param id - The UUID of the session
+ * @returns The {@link CollaborativeSession}, or `undefined` if not found
+ */
 export function getCollaborativeSession(id: string): CollaborativeSession | undefined {
   return sessions.get(id);
 }
 
-/** Join a session. */
+/**
+ * Join an existing collaborative session as a participant.
+ *
+ * If the user has already joined, their status is updated to `"connected"`.
+ * Joining a completed session is not allowed.
+ *
+ * @param sessionId - The UUID of the session to join
+ * @param userId - Unique identifier for the joining user
+ * @param displayName - Display name shown to other participants
+ * @returns The {@link SessionParticipant} record, or `undefined` if the session
+ *          does not exist or is completed
+ */
 export function joinSession(
   sessionId: string,
   userId: string,
@@ -117,7 +148,16 @@ export function joinSession(
   return participant;
 }
 
-/** Leave/disconnect from a session. */
+/**
+ * Leave or disconnect from a collaborative session.
+ *
+ * Sets the participant's status to `"disconnected"` and emits a
+ * `participant_left` event.
+ *
+ * @param sessionId - The UUID of the session
+ * @param userId - The user leaving the session
+ * @returns `true` if the user was found and disconnected, `false` otherwise
+ */
 export function leaveSession(sessionId: string, userId: string): boolean {
   const session = sessions.get(sessionId);
   if (!session) return false;
@@ -130,12 +170,15 @@ export function leaveSession(sessionId: string, userId: string): boolean {
   return true;
 }
 
-/** Assign angles to a participant. */
-export function assignAngles(
-  sessionId: string,
-  userId: string,
-  angles: AngleId[]
-): boolean {
+/**
+ * Assign innovation angles to a participant for focused ideation.
+ *
+ * @param sessionId - The UUID of the session
+ * @param userId - The participant to assign angles to
+ * @param angles - Array of {@link AngleId} values to assign
+ * @returns `true` if assignment succeeded, `false` if session or user not found
+ */
+export function assignAngles(sessionId: string, userId: string, angles: AngleId[]): boolean {
   const session = sessions.get(sessionId);
   if (!session) return false;
 
@@ -148,7 +191,15 @@ export function assignAngles(
   return true;
 }
 
-/** Start the session (begin ideation). */
+/**
+ * Start a collaborative session, transitioning it to the `"active"` state.
+ *
+ * Only the session host can start the session.
+ *
+ * @param sessionId - The UUID of the session
+ * @param userId - Must match the session's `hostUserId`
+ * @returns `true` if the session was started, `false` if not found or not the host
+ */
 export function startSession(sessionId: string, userId: string): boolean {
   const session = sessions.get(sessionId);
   if (!session) return false;
@@ -159,7 +210,20 @@ export function startSession(sessionId: string, userId: string): boolean {
   return true;
 }
 
-/** Submit an idea to the session. */
+/**
+ * Submit an idea to an active collaborative session.
+ *
+ * Ideas can only be submitted when the session status is `"active"`.
+ *
+ * @param sessionId - The UUID of the session
+ * @param authorId - The user submitting the idea
+ * @param angleId - The angle this idea was generated under
+ * @param title - Short title for the idea
+ * @param description - Full description of the idea
+ * @param potentialImpact - Description of potential impact
+ * @returns The created {@link CollaborativeIdea}, or `undefined` if the session
+ *          is not found or not active
+ */
 export function submitIdea(
   sessionId: string,
   authorId: string,
@@ -188,12 +252,17 @@ export function submitIdea(
   return idea;
 }
 
-/** Vote for an idea. Each user can vote once per idea. */
-export function voteForIdea(
-  sessionId: string,
-  ideaId: string,
-  userId: string
-): boolean {
+/**
+ * Vote for an idea in a collaborative session.
+ *
+ * Each user can vote once per idea. Duplicate votes are silently rejected.
+ *
+ * @param sessionId - The UUID of the session
+ * @param ideaId - The UUID of the idea to vote for
+ * @param userId - The user casting the vote
+ * @returns `true` if the vote was recorded, `false` if already voted or not found
+ */
+export function voteForIdea(sessionId: string, ideaId: string, userId: string): boolean {
   const session = sessions.get(sessionId);
   if (!session) return false;
 
@@ -212,7 +281,16 @@ export function voteForIdea(
   return true;
 }
 
-/** Add a comment to an idea. */
+/**
+ * Add a comment to an idea in a collaborative session.
+ *
+ * @param sessionId - The UUID of the session
+ * @param ideaId - The UUID of the idea to comment on
+ * @param authorId - The user adding the comment
+ * @param authorName - Display name of the comment author
+ * @param content - The comment text
+ * @returns The created {@link IdeaComment}, or `undefined` if session or idea not found
+ */
 export function addComment(
   sessionId: string,
   ideaId: string,
@@ -239,7 +317,20 @@ export function addComment(
   return comment;
 }
 
-/** Merge multiple ideas into one. */
+/**
+ * Merge multiple ideas into a single combined idea.
+ *
+ * Requires at least 2 source ideas. Votes are summed and impact descriptions
+ * are concatenated. The merged idea uses `"merged"` as its angle ID.
+ *
+ * @param sessionId - The UUID of the session
+ * @param ideaIds - Array of idea UUIDs to merge (minimum 2)
+ * @param mergedTitle - Title for the merged idea
+ * @param mergedDescription - Description for the merged idea
+ * @param authorId - The user performing the merge
+ * @returns The merged {@link CollaborativeIdea}, or `undefined` if fewer than 2
+ *          source ideas were found
+ */
 export function mergeIdeas(
   sessionId: string,
   ideaIds: string[],
@@ -270,7 +361,15 @@ export function mergeIdeas(
   return mergedIdea;
 }
 
-/** Complete a session. */
+/**
+ * Complete a collaborative session, preventing further idea submissions.
+ *
+ * Only the session host can complete the session.
+ *
+ * @param sessionId - The UUID of the session
+ * @param userId - Must match the session's `hostUserId`
+ * @returns `true` if the session was completed, `false` if not found or not the host
+ */
 export function completeSession(sessionId: string, userId: string): boolean {
   const session = sessions.get(sessionId);
   if (!session) return false;
@@ -281,11 +380,14 @@ export function completeSession(sessionId: string, userId: string): boolean {
   return true;
 }
 
-/** Subscribe to session events. Returns unsubscribe function. */
-export function onSessionEvent(
-  sessionId: string,
-  listener: EventListener
-): () => void {
+/**
+ * Subscribe to real-time events for a collaborative session.
+ *
+ * @param sessionId - The UUID of the session to watch
+ * @param listener - Callback invoked with each {@link CollaborativeEvent}
+ * @returns An unsubscribe function — call it to stop receiving events
+ */
+export function onSessionEvent(sessionId: string, listener: EventListener): () => void {
   if (!listeners.has(sessionId)) {
     listeners.set(sessionId, new Set());
   }
@@ -308,20 +410,36 @@ function emitEvent(sessionId: string, event: CollaborativeEvent): void {
   }
 }
 
-/** Get ranked ideas by votes. */
+/**
+ * Get all ideas from a session ranked by vote count (descending).
+ *
+ * @param sessionId - The UUID of the session
+ * @returns Sorted array of {@link CollaborativeIdea}, or empty array if not found
+ */
 export function getRankedIdeas(sessionId: string): CollaborativeIdea[] {
   const session = sessions.get(sessionId);
   if (!session) return [];
   return [...session.ideas].sort((a, b) => b.votes - a.votes);
 }
 
-/** Delete a session (for testing/cleanup). */
+/**
+ * Delete a collaborative session and its event listeners.
+ *
+ * Intended for testing and cleanup purposes.
+ *
+ * @param id - The UUID of the session to delete
+ * @returns `true` if the session existed and was deleted
+ */
 export function deleteCollaborativeSession(id: string): boolean {
   listeners.delete(id);
   return sessions.delete(id);
 }
 
-/** Clear all sessions (for testing). */
+/**
+ * Clear all collaborative sessions and event listeners.
+ *
+ * Intended for testing teardown.
+ */
 export function clearAllSessions(): void {
   sessions.clear();
   listeners.clear();
