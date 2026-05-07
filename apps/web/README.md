@@ -115,6 +115,27 @@ npm run dev --workspace=apps/web
 
 The dev server runs at [http://localhost:3000](http://localhost:3000).
 
+## Environment Variables
+
+Copy `.env.local.example` from the monorepo root to `.env.local` and adjust as needed. See the [Deployment guide](../../website/docs/guides/deployment.md) for production settings.
+
+| Variable                   | Required | Default           | Description                                                        |
+| -------------------------- | -------- | ----------------- | ------------------------------------------------------------------ |
+| `INNOVATOR_DEFAULT_MODEL`  | No       | `gpt-4.1`         | Default LLM model for all pipeline calls                           |
+| `INNOVATOR_API_KEY`        | No       | —                 | Protects API routes (always set in production)                     |
+| `INNOVATOR_API_KEYS`       | No       | —                 | Comma-separated multi-key auth (takes precedence over single key)  |
+| `INNOVATOR_LLM_TIMEOUT_MS` | No       | `90000`           | LLM request timeout in milliseconds                                |
+| `INNOVATOR_EXTRA_MODELS`   | No       | —                 | Additional model IDs to allow (comma-separated)                    |
+| `INNOVATOR_EMBED_API_KEY`  | No       | —                 | API key for the `/api/embed` widget endpoint                       |
+| `INNOVATOR_EMBED_ORIGINS`  | No       | `*`               | CORS origins for `/api/embed` (comma-separated)                    |
+| `PORT`                     | No       | `3000`            | Dev server port                                                    |
+| `GH_TOKEN`                 | No       | —                 | GitHub token for Copilot SDK auth when `gh` CLI is unavailable     |
+| `OPENAI_API_KEY`           | No       | —                 | OpenAI API key for direct OpenAI provider (alternative to Copilot) |
+| `ANTHROPIC_API_KEY`        | No       | —                 | Anthropic API key for direct Anthropic provider                    |
+| `OLLAMA_BASE_URL`          | No       | `localhost:11434` | Base URL for local Ollama LLM inference                            |
+
+Clients authenticate via `Authorization: Bearer <key>` or `X-API-Key: <key>` headers.
+
 ## Tech Stack
 
 - **Next.js 16** with App Router and Turbopack
