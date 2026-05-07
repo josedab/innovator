@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@innovator/core"],
+  serverExternalPackages: ["better-sqlite3"],
+  turbopack: {
+    resolveAlias: {
+      "better-sqlite3": { browser: "./empty-module.js" },
+    },
+  },
   async headers() {
     return [
       {
