@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { KNOWN_MODELS } from "@innovator/core";
+import { KNOWN_MODELS } from "@innovator/core/types";
 import { logger } from "./logger";
 
 /** Re-exported list of known LLM model identifiers from `@innovator/core`. */
