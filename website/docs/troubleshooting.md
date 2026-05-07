@@ -214,6 +214,39 @@ For production deployments, set this in your environment configuration. Note tha
 
 3. Verify the `/api/embed` endpoint responds to `OPTIONS` requests — it should return CORS headers automatically
 
+## "Custom angle with ID already exists"
+
+**Cause:** You're trying to register a custom angle with an ID that is already taken — either by a built-in angle or a previously registered custom angle.
+
+**Fix:**
+
+1. Choose a different, unique ID for your custom angle
+2. If you want to replace an existing custom angle, remove it first via `removeCustomAngle(id)` or `DELETE /api/custom-angles?id=<id>`, then re-add it
+3. Built-in angle IDs (`scamper`, `first-principles`, `cross-domain`, `constraints`, `inversion`, `perspectives`, `what-if`, `trend-collision`) cannot be overridden
+
+## SSE Stream Closes Unexpectedly During Auto Mode
+
+**Cause:** The Server-Sent Events (SSE) connection used by the auto pipeline's streaming mode was interrupted before the pipeline completed.
+
+**Possible causes:**
+
+- Network timeout or proxy (e.g., Cloudflare, nginx) closing idle connections
+- Client navigated away or closed the browser tab mid-pipeline
+- Server-side error during angle generation that terminated the stream
+
+**Fix:**
+
+1. **Increase proxy timeouts** — if behind a reverse proxy, set the read/idle timeout to at least 120 seconds (auto mode can take 60–90 seconds for all angles)
+2. **Check server logs** — the terminal running `npm run dev` will show the underlying error
+3. **Use non-streaming mode** — pass `"stream": false` in the request body to get a single JSON response instead of SSE:
+   ```bash
+   curl -X POST http://localhost:3000/api/v1/auto \
+     -H "Content-Type: application/json" \
+     -H "X-API-Key: inv_abc123..." \
+     -d '{ "subject": "your subject", "stream": false }'
+   ```
+4. **Retry the request** — the pipeline is stateless, so retrying is safe
+
 ## Windows & WSL Compatibility
 
 Innovator is developed and tested primarily on macOS and Linux. If you're on Windows, we recommend using **WSL 2** (Windows Subsystem for Linux) for the best experience.
