@@ -125,7 +125,7 @@ interface InnovationIdea {
 
 ---
 
-### `runAutoPipeline(subject, onProgress, model?, angles?, signal?)`
+### `runAutoPipeline(subject, onProgress, model?, angles?, signal?, modelRouting?)`
 
 Run the full automatic pipeline with progress callbacks.
 
@@ -139,13 +139,14 @@ const result = await runAutoPipeline("remote work tools", (progress) =>
 
 **Parameters:**
 
-| Param        | Type                                   | Required | Description                        |
-| ------------ | -------------------------------------- | -------- | ---------------------------------- |
-| `subject`    | `string`                               | Yes      | The topic to innovate on           |
-| `onProgress` | `(progress: PipelineProgress) => void` | Yes      | Called on each stage transition    |
-| `model`      | `string`                               | No       | LLM model ID                       |
-| `angles`     | `AngleId[]`                            | No       | Subset of angles (default: all 8)  |
-| `signal`     | `AbortSignal`                          | No       | Signal to cancel the request early |
+| Param          | Type                                   | Required | Description                                          |
+| -------------- | -------------------------------------- | -------- | ---------------------------------------------------- |
+| `subject`      | `string`                               | Yes      | The topic to innovate on                             |
+| `onProgress`   | `(progress: PipelineProgress) => void` | Yes      | Called on each stage transition                      |
+| `model`        | `string`                               | No       | LLM model ID                                         |
+| `angles`       | `AngleId[]`                            | No       | Subset of angles (default: all 8)                    |
+| `signal`       | `AbortSignal`                          | No       | Signal to cancel the request early                   |
+| `modelRouting` | `ModelRouting`                         | No       | Per-stage model overrides (see `ModelRouting` below) |
 
 **Returns:** `Promise<PipelineProgress>`
 
@@ -160,6 +161,21 @@ interface PipelineProgress {
   failedAngles?: { angleId: string; error: string }[];
   synthesis?: Synthesis;
   error?: string;
+}
+```
+
+#### `ModelRouting` type
+
+Route different pipeline stages to different LLM models. For example, use a cheaper model for investigation and a more capable model for synthesis.
+
+```typescript
+interface ModelRouting {
+  /** Model ID to use for the investigation stage. */
+  investigation?: string;
+  /** Model ID to use for the generation stage. */
+  generation?: string;
+  /** Model ID to use for the synthesis stage. */
+  synthesis?: string;
 }
 ```
 
@@ -1003,6 +1019,1213 @@ Remove all registered plugins.
 Load a plugin from an external source (URL or file path).
 
 **Returns:** `Promise<InnovatorPlugin>`
+
+---
+
+---
+
+## Scoring APIs
+
+### `scoreIdeas(ideas, model?, signal?)`
+
+Score ideas on novelty, feasibility, and impact dimensions using LLM analysis.
+
+```typescript
+import { scoreIdeas } from "@innovator/core";
+
+const result = await scoreIdeas([{ title: "AI code review", description: "..." }]);
+```
+
+**Returns:** `Promise<ScoringResult>`
+
+```typescript
+interface IdeaScore {
+  ideaTitle: string;
+  novelty: number; // 1-10
+  feasibility: number; // 1-10
+  impact: number; // 1-10
+  timeToImplement: string;
+  reasoning: string;
+}
+
+interface ScoringResult {
+  scores: IdeaScore[];
+  topPick: string;
+}
+```
+
+---
+
+### `computePriorityScore(score)` · `getQuadrant(score)` · `rankIdeas(scores)`
+
+| Function               | Description                                                              | Returns       |
+| ---------------------- | ------------------------------------------------------------------------ | ------------- |
+| `computePriorityScore` | Weighted priority score from novelty/feasibility/impact                  | `number`      |
+| `getQuadrant`          | Classify into `"quick-win"`, `"strategic"`, `"fill-in"`, or `"moonshot"` | `string`      |
+| `rankIdeas`            | Rank ideas by priority score descending                                  | `IdeaScore[]` |
+
+---
+
+## Workspace APIs
+
+### `createWorkspace(params)`
+
+Create a new workspace for organizing innovation sessions.
+
+```typescript
+import { createWorkspace } from "@innovator/core";
+
+const ws = createWorkspace({
+  name: "Q3 Innovation",
+  description: "Q3 product innovation workspace",
+  ownerId: "user-1",
+});
+```
+
+**Returns:** `Workspace`
+
+---
+
+### `getWorkspace(id)` · `listWorkspaces()` · `listUserWorkspaces(userId)` · `deleteWorkspace(id)`
+
+CRUD operations for workspaces. `listUserWorkspaces` returns workspaces where the user is a member.
+
+---
+
+### `addMember(workspaceId, member)` · `removeMember(workspaceId, userId)` · `updateMemberRole(workspaceId, userId, role)`
+
+Manage workspace membership. Roles: `"owner"`, `"editor"`, `"viewer"`.
+
+---
+
+### `hasPermission(workspaceId, userId, action)`
+
+Check if a user has permission for an action in a workspace.
+
+**Returns:** `boolean`
+
+---
+
+### `addSessionToWorkspace(workspaceId, session)` · `searchWorkspaceSessions(workspaceId, query)`
+
+Add sessions to a workspace and search across them.
+
+---
+
+### `getActivityFeed(workspaceId)` · `sharePreset(workspaceId, preset)` · `shareAngle(workspaceId, angle)`
+
+Activity feed and content sharing within a workspace.
+
+---
+
+## Artifact APIs
+
+### `generateArtifact(idea, type, context, model?, signal?)`
+
+Generate a structured artifact from an innovation idea.
+
+```typescript
+import { generateArtifact } from "@innovator/core";
+
+const prd = await generateArtifact(idea, "prd", {
+  subject: "remote work tools",
+  investigation,
+});
+```
+
+**Parameters:**
+
+| Param     | Type              | Required | Description                                                           |
+| --------- | ----------------- | -------- | --------------------------------------------------------------------- |
+| `idea`    | `InnovationIdea`  | Yes      | The idea to generate an artifact for                                  |
+| `type`    | `ArtifactType`    | Yes      | `"prd"`, `"user-story"`, `"tech-spec"`, `"pitch-outline"`, or `"okr"` |
+| `context` | `ArtifactContext` | Yes      | Subject and investigation context                                     |
+| `model`   | `string`          | No       | LLM model ID                                                          |
+| `signal`  | `AbortSignal`     | No       | Signal to cancel the request early                                    |
+
+**Returns:** `Promise<Artifact>`
+
+---
+
+### `generateArtifactStream(idea, type, context, onChunk, model?, signal?)`
+
+Stream artifact generation with chunk callbacks.
+
+**Returns:** `Promise<Artifact>`
+
+---
+
+### `artifactToMarkdown(artifact)` · `artifactToGitHubIssue(artifact)`
+
+Convert an artifact to Markdown or GitHub Issue body format.
+
+**Returns:** `string`
+
+---
+
+## Knowledge Graph APIs
+
+### `ingestInvestigation(investigation, subject)`
+
+Add an investigation's findings to the persistent knowledge graph.
+
+```typescript
+import { ingestInvestigation, getKnowledgeGraph } from "@innovator/core";
+
+ingestInvestigation(investigation, "remote work tools");
+const graph = getKnowledgeGraph();
+```
+
+**Returns:** `void`
+
+---
+
+### `queryRelatedSubjects(subject, limit?)`
+
+Find subjects related to a given topic in the knowledge graph.
+
+**Returns:** `EntityNode[]`
+
+---
+
+### `getKnowledgeGraph()` · `getGraphStats()` · `clearKnowledgeGraph()`
+
+Retrieve the full graph, statistics, or clear all data.
+
+---
+
+### `filterGraphNodes(predicate)`
+
+Filter graph nodes by a predicate function.
+
+**Returns:** `EntityNode[]`
+
+---
+
+## Provider APIs
+
+### `registerProvider(provider)` · `getProvider(id)` · `setActiveProvider(id)` · `listProviders()` · `initializeProviders(config?)`
+
+Manage the LLM provider registry. See the [Provider JSDoc](#) for detailed parameter descriptions.
+
+```typescript
+import { initializeProviders, setActiveProvider, listProviders } from "@innovator/core";
+
+initializeProviders();
+setActiveProvider("openai");
+console.log(listProviders().map((p) => p.name));
+```
+
+---
+
+### `getActiveProvider()`
+
+Get the currently active provider. Falls back to `CopilotProvider` if none is explicitly set.
+
+**Returns:** `LLMProvider`
+
+---
+
+### `loadConfig()` · `saveConfig(config)`
+
+Load/save provider configuration from/to `~/.innovator/config.json`.
+
+---
+
+### Provider Classes
+
+| Class               | Provider       | Config                                 |
+| ------------------- | -------------- | -------------------------------------- |
+| `CopilotProvider`   | GitHub Copilot | Requires `gh auth login` or `GH_TOKEN` |
+| `OpenAIProvider`    | OpenAI         | `OPENAI_API_KEY`                       |
+| `AnthropicProvider` | Anthropic      | `ANTHROPIC_API_KEY`                    |
+| `OllamaProvider`    | Ollama (local) | `OLLAMA_BASE_URL`                      |
+
+---
+
+## Cost Tracking APIs
+
+### `CostTracker`
+
+Class for tracking LLM token usage and costs across pipeline runs.
+
+```typescript
+import { getCostTracker } from "@innovator/core";
+
+const tracker = getCostTracker();
+const summary = tracker.getSummary();
+console.log(`Total cost: $${summary.totalCost}`);
+```
+
+---
+
+### `getCostTracker()` · `resetCostTracker()`
+
+Get the singleton cost tracker instance or reset accumulated data.
+
+---
+
+### `estimateTokenCount(text)` · `estimateCost(model, inputTokens, outputTokens)`
+
+Estimate token counts for text and cost for a given model.
+
+**Returns:** `number`
+
+---
+
+### `setModelPricing(model, pricing)` · `getModelPricing(model)` · `listModelPricing()`
+
+Manage per-model pricing configuration.
+
+---
+
+## Export APIs
+
+### `exportToMarkdown(data)` · `exportToJson(data)` · `exportToClipboard(data)`
+
+Export innovation results to common formats.
+
+```typescript
+import { exportToMarkdown } from "@innovator/core";
+
+const md = exportToMarkdown({
+  subject: "remote work",
+  investigation,
+  angleResults,
+  synthesis,
+});
+```
+
+**Returns:** `ExportResult`
+
+---
+
+### `exportToPowerPoint(data)` · `exportToJira(data)` · `exportToConfluence(data)` · `exportToNotion(data)` · `exportToGoogleSlides(data)`
+
+Export to integration-specific formats. Each returns an `ExportResult` with format-specific content.
+
+---
+
+### `generateGitHubIssueBody(data)`
+
+Generate a GitHub Issue body from innovation results.
+
+**Returns:** `ExportResult`
+
+---
+
+### `getAvailableFormats()`
+
+List all available export formats.
+
+**Returns:** `string[]`
+
+---
+
+## Model Registry APIs
+
+### `getModelRegistry()`
+
+Get the full model registry with capabilities and pricing information.
+
+**Returns:** `ModelRegistryEntry[]`
+
+---
+
+### `registerModel(model)` · `clearCustomModels()`
+
+Register a custom model or clear all custom model registrations.
+
+---
+
+### `getModelCapability(modelId)`
+
+Look up the capability tier of a model.
+
+**Returns:** `ModelCapability | undefined`
+
+---
+
+### `getSmartRouting(task)`
+
+Get the recommended model for a task type (investigation, generation, synthesis).
+
+**Returns:** `string`
+
+---
+
+### `compareModels(modelIds)`
+
+Compare capabilities of multiple models side by side.
+
+**Returns:** `ModelComparison[]`
+
+---
+
+## Visualization APIs
+
+### `buildIdeaGraph(angleResults)`
+
+Build a graph of ideas with nodes and edges representing relationships.
+
+```typescript
+import { buildIdeaGraph } from "@innovator/core";
+
+const graph = buildIdeaGraph(angleResults);
+console.log(graph.nodes.length, "nodes", graph.edges.length, "edges");
+```
+
+**Returns:** `IdeaGraph`
+
+```typescript
+interface IdeaGraph {
+  nodes: IdeaNode[];
+  edges: IdeaEdge[];
+}
+```
+
+---
+
+### `getAngleColor(angleId)`
+
+Get the display color for an angle.
+
+**Returns:** `string`
+
+---
+
+## Conversation & Refinement APIs
+
+### `createConversation(subject, selectedIdeas)` · `getConversation(id)` · `deleteConversation(id)` · `listConversations()` · `clearConversations()`
+
+Manage refinement conversations for iterative idea deepening.
+
+```typescript
+import { createConversation, refineConversation } from "@innovator/core";
+
+const conv = createConversation("remote work", [idea1, idea2]);
+const refined = await refineConversation(conv.id, "Focus on enterprise");
+```
+
+---
+
+### `refineConversation(id, message, model?, signal?)`
+
+Send a follow-up message to refine ideas in a conversation.
+
+**Returns:** `Promise<RefinementResponse>`
+
+---
+
+### `createExplorationTree(subject)` · `getExplorationTree(id)` · `drillDown(treeId, nodeId, question, model?, signal?)`
+
+Create branching exploration trees for non-linear idea investigation.
+
+---
+
+### `getExplorationPath(treeId, nodeId)` · `getNodeBranches(treeId, nodeId)`
+
+Navigate the exploration tree structure.
+
+---
+
+## Sharing APIs
+
+### `shareInvestigation(data, options?)`
+
+Create a shareable link for an investigation.
+
+```typescript
+import { shareInvestigation } from "@innovator/core";
+
+const shared = shareInvestigation(
+  {
+    subject: "remote work",
+    investigation,
+    angleResults,
+    synthesis,
+  },
+  { isPublic: true, expiresInDays: 30 }
+);
+```
+
+**Returns:** `SharedInvestigation`
+
+---
+
+### `getSharedInvestigation(slug)` · `listSharedInvestigations()` · `deleteSharedInvestigation(slug)` · `clearSharedInvestigations()`
+
+CRUD operations for shared investigations.
+
+---
+
+### `forkInvestigation(slug)`
+
+Fork a shared investigation to create a new editable copy.
+
+**Returns:** `ForkResult`
+
+---
+
+### `buildShareUrl(slug)`
+
+Build the full URL for a shared investigation.
+
+**Returns:** `string`
+
+---
+
+## Depth APIs
+
+### `getDepthConfig(depth)`
+
+Get the configuration for a depth tier.
+
+```typescript
+import { getDepthConfig, suggestDepth } from "@innovator/core";
+
+const depth = suggestDepth("quantum computing");
+const config = getDepthConfig(depth);
+```
+
+**Parameters:**
+
+| Param   | Type    | Required | Description                            |
+| ------- | ------- | -------- | -------------------------------------- |
+| `depth` | `Depth` | Yes      | `"shallow"`, `"standard"`, or `"deep"` |
+
+**Returns:** `DepthConfig`
+
+---
+
+### `suggestDepth(subject)`
+
+Suggest the optimal investigation depth for a subject.
+
+**Returns:** `Depth`
+
+---
+
+### `buildShallowInvestigationPrompt(subject)` · `buildSubTopicPrompt(subject, topic)` · `buildDeepDivePrompt(subject, topic)` · `buildDeepSynthesisPrompt(subject, topics)`
+
+Build depth-specific prompts for investigation stages.
+
+---
+
+## Feedback APIs
+
+### `submitFeedback(feedback)`
+
+Submit quality feedback on generated ideas.
+
+```typescript
+import { submitFeedback } from "@innovator/core";
+
+submitFeedback({
+  sessionId: "session-1",
+  ideaTitle: "AI Code Review",
+  rating: "helpful",
+  angleId: "scamper",
+});
+```
+
+**Returns:** `IdeaFeedback`
+
+---
+
+### `loadAllFeedback()` · `getSessionFeedback(sessionId)`
+
+Retrieve feedback records.
+
+---
+
+### `computeAngleScores()` · `getFeedbackSummary()` · `buildFeedbackHint(angleId)`
+
+Compute aggregate quality scores and build prompt hints from feedback data.
+
+---
+
+## i18n APIs
+
+### `detectLanguage(text)` · `localizePrompt(prompt, language)` · `listLanguages()` · `getLanguageConfig(language)`
+
+Multi-language support for prompts and outputs.
+
+```typescript
+import { detectLanguage, localizePrompt } from "@innovator/core";
+
+const lang = detectLanguage("Investigar herramientas de trabajo remoto");
+const localized = localizePrompt(prompt, lang);
+```
+
+---
+
+## Offline APIs
+
+### `detectOllama()` · `checkNetworkStatus()` · `getOfflineStatus()`
+
+Check availability of local Ollama instance and network connectivity.
+
+```typescript
+import { getOfflineStatus, getRecommendedModel } from "@innovator/core";
+
+const status = await getOfflineStatus();
+if (status.isOffline) {
+  const model = getRecommendedModel("investigation");
+}
+```
+
+---
+
+### `getRecommendedModel(task)`
+
+Get the recommended local model for a task when offline.
+
+**Returns:** `RecommendedModel`
+
+---
+
+## Hypothesis APIs
+
+### `parseHypothesis(text, model?, signal?)`
+
+Parse a natural-language hypothesis into structured components.
+
+```typescript
+import { parseHypothesis, analyzeHypothesis } from "@innovator/core";
+
+const parsed = await parseHypothesis(
+  "If we add AI code review, then developer productivity increases by 20%"
+);
+const analysis = await analyzeHypothesis(parsed);
+```
+
+**Returns:** `Promise<ParsedHypothesis>`
+
+---
+
+### `analyzeHypothesis(hypothesis, model?, signal?)`
+
+Analyze a parsed hypothesis — generates experiment cards, counter-evidence, alternatives, and pivot suggestions.
+
+**Returns:** `Promise<HypothesisAnalysis>`
+
+---
+
+### `createHypothesisSession(hypothesis)` · `getHypothesisSession(id)` · `listHypothesisSessions()` · `clearHypothesisSessions()`
+
+Session management for hypothesis-driven innovation.
+
+---
+
+### `updateHypothesisStatus(id, status)` · `attachAnalysis(id, analysis)`
+
+Update hypothesis session state.
+
+---
+
+## Debate APIs
+
+### `runDebate(idea, config?, model?, signal?)`
+
+Run a structured debate on an innovation idea between pro and con personas.
+
+```typescript
+import { runDebate } from "@innovator/core";
+
+const result = await runDebate({ title: "AI code review", description: "..." }, { rounds: 3 });
+console.log(result.verdict.recommendation);
+```
+
+**Returns:** `Promise<DebateResult>`
+
+---
+
+### `debateIdeas(ideas, config?, model?, signal?)`
+
+Run debates on multiple ideas in batch.
+
+**Returns:** `Promise<DebateResult[]>`
+
+---
+
+### `debateToMarkdown(result)`
+
+Convert a debate result to readable Markdown.
+
+**Returns:** `string`
+
+---
+
+## Evolution APIs
+
+### `runEvolution(ideas, config?, model?, signal?)`
+
+Evolve ideas through genetic-algorithm-inspired selection, crossover, and mutation.
+
+```typescript
+import { runEvolution } from "@innovator/core";
+
+const result = await runEvolution(ideas, {
+  generations: 5,
+  populationSize: 10,
+  mutationRate: 0.3,
+});
+```
+
+**Returns:** `Promise<EvolutionResult>`
+
+---
+
+### `crossover(ideaA, ideaB, model?, signal?)` · `mutate(idea, type, model?, signal?)` · `select(ideas, count)`
+
+Low-level evolution primitives for custom workflows.
+
+---
+
+### `evolutionToMarkdown(result)`
+
+Convert evolution results to readable Markdown.
+
+**Returns:** `string`
+
+---
+
+## Stress Testing APIs
+
+### `stressTestIdeas(ideas, config?, model?, signal?)`
+
+Stress-test ideas against adversarial scenarios (market crash, competitor response, regulatory change, etc.).
+
+```typescript
+import { stressTestIdeas } from "@innovator/core";
+
+const result = await stressTestIdeas(ideas, {
+  scenarioCount: 5,
+});
+```
+
+**Returns:** `Promise<StressTestResult>`
+
+---
+
+### `generateStressScenarios(ideas, count?, model?, signal?)`
+
+Generate stress scenarios without running the full test.
+
+**Returns:** `Promise<StressScenario[]>`
+
+---
+
+### `stressTestToMarkdown(result)`
+
+Convert stress test results to readable Markdown.
+
+**Returns:** `string`
+
+---
+
+## Validation APIs
+
+### `validateIdea(idea, domain, model?, signal?)`
+
+Validate a single idea against built-in and custom validators.
+
+```typescript
+import { validateIdea, validateComprehensive } from "@innovator/core";
+
+const result = await validateIdea(idea, "enterprise SaaS");
+```
+
+**Returns:** `Promise<ValidationResult>`
+
+---
+
+### `validateIdeas(ideas, domain, model?, signal?)`
+
+Batch-validate multiple ideas and produce a scorecard.
+
+**Returns:** `Promise<ValidationScorecard>`
+
+---
+
+### `validateComprehensive(idea, domain, model?, signal?)`
+
+Run comprehensive validation including all registered validators.
+
+**Returns:** `Promise<ComprehensiveValidation>`
+
+---
+
+### `registerValidator(validator)` · `unregisterValidator(id)` · `listValidators()` · `clearValidators()`
+
+Manage custom validators.
+
+---
+
+### Built-in Validators
+
+| Validator               | Checks                        |
+| ----------------------- | ----------------------------- |
+| `PatentValidator`       | Patent landscape conflicts    |
+| `MarketValidator`       | Market fit and demand signals |
+| `FeasibilityValidator`  | Technical feasibility         |
+| `MarketSizingValidator` | TAM/SAM/SOM estimates         |
+| `RegulatoryValidator`   | Regulatory compliance risks   |
+
+---
+
+## Benchmark APIs
+
+### `runBenchmark(subject, modelIds, angles?, signal?)`
+
+Benchmark multiple LLM models against the same subject and angles.
+
+```typescript
+import { runBenchmark } from "@innovator/core";
+
+const report = await runBenchmark("remote work", ["gpt-4.1", "claude-sonnet-4-20250514"]);
+```
+
+**Returns:** `Promise<BenchmarkReport>`
+
+---
+
+### `evaluateAngleResult(result, model?, signal?)`
+
+Evaluate a single angle result for quality.
+
+**Returns:** `Promise<IdeaEvaluation>`
+
+---
+
+### `benchmarkToMarkdown(report)`
+
+Convert a benchmark report to readable Markdown.
+
+**Returns:** `string`
+
+---
+
+## Event Bus & Webhook APIs
+
+### `EventBus`
+
+Event bus for publishing and subscribing to pipeline events.
+
+```typescript
+import { getEventBus } from "@innovator/core";
+
+const bus = getEventBus();
+bus.on("idea.scored", (event) => console.log(event));
+bus.emit({ type: "idea.scored", data: { ... } });
+```
+
+---
+
+### `getEventBus()` · `resetEventBus()`
+
+Get the singleton event bus or reset it.
+
+---
+
+### `WebhookManager`
+
+Manage webhook endpoints for event delivery.
+
+---
+
+### `createAutomationRule(rule)` · `listAutomationRules()` · `toggleAutomationRule(id)` · `deleteAutomationRule(id)`
+
+Create and manage automation rules that trigger actions on events.
+
+---
+
+### Webhook Templates
+
+| Template                 | Target        |
+| ------------------------ | ------------- |
+| `SLACK_TEMPLATE`         | Slack channel |
+| `GITHUB_ISSUES_TEMPLATE` | GitHub Issues |
+| `JIRA_TEMPLATE`          | Jira          |
+| `EMAIL_TEMPLATE`         | Email         |
+
+---
+
+## RAG APIs
+
+### `KnowledgeBase`
+
+Class for building and querying a retrieval-augmented generation knowledge base.
+
+```typescript
+import { KnowledgeBase, loadDocument } from "@innovator/core";
+
+const kb = new KnowledgeBase({ chunkSize: 500 });
+const doc = await loadDocument("./research.pdf");
+kb.addDocument(doc);
+const results = await kb.search("remote work trends", 5);
+```
+
+---
+
+### `loadDocument(source)` · `chunkText(text, options?)` · `generateEmbedding(text)`
+
+Document loading, chunking, and embedding utilities.
+
+---
+
+### `cosineSimilarity(a, b)`
+
+Compute cosine similarity between two embedding vectors.
+
+**Returns:** `number`
+
+---
+
+### Connectors
+
+| Connector             | Source      |
+| --------------------- | ----------- |
+| `GitHubConnector`     | GitHub      |
+| `ConfluenceConnector` | Confluence  |
+| `NotionConnector`     | Notion      |
+| `LocalFileConnector`  | Local files |
+
+### `registerConnector(connector)` · `listConnectors()` · `syncConnector(id)` · `removeConnector(id)` · `clearConnectors()`
+
+Manage knowledge source connectors.
+
+---
+
+### `buildContextInjection(query, kb)`
+
+Build a context injection string from RAG results for LLM prompts.
+
+**Returns:** `string`
+
+---
+
+## Competitive Intelligence APIs
+
+### `analyzeCompetitors(subject, competitors, model?, signal?)`
+
+Analyze the competitive landscape for a subject.
+
+```typescript
+import { analyzeCompetitors } from "@innovator/core";
+
+const analysis = await analyzeCompetitors("AI code review", ["CodeRabbit", "Qodo"]);
+```
+
+**Returns:** `Promise<CompetitiveAnalysis>`
+
+---
+
+### `getCompetitiveAnalysis(id)` · `listCompetitiveAnalyses()` · `clearCompetitiveAnalyses()`
+
+CRUD for competitive analyses.
+
+---
+
+### `rankGaps(analysis)` · `rankStrategies(analysis)` · `generatePositioningMatrix(analysis)`
+
+Derive insights from competitive analysis results.
+
+---
+
+### `createMonitor(config)` · `listMonitors()` · `getMonitor(id)` · `deleteMonitor(id)`
+
+Set up ongoing competitive monitoring.
+
+---
+
+### `recordCompetitiveSignal(signal)` · `getSignals(monitorId)` · `detectTrends(monitorId)` · `generateInvestigationSuggestions(monitorId)`
+
+Signal tracking and trend detection.
+
+---
+
+## Research APIs
+
+### `deepInvestigate(subject, depth?, config?, signal?)`
+
+Run a multi-step deep research investigation with configurable depth.
+
+```typescript
+import { deepInvestigate } from "@innovator/core";
+
+const brief = await deepInvestigate("quantum computing", "comprehensive");
+```
+
+**Returns:** `Promise<ResearchBrief>`
+
+---
+
+### `ResearchAgent`
+
+Agent class for customized research workflows.
+
+---
+
+## Replay & Observatory APIs
+
+### `startRunRecord(subject)` · `recordPrompt(record)` · `completeRunRecord(id)`
+
+Record LLM calls during pipeline runs for later replay.
+
+---
+
+### `replayRun(id, overrides?)` · `previewReplay(id, overrides?)`
+
+Replay a recorded run with optional parameter overrides.
+
+---
+
+### `compareRuns(idA, idB)` · `comparisonToMarkdown(comparison)`
+
+Compare two recorded runs side by side.
+
+---
+
+### `setObservatoryEnabled(enabled)` · `isObservatoryEnabled()`
+
+Enable/disable the prompt observatory.
+
+---
+
+### `recordPromptCall(call)` · `observeCall(fn)`
+
+Record individual prompt calls or wrap a function for automatic recording.
+
+---
+
+### `getCallTimeline(options?)` · `getObservatoryStats()` · `diffPromptCalls(idA, idB)` · `clearObservatory()`
+
+Query and analyze recorded prompt calls.
+
+---
+
+## Provenance APIs
+
+### `buildProvenanceRecords(angleResults, subject)`
+
+Build provenance records tracking the lineage of generated ideas.
+
+```typescript
+import { buildProvenanceRecords, verifyChainIntegrity } from "@innovator/core";
+
+const records = buildProvenanceRecords(angleResults, "remote work");
+const chain = createProvenanceChain(records);
+const isValid = verifyChainIntegrity(chain);
+```
+
+---
+
+### `createProvenanceChain(records)` · `buildProvenanceTree(records)` · `buildLineageGraph(records)`
+
+Build different provenance visualizations.
+
+---
+
+### `verifyChainIntegrity(chain)` · `computeRecordHash(record)` · `computeChainHash(chain)`
+
+Tamper-detection via hash-based chain integrity verification.
+
+---
+
+### `formatProvenance(records)` · `provenanceToMarkdown(records)` · `provenanceToJsonLd(records)`
+
+Format provenance data for display or export.
+
+---
+
+## Serendipity APIs
+
+### `findSerendipitousConnections(sessions, limit?)`
+
+Discover unexpected connections across multiple investigation sessions.
+
+```typescript
+import { findSerendipitousConnections } from "@innovator/core";
+
+const connections = findSerendipitousConnections(sessions, 5);
+```
+
+**Returns:** `SerendipityResult`
+
+---
+
+### `embedSession(session)`
+
+Generate an embedding for a session for similarity matching.
+
+---
+
+## Diff APIs
+
+### `runInnovationDiff(before, after, model?, signal?)`
+
+Compare two investigation snapshots and produce a structured diff.
+
+```typescript
+import { runInnovationDiff } from "@innovator/core";
+
+const diff = await runInnovationDiff(oldInvestigation, newInvestigation);
+```
+
+**Returns:** `Promise<DiffResult>`
+
+---
+
+### `buildDiffPrompt(before, after)`
+
+Build the prompt for investigation diff comparison.
+
+**Returns:** `string`
+
+---
+
+## Audience APIs
+
+### `transformForAudience(data, audience)`
+
+Transform innovation output for a specific audience (executive, technical, marketing, etc.).
+
+```typescript
+import { transformForAudience } from "@innovator/core";
+
+const execSummary = await transformForAudience(results, "executive");
+```
+
+**Returns:** `Promise<AudienceOutput>`
+
+---
+
+### `transformForAllAudiences(data)`
+
+Transform for all available audiences at once.
+
+**Returns:** `Promise<AudienceOutput[]>`
+
+---
+
+### `OUTPUT_MODES` · `OUTPUT_MODE_DEFINITIONS` · `getOutputMode(id)`
+
+Constants and lookup for available output modes/audiences.
+
+---
+
+## Gamification APIs
+
+### `awardAchievement(userId, achievementId)` · `getUserAchievements(userId)` · `getUserPoints(userId)`
+
+Award and query user achievements and points.
+
+```typescript
+import { awardAchievement, getUserAchievements } from "@innovator/core";
+
+awardAchievement("user-1", "first-investigation");
+const achievements = getUserAchievements("user-1");
+```
+
+---
+
+### `createChallenge(challenge)` · `startChallenge(id)` · `completeChallenge(id, userId)` · `getUserChallenges(userId)`
+
+Create and manage innovation challenges.
+
+---
+
+### `getLeaderboard(limit?)` · `addActivity(activity)` · `getActivityFeedItems(userId?, limit?)`
+
+Leaderboards and activity feeds.
+
+---
+
+### `getGamificationConfig()` · `updateGamificationConfig(config)` · `clearGamification()`
+
+Configure the gamification system.
+
+---
+
+## Tracker APIs
+
+### `trackIdea(idea)` · `getTrackedIdea(id)` · `loadTrackedIdeas()` · `updateTrackedIdeaStatus(id, status)`
+
+Track idea fitness over time with external platform status.
+
+```typescript
+import { trackIdea, buildDashboard } from "@innovator/core";
+
+trackIdea({ title: "AI Code Review", status: "exploring", platform: "jira" });
+const dashboard = buildDashboard();
+```
+
+---
+
+### `buildDashboard()`
+
+Build a tracker dashboard with aggregated metrics.
+
+**Returns:** `TrackerDashboard`
+
+---
+
+## Custom Angles APIs
+
+### `addCustomAngle(angle)` · `getCustomAngle(id)` · `updateCustomAngle(id, updates)` · `removeCustomAngle(id)` · `loadCustomAngles()`
+
+Create, manage, and persist custom innovation angles.
+
+```typescript
+import { addCustomAngle } from "@innovator/core";
+
+addCustomAngle({
+  id: "design-thinking",
+  name: "Design Thinking",
+  promptTemplate: "Apply design thinking to {{subject}}...",
+  icon: "🎨",
+});
+```
+
+---
+
+### `exportAnglePack(angleIds)` · `importAnglePack(pack)`
+
+Export and import collections of custom angles as packs.
+
+---
+
+### `buildCustomAnglePrompt(angle, subject, investigation)`
+
+Build the LLM prompt for a custom angle.
+
+**Returns:** `string`
+
+---
+
+## Comparative Pipeline APIs
+
+### `runComparativePipeline(subjects, options?)`
+
+Run investigations across multiple subjects in parallel for side-by-side comparison.
+
+```typescript
+import { runComparativePipeline } from "@innovator/core";
+
+const result = await runComparativePipeline(["Slack", "Teams", "Discord"]);
+```
+
+**Returns:** `Promise<ComparativeProgress>`
+
+---
+
+### `runParallelInvestigation(subjects, model?, signal?)`
+
+Run parallel investigations without synthesis.
+
+**Returns:** `Promise<ParallelInvestigationResult>`
 
 ---
 
