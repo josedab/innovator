@@ -36,6 +36,11 @@ async function main() {
   console.log("📊 Scoring ideas...\n");
   const scored = await scoreIdeas(subject, [angleResult], investigation);
 
+  if (scored.scores.length === 0) {
+    console.error("No scores were generated. Try a different subject.");
+    process.exit(1);
+  }
+
   console.log("Scored Ideas:");
   for (const score of scored.scores.slice(0, 3)) {
     const icon = score.feasibility >= 7 ? "🟢" : "🟡";
@@ -68,6 +73,10 @@ async function main() {
   console.log("  → Prototyping");
 
   // Stage 4: Generate implementation scaffolding
+  if (angleResult.ideas.length === 0) {
+    console.error("No ideas were generated. Skipping scaffolding.");
+    process.exit(1);
+  }
   const topIdea = angleResult.ideas[0];
   console.log("\n🏗️  Generating implementation scaffolding...\n");
   const scaffold = generateScaffold({ idea: topIdea });

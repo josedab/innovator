@@ -36,6 +36,10 @@ async function main() {
   }
 
   // Pick the first idea for deeper analysis
+  if (result.ideas.length === 0) {
+    console.error("No ideas were generated. Try a different subject.");
+    process.exit(1);
+  }
   const topIdea: InnovationIdea = result.ideas[0];
   console.log(`\n🏆 Focusing on: "${topIdea.title}"\n`);
 
