@@ -29,6 +29,7 @@ const sidebars: SidebarsConfig = {
         "guides/monitoring",
         "guides/voice",
         "guides/feature-catalog",
+        "guides/testing",
       ],
     },
     "api-reference",
