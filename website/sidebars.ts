@@ -43,6 +43,7 @@ const sidebars: SidebarsConfig = {
     "architecture",
     "troubleshooting",
     "contributing",
+    "security",
   ],
 };
 
