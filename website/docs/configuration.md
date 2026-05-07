@@ -232,3 +232,71 @@ The built-in rate limiter uses an **in-memory Map** and is effective for single-
 - [Vercel's built-in rate limiting](https://vercel.com/docs/functions/ratelimit)
 - [Upstash Redis-based rate limiting](https://upstash.com/docs/oss/sdks/ts/ratelimit/overview)
 - A shared Redis store behind a custom middleware
+
+## Build & Test Configuration
+
+The monorepo uses shared configuration files at the repository root. Each package and app may extend these via local overrides.
+
+### `tsconfig.base.json`
+
+Shared TypeScript compiler options for the entire monorepo. All `packages/*/tsconfig.json` and `apps/*/tsconfig.json` files extend this base.
+
+| Option             | Value     | Rationale                                                  |
+| ------------------ | --------- | ---------------------------------------------------------- |
+| `target`           | `ES2022`  | Modern runtime support for all packages                    |
+| `module`           | `ESNext`  | ESM-first output for tree-shaking                          |
+| `moduleResolution` | `Bundler` | Compatible with Next.js, Vite, and direct Node ESM         |
+| `strict`           | `true`    | Full strict-mode type checking                             |
+| `declaration`      | `true`    | Emit `.d.ts` files for cross-package type sharing          |
+| `isolatedModules`  | `true`    | Required for monorepo safety with bundlers and transpilers |
+| `sourceMap`        | `true`    | Enable source maps for debugging                           |
+
+### `eslint.config.mjs`
+
+Uses ESLint flat config format with TypeScript integration:
+
+- **Parser:** `@typescript-eslint/parser` for `.ts`/`.tsx` files
+- **Ignored directories:** `node_modules/`, `dist/`, `.next/`, `coverage/`, `website/`
+- **Key rules:** Unused variables allowed when prefixed with `_` (underscore convention)
+- **Prettier integration:** Formatting is handled by Prettier; ESLint focuses on code quality
+
+Run linting with:
+
+```bash
+npm run lint
+```
+
+### `vitest.config.ts`
+
+Unit and integration test runner for the monorepo:
+
+- **Test files:** `packages/*/src/**/*.test.ts` and `apps/*/src/**/*.test.ts`
+- **Environment:** `jsdom` for web application tests (React component testing)
+- **Path alias:** `@` maps to `apps/web/src` for import convenience
+- **Coverage provider:** `v8` with 35% minimum thresholds for lines, functions, and branches
+- **Coverage reports:** `text` (terminal) and `json-summary`
+
+Run tests with:
+
+```bash
+npm test                 # Run all tests
+npm run test:coverage    # Run with coverage report
+```
+
+### `apps/web/playwright.config.ts`
+
+End-to-end test configuration for the web application:
+
+- **Browser:** Chromium only (single project)
+- **Base URL:** `http://localhost:3000` (override with `PLAYWRIGHT_BASE_URL` env var)
+- **Parallelism:** Fully parallel in local mode; single worker in CI
+- **Retries:** 2 retries in CI, 0 locally
+- **Traces:** Collected on first retry for debugging
+- **Dev server:** Automatically starts via `npm run dev` in local mode; disabled in CI (expects pre-started server)
+
+Run E2E tests with:
+
+```bash
+npm run test:e2e         # Run all E2E tests
+npm run test:e2e:ui      # Run with interactive UI
+```
