@@ -1,45 +1,54 @@
 # Migration Guide
 
-This document covers upgrade paths, breaking changes, and data migration steps for Innovator.
+This document covers upgrade paths and breaking changes for Innovator.
 
 ## Version Compatibility
 
-| Innovator Version | Node.js | npm | Notes                                    |
-| ----------------- | ------- | --- | ---------------------------------------- |
-| 1.x (current)     | 20+     | 10+ | Initial release, stateless design        |
-| 2.x (planned)     | 20+     | 10+ | Persistence layer, SQLite for workspaces |
+| Innovator Version | Node.js | npm | Notes                             |
+| ----------------- | ------- | --- | --------------------------------- |
+| 0.1.0             | 20+     | 10+ | Initial release, stateless design |
+| 0.2.0 (current)   | 20+     | 10+ | Extended engine, multi-provider   |
 
-## Upgrading
+## Upgrading from v0.1.0 to v0.2.0
 
-### General Upgrade Steps
+### What Changed
 
-1. **Check the [CHANGELOG](CHANGELOG.md)** for breaking changes in the target version
-2. **Update your branch**:
+v0.2.0 is a feature release with no breaking API changes. Existing code using `investigate()`, `generateForAngle()`, and `runAutoPipeline()` continues to work without modification.
+
+**Key additions:**
+
+- Alternative LLM providers (OpenAI, Anthropic, Ollama) — configure via environment variables or `~/.innovator/config.json`
+- `runAutoPipeline()` now accepts an optional `modelRouting` parameter for per-stage model overrides
+- 50+ new modules (collaboration, scoring, knowledge graph, etc.) — all additive, no existing exports removed
+
+### Upgrade Steps
+
+1. **Update your branch**:
 
    ```bash
    git pull origin main
    ```
 
-3. **Clean install dependencies**:
+2. **Clean install dependencies**:
 
    ```bash
    npm run clean:all
    npm install
    ```
 
-4. **Rebuild all packages**:
+3. **Rebuild all packages**:
 
    ```bash
    npm run build
    ```
 
-5. **Run tests** to verify nothing is broken:
+4. **Run tests** to verify nothing is broken:
 
    ```bash
    npm run check
    ```
 
-6. **Verify your environment**:
+5. **Verify your environment**:
 
    ```bash
    npm run doctor
@@ -57,13 +66,24 @@ npm install @innovator/core@latest
 npm run build
 ```
 
+### New Environment Variables (Optional)
+
+v0.2.0 introduces several optional environment variables. None are required — existing `.env.local` files work without changes. See [Configuration](/docs/configuration) for the full list.
+
+| Variable            | Purpose                       |
+| ------------------- | ----------------------------- |
+| `OPENAI_API_KEY`    | Direct OpenAI provider        |
+| `ANTHROPIC_API_KEY` | Direct Anthropic provider     |
+| `OLLAMA_BASE_URL`   | Local Ollama instance         |
+| `MCP_PORT`          | MCP server SSE transport port |
+
 ## Breaking Changes
 
-### Unreleased → v1.0.0
+### v0.1.0 → v0.2.0
 
-The initial release. No breaking changes from prior versions since this is the first public release.
+No breaking changes. All v0.1.0 APIs are preserved.
 
-**Key conventions established in v1:**
+**Key conventions established in v0.1.0 (still apply):**
 
 - `@innovator/core` uses subpath exports: `@innovator/core` (server) and `@innovator/core/types` (client)
 - All LLM output is validated with Zod schemas
@@ -71,28 +91,12 @@ The initial release. No breaking changes from prior versions since this is the f
 - Custom angle IDs follow the same format
 - File-based workspace persistence in `~/.innovator/workspaces/`
 
-## Planned Migrations
+## Roadmap
 
-### Workspace Storage: JSON → SQLite (v2)
+Future versions may include:
 
-The workspace module (`packages/core/src/workspaces/`) currently uses file-based JSON persistence in `~/.innovator/workspaces/`. A migration to SQLite is planned for v2 to support:
-
-- Better concurrent access
-- Indexed queries across workspaces
-- Atomic transactions for multi-step operations
-
-**What you need to do:** Nothing yet. When the migration ships, a CLI migration command will be provided to convert existing JSON workspace files to the SQLite database automatically:
-
-```bash
-# Planned for v2
-npx innovator migrate workspaces
-```
-
-**Data location:** `~/.innovator/workspaces/*.json` → `~/.innovator/innovator.db`
-
-### Environment Variable Changes
-
-No environment variables have been renamed or removed. If future versions deprecate variables, they will be listed here with the replacement.
+- **Workspace storage migration** — JSON to SQLite for better concurrent access and indexed queries. A CLI migration command will be provided when this ships.
+- **Environment variable changes** — No variables have been renamed or removed. If future versions deprecate variables, they will be listed here with replacements.
 
 ## Troubleshooting Upgrades
 
