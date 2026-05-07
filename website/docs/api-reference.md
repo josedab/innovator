@@ -2231,6 +2231,8 @@ Run parallel investigations without synthesis.
 
 ## Web API Routes
 
+All API routes return JSON responses with consistent error shapes. See [Error Responses](#error-responses) below for details.
+
 ### `POST /api/investigate`
 
 ```json
@@ -2347,10 +2349,10 @@ Returns the service status and version.
 
 ```json
 // Response (200)
-{ "status": "ok", "version": "0.1.0" }
+{ "status": "ok", "version": "0.2.0" }
 ```
 
-The `version` value comes from `npm_package_version` (defaults to `"0.1.0"`).
+The `version` value comes from `npm_package_version` (defaults to `"0.2.0"`).
 
 ---
 
@@ -2771,6 +2773,160 @@ List registered plugins. Requires API key authentication.
 // Response (200)
 { "data": [{ "id": "...", "name": "...", "type": "...", "version": "...", "description": "..." }] }
 ```
+
+---
+
+## Request Validation Schemas
+
+All API routes validate request bodies with [Zod](https://zod.dev/). These schemas are the source of truth for what each endpoint accepts. Requests that fail validation return a `400` error (see [Error Responses](#error-responses)).
+
+### `POST /api/investigate`
+
+| Field     | Type     | Required | Constraints    |
+| --------- | -------- | -------- | -------------- |
+| `subject` | `string` | Yes      | 1–500 chars    |
+| `model`   | `string` | No       | Valid model ID |
+
+### `POST /api/innovate`
+
+| Field           | Type       | Required | Constraints                        |
+| --------------- | ---------- | -------- | ---------------------------------- |
+| `subject`       | `string`   | Yes      | 1–500 chars                        |
+| `investigation` | `object`   | Yes      | Must match `InvestigationSchema`   |
+| `angles`        | `string[]` | Yes      | 1–8 values from built-in angle IDs |
+| `model`         | `string`   | No       | Valid model ID                     |
+| `synthesize`    | `boolean`  | No       | Whether to generate synthesis      |
+| `score`         | `boolean`  | No       | Whether to score ideas             |
+
+### `POST /api/auto`
+
+| Field     | Type     | Required | Constraints    |
+| --------- | -------- | -------- | -------------- |
+| `subject` | `string` | Yes      | 1–500 chars    |
+| `model`   | `string` | No       | Valid model ID |
+
+### `POST /api/pipeline`
+
+| Field         | Type     | Required | Constraints    |
+| ------------- | -------- | -------- | -------------- |
+| `description` | `string` | Yes      | 1–5,000 chars  |
+| `model`       | `string` | No       | Valid model ID |
+
+### `POST /api/artifacts`
+
+| Field           | Type     | Required | Constraints                                                   |
+| --------------- | -------- | -------- | ------------------------------------------------------------- |
+| `idea`          | `object` | Yes      | `{ title, description, potentialImpact, implementationHint }` |
+| `artifactType`  | `string` | Yes      | `prd`, `user-story`, `tech-spec`, `pitch-outline`, `okr`      |
+| `subject`       | `string` | Yes      | 1–500 chars                                                   |
+| `investigation` | `object` | No       | `InvestigationSchema`                                         |
+| `model`         | `string` | No       | Valid model ID                                                |
+
+### `POST /api/validate`
+
+| Field    | Type       | Required | Constraints                                   |
+| -------- | ---------- | -------- | --------------------------------------------- |
+| `ideas`  | `object[]` | Yes      | 1–50 items, each with `title` + `description` |
+| `domain` | `string`   | Yes      | 1–200 chars                                   |
+| `model`  | `string`   | No       | Valid model ID                                |
+
+### `POST /api/embed`
+
+| Field     | Type       | Required | Constraints         |
+| --------- | ---------- | -------- | ------------------- |
+| `subject` | `string`   | Yes      | 1–500 chars         |
+| `angles`  | `string[]` | No       | 1–4 valid angle IDs |
+| `model`   | `string`   | No       | Valid model ID      |
+
+### `POST /api/export`
+
+| Field    | Type     | Required | Constraints                                                                                                    |
+| -------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| `format` | `string` | Yes      | `markdown`, `json`, `clipboard`, `github-issue`, `powerpoint`, `jira`, `confluence`, `notion`, `google-slides` |
+| `data`   | `object` | Yes      | `{ subject, investigation?, angleResults[], synthesis?, metadata? }`                                           |
+| `config` | `object` | No       | Format-specific options                                                                                        |
+
+### `POST /api/share`
+
+| Field           | Type      | Required | Constraints        |
+| --------------- | --------- | -------- | ------------------ |
+| `subject`       | `string`  | Yes      | 1–500 chars        |
+| `investigation` | `object`  | No       | Investigation data |
+| `angleResults`  | `array`   | No       | Angle results      |
+| `synthesis`     | `object`  | No       | Synthesis data     |
+| `title`         | `string`  | No       | Max 500 chars      |
+| `isPublic`      | `boolean` | No       | Default: `true`    |
+| `expiresInDays` | `number`  | No       | 1–365              |
+
+### `POST /api/angles`
+
+| Field            | Type       | Required | Constraints                                 |
+| ---------------- | ---------- | -------- | ------------------------------------------- |
+| `id`             | `string`   | Yes      | 1–100 chars, lowercase `[a-z0-9-]`          |
+| `name`           | `string`   | Yes      | 1–200 chars                                 |
+| `description`    | `string`   | Yes      | 1–2,000 chars                               |
+| `promptTemplate` | `string`   | Yes      | 1–10,000 chars (must include `{{subject}}`) |
+| `icon`           | `string`   | No       | Max 10 chars (emoji)                        |
+| `author`         | `string`   | No       | Max 200 chars                               |
+| `tags`           | `string[]` | No       | Max 20 items, each max 100 chars            |
+
+---
+
+## Error Responses
+
+All API routes return structured JSON error responses. The response body always contains an `error` string field.
+
+### Validation Error (400)
+
+Returned when the request body fails Zod schema validation.
+
+```json
+{ "error": "Invalid request. Please check your input and try again." }
+```
+
+The server logs the full Zod validation details (via `parsed.error.flatten()`) but only returns the generic message to clients to avoid leaking internal schema details.
+
+### Invalid JSON (400)
+
+Returned when the request body is not valid JSON.
+
+```json
+{ "error": "Invalid JSON body" }
+```
+
+### Unknown Model (400)
+
+Returned when the `model` field specifies an unrecognized model ID.
+
+```json
+{ "error": "Unknown model. Allowed models: gpt-4.1, gpt-4o-mini, claude-3-5-sonnet, ..." }
+```
+
+### Invalid Content-Type (415)
+
+Returned when a `POST` request is missing the `Content-Type: application/json` header.
+
+```json
+{ "error": "Content-Type must be application/json" }
+```
+
+### Server Error (500)
+
+Returned when an unexpected error occurs during processing. The message varies by route.
+
+```json
+{ "error": "Investigation failed. Please try again." }
+```
+
+Route-specific messages:
+
+| Route              | Error message                                       |
+| ------------------ | --------------------------------------------------- |
+| `/api/investigate` | `"Investigation failed. Please try again."`         |
+| `/api/innovate`    | `"Innovation generation failed. Please try again."` |
+| `/api/auto`        | `"Auto mode failed. Please try again."`             |
+| `/api/artifacts`   | `"Artifact generation failed. Please try again."`   |
+| `/api/validate`    | `"Validation failed. Please try again."`            |
 
 ---
 
