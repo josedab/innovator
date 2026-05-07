@@ -1,7 +1,22 @@
 {
   "name": "web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "description": "Next.js web application for the Innovator AI platform",
+  "keywords": [
+    "innovation",
+    "ai",
+    "web",
+    "nextjs",
+    "copilot"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/josedab/innovator.git",
+    "directory": "apps/web"
+  },
+  "homepage": "https://josedab.github.io/innovator",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

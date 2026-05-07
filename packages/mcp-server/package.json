@@ -1,7 +1,22 @@
 {
   "name": "@innovator/mcp-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "description": "Model Context Protocol (MCP) server for Innovator AI tools",
+  "keywords": [
+    "innovation",
+    "ai",
+    "mcp",
+    "model-context-protocol",
+    "copilot"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/josedab/innovator.git",
+    "directory": "packages/mcp-server"
+  },
+  "homepage": "https://josedab.github.io/innovator",
   "type": "module",
   "bin": {
     "innovator-mcp": "./dist/index.js"

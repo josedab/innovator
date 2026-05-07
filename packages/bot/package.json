@@ -1,7 +1,22 @@
 {
   "name": "@innovator/bot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "description": "Chat bot interface for the Innovator AI platform",
+  "keywords": [
+    "innovation",
+    "ai",
+    "bot",
+    "chat",
+    "copilot"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/josedab/innovator.git",
+    "directory": "packages/bot"
+  },
+  "homepage": "https://josedab.github.io/innovator",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
