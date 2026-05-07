@@ -8,6 +8,14 @@ sidebar_position: 20
 
 Innovator ships with **135+ feature modules** in `@innovator/core`. This catalog organizes every module by category so you can discover capabilities and find the right tool for your workflow.
 
+### Status Legend
+
+| Icon | Status      | Description                                                   |
+| ---- | ----------- | ------------------------------------------------------------- |
+| ✅   | **Stable**  | Fully implemented, tested, and ready for production use       |
+| 🚧   | **WIP**     | Work in progress — functional but may change or be incomplete |
+| 📋   | **Planned** | Designed but not yet implemented                              |
+
 > **Tip:** All modules are importable from `@innovator/core`. Some are also re-exported through higher-level APIs like the CLI, web app, and MCP server.
 
 ---
