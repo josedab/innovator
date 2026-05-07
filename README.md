@@ -129,6 +129,19 @@ npx @innovator/mcp-server --sse
 
 Available tools: `investigate`, `innovate`, and `auto`. See the [MCP Server README](packages/mcp-server/README.md) for client configuration examples.
 
+## GitHub Action
+
+The [`action/`](action/) directory contains a GitHub Action that runs AI-powered innovation analysis directly in your CI/CD workflows. Trigger it on issue labels, pull requests, or manual dispatch to automatically investigate subjects and post results as comments.
+
+```yaml
+- uses: josedab/innovator/action@main
+  with:
+    label: "needs-innovation"
+    post-comment: "true"
+```
+
+See the [Action README](action/README.md) for full configuration options and examples.
+
 ## Examples
 
 Runnable example scripts live in the [`examples/`](examples/) directory. Each script demonstrates a specific workflow:
