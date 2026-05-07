@@ -383,6 +383,432 @@ List available LLM providers and their status.
 
 Configure Ollama for offline / local-first innovation. Detects Ollama installation, checks available models, and configures the CLI for offline use.
 
+### Marketplace
+
+#### `marketplace search [query]`
+
+Search the plugin marketplace.
+
+```bash
+npx tsx apps/cli/src/index.ts marketplace search "sustainability"
+npx tsx apps/cli/src/index.ts marketplace search --category angles
+```
+
+| Option                  | Description        | Default |
+| ----------------------- | ------------------ | ------- |
+| `--category <category>` | Filter by category | —       |
+
+#### `marketplace install <pluginId>`
+
+Install a plugin from the marketplace.
+
+```bash
+npx tsx apps/cli/src/index.ts marketplace install sustainability-pack
+```
+
+#### `marketplace publish`
+
+Publish a plugin to the marketplace.
+
+```bash
+npx tsx apps/cli/src/index.ts marketplace publish \
+  --name "My Plugin" \
+  --description "Custom angles for healthcare" \
+  --category angles \
+  --source innovator-plugin-health \
+  --version 1.0.0 \
+  --author "Jane Doe"
+```
+
+| Option                  | Description                           | Default |
+| ----------------------- | ------------------------------------- | ------- |
+| `--name <name>`         | Plugin name (**required**)            | —       |
+| `--description <desc>`  | Plugin description (**required**)     | —       |
+| `--category <category>` | Plugin category (**required**)        | —       |
+| `--source <source>`     | npm package or git URL (**required**) | —       |
+| `--version <version>`   | Plugin version (**required**)         | —       |
+| `--author <author>`     | Author name (**required**)            | —       |
+
+### Innovation Radar
+
+#### `radar watch <subject>`
+
+Add a subject to the innovation radar for trend monitoring.
+
+```bash
+npx tsx apps/cli/src/index.ts radar watch "AI in healthcare" --frequency weekly
+```
+
+| Option               | Description                                   | Default  |
+| -------------------- | --------------------------------------------- | -------- |
+| `--frequency <freq>` | Check frequency: `daily`, `weekly`, `monthly` | `weekly` |
+| `--webhook <url>`    | Webhook URL for alerts                        | —        |
+
+#### `radar list`
+
+List all watched subjects.
+
+```bash
+npx tsx apps/cli/src/index.ts radar list
+```
+
+### Scaffold
+
+#### `scaffold`
+
+Generate implementation scaffolding from an idea.
+
+```bash
+npx tsx apps/cli/src/index.ts scaffold --title "Smart Packaging" --description "AI-powered freshness detection" --stack typescript
+```
+
+| Option                 | Description                                      | Default                  |
+| ---------------------- | ------------------------------------------------ | ------------------------ |
+| `--title <title>`      | Idea title (**required**)                        | —                        |
+| `--description <desc>` | Idea description (**required**)                  | —                        |
+| `--impact <impact>`    | Potential impact                                 | `High impact innovation` |
+| `--stack <stack>`      | Tech stack: `typescript`, `python`, `go`, `rust` | `typescript`             |
+| `--name <name>`        | Project name                                     | —                        |
+
+### Wargaming
+
+#### `wargame <subject>`
+
+Run competitive wargaming simulation on an idea.
+
+```bash
+npx tsx apps/cli/src/index.ts wargame "AI diagnostics" --idea "AI Health Scanner" --description "AI-powered diagnostic tool"
+```
+
+| Option                 | Description                      | Default   |
+| ---------------------- | -------------------------------- | --------- |
+| `--idea <title>`       | Idea title (**required**)        | —         |
+| `--description <desc>` | Idea description (**required**)  | —         |
+| `-m, --model <model>`  | LLM model to use                 | `gpt-4.1` |
+| `--rounds <n>`         | Number of wargaming rounds (1–5) | `3`       |
+| `--markdown`           | Output as Markdown               | —         |
+
+### Scoring Rubrics
+
+#### `rubric list`
+
+List available scoring rubrics.
+
+```bash
+npx tsx apps/cli/src/index.ts rubric list
+```
+
+#### `rubric show <id>`
+
+Show rubric details including dimensions and weights.
+
+```bash
+npx tsx apps/cli/src/index.ts rubric show innovation-quality
+```
+
+### Competitive Intelligence
+
+#### `monitor create`
+
+Create a competitive monitor.
+
+```bash
+npx tsx apps/cli/src/index.ts monitor create --domain "AI code generation" --competitors "Copilot,Cursor,Cody"
+```
+
+| Option                 | Description                                       | Default |
+| ---------------------- | ------------------------------------------------- | ------- |
+| `--domain <domain>`    | Domain to monitor (**required**)                  | —       |
+| `--competitors <list>` | Comma-separated competitor names                  | —       |
+| `--keywords <list>`    | Comma-separated keywords                          | —       |
+| `--frequency <freq>`   | Monitoring frequency: `hourly`, `daily`, `weekly` | `daily` |
+
+#### `monitor list`
+
+List active competitive monitors.
+
+#### `monitor signals`
+
+View detected competitive signals.
+
+```bash
+npx tsx apps/cli/src/index.ts monitor signals --domain "AI code generation" --limit 20
+```
+
+| Option              | Description         | Default |
+| ------------------- | ------------------- | ------- |
+| `--domain <domain>` | Filter by domain    | —       |
+| `--limit <n>`       | Max signals to show | `20`    |
+
+### Provenance
+
+#### `provenance <sessionId>`
+
+View provenance and citation chain for ideas in a session.
+
+```bash
+npx tsx apps/cli/src/index.ts provenance abc123
+npx tsx apps/cli/src/index.ts provenance abc123 --format markdown
+```
+
+| Option              | Description                                  | Default |
+| ------------------- | -------------------------------------------- | ------- |
+| `--format <format>` | Output format: `text`, `markdown`, `json-ld` | `text`  |
+
+### Cost Report
+
+#### `cost-report`
+
+Generate an LLM cost-performance report.
+
+```bash
+npx tsx apps/cli/src/index.ts cost-report
+npx tsx apps/cli/src/index.ts cost-report --markdown
+```
+
+| Option       | Description        | Default |
+| ------------ | ------------------ | ------- |
+| `--markdown` | Output as Markdown | —       |
+
+### Supply Chain
+
+#### `supply-chain <subject>`
+
+Map the innovation supply chain for an idea.
+
+```bash
+npx tsx apps/cli/src/index.ts supply-chain "smart packaging" --idea "AI Freshness Sensor" --description "Embedded freshness detection"
+```
+
+| Option                 | Description                     | Default   |
+| ---------------------- | ------------------------------- | --------- |
+| `--idea <title>`       | Idea title (**required**)       | —         |
+| `--description <desc>` | Idea description (**required**) | —         |
+| `-m, --model <model>`  | LLM model to use                | `gpt-4.1` |
+| `--markdown`           | Output as Markdown              | —         |
+
+### Timing
+
+#### `timing <subject>`
+
+Analyze optimal execution timing for ideas.
+
+```bash
+npx tsx apps/cli/src/index.ts timing "AI in healthcare"
+```
+
+| Option                | Description        | Default   |
+| --------------------- | ------------------ | --------- |
+| `-m, --model <model>` | LLM model to use   | `gpt-4.1` |
+| `--markdown`          | Output as Markdown | —         |
+
+### Telemetry
+
+#### `telemetry`
+
+View innovation pipeline telemetry and metrics.
+
+```bash
+npx tsx apps/cli/src/index.ts telemetry
+```
+
+### Webhooks
+
+#### `webhooks templates`
+
+List available webhook templates (Slack, GitHub Issues, Jira, Email).
+
+```bash
+npx tsx apps/cli/src/index.ts webhooks templates
+```
+
+#### `webhooks list`
+
+List registered webhooks and their status.
+
+```bash
+npx tsx apps/cli/src/index.ts webhooks list
+```
+
+### Context (RAG)
+
+#### `context add`
+
+Add a knowledge source connector for RAG context grounding.
+
+```bash
+npx tsx apps/cli/src/index.ts context add --type github --name "My Repo" --repo owner/repo
+npx tsx apps/cli/src/index.ts context add --type local-file --name "Docs" --path ./docs
+```
+
+| Option            | Description                                                                   | Default |
+| ----------------- | ----------------------------------------------------------------------------- | ------- |
+| `--type <type>`   | Connector type: `github`, `confluence`, `notion`, `local-file` (**required**) | —       |
+| `--name <name>`   | Connector name (**required**)                                                 | —       |
+| `--repo <repo>`   | GitHub repo (`owner/repo`)                                                    | —       |
+| `--path <path>`   | Local file or directory path                                                  | —       |
+| `--url <url>`     | Base URL (for Confluence)                                                     | —       |
+| `--space <space>` | Space key (for Confluence)                                                    | —       |
+| `--token <token>` | Auth token                                                                    | —       |
+
+#### `context list`
+
+List registered knowledge source connectors and their sync status.
+
+#### `context sync <id>`
+
+Sync a connector to fetch the latest documents.
+
+```bash
+npx tsx apps/cli/src/index.ts context sync github-123456
+```
+
+### Data Migration
+
+#### `migrate`
+
+Migrate file-based data (`~/.innovator/`) into a SQLite database.
+
+```bash
+npx tsx apps/cli/src/index.ts migrate
+npx tsx apps/cli/src/index.ts migrate --db ~/.innovator/innovator.db
+```
+
+| Option        | Description               | Default                     |
+| ------------- | ------------------------- | --------------------------- |
+| `--db <path>` | SQLite database file path | `~/.innovator/innovator.db` |
+
+### Data Migration
+
+#### `migrate`
+
+Migrate file-based data (`~/.innovator/`) into a SQLite database.
+
+```bash
+npx tsx apps/cli/src/index.ts migrate
+npx tsx apps/cli/src/index.ts migrate --db ~/.innovator/innovator.db
+```
+
+| Option        | Description               | Default                     |
+| ------------- | ------------------------- | --------------------------- |
+| `--db <path>` | SQLite database file path | `~/.innovator/innovator.db` |
+
+### Idea Version Control (IdeaGit)
+
+Track, branch, and diff ideas like source code using a Git-inspired version control system.
+
+#### `idea log <ideaId>`
+
+Show version history for an idea.
+
+```bash
+npx tsx apps/cli/src/index.ts idea log idea-abc123
+npx tsx apps/cli/src/index.ts idea log idea-abc123 --branch experimental
+```
+
+| Option            | Description      | Default |
+| ----------------- | ---------------- | ------- |
+| `--branch <name>` | Filter by branch | —       |
+
+#### `idea branch <versionId> <branchName>`
+
+Create a branch from an existing version.
+
+```bash
+npx tsx apps/cli/src/index.ts idea branch ver-abc123 experimental
+```
+
+#### `idea diff <fromId> <toId>`
+
+Compute a semantic diff between two idea versions.
+
+```bash
+npx tsx apps/cli/src/index.ts idea diff ver-abc123 ver-def456
+```
+
+| Option                | Description      | Default   |
+| --------------------- | ---------------- | --------- |
+| `-m, --model <model>` | LLM model to use | `gpt-4.1` |
+
+#### `decode <productDescription>`
+
+Reverse-engineer a product's innovation recipe.
+
+```bash
+npx tsx apps/cli/src/index.ts decode "Spotify's Discover Weekly personalized playlist"
+```
+
+| Option                | Description      | Default   |
+| --------------------- | ---------------- | --------- |
+| `-m, --model <model>` | LLM model to use | `gpt-4.1` |
+
+#### `diffusion <ideaTitle> [description]`
+
+Simulate idea diffusion and adoption using the Bass model.
+
+```bash
+npx tsx apps/cli/src/index.ts diffusion "AI Code Review" "Automated code review using AI"
+```
+
+| Option                | Description                 | Default   |
+| --------------------- | --------------------------- | --------- |
+| `-m, --model <model>` | LLM model to use            | `gpt-4.1` |
+| `--no-monte-carlo`    | Skip Monte Carlo simulation | —         |
+| `--iterations <n>`    | Monte Carlo iterations      | `500`     |
+
+#### `classify <subject>`
+
+Classify subject complexity and generate an adaptive execution plan.
+
+```bash
+npx tsx apps/cli/src/index.ts classify "quantum computing applications"
+```
+
+| Option            | Description                                                   | Default |
+| ----------------- | ------------------------------------------------------------- | ------- |
+| `--depth <depth>` | Preferred depth: `overview`, `standard`, `deep`, `exhaustive` | —       |
+
+#### `market-test <ideaTitle> [description]`
+
+Run a synthetic market test with AI consumer personas.
+
+```bash
+npx tsx apps/cli/src/index.ts market-test "AI Health Scanner" "Personal health diagnostics" --personas 2000
+```
+
+| Option                | Description        | Default   |
+| --------------------- | ------------------ | --------- |
+| `-m, --model <model>` | LLM model to use   | `gpt-4.1` |
+| `--personas <n>`      | Number of personas | `1000`    |
+| `--price <usd>`       | Base price in USD  | —         |
+
+#### `flow-check`
+
+Check cognitive flow state for the current innovation session.
+
+```bash
+npx tsx apps/cli/src/index.ts flow-check --duration 45 --ideas 15
+```
+
+| Option             | Description                 | Default |
+| ------------------ | --------------------------- | ------- |
+| `--duration <min>` | Session duration in minutes | `30`    |
+| `--ideas <n>`      | Ideas generated so far      | `10`    |
+| `--stall <min>`    | Minutes since last idea     | `2`     |
+
+#### `regulatory <ideaTitle> [description]`
+
+Simulate regulatory compliance across jurisdictions.
+
+```bash
+npx tsx apps/cli/src/index.ts regulatory "AI Diagnostic Tool" --jurisdictions US,EU,UK
+```
+
+| Option                   | Description                   | Default   |
+| ------------------------ | ----------------------------- | --------- |
+| `-m, --model <model>`    | LLM model to use              | `gpt-4.1` |
+| `--jurisdictions <list>` | Comma-separated jurisdictions | —         |
+
 :::tip
 For the full CLI reference with all options and examples, see the [CLI README](https://github.com/josedab/innovator/blob/main/apps/cli/README.md).
 :::
