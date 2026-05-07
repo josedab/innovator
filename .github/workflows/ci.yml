@@ -50,6 +50,9 @@ jobs:
       - name: Build Website
         run: npm run build --workspace=website
 
+      - name: Validate Documentation Links
+        run: npx --yes markdown-link-check --config .markdown-link-check.json --quiet website/docs/**/*.md README.md CONTRIBUTING.md || true
+
       - name: Test
         run: npm test
 
