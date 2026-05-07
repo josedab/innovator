@@ -78,37 +78,103 @@ The web app exposes the following API endpoints. All routes validate request bod
 
 ### Core Pipeline
 
-| Route              | Method | Description                                                      |
-| ------------------ | ------ | ---------------------------------------------------------------- |
-| `/api/investigate` | POST   | Analyze a subject and return structured investigation            |
-| `/api/innovate`    | POST   | Generate innovations for selected angles with optional synthesis |
-| `/api/auto`        | POST   | Run full pipeline (all angles + synthesis) as an SSE stream      |
-| `/api/pipeline`    | POST   | Parse natural language pipeline description and execute via SSE  |
+| Route               | Method | Description                                                                      |
+| ------------------- | ------ | -------------------------------------------------------------------------------- |
+| `/api/investigate`  | POST   | Analyze a subject and return structured investigation                            |
+| `/api/innovate`     | POST   | Generate innovations for selected angles with optional synthesis                 |
+| `/api/auto`         | POST   | Run full pipeline (all angles + synthesis) as an SSE stream                      |
+| `/api/pipeline`     | POST   | Parse natural language pipeline description and execute via SSE                  |
+| `/api/pipeline-dag` | POST   | Compile plain-English descriptions into executable pipeline DAGs or execute them |
 
 ### Ideas & Artifacts
 
-| Route            | Method            | Description                                                      |
-| ---------------- | ----------------- | ---------------------------------------------------------------- |
-| `/api/artifacts` | POST              | Generate structured artifacts (PRD, tech spec, user story, etc.) |
-| `/api/validate`  | POST              | Validate ideas against patent, market, and feasibility checks    |
-| `/api/refine`    | POST              | Create refinement sessions or send follow-up messages            |
-| `/api/angles`    | GET, POST, DELETE | List all angles, create custom angles, or delete by ID           |
+| Route                   | Method            | Description                                                                |
+| ----------------------- | ----------------- | -------------------------------------------------------------------------- |
+| `/api/artifacts`        | POST              | Generate structured artifacts (PRD, tech spec, user story, etc.)           |
+| `/api/validate`         | POST              | Validate ideas against patent, market, and feasibility checks              |
+| `/api/refine`           | POST              | Create refinement sessions or send follow-up messages                      |
+| `/api/angles`           | GET, POST, DELETE | List all angles, create custom angles, or delete by ID                     |
+| `/api/combinatorial`    | POST              | Run combinatorial synthesis on angle results for paired/higher-order ideas |
+| `/api/scaffold`         | POST              | Generate implementation scaffolding (code project structure) from an idea  |
+| `/api/idea-version`     | POST              | Manage idea versions with log, diff, and create operations                 |
+| `/api/dependency-graph` | POST              | Build idea dependency graphs and export as JSON, Markdown, or Mermaid      |
+| `/api/rubric`           | GET, POST         | Create, retrieve, list, and score ideas against custom evaluation rubrics  |
 
 ### Collaboration & Sharing
 
-| Route              | Method    | Description                                                      |
-| ------------------ | --------- | ---------------------------------------------------------------- |
-| `/api/collaborate` | GET, POST | Create/join collaborative sessions, submit ideas, vote, comment  |
-| `/api/share`       | GET, POST | Create shareable links or list shared investigations             |
-| `/api/export`      | POST      | Export innovation data (markdown, JSON, clipboard, GitHub issue) |
+| Route                | Method    | Description                                                                   |
+| -------------------- | --------- | ----------------------------------------------------------------------------- |
+| `/api/collaborate`   | GET, POST | Create/join collaborative sessions, submit ideas, vote, comment               |
+| `/api/share`         | GET, POST | Create shareable links or list shared investigations                          |
+| `/api/share/[slug]`  | GET, POST | Retrieve shared investigations by slug and fork into new sessions             |
+| `/api/export`        | POST      | Export innovation data (markdown, JSON, clipboard, GitHub issue)              |
+| `/api/realtime`      | GET, POST | SSE-based real-time collaboration: presence tracking and message broadcasting |
+| `/api/social`        | GET, POST | Social network actions: share, like, comment, follow, repost ideas            |
+| `/api/idea-exchange` | POST, GET | Publish ideas to marketplace and search listings with filters                 |
+| `/api/negotiate`     | POST      | Start or step through multi-action negotiation sessions                       |
+
+### Analysis & Simulation
+
+| Route                     | Method    | Description                                                                    |
+| ------------------------- | --------- | ------------------------------------------------------------------------------ |
+| `/api/autonomous-agent`   | POST      | Run autonomous innovation agent via SSE that self-directs exploration          |
+| `/api/wargaming`          | POST      | Run multi-round adversarial scenarios to test idea resilience                  |
+| `/api/patent-scanner`     | POST      | Scan ideas for prior art and patent conflicts across patent databases          |
+| `/api/monte-carlo`        | POST      | Run Monte Carlo simulation for idea impact prediction                          |
+| `/api/digital-twin`       | POST, GET | Simulate innovation strategies against ecosystem snapshots                     |
+| `/api/supply-chain`       | POST      | Map supply chain implications and dependencies for an innovation idea          |
+| `/api/process-mining`     | POST      | Run process mining on pipeline events to discover bottlenecks                  |
+| `/api/diffusion`          | POST      | Simulate idea adoption/diffusion curves with Monte Carlo analysis              |
+| `/api/market-test`        | POST      | Run synthetic market tests on ideas with persona simulations                   |
+| `/api/stakeholders`       | POST      | Simulate stakeholder reactions with conflict matrices and readiness scores     |
+| `/api/regulatory`         | GET, POST | Simulate regulatory compliance across jurisdictions                            |
+| `/api/compare`            | POST      | Run parallel investigations across multiple subjects with competitive analysis |
+| `/api/portfolio-optimize` | POST      | Optimize idea portfolio allocation using Monte Carlo and financial models      |
+| `/api/inverse-decoder`    | POST      | Analyze products and extract innovation patterns                               |
+| `/api/climate`            | POST, GET | Run innovation climate assessments or retrieve survey questions                |
 
 ### Dashboards & Analytics
 
-| Route              | Method    | Description                                                    |
-| ------------------ | --------- | -------------------------------------------------------------- |
-| `/api/analytics`   | GET, POST | Get analytics summary/insights or track events                 |
-| `/api/tracker`     | GET       | Retrieve idea fitness tracker dashboard                        |
-| `/api/observatory` | GET       | Get stats, timeline, or diff of LLM prompt calls for debugging |
+| Route                | Method    | Description                                                          |
+| -------------------- | --------- | -------------------------------------------------------------------- |
+| `/api/analytics`     | GET, POST | Get analytics summary/insights or track events                       |
+| `/api/tracker`       | GET       | Retrieve idea fitness tracker dashboard                              |
+| `/api/observatory`   | GET       | Get stats, timeline, or diff of LLM prompt calls for debugging       |
+| `/api/portfolio`     | GET       | Return comprehensive portfolio dashboard with analytics              |
+| `/api/cost-report`   | GET       | Generate a cost report of API usage                                  |
+| `/api/telemetry`     | POST      | Record and analyze metrics: diversity, hallucination, quality trends |
+| `/api/github-health` | POST, GET | Analyze repository innovation health scores                          |
+| `/api/timing`        | POST      | Analyze implementation timing and scheduling recommendations         |
+
+### AI & Intelligence
+
+| Route                     | Method    | Description                                                       |
+| ------------------------- | --------- | ----------------------------------------------------------------- |
+| `/api/bias`               | POST, GET | Record cognitive bias activity, analyze biases, build dashboards  |
+| `/api/memory`             | POST      | Record outcomes, query performance stats, auto-tune parameters    |
+| `/api/adaptive-scaling`   | POST      | Classify complexity and generate adaptive execution plans         |
+| `/api/distillation`       | POST, GET | Route requests to premium or distilled models based on quality    |
+| `/api/embedding-explorer` | POST      | Build 3D embedding spaces from ideas and cluster them             |
+| `/api/nl-visualization`   | POST      | Generate D3.js visualizations from natural language descriptions  |
+| `/api/search`             | POST      | Semantic search, indexing, clustering, and connection discovery   |
+| `/api/flow-state`         | POST, GET | Assess flow state indicators and get intervention recommendations |
+
+### Team & Organization
+
+| Route                       | Method    | Description                                                        |
+| --------------------------- | --------- | ------------------------------------------------------------------ |
+| `/api/team-dna`             | POST      | Analyze team composition and organizational DNA for innovation     |
+| `/api/meeting-intelligence` | POST, GET | Ingest meeting transcripts and extract innovation signals          |
+| `/api/curriculum`           | POST, GET | Generate learning paths, track module progress, issue certificates |
+
+### Content & Automation
+
+| Route             | Method | Description                                                      |
+| ----------------- | ------ | ---------------------------------------------------------------- |
+| `/api/content`    | POST   | Generate or revise content (blogs, emails, etc.) from ideas      |
+| `/api/cinematics` | POST   | Generate cinematic scripts from innovation session data          |
+| `/api/automation` | POST   | Create, list, toggle, delete automation rules and preset chains  |
+| `/api/webhooks`   | POST   | Register/unregister webhooks, manage delivery logs and templates |
 
 ### Session & Configuration
 
@@ -124,6 +190,14 @@ The web app exposes the following API endpoints. All routes validate request bod
 | ------------- | ------------- | ----------------------------------------------- |
 | `/api/embed`  | POST, OPTIONS | Embeddable widget endpoint with CORS support    |
 | `/api/widget` | GET           | Serve innovator-widget web component JavaScript |
+
+### Mobile & Portal
+
+| Route              | Method    | Description                                                   |
+| ------------------ | --------- | ------------------------------------------------------------- |
+| `/api/mobile`      | GET, POST | Capture ideas via voice, camera, or text; retrieve and sync   |
+| `/api/portal`      | GET, POST | Developer portal: create tenants, manage API keys, view usage |
+| `/api/marketplace` | POST, GET | Search, install, publish, and review marketplace plugins      |
 
 ### Authenticated API (v1)
 
