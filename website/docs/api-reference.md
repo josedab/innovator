@@ -1206,7 +1206,7 @@ Filter graph nodes by a predicate function.
 
 ### `registerProvider(provider)` · `getProvider(id)` · `setActiveProvider(id)` · `listProviders()` · `initializeProviders(config?)`
 
-Manage the LLM provider registry. See the [Provider JSDoc](#) for detailed parameter descriptions.
+Manage the LLM provider registry. See the [Provider Classes](#provider-classes) section below for detailed parameter descriptions.
 
 ```typescript
 import { initializeProviders, setActiveProvider, listProviders } from "@innovator/core";
