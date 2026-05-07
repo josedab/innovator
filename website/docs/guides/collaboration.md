@@ -197,3 +197,118 @@ onSessionEvent(session.id, (event) => {
 | `completeSession`   | End the session (host only)                     |
 | `getRankedIdeas`    | Get ideas sorted by vote count                  |
 | `onSessionEvent`    | Subscribe to real-time session events           |
+
+## Realtime Collaboration API
+
+The realtime module provides a WebSocket-based transport layer for live collaboration. It handles room management, presence tracking, cursor synchronization, and live idea interactions.
+
+### Getting the Room Manager
+
+```typescript
+import { getRealtimeManager } from "@innovator/core";
+
+const manager = getRealtimeManager(); // Singleton instance
+```
+
+### Room Management
+
+Rooms are created per collaborative session and automatically cleaned up when empty:
+
+```typescript
+// Create or get a room for a session
+const room = manager.getOrCreateRoom("session-abc123");
+console.log(`Room ID: ${room.id}`);
+
+// Look up a room
+const existing = manager.getRoom(room.id);
+
+// Find which room a user is in
+const userRoom = manager.getUserRoom("user-bob");
+```
+
+### Message Protocol
+
+The realtime system uses a message-based protocol. Wire it to any WebSocket library (ws, Socket.io, Partykit):
+
+```typescript
+import type { RealtimeMessage, SendToUser, BroadcastToRoom } from "@innovator/core";
+
+// Define transport callbacks
+const sendToUser: SendToUser = (userId, message) => {
+  // Send message to specific user's WebSocket connection
+};
+
+const broadcastToRoom: BroadcastToRoom = (roomId, message, excludeUserId?) => {
+  // Broadcast to all users in room, optionally excluding sender
+};
+
+// Handle incoming messages
+manager.handleMessage(incomingMessage, sendToUser, broadcastToRoom);
+
+// Handle disconnects
+manager.handleDisconnect("user-bob", broadcastToRoom);
+```
+
+### Message Types
+
+| Type               | Direction       | Description                                |
+| ------------------ | --------------- | ------------------------------------------ |
+| `join`             | Client → Server | Join a room with display name              |
+| `leave`            | Client → Server | Leave a room                               |
+| `cursor_move`      | Client → Server | Update cursor position (`x`, `y`)          |
+| `typing_start`     | Client → Server | Signal typing activity                     |
+| `typing_stop`      | Client → Server | Signal typing stopped                      |
+| `idea_submit`      | Client → Server | Submit an idea to the session              |
+| `idea_vote`        | Client → Server | Vote for an idea                           |
+| `idea_comment`     | Client → Server | Comment on an idea                         |
+| `idea_merge`       | Client → Server | Merge overlapping ideas                    |
+| `session_start`    | Client → Server | Start the ideation phase                   |
+| `session_complete` | Client → Server | Complete the session                       |
+| `angle_assign`     | Client → Server | Assign angles to a participant             |
+| `presence_sync`    | Server → Client | Full presence state on join                |
+| `presence_update`  | Server → Client | Presence change (join/leave/cursor/typing) |
+| `broadcast`        | Server → Client | Collaborative event broadcast              |
+| `ack`              | Server → Client | Message acknowledgment                     |
+| `error`            | Server → Client | Error response                             |
+
+### Presence Tracking
+
+Get real-time presence information for a room:
+
+```typescript
+const users = manager.getPresence(room.id);
+for (const user of users) {
+  console.log(
+    `${user.displayName}: cursor=(${user.cursor?.x}, ${user.cursor?.y}), typing=${user.isTyping}`
+  );
+}
+```
+
+### Types
+
+```typescript
+interface RealtimeUser {
+  userId: string;
+  displayName: string;
+  connectedAt: string;
+  cursor?: { x: number; y: number };
+  isTyping: boolean;
+  lastActivity: string;
+}
+
+interface RealtimeRoom {
+  id: string;
+  sessionId: string;
+  users: Map<string, RealtimeUser>;
+  createdAt: string;
+}
+
+interface RealtimeMessage {
+  type: RealtimeMessageType;
+  roomId: string;
+  userId: string;
+  payload: Record<string, unknown>;
+  timestamp: string;
+  messageId: string;
+}
+```
