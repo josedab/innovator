@@ -294,7 +294,7 @@ program
   .option("--score", "Score and rank ideas after generation")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
-  .action(async (subject: string, opts: { angles: string; model?: string }) => {
+  .action(async (subject: string, opts: { angles: string; model?: string; score?: boolean; file?: string; url?: string }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
 
@@ -1522,7 +1522,7 @@ presetsCmd
   .option("--score", "Score and rank ideas after generation")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
-  .action(async (presetId: string, subject: string, opts: { model?: string }) => {
+  .action(async (presetId: string, subject: string, opts: { model?: string; score?: boolean; file?: string; url?: string }) => {
     const preset = getPresetById(presetId);
     if (!preset) {
       console.error(chalk.red(`Preset "${presetId}" not found`));
@@ -2128,7 +2128,10 @@ program
   .description("Migrate file-based data (~/.innovator/) into a SQLite database")
   .option("--db <path>", "SQLite database file path", "~/.innovator/innovator.db")
   .action(async (opts: { db: string }) => {
-    const { createSQLiteStorage, migrateFileDataToStorage } = await import(
+    const { createSQLiteStorage } = await import(
+      "@innovator/core/storage/sqlite"
+    );
+    const { migrateFileDataToStorage } = await import(
       "@innovator/core"
     );
     const dbPath = opts.db.replace("~", process.env.HOME ?? "");
@@ -2360,6 +2363,7 @@ contextCmd
       type: typeParse.data,
       name: opts.name,
       enabled: true,
+      syncIntervalMinutes: 60,
       config,
     });
     console.log(chalk.green(`✓ Registered connector: ${opts.name} (${id})`));
@@ -2548,7 +2552,7 @@ program
       subject: session.subject ?? "Unknown",
       angleResults: session.angleResults ?? [],
       investigation: session.investigation,
-      model: session.model,
+      model: (session as any).model,
     });
 
     if (opts.format === "json-ld") {
@@ -2840,7 +2844,7 @@ program
     const spinner = ora("Simulating diffusion...").start();
     try {
       const result = await simulateDiffusion(
-        { title: ideaTitle, description: description ?? ideaTitle, impact: "", implementationHint: "" },
+        { title: ideaTitle, description: description ?? ideaTitle, potentialImpact: "", implementationHint: "" },
         { model: opts.model, runMonteCarlo: opts.monteCarlo !== false, monteCarloIterations: parseInt(opts.iterations ?? "500") }
       );
       spinner.stop();
@@ -2915,7 +2919,7 @@ program
     const spinner = ora(`Testing with ${opts.personas ?? "1000"} personas...`).start();
     try {
       const result = await runMarketTest(
-        { title: ideaTitle, description: description ?? ideaTitle, impact: "", implementationHint: "" },
+        { title: ideaTitle, description: description ?? ideaTitle, potentialImpact: "", implementationHint: "" },
         { model: opts.model, personaCount: parseInt(opts.personas ?? "1000"), basePrice: opts.price ? parseFloat(opts.price) : undefined }
       );
       spinner.stop();
@@ -2982,7 +2986,7 @@ program
     try {
       const jurisdictions = opts.jurisdictions?.split(",").map((j) => j.trim());
       const result = await simulateRegulatory(
-        { title: ideaTitle, description: description ?? ideaTitle, impact: "", implementationHint: "" },
+        { title: ideaTitle, description: description ?? ideaTitle, potentialImpact: "", implementationHint: "" },
         { model: opts.model, jurisdictions }
       );
       spinner.stop();
