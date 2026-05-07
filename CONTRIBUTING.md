@@ -365,6 +365,10 @@ npm run dev
 - Update documentation if your change affects user-facing behavior
 - PRs are automatically assigned reviewers via [CODEOWNERS](.github/CODEOWNERS)
 
+## Architecture Decision Records
+
+Significant architectural decisions are tracked via ADRs in [`docs/adr/`](docs/adr/). See the [ADR README](docs/adr/README.md) for the full index and format. If your contribution involves a major design choice (new dependency, structural change, protocol selection), consider adding a new ADR.
+
 ## Monorepo Workspace Guide
 
 The repository is an [npm workspaces](https://docs.npmjs.com/cli/v10/using-npm/workspaces) monorepo with three workspace groups defined in the root `package.json`:

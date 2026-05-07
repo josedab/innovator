@@ -129,6 +129,16 @@ npx @innovator/mcp-server --sse
 
 Available tools: `investigate`, `innovate`, and `auto`. See the [MCP Server README](packages/mcp-server/README.md) for client configuration examples.
 
+## Examples
+
+Runnable example scripts live in the [`examples/`](examples/) directory. Each script demonstrates a specific workflow:
+
+```bash
+npx tsx examples/basic-usage.ts
+```
+
+See the [Feature Module Catalog](website/docs/guides/feature-catalog.md) for a comprehensive list of all available modules.
+
 ## How It Works
 
 1. **Investigate** — The AI analyzes your subject, identifying key aspects, state of the art, challenges, and opportunities
@@ -196,3 +206,7 @@ To report a vulnerability, please follow the instructions in [SECURITY.md](.gith
 - **Tailwind CSS** — Utility-first styling
 - **Zod** — Runtime validation of AI outputs
 - **Commander.js** — CLI framework
+
+## Architecture Decision Records
+
+Significant architectural decisions are documented as ADRs in [`docs/adr/`](docs/adr/). See the [ADR index](docs/adr/README.md) for a summary of all decisions.

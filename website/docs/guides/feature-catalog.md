@@ -6,7 +6,7 @@ sidebar_position: 20
 
 # Feature Module Catalog
 
-Innovator ships with **110+ feature modules** in `@innovator/core`. This catalog organizes every module by category so you can discover capabilities and find the right tool for your workflow.
+Innovator ships with **135+ feature modules** in `@innovator/core`. This catalog organizes every module by category so you can discover capabilities and find the right tool for your workflow.
 
 > **Tip:** All modules are importable from `@innovator/core`. Some are also re-exported through higher-level APIs like the CLI, web app, and MCP server.
 
@@ -199,7 +199,6 @@ System-level capabilities for reliability, security, and scale.
 | **compliance**       | IP guard rails — pre-screens ideas against patents, trademarks, and regulatory constraints                   |
 | **storage**          | Global storage provider abstraction (defaults to in-memory; pluggable)                                       |
 | **offline**          | Offline / local-first mode — auto-detects Ollama instances, checks network state                             |
-| **realtime**         | WebSocket transport layer (also listed under Collaboration)                                                  |
 | **telemetry**        | Usage telemetry and analytics infrastructure                                                                 |
 
 ---

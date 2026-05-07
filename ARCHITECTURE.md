@@ -82,4 +82,8 @@ MCP Server → @innovator/core → LLM Provider → LLM
 
 ## Full Documentation
 
-See the [Docusaurus docs site](./website/docs/architecture.md) for detailed architecture documentation.
+See the [Docusaurus docs site](https://github.com/josedab/innovator/blob/main/website/docs/architecture.md) for detailed architecture documentation.
+
+## Architecture Decision Records
+
+Key design decisions are recorded as ADRs in [`docs/adr/`](./docs/adr/). See the [ADR index](./docs/adr/README.md) for the full list.
