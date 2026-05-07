@@ -25,6 +25,9 @@ Innovator is configured via environment variables. Copy `.env.local.example` to 
 | `PLAYWRIGHT_BASE_URL`      | Base URL for Playwright E2E tests                                       | `http://localhost:3000`  | No       |
 | `MCP_PORT`                 | Port for the MCP server SSE transport                                   | `3100`                   | No       |
 | `GH_TOKEN`                 | GitHub token for Copilot SDK auth in non-interactive/CI environments    | _unset_                  | No       |
+| `ALGOLIA_APP_ID`           | Algolia application ID for documentation search                         | `PLACEHOLDER`            | No       |
+| `ALGOLIA_SEARCH_KEY`       | Algolia search-only API key for documentation search                    | `PLACEHOLDER`            | No       |
+| `ALGOLIA_INDEX_NAME`       | Algolia index name for documentation search                             | `innovator`              | No       |
 | `PORT`                     | Port for the Next.js dev server                                         | `3000`                   | No       |
 
 ## `INNOVATOR_DEFAULT_MODEL`
@@ -159,6 +162,34 @@ GH_TOKEN=ghp_your_token
 ```
 
 See the [Deployment guide](/docs/guides/deployment) for per-platform setup instructions.
+
+## Website / Documentation
+
+The Docusaurus documentation site uses [Algolia DocSearch](https://docsearch.algolia.com/) for full-text search. These variables configure the search widget.
+
+### `ALGOLIA_APP_ID`
+
+Your Algolia application ID. Defaults to `PLACEHOLDER` if not set (search will be non-functional).
+
+```bash
+ALGOLIA_APP_ID=your-app-id
+```
+
+### `ALGOLIA_SEARCH_KEY`
+
+Algolia **search-only** API key (safe to expose in the browser). Do not use your admin key here.
+
+```bash
+ALGOLIA_SEARCH_KEY=your-search-api-key
+```
+
+### `ALGOLIA_INDEX_NAME`
+
+Name of the Algolia index containing the crawled documentation. Defaults to `innovator`.
+
+```bash
+ALGOLIA_INDEX_NAME=innovator
+```
 
 ## API Rate Limits & Security
 
