@@ -20,7 +20,11 @@ function ensureConfigDir(): void {
   }
 }
 
-/** Load all custom angles from disk. Returns empty array if file doesn't exist. */
+/**
+ * Load all custom angles from disk.
+ * Reads and validates entries from ~/.innovator/custom-angles.json.
+ * @returns {CustomAngle[]} Array of custom angles, or empty array if file doesn't exist or is invalid.
+ */
 export function loadCustomAngles(): CustomAngle[] {
   try {
     if (!existsSync(ANGLES_FILE)) return [];
@@ -39,7 +43,11 @@ function saveCustomAngles(angles: CustomAngle[]): void {
   writeFileSync(ANGLES_FILE, JSON.stringify(angles, null, 2), "utf-8");
 }
 
-/** Add a new custom angle. Throws if an angle with the same ID already exists. */
+/**
+ * Add a new custom angle. Validates the angle against the schema before saving.
+ * @param {CustomAngle} angle - The custom angle to add.
+ * @throws {Error} If an angle with the same ID already exists or validation fails.
+ */
 export function addCustomAngle(angle: CustomAngle): void {
   const validated = CustomAngleSchema.parse(angle);
   const existing = loadCustomAngles();
@@ -50,7 +58,11 @@ export function addCustomAngle(angle: CustomAngle): void {
   saveCustomAngles(existing);
 }
 
-/** Remove a custom angle by ID. Returns true if found and removed. */
+/**
+ * Remove a custom angle by ID.
+ * @param {string} id - The unique identifier of the angle to remove.
+ * @returns {boolean} True if the angle was found and removed, false otherwise.
+ */
 export function removeCustomAngle(id: string): boolean {
   const existing = loadCustomAngles();
   const filtered = existing.filter((a) => a.id !== id);
@@ -59,12 +71,20 @@ export function removeCustomAngle(id: string): boolean {
   return true;
 }
 
-/** Get a custom angle by ID. */
+/**
+ * Get a custom angle by ID.
+ * @param {string} id - The unique identifier of the angle to retrieve.
+ * @returns {CustomAngle | undefined} The matching custom angle, or undefined if not found.
+ */
 export function getCustomAngle(id: string): CustomAngle | undefined {
   return loadCustomAngles().find((a) => a.id === id);
 }
 
-/** Update an existing custom angle. Throws if not found. */
+/**
+ * Update an existing custom angle. Validates the angle against the schema before saving.
+ * @param {CustomAngle} angle - The custom angle with updated fields. Must have an existing ID.
+ * @throws {Error} If no angle with the given ID exists or validation fails.
+ */
 export function updateCustomAngle(angle: CustomAngle): void {
   const validated = CustomAngleSchema.parse(angle);
   const existing = loadCustomAngles();

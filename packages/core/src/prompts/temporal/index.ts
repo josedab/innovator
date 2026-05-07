@@ -14,10 +14,10 @@ import type { Investigation, InnovationIdea } from "../../types.js";
 
 // ---- Schemas ----
 
-/** Available time horizons. */
+/** Available time horizons for temporal lens analysis. */
 export const TimeHorizonSchema = z.enum(["near", "mid", "far"]);
 
-/** A temporally-contextualized idea with era-specific details. */
+/** A temporally-contextualized idea with era-specific enablers, constraints, and viability probability. */
 export const TemporalIdeaSchema = z.object({
   title: z.string().max(500),
   description: z.string().max(5000),
@@ -32,7 +32,7 @@ export const TemporalIdeaSchema = z.object({
   probability: z.number().min(0).max(1).describe("Estimated probability of viability in this era"),
 });
 
-/** Result of temporal lens analysis for a single horizon. */
+/** Result of temporal lens analysis for a single horizon, including era context and generated ideas. */
 export const TemporalHorizonResultSchema = z.object({
   horizon: TimeHorizonSchema,
   label: z.string().max(100),
@@ -44,7 +44,7 @@ export const TemporalHorizonResultSchema = z.object({
     .describe("Description of the technological landscape in this era"),
 });
 
-/** Full temporal lens result across all requested horizons. */
+/** Full temporal lens result containing horizons analysis and a connecting timeline narrative. */
 export const TemporalLensResultSchema = z.object({
   subject: z.string().max(1000),
   horizons: z.array(TemporalHorizonResultSchema).max(3),
@@ -56,12 +56,19 @@ export const TemporalLensResultSchema = z.object({
 
 // ---- Types ----
 
+/** A time horizon identifier: "near" (0-1yr), "mid" (2-5yr), or "far" (10-20yr). */
 export type TimeHorizon = z.infer<typeof TimeHorizonSchema>;
+/** An innovation idea contextualized to a specific time horizon. */
 export type TemporalIdea = z.infer<typeof TemporalIdeaSchema>;
+/** Analysis result for a single time horizon containing ideas and era context. */
 export type TemporalHorizonResult = z.infer<typeof TemporalHorizonResultSchema>;
+/** Complete temporal lens result spanning multiple horizons with a connecting narrative. */
 export type TemporalLensResult = z.infer<typeof TemporalLensResultSchema>;
 
-/** Configuration for temporal lens generation. */
+/**
+ * Configuration for temporal lens generation.
+ * Controls which horizons to analyze, how many ideas per horizon, and the LLM model.
+ */
 export interface TemporalLensConfig {
   horizons?: TimeHorizon[];
   ideasPerHorizon?: number;

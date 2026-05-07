@@ -2,6 +2,8 @@
  * Sanitize user-supplied text before interpolation into LLM prompts.
  * Strips patterns commonly used in prompt-injection attacks while
  * preserving legitimate content.
+ * @param {string} input - Raw user-supplied text to sanitize.
+ * @returns {string} Sanitized text with injection patterns and invisible characters removed.
  */
 export function sanitizeUserInput(input: string): string {
   // Normalize Unicode to NFC to prevent homoglyph bypass
@@ -32,6 +34,9 @@ export function sanitizeUserInput(input: string): string {
 /**
  * Wrap user-supplied text in clear delimiters so the LLM can distinguish
  * user content from system instructions.
+ * @param {string} label - Descriptive label prefixed before the wrapped value.
+ * @param {string} value - Raw user-supplied text to sanitize and wrap.
+ * @returns {string} Formatted string in the form `label: """sanitized_value"""`.
  */
 export function wrapUserInput(label: string, value: string): string {
   let sanitized = sanitizeUserInput(value);
@@ -47,6 +52,8 @@ const MAX_LLM_OUTPUT_LENGTH = 50_000;
  * Sanitize LLM-generated output before re-inclusion in subsequent prompts.
  * Prevents multi-hop prompt injection by stripping injection patterns and
  * truncating overly long outputs.
+ * @param {string} output - Raw LLM-generated output text.
+ * @returns {string} Sanitized and potentially truncated output (max 50,000 characters).
  */
 export function sanitizeLlmOutput(output: string): string {
   let sanitized = sanitizeUserInput(output);

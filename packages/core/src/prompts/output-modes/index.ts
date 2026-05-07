@@ -8,14 +8,11 @@
 import { z } from "zod";
 
 /** All recognized output mode identifiers. */
-export const OUTPUT_MODES = [
-  "executive",
-  "technical",
-  "pitch",
-  "research",
-] as const;
+export const OUTPUT_MODES = ["executive", "technical", "pitch", "research"] as const;
 
+/** Zod schema for validating output mode identifiers. */
 export const OutputModeSchema = z.enum(OUTPUT_MODES);
+/** A valid output mode identifier string. */
 export type OutputMode = z.infer<typeof OutputModeSchema>;
 
 /** Metadata for a single output mode. */
@@ -59,13 +56,23 @@ export const OUTPUT_MODE_DEFINITIONS: OutputModeDefinition[] = [
   },
 ];
 
-/** Get an output mode definition by ID. */
+/**
+ * Get an output mode definition by ID.
+ * @param {string} id - The output mode identifier to look up.
+ * @returns {OutputModeDefinition | undefined} The matching definition, or undefined if not found.
+ */
 export function getOutputMode(id: string): OutputModeDefinition | undefined {
   return OUTPUT_MODE_DEFINITIONS.find((m) => m.id === id);
 }
 
 // ---- Per-mode Prompt Templates ----
 
+/**
+ * Build an executive summary prompt for C-suite audiences.
+ * @param {string} synthesisJson - JSON string of the innovation synthesis results.
+ * @param {string} subject - The innovation subject being analyzed.
+ * @returns {string} Formatted LLM prompt requesting an executive briefing in JSON format.
+ */
 export function buildExecutivePrompt(synthesisJson: string, subject: string): string {
   return `You are a senior strategy consultant preparing a briefing for C-suite executives.
 
@@ -97,6 +104,12 @@ You MUST respond with valid JSON only:
 }`;
 }
 
+/**
+ * Build a technical specification prompt for engineering audiences.
+ * @param {string} synthesisJson - JSON string of the innovation synthesis results.
+ * @param {string} subject - The innovation subject being analyzed.
+ * @returns {string} Formatted LLM prompt requesting a technical spec in JSON format.
+ */
 export function buildTechnicalPrompt(synthesisJson: string, subject: string): string {
   return `You are a senior software architect preparing a technical specification document.
 
@@ -131,6 +144,12 @@ You MUST respond with valid JSON only:
 }`;
 }
 
+/**
+ * Build a pitch deck outline prompt for founders and investors.
+ * @param {string} synthesisJson - JSON string of the innovation synthesis results.
+ * @param {string} subject - The innovation subject being analyzed.
+ * @returns {string} Formatted LLM prompt requesting a pitch deck outline in JSON format.
+ */
 export function buildPitchPrompt(synthesisJson: string, subject: string): string {
   return `You are an experienced startup advisor helping craft a compelling pitch deck outline.
 
@@ -163,6 +182,12 @@ You MUST respond with valid JSON only:
 }`;
 }
 
+/**
+ * Build a research brief prompt for academic audiences.
+ * @param {string} synthesisJson - JSON string of the innovation synthesis results.
+ * @param {string} subject - The innovation subject being analyzed.
+ * @returns {string} Formatted LLM prompt requesting a research brief in JSON format.
+ */
 export function buildResearchPrompt(synthesisJson: string, subject: string): string {
   return `You are an academic researcher preparing a structured research brief.
 
@@ -196,7 +221,10 @@ You MUST respond with valid JSON only:
 }
 
 /** Map of output mode IDs to their prompt builders. */
-export const OUTPUT_MODE_PROMPTS: Record<OutputMode, (synthesisJson: string, subject: string) => string> = {
+export const OUTPUT_MODE_PROMPTS: Record<
+  OutputMode,
+  (synthesisJson: string, subject: string) => string
+> = {
   executive: buildExecutivePrompt,
   technical: buildTechnicalPrompt,
   pitch: buildPitchPrompt,
