@@ -298,6 +298,18 @@ export async function runParallelInvestigation(
   };
 }
 
+/**
+ * Build a cross-subject competitive analysis map from parallel investigation results.
+ *
+ * Sends investigation summaries, opportunities, and challenges to an LLM to produce
+ * a structured competitive positioning map with strengths, weaknesses, overlap areas,
+ * differentiators, and a strategic recommendation.
+ *
+ * @param results - Array of subject–investigation pairs from parallel investigations
+ * @param model - Optional LLM model ID override
+ * @param signal - Optional AbortSignal to cancel the request early
+ * @returns A {@link CompetitiveMap} with per-subject analysis and cross-subject insights
+ */
 async function buildCompetitiveMap(
   results: Array<{ subject: string; investigation: Investigation }>,
   model?: string,
@@ -305,11 +317,15 @@ async function buildCompetitiveMap(
 ): Promise<CompetitiveMap> {
   const prompt = `You are a competitive intelligence analyst. Compare the following subjects side by side and create a competitive positioning map.
 
-${results.map((r) => `SUBJECT: ${sanitizeUserInput(r.subject)}
+${results
+  .map(
+    (r) => `SUBJECT: ${sanitizeUserInput(r.subject)}
 Summary: ${sanitizeUserInput(r.investigation.summary)}
 Opportunities: ${r.investigation.opportunities.map((o) => sanitizeUserInput(o)).join("; ")}
 Challenges: ${r.investigation.challenges.map((c) => sanitizeUserInput(c)).join("; ")}
-`).join("\n---\n")}
+`
+  )
+  .join("\n---\n")}
 
 You MUST respond with valid JSON only:
 {

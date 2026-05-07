@@ -460,12 +460,21 @@ export function saveConfig(config: InnovatorConfig): void {
 const providers = new Map<string, LLMProvider>();
 let activeProviderId: string | null = null;
 
-/** Register a provider instance. */
+/**
+ * Register a provider instance in the global registry.
+ *
+ * @param provider - The LLM provider to register. Its `id` is used as the registry key.
+ */
 export function registerProvider(provider: LLMProvider): void {
   providers.set(provider.id, provider);
 }
 
-/** Get a provider by ID. */
+/**
+ * Retrieve a registered provider by its unique identifier.
+ *
+ * @param id - The provider identifier (e.g. `"copilot"`, `"openai"`, `"anthropic"`, `"ollama"`)
+ * @returns The provider instance, or `undefined` if not registered
+ */
 export function getProvider(id: string): LLMProvider | undefined {
   return providers.get(id);
 }
@@ -482,7 +491,14 @@ export function getActiveProvider(): LLMProvider {
   return providers.get("copilot")!;
 }
 
-/** Set the active provider by ID. */
+/**
+ * Set the active provider by its identifier.
+ *
+ * The active provider is used by default for all LLM operations.
+ *
+ * @param id - The identifier of a previously registered provider
+ * @throws {Error} If no provider with the given ID is registered
+ */
 export function setActiveProvider(id: string): void {
   if (!providers.has(id)) {
     throw new Error(`Provider "${id}" is not registered`);
@@ -490,12 +506,24 @@ export function setActiveProvider(id: string): void {
   activeProviderId = id;
 }
 
-/** List all registered providers. */
+/**
+ * List all registered LLM providers.
+ *
+ * @returns Array of all registered provider instances
+ */
 export function listProviders(): LLMProvider[] {
   return Array.from(providers.values());
 }
 
-/** Initialize providers from config. */
+/**
+ * Initialize providers from configuration.
+ *
+ * Registers Copilot (always), plus OpenAI, Anthropic, and Ollama based on the
+ * provided config or `~/.innovator/config.json`. Sets the active provider
+ * according to `config.defaultProvider`.
+ *
+ * @param config - Optional configuration object. If omitted, loads from `~/.innovator/config.json`.
+ */
 export function initializeProviders(config?: InnovatorConfig): void {
   const cfg = config ?? loadConfig();
 

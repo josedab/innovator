@@ -84,6 +84,8 @@ async function runWithConcurrency<T>(
  * @param onProgress - Callback invoked on each stage transition with the current {@link PipelineProgress}
  * @param model - Optional LLM model override
  * @param angles - Optional subset of angle IDs to use (defaults to all 8 angles)
+ * @param signal - Optional AbortSignal to cancel the pipeline early
+ * @param modelRouting - Optional per-stage model overrides (investigation, generation, synthesis)
  * @returns The final {@link PipelineProgress} including all angle results and synthesis
  *
  * @example
