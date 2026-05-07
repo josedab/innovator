@@ -183,6 +183,18 @@ This repository includes a [dev container](.devcontainer/devcontainer.json) conf
 
 To get started, click **"Code → Codespaces → New codespace"** on GitHub, or open the repo in VS Code and select **"Reopen in Container"**. Dependencies install automatically via the `postCreateCommand`.
 
+## Troubleshooting
+
+| Issue                                | Solution                                                                                                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`gh auth` / Copilot token errors** | Run `gh auth login` and ensure your GitHub account has an active Copilot subscription. In CI, set the `GH_TOKEN` env var.                                                |
+| **Model not available**              | Check model availability with your provider. Use `INNOVATOR_EXTRA_MODELS` to allowlist custom model IDs, or switch providers via `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`. |
+| **Port 3000 already in use**         | Set `PORT=3001` in `.env.local` or kill the existing process on port 3000.                                                                                               |
+| **Build failures after upgrade**     | Run `npm run clean:all && rm -rf node_modules && npm install && npm run build` for a clean rebuild.                                                                      |
+| **LLM request timeouts**             | Increase `INNOVATOR_LLM_TIMEOUT_MS` (default: 90000). Complex subjects or slower models may need 120000+.                                                                |
+
+For the full troubleshooting guide, see the [documentation site](https://innovator-ai.vercel.app/docs/guides/troubleshooting).
+
 ## Contributing
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, coding standards, and PR guidelines.
