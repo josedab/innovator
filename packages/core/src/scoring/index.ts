@@ -45,7 +45,13 @@ export const TIME_TO_IMPLEMENT_ORDER: Record<IdeaScore["timeToImplement"], numbe
 };
 
 /**
- * Build the scoring prompt for the LLM.
+ * Build the LLM prompt for scoring ideas across feasibility, impact, novelty,
+ * and time-to-implement dimensions.
+ *
+ * @param subject - The innovation subject being scored
+ * @param investigation - Optional investigation context for more informed scoring
+ * @param angleResults - Array of angle results containing the ideas to score
+ * @returns A formatted prompt string ready to send to the LLM
  */
 function buildScoringPrompt(
   subject: string,
@@ -150,8 +156,13 @@ export async function scoreIdeas(
 }
 
 /**
- * Compute a composite priority score from individual dimensions.
- * Higher is better. Weighs impact most heavily.
+ * Compute a composite priority score from individual scoring dimensions.
+ *
+ * The score weights impact most heavily (35%), followed by feasibility (30%),
+ * novelty (20%), and speed of implementation (15%). Higher is better.
+ *
+ * @param score - The {@link IdeaScore} to compute the priority for
+ * @returns A composite numeric score (higher = higher priority)
  */
 export function computePriorityScore(score: IdeaScore): number {
   return (
@@ -164,6 +175,16 @@ export function computePriorityScore(score: IdeaScore): number {
 
 /**
  * Classify an idea into a priority quadrant based on feasibility and impact.
+ *
+ * - **quick-wins**: high feasibility + high impact
+ * - **strategic-bets**: low feasibility + high impact
+ * - **low-hanging-fruit**: high feasibility + low impact
+ * - **reconsider**: low feasibility + low impact
+ *
+ * The threshold between high/low is a score of 6.
+ *
+ * @param score - The {@link IdeaScore} to classify
+ * @returns One of `"quick-wins"`, `"strategic-bets"`, `"low-hanging-fruit"`, or `"reconsider"`
  */
 export function getQuadrant(
   score: IdeaScore
@@ -177,7 +198,12 @@ export function getQuadrant(
 }
 
 /**
- * Rank scored ideas by composite priority score (descending).
+ * Rank scored ideas by composite priority score in descending order.
+ *
+ * Uses {@link computePriorityScore} to compute each idea's composite score.
+ *
+ * @param scores - Array of {@link IdeaScore} to rank
+ * @returns A new sorted array (does not mutate the input)
  */
 export function rankIdeas(scores: IdeaScore[]): IdeaScore[] {
   return [...scores].sort((a, b) => computePriorityScore(b) - computePriorityScore(a));
