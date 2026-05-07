@@ -9,6 +9,10 @@ Thank you for your interest in contributing! This guide will help you get starte
 - **GitHub Copilot subscription** (for running the AI-powered features)
 - **GitHub CLI** authenticated (`gh auth login`)
 
+### Node.js Version
+
+The repository includes an `.nvmrc` file that pins Node.js to version **20**. If you use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm), running `nvm use` (or `fnm use`) in the repository root will automatically switch to the correct version. CI also enforces this version — builds run on Node 20 (and 22 for forward-compatibility testing).
+
 ## Setup
 
 ```bash
