@@ -449,4 +449,465 @@ Return valid JSON only:
 export function clearVersionHistory(): void {
   versionLog.length = 0;
   branches.clear();
+  versionTags.clear();
+}
+
+// ---- Additional Schemas ----
+
+/** A conflict report between two branches. */
+export const ConflictReportSchema = z.object({
+  branchA: z.string().max(200),
+  branchB: z.string().max(200),
+  ideaId: z.string().max(200),
+  divergencePointId: z.string().max(200).optional(),
+  conflictingFields: z.array(
+    z.object({
+      field: z.string().max(200),
+      valueA: z.string().max(5000),
+      valueB: z.string().max(5000),
+      ancestorValue: z.string().max(5000).optional(),
+    })
+  ),
+  autoResolvable: z.boolean(),
+});
+
+/** A timeline entry for visual rendering. */
+export const TimelineEntrySchema = z.object({
+  versionId: z.string().max(200),
+  branchName: z.string().max(200),
+  author: z.string().max(200).optional(),
+  message: z.string().max(500).optional(),
+  timestamp: z.number(),
+  parentId: z.string().max(200).optional(),
+  isMerge: z.boolean(),
+});
+
+/** A field-level side-by-side comparison entry. */
+export const SideBySideFieldSchema = z.object({
+  field: z.string().max(200),
+  valueA: z.string().max(5000),
+  valueB: z.string().max(5000),
+  changed: z.boolean(),
+  diff: z.array(
+    z.object({
+      type: z.enum(["equal", "added", "removed"]),
+      value: z.string().max(5000),
+    })
+  ),
+});
+
+/** A structured side-by-side comparison of two versions. */
+export const SideBySideComparisonSchema = z.object({
+  versionIdA: z.string().max(200),
+  versionIdB: z.string().max(200),
+  fields: z.array(SideBySideFieldSchema),
+});
+
+/** A version graph for DAG visualization. */
+export const VersionGraphSchema = z.object({
+  ideaId: z.string().max(200),
+  nodes: z.array(
+    z.object({
+      id: z.string().max(200),
+      branchName: z.string().max(200),
+      author: z.string().max(200).optional(),
+      message: z.string().max(500).optional(),
+      timestamp: z.number(),
+    })
+  ),
+  edges: z.array(
+    z.object({
+      from: z.string().max(200),
+      to: z.string().max(200),
+    })
+  ),
+});
+
+// ---- Additional Types ----
+
+export type ConflictReport = z.infer<typeof ConflictReportSchema>;
+export type TimelineEntry = z.infer<typeof TimelineEntrySchema>;
+export type SideBySideField = z.infer<typeof SideBySideFieldSchema>;
+export type SideBySideComparison = z.infer<typeof SideBySideComparisonSchema>;
+export type VersionGraph = z.infer<typeof VersionGraphSchema>;
+
+// ---- Tag Store ----
+
+const versionTags = new Map<string, Set<string>>(); // key: tag, value: set of versionIds
+
+// ---- Helper: word-level diff ----
+
+function wordDiff(
+  a: string,
+  b: string
+): Array<{ type: "equal" | "added" | "removed"; value: string }> {
+  const wordsA = a.split(/\s+/).filter(Boolean);
+  const wordsB = b.split(/\s+/).filter(Boolean);
+
+  // Simple LCS-based word diff
+  const m = wordsA.length;
+  const n = wordsB.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] =
+        wordsA[i - 1] === wordsB[j - 1]
+          ? dp[i - 1][j - 1] + 1
+          : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+
+  const result: Array<{ type: "equal" | "added" | "removed"; value: string }> = [];
+  let i = m;
+  let j = n;
+  const parts: Array<{ type: "equal" | "added" | "removed"; value: string }> = [];
+
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && wordsA[i - 1] === wordsB[j - 1]) {
+      parts.push({ type: "equal", value: wordsA[i - 1] });
+      i--;
+      j--;
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      parts.push({ type: "added", value: wordsB[j - 1] });
+      j--;
+    } else {
+      parts.push({ type: "removed", value: wordsA[i - 1] });
+      i--;
+    }
+  }
+
+  parts.reverse();
+
+  // Merge consecutive same-type entries
+  for (const part of parts) {
+    const last = result[result.length - 1];
+    if (last && last.type === part.type) {
+      last.value += " " + part.value;
+    } else {
+      result.push({ ...part });
+    }
+  }
+
+  return result;
+}
+
+// ---- Helper: find common ancestor ----
+
+function findCommonAncestor(versionA: IdeaVersion, versionB: IdeaVersion): IdeaVersion | undefined {
+  const ancestorsA = new Set<string>();
+  let current: IdeaVersion | undefined = versionA;
+  while (current) {
+    ancestorsA.add(current.id);
+    current = current.parentId ? versionLog.find((v) => v.id === current!.parentId) : undefined;
+  }
+
+  current = versionB;
+  while (current) {
+    if (ancestorsA.has(current.id)) return current;
+    current = current.parentId ? versionLog.find((v) => v.id === current!.parentId) : undefined;
+  }
+
+  return undefined;
+}
+
+// ---- Additional Functions ----
+
+const CONTENT_FIELDS = ["title", "description", "potentialImpact", "implementationHint"] as const;
+
+/**
+ * Cherry-pick a version's changes onto a target branch.
+ *
+ * @param sourceVersionId - The version whose changes to apply
+ * @param targetBranch - The branch to apply changes to
+ * @param author - Optional author name
+ * @param message - Optional commit message
+ * @returns The new version on the target branch, or undefined if inputs are invalid
+ */
+export function cherryPickVersion(
+  sourceVersionId: string,
+  targetBranch: string,
+  author?: string,
+  message?: string
+): IdeaVersion | undefined {
+  const source = versionLog.find((v) => v.id === sourceVersionId);
+  if (!source) return undefined;
+
+  const branchKey = `${source.ideaId}::${targetBranch}`;
+  const branch = branches.get(branchKey);
+  if (!branch) return undefined;
+
+  const targetHead = versionLog.find((v) => v.id === branch.headVersionId);
+  if (!targetHead) return undefined;
+
+  // Compute the delta from the source's parent (if any) and apply to target head
+  const sourceParent = source.parentId
+    ? versionLog.find((v) => v.id === source.parentId)
+    : undefined;
+  const updates: Partial<
+    Pick<InnovationIdea, "title" | "description" | "potentialImpact" | "implementationHint">
+  > = {};
+
+  for (const field of CONTENT_FIELDS) {
+    const sourceValue = source[field];
+    const parentValue = sourceParent?.[field] ?? "";
+    if (sourceValue !== parentValue) {
+      updates[field] = sourceValue;
+    }
+  }
+
+  const newContent = {
+    title: updates.title ?? targetHead.title,
+    description: updates.description ?? targetHead.description,
+    potentialImpact: updates.potentialImpact ?? targetHead.potentialImpact,
+    implementationHint: updates.implementationHint ?? targetHead.implementationHint,
+  };
+
+  const version: IdeaVersion = {
+    id: generateContentId(newContent),
+    ideaId: source.ideaId,
+    parentId: targetHead.id,
+    branchName: targetBranch,
+    ...newContent,
+    createdAt: Date.now(),
+    author,
+    message: message ?? `Cherry-pick ${sourceVersionId} onto ${targetBranch}`,
+  };
+
+  const existing = versionLog.find((v) => v.id === version.id);
+  if (existing) return existing;
+
+  versionLog.push(version);
+  branch.headVersionId = version.id;
+
+  return version;
+}
+
+/**
+ * Detect conflicts between two branches for a given idea.
+ *
+ * @param branchA - First branch name
+ * @param branchB - Second branch name
+ * @param ideaId - The idea ID
+ * @returns Conflict report describing diverging fields
+ */
+export function detectConflicts(branchA: string, branchB: string, ideaId: string): ConflictReport {
+  const keyA = `${ideaId}::${branchA}`;
+  const keyB = `${ideaId}::${branchB}`;
+  const bA = branches.get(keyA);
+  const bB = branches.get(keyB);
+
+  if (!bA || !bB) {
+    return {
+      branchA,
+      branchB,
+      ideaId,
+      conflictingFields: [],
+      autoResolvable: true,
+    };
+  }
+
+  const headA = versionLog.find((v) => v.id === bA.headVersionId);
+  const headB = versionLog.find((v) => v.id === bB.headVersionId);
+
+  if (!headA || !headB) {
+    return {
+      branchA,
+      branchB,
+      ideaId,
+      conflictingFields: [],
+      autoResolvable: true,
+    };
+  }
+
+  const ancestor = findCommonAncestor(headA, headB);
+
+  const conflictingFields: ConflictReport["conflictingFields"] = [];
+
+  for (const field of CONTENT_FIELDS) {
+    const valA = headA[field];
+    const valB = headB[field];
+    const ancestorVal = ancestor?.[field] ?? "";
+
+    // Both branches modified the same field differently from ancestor
+    if (valA !== valB && (valA !== ancestorVal || valB !== ancestorVal)) {
+      conflictingFields.push({
+        field,
+        valueA: valA,
+        valueB: valB,
+        ancestorValue: ancestorVal,
+      });
+    }
+  }
+
+  return {
+    branchA,
+    branchB,
+    ideaId,
+    divergencePointId: ancestor?.id,
+    conflictingFields,
+    autoResolvable: conflictingFields.length === 0,
+  };
+}
+
+/**
+ * Build a chronological timeline of all versions across all branches for an idea.
+ *
+ * @param ideaId - The idea ID
+ * @returns Array of timeline entries sorted by timestamp
+ */
+export function buildTimeline(ideaId: string): TimelineEntry[] {
+  const versions = versionLog.filter((v) => v.ideaId === ideaId);
+
+  return versions
+    .map((v) => ({
+      versionId: v.id,
+      branchName: v.branchName,
+      author: v.author,
+      message: v.message,
+      timestamp: v.createdAt,
+      parentId: v.parentId,
+      isMerge: v.message?.startsWith("Merge ") ?? false,
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp);
+}
+
+/**
+ * Compare two versions side-by-side with word-level diff (pure local, no LLM).
+ *
+ * @param versionIdA - First version ID
+ * @param versionIdB - Second version ID
+ * @returns Structured field-by-field comparison, or undefined if versions not found
+ */
+export function compareSideBySide(
+  versionIdA: string,
+  versionIdB: string
+): SideBySideComparison | undefined {
+  const a = versionLog.find((v) => v.id === versionIdA);
+  const b = versionLog.find((v) => v.id === versionIdB);
+
+  if (!a || !b) return undefined;
+
+  const fields: SideBySideComparison["fields"] = CONTENT_FIELDS.map((field) => {
+    const valA = a[field];
+    const valB = b[field];
+    return {
+      field,
+      valueA: valA,
+      valueB: valB,
+      changed: valA !== valB,
+      diff: wordDiff(valA, valB),
+    };
+  });
+
+  return { versionIdA, versionIdB, fields };
+}
+
+/**
+ * Revert to a historical version by creating a new commit with its content.
+ *
+ * @param versionId - The version to revert to
+ * @param author - Optional author name
+ * @param message - Optional commit message
+ * @returns The new version, or undefined if source version not found
+ */
+export function revertToVersion(
+  versionId: string,
+  author?: string,
+  message?: string
+): IdeaVersion | undefined {
+  const target = versionLog.find((v) => v.id === versionId);
+  if (!target) return undefined;
+
+  const branchKey = `${target.ideaId}::${target.branchName}`;
+  const branch = branches.get(branchKey);
+  if (!branch) return undefined;
+
+  const currentHead = branch.headVersionId;
+
+  const newContent = {
+    title: target.title,
+    description: target.description,
+    potentialImpact: target.potentialImpact,
+    implementationHint: target.implementationHint,
+  };
+
+  const version: IdeaVersion = {
+    id: generateContentId({
+      ...newContent,
+      // Salt with timestamp to avoid collision with original version
+      implementationHint: newContent.implementationHint + `|revert:${Date.now()}`,
+    }),
+    ideaId: target.ideaId,
+    parentId: currentHead,
+    branchName: target.branchName,
+    ...newContent,
+    createdAt: Date.now(),
+    author,
+    message: message ?? `Revert to version ${versionId}`,
+  };
+
+  versionLog.push(version);
+  branch.headVersionId = version.id;
+
+  return version;
+}
+
+/**
+ * Tag a version with a label for marking milestones.
+ *
+ * @param versionId - The version to tag
+ * @param tag - The tag label
+ * @returns true if tagged successfully, false if version not found
+ */
+export function tagVersion(versionId: string, tag: string): boolean {
+  const version = versionLog.find((v) => v.id === versionId);
+  if (!version) return false;
+
+  let ids = versionTags.get(tag);
+  if (!ids) {
+    ids = new Set();
+    versionTags.set(tag, ids);
+  }
+  ids.add(versionId);
+  return true;
+}
+
+/**
+ * Get all versions with a given tag.
+ *
+ * @param tag - The tag to search for
+ * @returns Array of versions with that tag
+ */
+export function getVersionsByTag(tag: string): IdeaVersion[] {
+  const ids = versionTags.get(tag);
+  if (!ids) return [];
+  return versionLog.filter((v) => ids.has(v.id));
+}
+
+/**
+ * Build a version graph (DAG) for an idea, returning nodes and edges.
+ *
+ * @param ideaId - The idea ID
+ * @returns Graph with nodes (versions) and edges (parent→child)
+ */
+export function buildVersionGraph(ideaId: string): VersionGraph {
+  const versions = versionLog.filter((v) => v.ideaId === ideaId);
+
+  const nodes = versions.map((v) => ({
+    id: v.id,
+    branchName: v.branchName,
+    author: v.author,
+    message: v.message,
+    timestamp: v.createdAt,
+  }));
+
+  const edges: VersionGraph["edges"] = [];
+  for (const v of versions) {
+    if (v.parentId) {
+      edges.push({ from: v.parentId, to: v.id });
+    }
+  }
+
+  return { ideaId, nodes, edges };
 }
