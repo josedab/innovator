@@ -229,6 +229,7 @@ Have a question or idea? Join the conversation on [GitHub Discussions](https://g
 - **💡 [Ideas](https://github.com/josedab/innovator/discussions/categories/ideas)** — Propose new features, angles, or improvements
 - **❓ [Q&A](https://github.com/josedab/innovator/discussions/categories/q-a)** — Ask questions about setup, usage, or troubleshooting
 - **📜 [Code of Conduct](.github/CODE_OF_CONDUCT.md)** — Our community standards (Contributor Covenant 2.1)
+- **🆘 [Support](.github/SUPPORT.md)** — How to get help, report bugs, and request features
 
 ## Security
 
