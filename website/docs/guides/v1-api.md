@@ -189,11 +189,27 @@ curl http://localhost:3000/api/v1/openapi
 
 ## Rate Limits
 
+### Rate Limiting Layers
+
+Requests to the V1 API pass through **two independent rate limiting layers**. Both must allow the request for it to succeed:
+
+1. **Global middleware limit (per IP):** The Next.js middleware (`apps/web/src/middleware.ts`) enforces a blanket limit of **10 requests/min per IP** across _all_ `/api/*` routes — including v1 endpoints. This layer also limits each IP to **2 concurrent in-flight requests**.
+
+2. **Per-key endpoint limits:** The v1 route handlers apply additional rate limits keyed by API key, as listed below.
+
+If you are hitting `429` errors sooner than the per-endpoint limits suggest, the global middleware limit is likely the cause. To avoid this, spread requests across time or reduce parallel calls.
+
+### Per-Endpoint Limits
+
 | Endpoint              | Limit      |
 | --------------------- | ---------- |
 | `/api/v1/investigate` | 30 req/min |
 | `/api/v1/innovate`    | 20 req/min |
 | `/api/v1/auto`        | 10 req/min |
+
+:::caution
+The global middleware limit of 10 req/min per IP is the effective ceiling regardless of the per-endpoint limits above. For example, even though `/api/v1/investigate` allows 30 req/min per key, a single IP cannot exceed 10 total API requests per minute.
+:::
 
 When rate limited, the API returns `429`:
 
@@ -235,3 +251,47 @@ async function investigate(subject: string) {
 const result = await investigate("remote work tools");
 console.log(result.data.summary);
 ```
+
+## API Versioning & Deprecation Policy
+
+### Versioning Scheme
+
+The API uses URL-path versioning (`/api/v1/...`). New major versions introduce a new path prefix (`/api/v2/...`) while the previous version continues to be served.
+
+### What Constitutes a Breaking Change
+
+The following are **breaking changes** that require a new major version:
+
+- Removing an endpoint or HTTP method
+- Removing or renaming a response field
+- Changing a field's type (e.g., `string` → `number`)
+- Adding a new required request field
+- Changing the meaning of an existing field
+- Changing authentication requirements for an endpoint
+
+The following are **non-breaking** and may be introduced in the current version:
+
+- Adding new optional request fields
+- Adding new response fields
+- Adding new endpoints
+- Adding new enum values to existing fields
+- Relaxing validation constraints (e.g., increasing max length)
+
+### Deprecation Timeline
+
+When a new API version is released:
+
+1. **Announcement** — Deprecation notice added to the changelog and documentation
+2. **Overlap period** — The deprecated version continues to function for at least **6 months** after the new version is available
+3. **Deprecation headers** — Deprecated endpoints return a `Deprecation` header with the sunset date and a `Link` header pointing to the migration guide
+4. **Sunset** — After the overlap period, deprecated endpoints return `410 Gone`
+
+### Version Lifecycle
+
+| Version | Status  | Notes                                    |
+| ------- | ------- | ---------------------------------------- |
+| `v1`    | Current | Active development; no planned successor |
+
+### Migration Guidance
+
+When a new version is released, a migration guide will be published at `/docs/guides/migration-v{N}` with endpoint-by-endpoint upgrade instructions.
