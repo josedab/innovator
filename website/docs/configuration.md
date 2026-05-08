@@ -233,6 +233,67 @@ The built-in rate limiter uses an **in-memory Map** and is effective for single-
 - [Upstash Redis-based rate limiting](https://upstash.com/docs/oss/sdks/ts/ratelimit/overview)
 - A shared Redis store behind a custom middleware
 
+## `.innovator/` Directory
+
+The `.innovator/` directory at the project root stores local workspace state managed by the storage layer. It is created automatically when workspaces are used.
+
+### Directory Structure
+
+```
+.innovator/
+└── workspaces/
+    ├── 00023d1f-3fd0-4f5b-bad6-177e97a50076.json
+    ├── 2070ad7f-115f-43e1-b4c6-9e6dc78a30d6.json
+    └── ...  (one JSON file per workspace, UUID-named)
+```
+
+### Workspace JSON Format
+
+Each file contains a serialized workspace object:
+
+```json
+{
+  "id": "00023d1f-3fd0-4f5b-bad6-177e97a50076",
+  "name": "Team",
+  "createdAt": "2026-05-03T22:14:33.862Z",
+  "updatedAt": "2026-05-03T22:14:33.870Z",
+  "ownerId": "owner",
+  "members": [
+    {
+      "userId": "owner",
+      "displayName": "Owner",
+      "role": "admin",
+      "joinedAt": "2026-05-03T22:14:33.862Z"
+    }
+  ],
+  "sessionIds": [],
+  "sharedPresetIds": [],
+  "sharedAngleIds": [],
+  "tags": [],
+  "activityFeed": [...]
+}
+```
+
+Key fields: `id` (UUID), `name`, `members` (with roles: `admin`, `contributor`, `viewer`), `sessionIds` (linked innovation sessions), and `activityFeed` (audit log of workspace events).
+
+### `.gitignore`
+
+The `.innovator/` directory is included in `.gitignore` by default. Workspace state is local and should not be committed — it contains user-specific data and UUIDs that differ across environments.
+
+### Backup & Restore
+
+To back up workspace state, copy the entire `.innovator/` directory. To restore, replace it with the backup copy. The JSON files are self-contained and do not reference external state.
+
+### Resetting Workspace State
+
+To reset all workspace state, delete the `.innovator/` directory:
+
+```bash
+rm -rf .innovator/
+```
+
+Workspaces will be re-created as empty when the application next writes to the storage layer. This does not affect investigation history stored in other storage backends (e.g., SQLite).
+
 ## Build & Test Configuration
 
 The monorepo uses shared configuration files at the repository root. Each package and app may extend these via local overrides.
