@@ -299,15 +299,35 @@ export {
   evaluateAngleResult,
   benchmarkToMarkdown,
   EVALUATION_CRITERIA,
+  CANONICAL_SUBJECTS,
   IdeaEvaluationSchema,
   ModelBenchmarkSchema,
   BenchmarkReportSchema,
+  BenchmarkMetricsSchema,
+  StatisticalSignificanceSchema,
+  RadarChartAxisSchema,
+  RadarChartSeriesSchema,
+  RadarChartDataSchema,
+  ComparativeReportSchema,
+  BenchmarkSuiteResultSchema,
+  computeBenchmarkMetrics,
+  computeStatisticalSignificance,
+  generateRadarChartData,
+  generateComparativeReport,
+  runBenchmarkSuite,
 } from "./benchmark/index.js";
 export type {
   IdeaEvaluation,
   ModelBenchmark,
   BenchmarkReport,
   EvaluationCriterion,
+  BenchmarkMetrics,
+  StatisticalSignificance,
+  RadarChartAxis,
+  RadarChartSeries,
+  RadarChartData,
+  ComparativeReport,
+  BenchmarkSuiteResult,
 } from "./benchmark/index.js";
 
 /** Content extractors — pull context from URLs, files, and code repositories. */
@@ -981,6 +1001,17 @@ export {
   ScenarioProjectionSchema,
   SensitivityFactorSchema,
   ScenarioModelSchema,
+  bassDiffusion,
+  runMonteCarloSimulation as runInnovationMonteCarloSimulation,
+  runSensitivityAnalysis,
+  compareMonteCarloScenarios,
+  generateProbabilityFan,
+  generateTornadoData,
+  monteCarloToMarkdown,
+  MonteCarloParamsSchema,
+  MonteCarloResultSchema as InnovationMonteCarloResultSchema,
+  TornadoEntrySchema,
+  ScenarioComparisonSchema,
 } from "./simulation/index.js";
 export type {
   StakeholderPersona,
@@ -993,6 +1024,15 @@ export type {
   ScenarioProjection,
   SensitivityFactor,
   ScenarioModel,
+  BassDiffusionPoint,
+  MonteCarloParams,
+  PercentileSet,
+  MonteCarloResult as InnovationMonteCarloResult,
+  TornadoEntry,
+  ScenarioComparison,
+  SensitivityRanking,
+  FanChartPoint,
+  TornadoChartData,
 } from "./simulation/index.js";
 
 /** Gallery — idea marketplace with publishing, upvoting, forking, and featured collections. */
@@ -1096,11 +1136,24 @@ export {
   semanticDiff,
   mergeVersions,
   clearVersionHistory,
+  cherryPickVersion,
+  detectConflicts,
+  buildTimeline as buildVersionTimeline,
+  compareSideBySide,
+  revertToVersion,
+  tagVersion,
+  getVersionsByTag,
+  buildVersionGraph,
   SemanticChangeSchema,
   SemanticDiffSchema,
   IdeaVersionSchema,
   BranchSchema,
   MergeResultSchema,
+  ConflictReportSchema,
+  TimelineEntrySchema,
+  SideBySideFieldSchema,
+  SideBySideComparisonSchema,
+  VersionGraphSchema,
 } from "./versioning/index.js";
 export type {
   SemanticChange,
@@ -1108,6 +1161,11 @@ export type {
   IdeaVersion,
   Branch,
   MergeResult,
+  ConflictReport,
+  TimelineEntry,
+  SideBySideField,
+  SideBySideComparison,
+  VersionGraph,
 } from "./versioning/index.js";
 
 /** Idea fingerprint (DNA) — novelty vectors, domain blends, and similarity search. */
@@ -1405,12 +1463,25 @@ export {
   getRetrospectiveReport,
   listRetrospectiveReports,
   clearRetrospectiveData,
+  analyzeAnglePerformance,
+  testPatternSignificance,
+  generateAutoConfig,
+  linkOutcomeToImplementation,
+  getImplementationLinks,
+  predictIdeaSuccess,
+  compareRetrospectives,
+  retrospectiveToMarkdown,
   IdeaOutcomeSchema,
   SuccessPatternSchema,
   FailureModeSchema,
   VelocityTrendSchema,
   DiminishingReturnsSchema,
   RetrospectiveReportSchema,
+  AnglePerformanceSchema,
+  AutoConfigSchema,
+  ImplementationLinkSchema,
+  IdeaPredictionSchema,
+  RetrospectiveComparisonSchema,
 } from "./retrospective/index.js";
 export type {
   IdeaOutcome,
@@ -1419,6 +1490,11 @@ export type {
   VelocityTrend,
   DiminishingReturns,
   RetrospectiveReport,
+  AnglePerformance,
+  AutoConfig,
+  ImplementationLink,
+  IdeaPrediction,
+  RetrospectiveComparison,
 } from "./retrospective/index.js";
 
 /** Natural language pipeline builder — parse English descriptions into pipeline configs, compile to DAGs, and execute. */
@@ -1890,12 +1966,25 @@ export type {
 } from "./realtime/index.js";
 
 /** Multi-model consensus — run angles across multiple LLMs and synthesize agreements/divergences. */
-export { runConsensus, consensusToMarkdown } from "./consensus/index.js";
+export {
+  runConsensus,
+  consensusToMarkdown,
+  runJuryScoring,
+  computeKrippendorffsAlpha,
+  computeWeightedConsensus,
+  analyzeModelDivergence,
+  synthesizeJuryVerdict,
+} from "./consensus/index.js";
 export type {
   ModelResult,
   ConsensusResult,
   ConsensusIdea,
   ConsensusOptions,
+  JuryScoringOptions,
+  JuryScore,
+  JuryVerdict,
+  JuryReport,
+  DivergenceDetail,
 } from "./consensus/index.js";
 
 /** Idea-to-Code scaffolding — generate implementation boilerplate from innovation ideas. */
@@ -2053,6 +2142,33 @@ export {
   validatePluginManifest,
   getPluginVersions,
   getMarketplaceStats as getPluginMarketplaceStats,
+} from "./marketplace/index.js";
+
+/** Marketplace Template System — template packages, dependency resolution, collections, diffing, and bundles. */
+export {
+  resolveDependencies,
+  checkDependencyConflicts,
+  publishTemplate,
+  searchTemplates,
+  installTemplate,
+  getTemplate,
+  createTemplateFromDirectory,
+  testTemplate,
+  updateTemplate,
+  createCollection,
+  listCollections,
+  getCollection,
+  diffTemplates,
+  exportBundle,
+  importBundle,
+} from "./marketplace/index.js";
+
+/** Marketplace Template Types — template package format, collections, and bundles. */
+export type {
+  TemplateType,
+  TemplatePackage,
+  TemplateCollection,
+  TemplateBundle,
 } from "./marketplace/index.js";
 
 /** Innovation Embeddings & Semantic Search — TF-IDF vector search, similarity clustering, and cross-investigation discovery. */
@@ -2611,6 +2727,36 @@ export {
   NetworkStatsSchema,
 } from "./cross-org-benchmark/index.js";
 export type { OrgMetrics, BenchmarkComparison, NetworkStats } from "./cross-org-benchmark/index.js";
+
+/** Cross-Repository Innovation Graph — multi-repo scanning, graph building, and opportunity detection. */
+export {
+  scanRepository,
+  scanRepositories,
+  buildInnovationGraph,
+  resolveEntities as resolveGraphEntities,
+  detectCrossRepoOpportunities,
+  graphToMarkdown,
+  graphToJson,
+  graphToDot,
+  RepoDependencySchema,
+  RepoInfoSchema,
+  GraphNodeSchema,
+  GraphEdgeSchema,
+  RepoClusterSchema,
+  InnovationGapSchema,
+  CrossRepoGraphSchema,
+  CrossRepoOpportunitySchema,
+} from "./cross-repo/index.js";
+export type {
+  RepoDependency,
+  RepoInfo,
+  GraphNode,
+  GraphEdge,
+  RepoCluster,
+  InnovationGap,
+  CrossRepoGraph,
+  CrossRepoOpportunity,
+} from "./cross-repo/index.js";
 
 /** ML-based angle recommendation — historical learning for angle suggestions. */
 export {
@@ -3607,3 +3753,88 @@ export type {
   Inquiry,
   SearchFilters,
 } from "./idea-exchange/index.js";
+
+/** Contextual Innovation Triggers — monitor external sources for relevant innovation events. */
+export {
+  createTriggerPipeline,
+  matchEventToInterests,
+  triggerEventToMarkdown,
+  TriggerPipeline,
+  RSSAdapter,
+  GitHubReleasesAdapter,
+  HackerNewsAdapter,
+  ArxivAdapter,
+  PatentAdapter,
+  TriggerSourceSchema,
+  TriggerFilterSchema,
+  FrequencyCapSchema,
+  TriggerConfigSchema,
+  TriggerEventSchema,
+  InnovationInterestSchema,
+} from "./triggers/index.js";
+export type {
+  TriggerSource,
+  TriggerFilter,
+  FrequencyCap,
+  TriggerConfig,
+  TriggerEvent,
+  InnovationInterest,
+  TriggerSourceAdapter,
+  TriggerCallback,
+} from "./triggers/index.js";
+
+/** Structured innovation report generation — templates, section generators, and renderers. */
+export {
+  ReportSectionIdSchema,
+  ReportBrandingSchema,
+  ReportFormatSchema,
+  ReportTemplateSchema,
+  REPORT_TEMPLATES,
+  generateExecutiveSummary,
+  generateMethodologySection,
+  generateIdeaCards,
+  generateRoadmap,
+  generateRiskMatrix,
+  generateAppendices,
+  buildReport,
+  renderReportHTML,
+  renderReportMarkdown,
+  renderReport,
+  generateShareablePayload,
+} from "./reports/index.js";
+export type {
+  ReportSectionId,
+  ReportBranding,
+  ReportFormat,
+  ReportTemplate,
+  ReportSection,
+  Report,
+  ReportOptions,
+} from "./reports/index.js";
+
+/** NL Pipeline — conversational refinement, dry-run cost estimation, iterative editing, and Markdown export. */
+export {
+  parseNLIntent,
+  refinePipeline,
+  NLPipelineSession,
+  dryRunPipeline,
+  validatePipelineConfig,
+  suggestPipelineFromGoal,
+  pipelineSessionToMarkdown,
+  NLIntentActionSchema,
+  NLIntentSchema,
+  RefinementSchema,
+  DryRunResultSchema,
+  NodeTokenEstimateSchema,
+  ValidationResultSchema as NLValidationResultSchema,
+  ConversationTurnSchema,
+} from "./nl-pipeline/index.js";
+export type {
+  NLIntentAction,
+  NLIntent,
+  Refinement,
+  DryRunResult,
+  NodeTokenEstimate,
+  ValidationResult as NLValidationResult,
+  ConversationTurn,
+} from "./nl-pipeline/index.js";

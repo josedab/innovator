@@ -239,3 +239,46 @@ export type {
   QuizQuestion,
   PracticeExercise,
 } from "./curriculum/index.js";
+export type {
+  SemanticChange,
+  SemanticDiff,
+  IdeaVersion,
+  Branch,
+  MergeResult,
+  ConflictReport,
+  TimelineEntry,
+  SideBySideField,
+  SideBySideComparison,
+  VersionGraph,
+} from "./versioning/index.js";
+export type {
+  ConsensusResult,
+  ConsensusIdea,
+  JuryScore,
+  JuryVerdict,
+  JuryReport,
+  DivergenceDetail,
+} from "./consensus/index.js";
+export type {
+  ReportSectionId,
+  ReportBranding,
+  ReportFormat,
+  ReportTemplate,
+  ReportSection,
+  Report,
+} from "./reports/index.js";
+export type {
+  TriggerSource,
+  TriggerConfig,
+  TriggerEvent,
+  InnovationInterest,
+} from "./triggers/index.js";
+export type {
+  RepoInfo,
+  GraphNode,
+  GraphEdge,
+  CrossRepoGraph,
+  CrossRepoOpportunity,
+} from "./cross-repo/index.js";
+export type { AnglePerformance, AutoConfig, ImplementationLink } from "./retrospective/index.js";
+export type { MonteCarloParams, MonteCarloResult } from "./simulation/monte-carlo.js";
