@@ -613,3 +613,410 @@ export function getMarketplaceStats(): {
     topPlugins,
   };
 }
+
+// ---- Template Package Format ----
+
+/** Template type within the marketplace. */
+export type TemplateType = "angle-pack" | "workflow" | "scoring-rubric" | "domain-preset";
+
+/** A publishable template package. */
+export interface TemplatePackage {
+  id: string;
+  name: string;
+  description: string;
+  type: TemplateType;
+  /** Map of relative file paths to file contents. */
+  files: Record<string, string>;
+  /** IDs of other templates this one depends on. */
+  dependencies: string[];
+  metadata: Record<string, unknown>;
+  version: string;
+  author: string;
+  publishedAt: string;
+  updatedAt: string;
+}
+
+/** A curated collection of templates. */
+export interface TemplateCollection {
+  id: string;
+  name: string;
+  description: string;
+  templateIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A bundle containing multiple templates for export/import. */
+export interface TemplateBundle {
+  version: string;
+  exportedAt: string;
+  templates: TemplatePackage[];
+}
+
+// ---- Template Registry (file-based, extends marketplace dir) ----
+
+const TEMPLATE_REGISTRY_FILE = join(MARKETPLACE_DIR, "template-registry.json");
+
+interface TemplateRegistryData {
+  templates: TemplatePackage[];
+  collections: TemplateCollection[];
+}
+
+function loadTemplateRegistry(): TemplateRegistryData {
+  ensureDir();
+  if (!existsSync(TEMPLATE_REGISTRY_FILE)) {
+    return { templates: [], collections: [] };
+  }
+  try {
+    return JSON.parse(readFileSync(TEMPLATE_REGISTRY_FILE, "utf-8")) as TemplateRegistryData;
+  } catch {
+    return { templates: [], collections: [] };
+  }
+}
+
+function saveTemplateRegistry(data: TemplateRegistryData): void {
+  ensureDir();
+  writeFileSync(TEMPLATE_REGISTRY_FILE, JSON.stringify(data, null, 2), "utf-8");
+}
+
+// ---- Dependency Resolution ----
+
+/**
+ * Walk the dependency tree for a template and return an ordered list
+ * (dependencies before dependents). Throws on missing or circular deps.
+ */
+export function resolveDependencies(templateId: string): TemplatePackage[] {
+  const registry = loadTemplateRegistry();
+  const byId = new Map(registry.templates.map((t) => [t.id, t]));
+  const ordered: TemplatePackage[] = [];
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+
+  function visit(id: string): void {
+    if (visited.has(id)) return;
+    if (visiting.has(id)) throw new Error(`Circular dependency detected involving "${id}"`);
+    const tpl = byId.get(id);
+    if (!tpl) throw new Error(`Template "${id}" not found in registry`);
+    visiting.add(id);
+    for (const dep of tpl.dependencies) visit(dep);
+    visiting.delete(id);
+    visited.add(id);
+    ordered.push(tpl);
+  }
+
+  visit(templateId);
+  return ordered;
+}
+
+/**
+ * Detect version conflicts when installing multiple templates together.
+ * Returns an array of conflict descriptions (empty if none).
+ */
+export function checkDependencyConflicts(
+  templateIds: string[]
+): Array<{ templateId: string; conflictsWith: string; reason: string }> {
+  const registry = loadTemplateRegistry();
+  const byId = new Map(registry.templates.map((t) => [t.id, t]));
+  const seen = new Map<string, { version: string; from: string }>();
+  const conflicts: Array<{ templateId: string; conflictsWith: string; reason: string }> = [];
+
+  for (const id of templateIds) {
+    let chain: TemplatePackage[];
+    try {
+      chain = resolveDependencies(id);
+    } catch {
+      continue;
+    }
+    for (const tpl of chain) {
+      const existing = seen.get(tpl.id);
+      if (existing && existing.version !== tpl.version) {
+        conflicts.push({
+          templateId: tpl.id,
+          conflictsWith: existing.from,
+          reason: `Version mismatch: "${existing.version}" (from ${existing.from}) vs "${tpl.version}" (from ${id})`,
+        });
+      } else if (!existing) {
+        seen.set(tpl.id, { version: tpl.version, from: id });
+      }
+    }
+  }
+  return conflicts;
+}
+
+// ---- Template CRUD ----
+
+/** Publish a new template to the registry. */
+export function publishTemplate(
+  template: Omit<TemplatePackage, "id" | "publishedAt" | "updatedAt">
+): TemplatePackage {
+  const registry = loadTemplateRegistry();
+  const now = new Date().toISOString();
+  const entry: TemplatePackage = {
+    ...template,
+    id: randomUUID(),
+    publishedAt: now,
+    updatedAt: now,
+  };
+  registry.templates.push(entry);
+  saveTemplateRegistry(registry);
+  return entry;
+}
+
+/** Search templates with optional filters. */
+export function searchTemplates(options?: {
+  query?: string;
+  type?: TemplateType;
+  limit?: number;
+  offset?: number;
+}): TemplatePackage[] {
+  const registry = loadTemplateRegistry();
+  let results = registry.templates;
+
+  if (options?.type) {
+    results = results.filter((t) => t.type === options.type);
+  }
+  if (options?.query) {
+    const q = options.query.toLowerCase();
+    results = results.filter(
+      (t) => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+    );
+  }
+
+  const offset = options?.offset ?? 0;
+  const limit = options?.limit ?? 50;
+  return results.slice(offset, offset + limit);
+}
+
+/** Install a template by ID (marks it as installed by copying to local store). */
+export function installTemplate(templateId: string): TemplatePackage {
+  const deps = resolveDependencies(templateId);
+  const target = deps[deps.length - 1];
+  if (!target) throw new Error(`Template "${templateId}" not found`);
+
+  const installDir = join(MARKETPLACE_DIR, "installed-templates");
+  if (!existsSync(installDir)) mkdirSync(installDir, { recursive: true });
+
+  for (const tpl of deps) {
+    const tplDir = join(installDir, tpl.id);
+    if (!existsSync(tplDir)) mkdirSync(tplDir, { recursive: true });
+    for (const [filePath, content] of Object.entries(tpl.files)) {
+      const fullPath = join(tplDir, filePath);
+      const parentDir = join(fullPath, "..");
+      if (!existsSync(parentDir)) mkdirSync(parentDir, { recursive: true });
+      writeFileSync(fullPath, content, "utf-8");
+    }
+  }
+  return target;
+}
+
+/** Retrieve a template by ID. */
+export function getTemplate(templateId: string): TemplatePackage | undefined {
+  const registry = loadTemplateRegistry();
+  return registry.templates.find((t) => t.id === templateId);
+}
+
+// ---- CLI Publishing Pipeline ----
+
+/**
+ * Create a TemplatePackage from a directory on disk.
+ * Reads all files recursively and bundles them into the template.
+ */
+export function createTemplateFromDirectory(
+  dirPath: string,
+  author: string
+): Omit<TemplatePackage, "id" | "publishedAt" | "updatedAt"> {
+  if (!existsSync(dirPath)) throw new Error(`Directory "${dirPath}" does not exist`);
+
+  const files: Record<string, string> = {};
+
+  function readDir(dir: string, prefix: string): void {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        readDir(full, rel);
+      } else {
+        files[rel] = readFileSync(full, "utf-8");
+      }
+    }
+  }
+
+  readDir(dirPath, "");
+
+  const manifestPath = join(dirPath, "template.json");
+  let manifest: Record<string, unknown> = {};
+  if (existsSync(manifestPath)) {
+    try {
+      manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
+    } catch {
+      /* ignore malformed manifest */
+    }
+  }
+
+  return {
+    name: (manifest["name"] as string) ?? join(dirPath).split("/").pop() ?? "unnamed",
+    description: (manifest["description"] as string) ?? "",
+    type: (manifest["type"] as TemplateType) ?? "domain-preset",
+    files,
+    dependencies: (manifest["dependencies"] as string[]) ?? [],
+    metadata: (manifest["metadata"] as Record<string, unknown>) ?? {},
+    version: (manifest["version"] as string) ?? "1.0.0",
+    author,
+  };
+}
+
+/**
+ * Validate that a template is well-formed.
+ * Returns an array of issues (empty if valid).
+ */
+export function testTemplate(
+  template: Omit<TemplatePackage, "id" | "publishedAt" | "updatedAt">
+): string[] {
+  const issues: string[] = [];
+  if (!template.name || template.name.trim().length === 0) issues.push("name is required");
+  if (!template.description) issues.push("description is required");
+  if (!template.version) issues.push("version is required");
+  if (!template.author) issues.push("author is required");
+  const validTypes: TemplateType[] = ["angle-pack", "workflow", "scoring-rubric", "domain-preset"];
+  if (!validTypes.includes(template.type))
+    issues.push(`type must be one of: ${validTypes.join(", ")}`);
+  if (!template.files || Object.keys(template.files).length === 0)
+    issues.push("at least one file is required");
+  if (template.version && !/^\d+\.\d+\.\d+/.test(template.version))
+    issues.push("version must follow semver (e.g. 1.0.0)");
+  return issues;
+}
+
+/** Update an existing template (version bump, metadata changes, etc.). */
+export function updateTemplate(
+  templateId: string,
+  updates: Partial<
+    Pick<
+      TemplatePackage,
+      "name" | "description" | "version" | "files" | "metadata" | "dependencies" | "type"
+    >
+  >
+): TemplatePackage {
+  const registry = loadTemplateRegistry();
+  const idx = registry.templates.findIndex((t) => t.id === templateId);
+  if (idx === -1) throw new Error(`Template "${templateId}" not found`);
+  const updated: TemplatePackage = {
+    ...registry.templates[idx],
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+  registry.templates[idx] = updated;
+  saveTemplateRegistry(registry);
+  return updated;
+}
+
+// ---- Template Collections ----
+
+/** Create a curated collection of templates. */
+export function createCollection(
+  name: string,
+  description: string,
+  templateIds: string[]
+): TemplateCollection {
+  const registry = loadTemplateRegistry();
+  const now = new Date().toISOString();
+  const collection: TemplateCollection = {
+    id: randomUUID(),
+    name,
+    description,
+    templateIds,
+    createdAt: now,
+    updatedAt: now,
+  };
+  registry.collections.push(collection);
+  saveTemplateRegistry(registry);
+  return collection;
+}
+
+/** List all template collections. */
+export function listCollections(): TemplateCollection[] {
+  return loadTemplateRegistry().collections;
+}
+
+/** Get a single collection by ID. */
+export function getCollection(collectionId: string): TemplateCollection | undefined {
+  return loadTemplateRegistry().collections.find((c) => c.id === collectionId);
+}
+
+// ---- Template Diff ----
+
+/** Show differences between two templates (file-level diff). */
+export function diffTemplates(
+  templateIdA: string,
+  templateIdB: string
+): {
+  added: string[];
+  removed: string[];
+  modified: string[];
+  unchanged: string[];
+} {
+  const registry = loadTemplateRegistry();
+  const a = registry.templates.find((t) => t.id === templateIdA);
+  const b = registry.templates.find((t) => t.id === templateIdB);
+  if (!a) throw new Error(`Template "${templateIdA}" not found`);
+  if (!b) throw new Error(`Template "${templateIdB}" not found`);
+
+  const filesA = new Set(Object.keys(a.files));
+  const filesB = new Set(Object.keys(b.files));
+
+  const added = [...filesB].filter((f) => !filesA.has(f));
+  const removed = [...filesA].filter((f) => !filesB.has(f));
+  const modified: string[] = [];
+  const unchanged: string[] = [];
+
+  for (const f of filesA) {
+    if (filesB.has(f)) {
+      if (a.files[f] !== b.files[f]) modified.push(f);
+      else unchanged.push(f);
+    }
+  }
+
+  return { added, removed, modified, unchanged };
+}
+
+// ---- Bundle Export / Import ----
+
+/** Package multiple templates into a single JSON bundle string. */
+export function exportBundle(templateIds: string[]): string {
+  const registry = loadTemplateRegistry();
+  const templates = templateIds.map((id) => {
+    const tpl = registry.templates.find((t) => t.id === id);
+    if (!tpl) throw new Error(`Template "${id}" not found`);
+    return tpl;
+  });
+
+  const bundle: TemplateBundle = {
+    version: "1.0.0",
+    exportedAt: new Date().toISOString(),
+    templates,
+  };
+  return JSON.stringify(bundle, null, 2);
+}
+
+/** Import all templates from a bundle JSON string. Returns imported templates. */
+export function importBundle(bundleJson: string): TemplatePackage[] {
+  const bundle = JSON.parse(bundleJson) as TemplateBundle;
+  if (!bundle.templates || !Array.isArray(bundle.templates)) {
+    throw new Error("Invalid bundle: missing templates array");
+  }
+
+  const registry = loadTemplateRegistry();
+  const imported: TemplatePackage[] = [];
+  const now = new Date().toISOString();
+
+  for (const tpl of bundle.templates) {
+    const existing = registry.templates.find((t) => t.id === tpl.id);
+    if (existing) continue; // skip duplicates
+    const entry: TemplatePackage = { ...tpl, updatedAt: now };
+    registry.templates.push(entry);
+    imported.push(entry);
+  }
+
+  saveTemplateRegistry(registry);
+  return imported;
+}
