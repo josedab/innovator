@@ -551,6 +551,238 @@ export function getOpenApiSpec(): Record<string, unknown> {
   };
 }
 
+// ---- Webhook Subscriptions ----
+
+export const WebhookSubscriptionSchema = z.object({
+  id: z.string().max(100),
+  keyId: z.string().max(100),
+  url: z.string().url().max(2000),
+  events: z.array(
+    z.enum([
+      "pipeline.complete",
+      "investigation.complete",
+      "usage.limit.warning",
+      "usage.limit.reached",
+      "idea.scored",
+      "experiment.complete",
+    ])
+  ),
+  secret: z.string().max(200),
+  active: z.boolean(),
+  createdAt: z.string(),
+  lastDeliveredAt: z.string().optional(),
+  failureCount: z.number().default(0),
+});
+
+export type WebhookSubscription = z.infer<typeof WebhookSubscriptionSchema>;
+
+const webhookSubscriptions = new Map<string, WebhookSubscription>();
+
+/** Create a webhook subscription for specific events. */
+export function createWebhookSubscription(
+  keyId: string,
+  url: string,
+  events: WebhookSubscription["events"]
+): WebhookSubscription {
+  const id = `whsub_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const secret = `whsec_${Array.from({ length: 32 }, () => Math.random().toString(36)[2]).join("")}`;
+
+  const sub: WebhookSubscription = {
+    id,
+    keyId,
+    url,
+    events,
+    secret,
+    active: true,
+    createdAt: new Date().toISOString(),
+    failureCount: 0,
+  };
+
+  webhookSubscriptions.set(id, sub);
+  return sub;
+}
+
+/** List webhook subscriptions for a key. */
+export function listWebhookSubscriptions(keyId: string): WebhookSubscription[] {
+  return Array.from(webhookSubscriptions.values()).filter((s) => s.keyId === keyId);
+}
+
+/** Get a webhook subscription by ID. */
+export function getWebhookSubscription(id: string): WebhookSubscription | undefined {
+  return webhookSubscriptions.get(id);
+}
+
+/** Delete a webhook subscription. */
+export function deleteWebhookSubscription(id: string): boolean {
+  return webhookSubscriptions.delete(id);
+}
+
+/** Toggle a webhook subscription active/inactive. */
+export function toggleWebhookSubscription(id: string): boolean {
+  const sub = webhookSubscriptions.get(id);
+  if (!sub) return false;
+  sub.active = !sub.active;
+  return true;
+}
+
+/** Dispatch a webhook event to matching subscriptions. */
+export async function dispatchWebhookEvent(
+  event: WebhookEvent
+): Promise<{ delivered: number; failed: number }> {
+  let delivered = 0;
+  let failed = 0;
+
+  for (const sub of webhookSubscriptions.values()) {
+    if (!sub.active || sub.keyId !== event.keyId) continue;
+    if (!sub.events.includes(event.type as WebhookSubscription["events"][number])) continue;
+
+    try {
+      const response = await fetch(sub.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Webhook-Secret": sub.secret,
+          "X-Webhook-Event": event.type,
+          "X-Webhook-Id": event.id,
+        },
+        body: JSON.stringify(event),
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      if (response.ok) {
+        sub.lastDeliveredAt = new Date().toISOString();
+        sub.failureCount = 0;
+        delivered++;
+      } else {
+        sub.failureCount++;
+        failed++;
+      }
+    } catch {
+      sub.failureCount++;
+      failed++;
+    }
+
+    // Auto-disable after 10 consecutive failures
+    if (sub.failureCount >= 10) {
+      sub.active = false;
+    }
+  }
+
+  return { delivered, failed };
+}
+
+// ---- API Versioning ----
+
+export const ApiVersionSchema = z.enum(["v1", "v2"]);
+export type ApiVersion = z.infer<typeof ApiVersionSchema>;
+
+export const API_VERSIONS: Record<
+  ApiVersion,
+  {
+    version: string;
+    status: "stable" | "beta" | "deprecated";
+    deprecationDate?: string;
+    endpoints: string[];
+  }
+> = {
+  v1: {
+    version: "1.0.0",
+    status: "stable",
+    endpoints: [
+      "/api/v1/investigate",
+      "/api/v1/innovate",
+      "/api/v1/auto",
+      "/api/v1/keys",
+      "/api/v1/openapi",
+      "/api/v1/plugins",
+    ],
+  },
+  v2: {
+    version: "2.0.0",
+    status: "beta",
+    endpoints: [
+      "/api/v2/investigate",
+      "/api/v2/innovate",
+      "/api/v2/auto",
+      "/api/v2/experiments",
+      "/api/v2/scoring",
+      "/api/v2/webhooks",
+      "/api/v2/replay",
+    ],
+  },
+};
+
+/** Get version info for an API version. */
+export function getApiVersionInfo(version: ApiVersion) {
+  return API_VERSIONS[version];
+}
+
+/** List all API versions. */
+export function listApiVersions() {
+  return Object.entries(API_VERSIONS).map(([key, val]) => ({
+    apiVersion: key,
+    ...val,
+  }));
+}
+
+// ---- Usage-Based Rate Limiting ----
+
+export const RateLimitConfigSchema = z.object({
+  tier: BillingTierSchema,
+  endpoint: z.string().max(200),
+  limit: z.number().min(1),
+  windowMs: z.number().min(1000),
+  burstLimit: z.number().optional(),
+});
+
+export type RateLimitConfig = z.infer<typeof RateLimitConfigSchema>;
+
+const ENDPOINT_RATE_LIMITS: Record<
+  string,
+  Record<BillingTier, { limit: number; windowMs: number }>
+> = {
+  "/investigate": {
+    free: { limit: 5, windowMs: 60_000 },
+    pro: { limit: 30, windowMs: 60_000 },
+    enterprise: { limit: 120, windowMs: 60_000 },
+  },
+  "/innovate": {
+    free: { limit: 5, windowMs: 60_000 },
+    pro: { limit: 30, windowMs: 60_000 },
+    enterprise: { limit: 120, windowMs: 60_000 },
+  },
+  "/auto": {
+    free: { limit: 2, windowMs: 60_000 },
+    pro: { limit: 10, windowMs: 60_000 },
+    enterprise: { limit: 60, windowMs: 60_000 },
+  },
+};
+
+/** Get rate limit config for an endpoint and tier. */
+export function getEndpointRateLimit(
+  endpoint: string,
+  tier: BillingTier
+): { limit: number; windowMs: number } {
+  const endpointConfig = ENDPOINT_RATE_LIMITS[endpoint];
+  if (endpointConfig) return endpointConfig[tier];
+  return TIER_LIMITS[tier].minuteLimit
+    ? { limit: TIER_LIMITS[tier].minuteLimit, windowMs: 60_000 }
+    : { limit: 10, windowMs: 60_000 };
+}
+
+/** Check usage-based rate limit for a key against an endpoint. */
+export function checkUsageRateLimit(
+  keyId: string,
+  endpoint: string
+): { allowed: boolean; remaining: number; resetMs: number; tier: BillingTier } {
+  const key = apiKeys.get(keyId);
+  const tier = key?.tier ?? "free";
+  const config = getEndpointRateLimit(endpoint, tier);
+  const bucketKey = `${keyId}:${endpoint}`;
+  const result = checkTokenBucket(bucketKey, config);
+  return { ...result, tier };
+}
+
 /** Clear all API gateway state (for testing). */
 export function clearApiGateway(): void {
   apiKeys.clear();
@@ -558,6 +790,7 @@ export function clearApiGateway(): void {
   webhookUrls.clear();
   buckets.clear();
   tenants.clear();
+  webhookSubscriptions.clear();
 }
 
 // ---- Multi-Tenant Management ----
@@ -565,7 +798,10 @@ export function clearApiGateway(): void {
 export const TenantSchema = z.object({
   id: z.string().max(100),
   name: z.string().max(200),
-  slug: z.string().max(100).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
   tier: BillingTierSchema,
   ownerId: z.string().max(200),
   ownerEmail: z.string().max(300),
@@ -595,11 +831,13 @@ export const DeveloperPortalInfoSchema = z.object({
     dailyLimit: z.number(),
     minuteLimit: z.number(),
   }),
-  endpoints: z.array(z.object({
-    method: z.string(),
-    path: z.string(),
-    description: z.string(),
-  })),
+  endpoints: z.array(
+    z.object({
+      method: z.string(),
+      path: z.string(),
+      description: z.string(),
+    })
+  ),
   webhooks: z.array(z.string()),
 });
 
@@ -611,13 +849,12 @@ const tenants = new Map<string, Tenant>();
 /**
  * Create a new tenant for multi-tenant SaaS.
  */
-export function createTenant(
-  name: string,
-  ownerEmail: string,
-  tier: BillingTier = "free"
-): Tenant {
+export function createTenant(name: string, ownerEmail: string, tier: BillingTier = "free"): Tenant {
   const id = `tenant_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 100);
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 100);
 
   const initialKey = createApiKey(`${name} Default Key`, tier);
 
@@ -723,12 +960,36 @@ export function getDeveloperPortalInfo(tenantId: string): DeveloperPortalInfo | 
       minuteLimit: limits.minuteLimit,
     },
     endpoints: [
-      { method: "POST", path: "/api/v1/investigate", description: "Investigate a subject for innovation opportunities" },
-      { method: "POST", path: "/api/v1/innovate", description: "Generate innovation ideas using creativity angles" },
-      { method: "POST", path: "/api/v1/auto", description: "Run the full innovation pipeline (SSE streaming)" },
-      { method: "POST", path: "/api/v1/validate", description: "Validate ideas against market and feasibility data" },
-      { method: "POST", path: "/api/v1/artifacts", description: "Generate structured artifacts (PRD, tech spec, etc.)" },
-      { method: "POST", path: "/api/v1/pipeline", description: "Run a natural language pipeline (SSE streaming)" },
+      {
+        method: "POST",
+        path: "/api/v1/investigate",
+        description: "Investigate a subject for innovation opportunities",
+      },
+      {
+        method: "POST",
+        path: "/api/v1/innovate",
+        description: "Generate innovation ideas using creativity angles",
+      },
+      {
+        method: "POST",
+        path: "/api/v1/auto",
+        description: "Run the full innovation pipeline (SSE streaming)",
+      },
+      {
+        method: "POST",
+        path: "/api/v1/validate",
+        description: "Validate ideas against market and feasibility data",
+      },
+      {
+        method: "POST",
+        path: "/api/v1/artifacts",
+        description: "Generate structured artifacts (PRD, tech spec, etc.)",
+      },
+      {
+        method: "POST",
+        path: "/api/v1/pipeline",
+        description: "Run a natural language pipeline (SSE streaming)",
+      },
       { method: "GET", path: "/api/v1/health", description: "Check API health and status" },
     ],
     webhooks: tenant.settings.webhooksEnabled ? getWebhooks(tenant.apiKeys[0] ?? "") : [],
