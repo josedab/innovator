@@ -123,8 +123,32 @@ export interface CodebaseAnalysisOptions {
 
 // ---- Constants ----
 
-const DEFAULT_EXCLUDE = ["node_modules", "dist", "build", ".git", ".next", "coverage", "__pycache__", "vendor", "target"];
-const CODE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".rs", ".java", ".rb", ".php", ".cs", ".swift", ".kt"]);
+const DEFAULT_EXCLUDE = [
+  "node_modules",
+  "dist",
+  "build",
+  ".git",
+  ".next",
+  "coverage",
+  "__pycache__",
+  "vendor",
+  "target",
+];
+const CODE_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".py",
+  ".go",
+  ".rs",
+  ".java",
+  ".rb",
+  ".php",
+  ".cs",
+  ".swift",
+  ".kt",
+]);
 const MAX_FILES_DEFAULT = 500;
 const MAX_FILE_SIZE_DEFAULT = 100 * 1024; // 100KB
 
@@ -217,7 +241,9 @@ export function analyzeFile(
   }
 
   // Count exports
-  const exportMatches = content.match(/\bexport\s+(?:default\s+)?(?:function|class|const|let|var|type|interface|enum)/g);
+  const exportMatches = content.match(
+    /\bexport\s+(?:default\s+)?(?:function|class|const|let|var|type|interface|enum)/g
+  );
   const exports = exportMatches?.length ?? 0;
 
   // Count imports
@@ -225,16 +251,18 @@ export function analyzeFile(
   const imports = importMatches?.length ?? 0;
 
   // Complexity score: weighted combination of size, nesting, and coupling
-  const nestingDepth = Math.max(...content.split("\n").map((l) => {
-    const match = l.match(/^(\s*)/);
-    return match ? match[1].length / 2 : 0;
-  }));
-  const complexityScore = Math.min(100, Math.round(
-    (lines / 500) * 30 +
-    (functions / 20) * 20 +
-    (imports / 15) * 20 +
-    (nestingDepth / 10) * 30
-  ));
+  const nestingDepth = Math.max(
+    ...content.split("\n").map((l) => {
+      const match = l.match(/^(\s*)/);
+      return match ? match[1].length / 2 : 0;
+    })
+  );
+  const complexityScore = Math.min(
+    100,
+    Math.round(
+      (lines / 500) * 30 + (functions / 20) * 20 + (imports / 15) * 20 + (nestingDepth / 10) * 30
+    )
+  );
 
   return {
     path: filePath,
@@ -366,8 +394,12 @@ export function detectPatterns(
   }
 
   // Detect files without tests
-  const srcFiles = files.filter((f) => !f.includes("test") && !f.includes("spec") && !f.includes("__tests__"));
-  const testFiles = files.filter((f) => f.includes("test") || f.includes("spec") || f.includes("__tests__"));
+  const srcFiles = files.filter(
+    (f) => !f.includes("test") && !f.includes("spec") && !f.includes("__tests__")
+  );
+  const testFiles = files.filter(
+    (f) => f.includes("test") || f.includes("spec") || f.includes("__tests__")
+  );
   const testCoverage = srcFiles.length > 0 ? testFiles.length / srcFiles.length : 1;
   if (testCoverage < 0.3 && srcFiles.length > 5) {
     patterns.push({
@@ -423,12 +455,17 @@ export function analyzeDependencies(rootPath: string): DependencyAnalysis[] {
       };
 
       const categorize = (name: string): string => {
-        if (name.includes("test") || name.includes("jest") || name.includes("vitest")) return "testing";
-        if (name.includes("lint") || name.includes("prettier") || name.includes("eslint")) return "linting";
+        if (name.includes("test") || name.includes("jest") || name.includes("vitest"))
+          return "testing";
+        if (name.includes("lint") || name.includes("prettier") || name.includes("eslint"))
+          return "linting";
         if (name.includes("typescript") || name.includes("@types")) return "type-system";
-        if (name.includes("react") || name.includes("vue") || name.includes("next")) return "framework";
-        if (name.includes("express") || name.includes("fastify") || name.includes("koa")) return "server";
-        if (name.includes("prisma") || name.includes("sql") || name.includes("mongoose")) return "database";
+        if (name.includes("react") || name.includes("vue") || name.includes("next"))
+          return "framework";
+        if (name.includes("express") || name.includes("fastify") || name.includes("koa"))
+          return "server";
+        if (name.includes("prisma") || name.includes("sql") || name.includes("mongoose"))
+          return "database";
         return "utility";
       };
 
@@ -627,9 +664,7 @@ You MUST respond with valid JSON only:
       { signal }
     );
     const parsed = JSON.parse(raw) as { subjects: CodebaseSubject[] };
-    return parsed.subjects
-      .slice(0, 10)
-      .map((s) => CodebaseSubjectSchema.parse(s));
+    return parsed.subjects.slice(0, 10).map((s) => CodebaseSubjectSchema.parse(s));
   } catch {
     return generateHeuristicSubjects(analysis);
   }
@@ -769,7 +804,15 @@ export async function analyzeCodebase(options: CodebaseAnalysisOptions): Promise
   let subjects: CodebaseSubject[] = [];
   if (genSubjects) {
     subjects = await generateSubjects(
-      { patterns, dependencies, layers, complexityHotspots, fileCount: files.length, totalLines, languages },
+      {
+        patterns,
+        dependencies,
+        layers,
+        complexityHotspots,
+        fileCount: files.length,
+        totalLines,
+        languages,
+      },
       model,
       signal
     );
@@ -792,7 +835,10 @@ export async function analyzeCodebase(options: CodebaseAnalysisOptions): Promise
 /**
  * Quick analysis without LLM — returns heuristic subjects only.
  */
-export function analyzeCodebaseSync(rootPath: string, options?: Partial<CodebaseAnalysisOptions>): Omit<CodebaseAnalysis, "subjects"> & { subjects: CodebaseSubject[] } {
+export function analyzeCodebaseSync(
+  rootPath: string,
+  options?: Partial<CodebaseAnalysisOptions>
+): Omit<CodebaseAnalysis, "subjects"> & { subjects: CodebaseSubject[] } {
   if (!existsSync(rootPath)) {
     throw new Error(`Root path does not exist: ${rootPath}`);
   }
@@ -820,15 +866,24 @@ export function analyzeCodebaseSync(rootPath: string, options?: Partial<Codebase
   const patterns = detectPatterns(files, rootPath, maxFileSize);
   const dependencies = analyzeDependencies(rootPath);
   const layers = discoverLayers(rootPath, files);
-  const complexityHotspots = complexities.sort((a, b) => b.complexityScore - a.complexityScore).slice(0, 50);
-  const subjects = generateHeuristicSubjects({ patterns, dependencies, layers, complexityHotspots });
+  const complexityHotspots = complexities
+    .sort((a, b) => b.complexityScore - a.complexityScore)
+    .slice(0, 50);
+  const subjects = generateHeuristicSubjects({
+    patterns,
+    dependencies,
+    layers,
+    complexityHotspots,
+  });
 
   return {
     rootPath,
     analyzedAt: new Date().toISOString(),
     fileCount: files.length,
     totalLines,
-    languages: Array.from(langCounts.entries()).sort((a, b) => b[1] - a[1]).map(([l]) => l),
+    languages: Array.from(langCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([l]) => l),
     patterns,
     dependencies,
     layers,
@@ -853,7 +908,9 @@ export function analysisToMarkdown(analysis: CodebaseAnalysis): string {
   if (analysis.subjects.length > 0) {
     lines.push("## Innovation Subjects", "");
     for (const s of analysis.subjects) {
-      lines.push(`### ${s.priority === "critical" ? "🔴" : s.priority === "high" ? "🟡" : "🟢"} ${s.subject}`);
+      lines.push(
+        `### ${s.priority === "critical" ? "🔴" : s.priority === "high" ? "🟡" : "🟢"} ${s.subject}`
+      );
       lines.push(`**Category:** ${s.category} | **Priority:** ${s.priority}`);
       lines.push(`**Rationale:** ${s.rationale}`);
       lines.push(`**Impact:** ${s.estimatedImpact}`);
@@ -901,4 +958,256 @@ function extToLanguage(ext: string): string {
     ".kt": "Kotlin",
   };
   return map[ext] ?? "Unknown";
+}
+
+// ---- Innovation PR Generation ----
+
+export const InnovationPRSchema = z.object({
+  title: z.string().max(500),
+  description: z.string().max(5000),
+  category: z.enum([
+    "architecture",
+    "performance",
+    "security",
+    "developer-experience",
+    "reliability",
+    "maintainability",
+  ]),
+  priority: z.enum(["low", "medium", "high", "critical"]),
+  estimatedEffort: z.string().max(200),
+  implementationPlan: z
+    .array(
+      z.object({
+        step: z.number(),
+        description: z.string().max(1000),
+        files: z.array(z.string().max(500)).max(20),
+      })
+    )
+    .max(20),
+  affectedFiles: z.array(z.string().max(500)).max(50),
+  risks: z.array(z.string().max(500)).max(10),
+  metrics: z.array(z.string().max(500)).max(10),
+});
+
+export type InnovationPR = z.infer<typeof InnovationPRSchema>;
+
+/**
+ * Generate Innovation PRs from codebase analysis.
+ * Each PR includes an implementation plan grounded in actual code context.
+ */
+export function generateInnovationPRs(analysis: CodebaseAnalysis): InnovationPR[] {
+  const prs: InnovationPR[] = [];
+
+  // Generate PRs from high-severity patterns
+  for (const pattern of analysis.patterns.filter((p) => p.severity === "high")) {
+    prs.push({
+      title: `Refactor: Address ${pattern.type} — ${pattern.name}`,
+      description: pattern.description,
+      category:
+        pattern.type === "performance-bottleneck"
+          ? "performance"
+          : pattern.type === "security-concern"
+            ? "security"
+            : pattern.type === "tech-debt"
+              ? "maintainability"
+              : "architecture",
+      priority: "high",
+      estimatedEffort: pattern.locations.length > 5 ? "2-3 days" : "1-2 days",
+      implementationPlan: pattern.locations.slice(0, 10).map((loc, i) => ({
+        step: i + 1,
+        description: `Address ${pattern.type} in ${loc}`,
+        files: [loc],
+      })),
+      affectedFiles: pattern.locations,
+      risks: [`Potential regression in ${pattern.locations.length} file(s)`],
+      metrics: [`Reduce ${pattern.type} occurrences by 100%`],
+    });
+  }
+
+  // Generate PRs from complexity hotspots
+  const topHotspots = analysis.complexityHotspots.filter((h) => h.complexityScore > 60).slice(0, 5);
+
+  if (topHotspots.length > 0) {
+    prs.push({
+      title: "Reduce complexity in hotspot files",
+      description: `${topHotspots.length} files exceed complexity threshold (>60). These files are hard to maintain, test, and extend.`,
+      category: "maintainability",
+      priority: "medium",
+      estimatedEffort: `${topHotspots.length}-${topHotspots.length * 2} days`,
+      implementationPlan: topHotspots.map((h, i) => ({
+        step: i + 1,
+        description: `Decompose ${h.path} (${h.lines} lines, ${h.functions} functions, complexity: ${h.complexityScore})`,
+        files: [h.path],
+      })),
+      affectedFiles: topHotspots.map((h) => h.path),
+      risks: ["Large refactors may introduce regressions"],
+      metrics: topHotspots.map(
+        (h) => `Reduce ${h.path} complexity from ${h.complexityScore} to <40`
+      ),
+    });
+  }
+
+  // Generate PRs from innovation subjects
+  for (const subject of analysis.subjects.filter(
+    (s) => s.priority === "critical" || s.priority === "high"
+  )) {
+    prs.push({
+      title: `Innovation: ${subject.subject}`,
+      description: `${subject.rationale}\n\nEstimated Impact: ${subject.estimatedImpact}`,
+      category: subject.category as InnovationPR["category"],
+      priority: subject.priority === "critical" ? "critical" : "high",
+      estimatedEffort: "3-5 days",
+      implementationPlan: [
+        {
+          step: 1,
+          description: `Investigate and prototype solution for: ${subject.subject}`,
+          files: subject.relevantPatterns,
+        },
+      ],
+      affectedFiles: subject.relevantPatterns,
+      risks: ["Requires careful analysis before implementation"],
+      metrics: [`Improve ${subject.category} metrics`],
+    });
+  }
+
+  return prs;
+}
+
+/** Format an Innovation PR as a GitHub PR body. */
+export function innovationPRToMarkdown(pr: InnovationPR): string {
+  const lines: string[] = [
+    `## ${pr.title}`,
+    "",
+    `**Category:** ${pr.category} | **Priority:** ${pr.priority} | **Effort:** ${pr.estimatedEffort}`,
+    "",
+    "### Description",
+    pr.description,
+    "",
+    "### Implementation Plan",
+    "",
+  ];
+
+  for (const step of pr.implementationPlan) {
+    lines.push(`${step.step}. ${step.description}`);
+    if (step.files.length > 0) {
+      lines.push(`   Files: ${step.files.map((f) => `\`${f}\``).join(", ")}`);
+    }
+  }
+
+  lines.push("", "### Affected Files", "");
+  for (const file of pr.affectedFiles.slice(0, 20)) {
+    lines.push(`- \`${file}\``);
+  }
+
+  if (pr.risks.length > 0) {
+    lines.push("", "### Risks", "");
+    for (const risk of pr.risks) {
+      lines.push(`- ⚠️ ${risk}`);
+    }
+  }
+
+  if (pr.metrics.length > 0) {
+    lines.push("", "### Success Metrics", "");
+    for (const metric of pr.metrics) {
+      lines.push(`- 📊 ${metric}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+// ---- Deep Analysis: Debt, Gaps, Bottlenecks ----
+
+export interface DeepCodeAnalysis {
+  architecturalDebt: Array<{
+    area: string;
+    description: string;
+    severity: "low" | "medium" | "high";
+    suggestedFix: string;
+  }>;
+  featureGaps: Array<{
+    gap: string;
+    evidence: string;
+    impact: string;
+  }>;
+  performanceBottlenecks: Array<{
+    location: string;
+    issue: string;
+    suggestedOptimization: string;
+  }>;
+  innovationOpportunities: Array<{
+    opportunity: string;
+    grounding: string;
+    estimatedValue: string;
+  }>;
+}
+
+/**
+ * Perform deep analysis of a codebase to find architectural debt,
+ * feature gaps, performance bottlenecks, and innovation opportunities.
+ */
+export function deepAnalyze(analysis: CodebaseAnalysis): DeepCodeAnalysis {
+  const architecturalDebt: DeepCodeAnalysis["architecturalDebt"] = [];
+  const featureGaps: DeepCodeAnalysis["featureGaps"] = [];
+  const performanceBottlenecks: DeepCodeAnalysis["performanceBottlenecks"] = [];
+  const innovationOpportunities: DeepCodeAnalysis["innovationOpportunities"] = [];
+
+  // Detect architectural debt from patterns
+  for (const pattern of analysis.patterns) {
+    if (pattern.type === "tech-debt" || pattern.type === "anti-pattern") {
+      architecturalDebt.push({
+        area: pattern.locations[0] ?? "unknown",
+        description: pattern.description,
+        severity: pattern.severity,
+        suggestedFix: `Refactor ${pattern.name} across ${pattern.locations.length} location(s)`,
+      });
+    }
+  }
+
+  // Detect circular/missing dependencies
+  for (const layer of analysis.layers) {
+    const circularDeps = layer.dependencies.filter((dep) =>
+      analysis.layers.some((l) => l.name === dep && l.dependencies.includes(layer.name))
+    );
+    if (circularDeps.length > 0) {
+      architecturalDebt.push({
+        area: layer.path,
+        description: `Circular dependency between ${layer.name} and ${circularDeps.join(", ")}`,
+        severity: "high",
+        suggestedFix: "Introduce an interface layer or event bus to break the cycle",
+      });
+    }
+  }
+
+  // Detect feature gaps from thin layers
+  for (const layer of analysis.layers) {
+    if (layer.fileCount <= 1 && layer.responsibilities.length > 0) {
+      featureGaps.push({
+        gap: `${layer.name} layer has minimal implementation (${layer.fileCount} file(s))`,
+        evidence: `Path: ${layer.path}, Responsibilities: ${layer.responsibilities.join(", ")}`,
+        impact: "Incomplete functionality that may affect reliability and UX",
+      });
+    }
+  }
+
+  // Detect performance bottlenecks from complexity
+  for (const hotspot of analysis.complexityHotspots.filter((h) => h.complexityScore > 70)) {
+    performanceBottlenecks.push({
+      location: hotspot.path,
+      issue: `High complexity (score: ${hotspot.complexityScore}) with ${hotspot.functions} functions in ${hotspot.lines} lines`,
+      suggestedOptimization:
+        "Decompose into smaller modules, extract utility functions, consider lazy loading",
+    });
+  }
+
+  // Generate innovation opportunities from analysis
+  for (const subject of analysis.subjects) {
+    innovationOpportunities.push({
+      opportunity: subject.subject,
+      grounding: subject.rationale,
+      estimatedValue: subject.estimatedImpact,
+    });
+  }
+
+  return { architecturalDebt, featureGaps, performanceBottlenecks, innovationOpportunities };
 }
