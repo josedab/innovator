@@ -208,3 +208,304 @@ export function getQuadrant(
 export function rankIdeas(scores: IdeaScore[]): IdeaScore[] {
   return [...scores].sort((a, b) => computePriorityScore(b) - computePriorityScore(a));
 }
+
+// ---- Configurable Multi-Dimensional Scoring Engine ----
+
+export const ScoringDimensionSchema = z.object({
+  id: z.string().max(100),
+  name: z.string().max(200),
+  description: z.string().max(1000),
+  weight: z.number().min(0).max(1),
+  minScore: z.number().default(0),
+  maxScore: z.number().default(10),
+});
+
+export const ScoringEngineConfigSchema = z.object({
+  id: z.string().max(100),
+  name: z.string().max(200),
+  dimensions: z.array(ScoringDimensionSchema).min(1).max(20),
+  qualityGates: z
+    .array(
+      z.object({
+        type: z.enum(["min-score", "min-ideas", "min-dimensions", "max-risk"]),
+        dimension: z.string().max(100).optional(),
+        threshold: z.number(),
+        action: z.enum(["warn", "block", "flag"]),
+        message: z.string().max(500),
+      })
+    )
+    .max(20)
+    .default([]),
+  calibration: z
+    .object({
+      enabled: z.boolean().default(false),
+      feedbackWeight: z.number().min(0).max(1).default(0.3),
+      minCalibrationSamples: z.number().default(5),
+    })
+    .default({}),
+});
+
+export const MultiDimensionalScoreSchema = z.object({
+  ideaTitle: z.string().max(500),
+  dimensions: z.array(
+    z.object({
+      dimensionId: z.string().max(100),
+      score: z.number().min(0).max(10),
+      rationale: z.string().max(2000),
+    })
+  ),
+  compositeScore: z.number().min(0).max(10),
+  confidence: z.number().min(0).max(1),
+  gateResults: z.array(
+    z.object({
+      gate: z.string().max(500),
+      passed: z.boolean(),
+      action: z.enum(["warn", "block", "flag"]),
+      message: z.string().max(500),
+    })
+  ),
+  passedAllGates: z.boolean(),
+});
+
+export type ScoringDimension = z.infer<typeof ScoringDimensionSchema>;
+export type ScoringEngineConfig = z.infer<typeof ScoringEngineConfigSchema>;
+export type MultiDimensionalScore = z.infer<typeof MultiDimensionalScoreSchema>;
+
+// Default dimensions covering feasibility, originality, market fit, technical complexity, strategic alignment
+export const DEFAULT_SCORING_DIMENSIONS: ScoringDimension[] = [
+  {
+    id: "feasibility",
+    name: "Feasibility",
+    description: "How realistic is implementation given current technology and resources?",
+    weight: 0.2,
+    minScore: 0,
+    maxScore: 10,
+  },
+  {
+    id: "originality",
+    name: "Originality",
+    description: "How original and non-obvious is this idea compared to existing solutions?",
+    weight: 0.2,
+    minScore: 0,
+    maxScore: 10,
+  },
+  {
+    id: "market-fit",
+    name: "Market Fit",
+    description: "How well does this address real market needs and user pain points?",
+    weight: 0.25,
+    minScore: 0,
+    maxScore: 10,
+  },
+  {
+    id: "technical-complexity",
+    name: "Technical Complexity",
+    description: "Inverse complexity — higher score means simpler to implement",
+    weight: 0.15,
+    minScore: 0,
+    maxScore: 10,
+  },
+  {
+    id: "strategic-alignment",
+    name: "Strategic Alignment",
+    description: "How well does this align with long-term strategy and vision?",
+    weight: 0.2,
+    minScore: 0,
+    maxScore: 10,
+  },
+];
+
+// ---- Calibration Store (user feedback adjustments) ----
+
+const calibrationFeedback = new Map<string, Array<{ dimensionId: string; scoreDelta: number }>>();
+
+/** Record user calibration feedback for scoring adjustments. */
+export function recordCalibrationFeedback(
+  configId: string,
+  ideaTitle: string,
+  dimensionId: string,
+  userScore: number,
+  llmScore: number
+): void {
+  const key = `${configId}:${dimensionId}`;
+  const existing = calibrationFeedback.get(key) ?? [];
+  existing.push({ dimensionId, scoreDelta: userScore - llmScore });
+  calibrationFeedback.set(key, existing);
+}
+
+/** Get calibration adjustment for a dimension based on accumulated feedback. */
+function getCalibrationAdjustment(
+  configId: string,
+  dimensionId: string,
+  feedbackWeight: number
+): number {
+  const key = `${configId}:${dimensionId}`;
+  const feedback = calibrationFeedback.get(key);
+  if (!feedback || feedback.length === 0) return 0;
+
+  const avgDelta = feedback.reduce((s, f) => s + f.scoreDelta, 0) / feedback.length;
+  return avgDelta * feedbackWeight;
+}
+
+/**
+ * Score ideas using a configurable multi-dimensional scoring engine.
+ * Supports LLM-as-judge with calibration from user feedback.
+ */
+export async function scoreWithEngine(
+  subject: string,
+  ideas: Array<{ title: string; description: string }>,
+  config: ScoringEngineConfig,
+  model?: string,
+  signal?: AbortSignal
+): Promise<MultiDimensionalScore[]> {
+  if (ideas.length === 0) return [];
+
+  const dimensionDescriptions = config.dimensions
+    .map(
+      (d) =>
+        `- **${d.name}** (${d.id}): ${d.description} [${d.minScore}-${d.maxScore}, weight: ${d.weight}]`
+    )
+    .join("\n");
+
+  const prompt = `You are an expert innovation evaluator using a configurable scoring engine.
+
+${wrapUserInput("SUBJECT", subject)}
+
+SCORING DIMENSIONS:
+${dimensionDescriptions}
+
+IDEAS TO SCORE:
+${sanitizeLlmOutput(
+  JSON.stringify(
+    ideas.map((i) => ({ title: i.title, description: i.description.slice(0, 300) })),
+    null,
+    2
+  )
+)}
+
+Score EVERY idea on EVERY dimension. Be calibrated — use the full scale.
+
+Respond with valid JSON only:
+{
+  "scores": [
+    {
+      "ideaTitle": "Title",
+      "dimensions": [
+        { "dimensionId": "feasibility", "score": 7.5, "rationale": "Why" }
+      ],
+      "confidence": 0.85
+    }
+  ]
+}`;
+
+  let rawScores: Array<{
+    ideaTitle: string;
+    dimensions: Array<{ dimensionId: string; score: number; rationale: string }>;
+    confidence: number;
+  }>;
+
+  try {
+    const raw = await withRetry(
+      async () => {
+        const result = await generateText({ prompt, model, serverMode: true, signal });
+        return extractJson(result);
+      },
+      { signal }
+    );
+    const parsed = JSON.parse(raw) as { scores: typeof rawScores };
+    rawScores = parsed.scores;
+  } catch {
+    // Fallback: generate uniform scores
+    rawScores = ideas.map((idea) => ({
+      ideaTitle: idea.title,
+      dimensions: config.dimensions.map((d) => ({
+        dimensionId: d.id,
+        score: 5,
+        rationale: "Scoring unavailable — using default",
+      })),
+      confidence: 0.3,
+    }));
+  }
+
+  // Apply calibration and compute composite scores
+  return rawScores.map((rawScore) => {
+    const calibratedDimensions = rawScore.dimensions.map((dim) => {
+      const adjustment = config.calibration.enabled
+        ? getCalibrationAdjustment(config.id, dim.dimensionId, config.calibration.feedbackWeight)
+        : 0;
+
+      const dimension = config.dimensions.find((d) => d.id === dim.dimensionId);
+      const maxScore = dimension?.maxScore ?? 10;
+      const minScore = dimension?.minScore ?? 0;
+
+      return {
+        ...dim,
+        score: Math.max(minScore, Math.min(maxScore, dim.score + adjustment)),
+      };
+    });
+
+    // Weighted composite score
+    let compositeScore = 0;
+    let totalWeight = 0;
+    for (const dim of calibratedDimensions) {
+      const dimension = config.dimensions.find((d) => d.id === dim.dimensionId);
+      if (dimension) {
+        compositeScore += dim.score * dimension.weight;
+        totalWeight += dimension.weight;
+      }
+    }
+    compositeScore = totalWeight > 0 ? compositeScore / totalWeight : 0;
+
+    // Evaluate quality gates
+    const gateResults = config.qualityGates.map((gate) => {
+      let passed = true;
+
+      switch (gate.type) {
+        case "min-score": {
+          if (gate.dimension) {
+            const dim = calibratedDimensions.find((d) => d.dimensionId === gate.dimension);
+            passed = (dim?.score ?? 0) >= gate.threshold;
+          } else {
+            passed = compositeScore >= gate.threshold;
+          }
+          break;
+        }
+        case "min-dimensions": {
+          const passingDims = calibratedDimensions.filter((d) => d.score >= gate.threshold);
+          passed = passingDims.length >= gate.threshold;
+          break;
+        }
+        case "max-risk": {
+          const riskDim = calibratedDimensions.find((d) => d.dimensionId === "feasibility");
+          passed = (riskDim?.score ?? 10) >= gate.threshold;
+          break;
+        }
+        default:
+          passed = true;
+      }
+
+      return {
+        gate: gate.message,
+        passed,
+        action: gate.action,
+        message: passed ? "Passed" : gate.message,
+      };
+    });
+
+    const passedAllGates = gateResults.every((g) => g.passed || g.action !== "block");
+
+    return {
+      ideaTitle: rawScore.ideaTitle,
+      dimensions: calibratedDimensions,
+      compositeScore: Math.round(compositeScore * 100) / 100,
+      confidence: rawScore.confidence,
+      gateResults,
+      passedAllGates,
+    };
+  });
+}
+
+/** Clear calibration data (for testing). */
+export function clearCalibration(): void {
+  calibrationFeedback.clear();
+}
