@@ -200,3 +200,310 @@ export const WIDGET_SOURCE = `
 export function getWidgetSource(): string {
   return WIDGET_SOURCE.trim();
 }
+
+// ---- Micro-App Configuration System ----
+
+import { z } from "zod";
+
+export const MicroAppTypeSchema = z.enum([
+  "widget",
+  "slack-app",
+  "notion-block",
+  "browser-extension",
+  "raycast-extension",
+  "custom",
+]);
+
+export const MicroAppConfigSchema = z.object({
+  id: z.string().max(100),
+  name: z.string().max(200),
+  type: MicroAppTypeSchema,
+  apiEndpoint: z.string().max(2000),
+  apiKey: z.string().max(200).optional(),
+  theme: z.enum(["light", "dark", "auto"]).default("auto"),
+  angles: z.array(z.string().max(100)).max(20).optional(),
+  features: z
+    .object({
+      investigate: z.boolean().default(true),
+      innovate: z.boolean().default(true),
+      autoMode: z.boolean().default(false),
+      scoring: z.boolean().default(false),
+      export: z.boolean().default(true),
+    })
+    .default({}),
+  branding: z
+    .object({
+      title: z.string().max(200).default("Innovator"),
+      logoUrl: z.string().max(2000).optional(),
+      primaryColor: z.string().max(20).default("#3B82F6"),
+      borderRadius: z.number().default(8),
+    })
+    .default({}),
+  layout: z
+    .object({
+      maxWidth: z.number().default(480),
+      maxHeight: z.number().default(600),
+      position: z.enum(["inline", "floating", "sidebar", "modal"]).default("inline"),
+    })
+    .default({}),
+  createdAt: z.string(),
+});
+
+export type MicroAppType = z.infer<typeof MicroAppTypeSchema>;
+export type MicroAppConfig = z.infer<typeof MicroAppConfigSchema>;
+
+const microApps = new Map<string, MicroAppConfig>();
+
+/** Create a micro-app configuration. */
+export function createMicroApp(params: {
+  name: string;
+  type: MicroAppType;
+  apiEndpoint: string;
+  apiKey?: string;
+  theme?: "light" | "dark" | "auto";
+  angles?: string[];
+  features?: Partial<MicroAppConfig["features"]>;
+  branding?: Partial<MicroAppConfig["branding"]>;
+  layout?: Partial<MicroAppConfig["layout"]>;
+}): MicroAppConfig {
+  const id = `app_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const config: MicroAppConfig = {
+    id,
+    name: params.name,
+    type: params.type,
+    apiEndpoint: params.apiEndpoint,
+    apiKey: params.apiKey,
+    theme: params.theme ?? "auto",
+    angles: params.angles,
+    features: {
+      investigate: true,
+      innovate: true,
+      autoMode: false,
+      scoring: false,
+      export: true,
+      ...params.features,
+    },
+    branding: { title: "Innovator", primaryColor: "#3B82F6", borderRadius: 8, ...params.branding },
+    layout: { maxWidth: 480, maxHeight: 600, position: "inline", ...params.layout },
+    createdAt: new Date().toISOString(),
+  };
+
+  microApps.set(id, config);
+  return config;
+}
+
+/** Get a micro-app config by ID. */
+export function getMicroApp(id: string): MicroAppConfig | undefined {
+  return microApps.get(id);
+}
+
+/** List all micro-app configs. */
+export function listMicroApps(): MicroAppConfig[] {
+  return Array.from(microApps.values());
+}
+
+/** Delete a micro-app config. */
+export function deleteMicroApp(id: string): boolean {
+  return microApps.delete(id);
+}
+
+/** Clear all micro-apps (for testing). */
+export function clearMicroApps(): void {
+  microApps.clear();
+}
+
+// ---- Installation Code Generators ----
+
+/** Generate embed code for a micro-app. */
+export function generateInstallCode(config: MicroAppConfig): string {
+  switch (config.type) {
+    case "widget":
+      return generateEmbedCode({
+        apiEndpoint: config.apiEndpoint,
+        apiKey: config.apiKey,
+        angles: config.angles,
+        theme: config.theme,
+        title: config.branding.title,
+        maxHeight: config.layout.maxHeight,
+      });
+
+    case "slack-app":
+      return generateSlackManifest(config);
+
+    case "notion-block":
+      return generateNotionEmbed(config);
+
+    case "browser-extension":
+      return generateBrowserExtensionManifest(config);
+
+    case "raycast-extension":
+      return generateRaycastCommand(config);
+
+    case "custom":
+      return generateEmbedCode({
+        apiEndpoint: config.apiEndpoint,
+        apiKey: config.apiKey,
+        theme: config.theme,
+      });
+  }
+}
+
+/** Generate Slack app manifest with Block Kit UI. */
+function generateSlackManifest(config: MicroAppConfig): string {
+  return JSON.stringify(
+    {
+      display_information: {
+        name: config.branding.title,
+        description: "AI-powered innovation directly in Slack",
+        background_color: config.branding.primaryColor,
+      },
+      features: {
+        bot_user: {
+          display_name: config.branding.title,
+          always_online: false,
+        },
+        slash_commands: [
+          {
+            command: "/innovate",
+            url: `${config.apiEndpoint}/slack/commands`,
+            description: "Run an innovation pipeline on a topic",
+            usage_hint: "[topic]",
+          },
+          {
+            command: "/investigate",
+            url: `${config.apiEndpoint}/slack/commands`,
+            description: "Investigate a topic for innovation opportunities",
+            usage_hint: "[topic]",
+          },
+        ],
+      },
+      oauth_config: {
+        scopes: {
+          bot: ["commands", "chat:write", "chat:write.public"],
+        },
+      },
+      settings: {
+        interactivity: {
+          is_enabled: true,
+          request_url: `${config.apiEndpoint}/slack/interactions`,
+        },
+        event_subscriptions: {
+          request_url: `${config.apiEndpoint}/slack/events`,
+          bot_events: ["app_mention"],
+        },
+      },
+    },
+    null,
+    2
+  );
+}
+
+/** Generate Notion embed block code. */
+function generateNotionEmbed(config: MicroAppConfig): string {
+  const embedUrl = `${config.apiEndpoint}/embed?key=${config.apiKey ?? ""}&theme=${config.theme}`;
+  return `<!-- Notion Embed Block -->
+<!-- Add this as an "Embed" block in Notion -->
+URL: ${embedUrl}
+
+<!-- Or use the Notion API to create a bookmark block: -->
+{
+  "type": "embed",
+  "embed": {
+    "url": "${embedUrl}",
+    "caption": [{ "type": "text", "text": { "content": "${config.branding.title}" } }]
+  }
+}`;
+}
+
+/** Generate browser extension manifest.json. */
+function generateBrowserExtensionManifest(config: MicroAppConfig): string {
+  return JSON.stringify(
+    {
+      manifest_version: 3,
+      name: config.branding.title,
+      version: "1.0.0",
+      description: "Right-click to innovate on any text or page",
+      permissions: ["contextMenus", "activeTab", "storage"],
+      action: {
+        default_popup: "popup.html",
+        default_icon: {
+          "16": "icons/icon16.png",
+          "48": "icons/icon48.png",
+          "128": "icons/icon128.png",
+        },
+      },
+      background: {
+        service_worker: "background.js",
+      },
+      content_scripts: [
+        {
+          matches: ["<all_urls>"],
+          js: ["content.js"],
+        },
+      ],
+      host_permissions: [config.apiEndpoint + "/*"],
+    },
+    null,
+    2
+  );
+}
+
+/** Generate Raycast extension command. */
+function generateRaycastCommand(config: MicroAppConfig): string {
+  return `// Raycast Extension — ${config.branding.title}
+// Save as src/innovate.tsx
+
+import { Action, ActionPanel, Form, List, showToast, Toast } from "@raycast/api";
+import { useState } from "react";
+
+export default function InnovateCommand() {
+  const [subject, setSubject] = useState("");
+  const [results, setResults] = useState<Array<{ title: string; description: string }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSubmit() {
+    if (!subject.trim()) return;
+    setIsLoading(true);
+    try {
+      const resp = await fetch("${config.apiEndpoint}/api/v1/auto", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": "${config.apiKey ?? "YOUR_API_KEY"}",
+        },
+        body: JSON.stringify({ subject, stream: false }),
+      });
+      const data = await resp.json();
+      const ideas = data?.data?.synthesis?.topIdeas ?? [];
+      setResults(ideas);
+      showToast({ style: Toast.Style.Success, title: \`Generated \${ideas.length} ideas\` });
+    } catch (err) {
+      showToast({ style: Toast.Style.Failure, title: "Innovation failed" });
+    }
+    setIsLoading(false);
+  }
+
+  if (results.length > 0) {
+    return (
+      <List isLoading={isLoading}>
+        {results.map((idea, i) => (
+          <List.Item key={i} title={idea.title} subtitle={idea.description} />
+        ))}
+      </List>
+    );
+  }
+
+  return (
+    <Form
+      isLoading={isLoading}
+      actions={
+        <ActionPanel>
+          <Action.SubmitForm title="Innovate" onSubmit={handleSubmit} />
+        </ActionPanel>
+      }
+    >
+      <Form.TextField id="subject" title="Subject" placeholder="What do you want to innovate on?" value={subject} onChange={setSubject} />
+    </Form>
+  );
+}`;
+}
