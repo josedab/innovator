@@ -4,9 +4,18 @@ title: Contributing
 sidebar_position: 8
 ---
 
+{/_ NOTE: This is a summary of the contributing guide. The full, authoritative version
+is the root CONTRIBUTING.md file at the repository root. If you find discrepancies,
+the root version is the source of truth.
+See: https://github.com/josedab/innovator/blob/main/CONTRIBUTING.md _/}
+
 # Contributing
 
 We welcome contributions to Innovator! Whether it's fixing a bug, adding a feature, improving documentation, or adding a new innovation angle.
+
+:::tip Full Contributing Guide
+This page is a summary. For the complete guide — including the ADR process, monorepo workspace guide, CI/CD details, dependency management, and release process — see the [full CONTRIBUTING.md](https://github.com/josedab/innovator/blob/main/CONTRIBUTING.md) in the repository root.
+:::
 
 ## Development setup
 
@@ -204,3 +213,14 @@ const MOCK_INVESTIGATION: Investigation = {
 ### Coverage thresholds
 
 CI enforces a **35% minimum** for lines, functions, and branches (configured in `vitest.config.ts`). Run `npm run test:coverage` to check locally.
+
+## Topics covered in the full guide
+
+The [full CONTRIBUTING.md](https://github.com/josedab/innovator/blob/main/CONTRIBUTING.md) in the repository root includes additional sections not covered here:
+
+- **Architecture Decision Records (ADRs)** — How to document significant architectural decisions
+- **Monorepo Workspace Guide** — Adding new packages, workspace dependency conventions, `tsconfig.base.json`
+- **CI/CD Pipelines** — Details on CI, CodeQL, and Release workflows
+- **Dependency Management** — Dependabot configuration and update schedules
+- **Release Process** — How semantic-release automates versioning and publishing
+- **Security** — CodeQL analysis and vulnerability reporting
