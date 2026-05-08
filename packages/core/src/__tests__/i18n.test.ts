@@ -79,15 +79,17 @@ describe("i18n", () => {
   });
 
   describe("listLanguages", () => {
-    it("returns all 5 language configs", () => {
+    it("returns all 7 language configs", () => {
       const langs = listLanguages();
-      expect(langs).toHaveLength(5);
+      expect(langs).toHaveLength(7);
       const codes = langs.map((l) => l.code);
       expect(codes).toContain("en");
       expect(codes).toContain("es");
       expect(codes).toContain("ja");
       expect(codes).toContain("de");
       expect(codes).toContain("pt");
+      expect(codes).toContain("fr");
+      expect(codes).toContain("zh");
     });
 
     it("each config has required fields", () => {
@@ -111,11 +113,11 @@ describe("i18n", () => {
 
     it("returns undefined for unknown code", () => {
       expect(getLanguageConfig("xx")).toBeUndefined();
-      expect(getLanguageConfig("fr")).toBeUndefined();
+      expect(getLanguageConfig("kr")).toBeUndefined();
     });
 
     it("returns config for all supported codes", () => {
-      for (const code of ["en", "es", "ja", "de", "pt"]) {
+      for (const code of ["en", "es", "ja", "de", "pt", "fr", "zh"]) {
         expect(getLanguageConfig(code)).toBeDefined();
       }
     });
