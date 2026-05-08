@@ -537,6 +537,10 @@ The release pipeline is configured in `.releaserc.json` at the repository root. 
 
 Only pushes to `main` on the upstream repository (`josedab/innovator`) trigger a release. Fork pushes and pull request branches do not. The workflow uses the `GITHUB_TOKEN` secret provided by GitHub Actions — no additional credentials are needed.
 
+## Code of Conduct
+
+This project follows the [Contributor Covenant Code of Conduct](.github/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior via the methods described in the Code of Conduct.
+
 ## Community
 
 Have a question, idea, or want to share what you've built? Use [GitHub Discussions](https://github.com/josedab/innovator/discussions):
@@ -546,6 +550,14 @@ Have a question, idea, or want to share what you've built? Use [GitHub Discussio
 
 Discussions are the best place for open-ended conversations — save GitHub Issues for concrete bug reports and feature requests with clear acceptance criteria.
 
+### Reporting Bugs
+
+When filing a bug report, please use the [Bug Report template](.github/ISSUE_TEMPLATE/bug_report.md) for a structured format that helps us triage and resolve issues quickly. For feature requests, use the [Feature Request template](.github/ISSUE_TEMPLATE/feature_request.md).
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+
+<!-- NOTE: A summary of this file exists at website/docs/contributing.md for the documentation site.
+     When making significant changes here, consider updating the website version or at minimum
+     verify the "Topics covered in the full guide" section there still reflects this file's contents. -->
