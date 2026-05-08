@@ -13,6 +13,8 @@ export const SdkLanguageSchema = z.enum([
   "javascript",
   "typescript",
   "python",
+  "go",
+  "ruby",
   "curl",
 ]);
 
@@ -40,10 +42,24 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     path: "/api/investigate",
     method: "POST",
     summary: "Investigate a subject",
-    description: "Performs deep investigation of a subject, identifying key aspects, challenges, and opportunities.",
+    description:
+      "Performs deep investigation of a subject, identifying key aspects, challenges, and opportunities.",
     tags: ["investigation"],
-    requestBody: { type: "object", properties: { subject: { type: "string" }, model: { type: "string" } }, required: ["subject"] },
-    responseSchema: { type: "object", properties: { summary: { type: "string" }, keyAspects: { type: "array" }, currentState: { type: "string" }, challenges: { type: "array" }, opportunities: { type: "array" } } },
+    requestBody: {
+      type: "object",
+      properties: { subject: { type: "string" }, model: { type: "string" } },
+      required: ["subject"],
+    },
+    responseSchema: {
+      type: "object",
+      properties: {
+        summary: { type: "string" },
+        keyAspects: { type: "array" },
+        currentState: { type: "string" },
+        challenges: { type: "array" },
+        opportunities: { type: "array" },
+      },
+    },
     requiresAuth: true,
     rateLimit: "10/minute",
   },
@@ -51,10 +67,28 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     path: "/api/innovate",
     method: "POST",
     summary: "Generate innovations for angles",
-    description: "Generates innovation ideas by applying selected angles to an investigated subject.",
+    description:
+      "Generates innovation ideas by applying selected angles to an investigated subject.",
     tags: ["innovation"],
-    requestBody: { type: "object", properties: { subject: { type: "string" }, investigation: { type: "object" }, angles: { type: "array", items: { type: "string" } }, model: { type: "string" } }, required: ["subject", "investigation", "angles"] },
-    responseSchema: { type: "object", properties: { angleId: { type: "string" }, angleName: { type: "string" }, ideas: { type: "array" }, reasoning: { type: "string" } } },
+    requestBody: {
+      type: "object",
+      properties: {
+        subject: { type: "string" },
+        investigation: { type: "object" },
+        angles: { type: "array", items: { type: "string" } },
+        model: { type: "string" },
+      },
+      required: ["subject", "investigation", "angles"],
+    },
+    responseSchema: {
+      type: "object",
+      properties: {
+        angleId: { type: "string" },
+        angleName: { type: "string" },
+        ideas: { type: "array" },
+        reasoning: { type: "string" },
+      },
+    },
     requiresAuth: true,
     rateLimit: "10/minute",
   },
@@ -62,9 +96,14 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     path: "/api/auto",
     method: "POST",
     summary: "Run full auto pipeline",
-    description: "Runs the complete innovation pipeline (investigate → generate → synthesize) with SSE streaming.",
+    description:
+      "Runs the complete innovation pipeline (investigate → generate → synthesize) with SSE streaming.",
     tags: ["pipeline"],
-    requestBody: { type: "object", properties: { subject: { type: "string" }, model: { type: "string" } }, required: ["subject"] },
+    requestBody: {
+      type: "object",
+      properties: { subject: { type: "string" }, model: { type: "string" } },
+      required: ["subject"],
+    },
     responseSchema: { type: "object", description: "SSE stream of PipelineProgress events" },
     requiresAuth: true,
     rateLimit: "5/minute",
@@ -75,7 +114,15 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     summary: "Generate artifacts",
     description: "Generate PRDs, technical specs, and other documents from innovation results.",
     tags: ["artifacts"],
-    requestBody: { type: "object", properties: { type: { type: "string" }, ideas: { type: "array" }, subject: { type: "string" } }, required: ["type", "ideas"] },
+    requestBody: {
+      type: "object",
+      properties: {
+        type: { type: "string" },
+        ideas: { type: "array" },
+        subject: { type: "string" },
+      },
+      required: ["type", "ideas"],
+    },
     requiresAuth: true,
     rateLimit: "10/minute",
   },
@@ -85,7 +132,14 @@ const API_ENDPOINTS: ApiEndpoint[] = [
     summary: "Embeddable widget endpoint",
     description: "CORS-enabled endpoint for the embeddable innovation widget.",
     tags: ["sdk", "widget"],
-    requestBody: { type: "object", properties: { subject: { type: "string" }, mode: { type: "string", enum: ["investigate", "auto"] } }, required: ["subject"] },
+    requestBody: {
+      type: "object",
+      properties: {
+        subject: { type: "string" },
+        mode: { type: "string", enum: ["investigate", "auto"] },
+      },
+      required: ["subject"],
+    },
     requiresAuth: true,
     rateLimit: "20/minute",
   },
@@ -99,7 +153,9 @@ export function getApiEndpoints(): ApiEndpoint[] {
 }
 
 /** Generate the OpenAPI 3.1 specification. */
-export function generateOpenApiSpec(baseUrl: string = "https://api.innovator.dev"): Record<string, unknown> {
+export function generateOpenApiSpec(
+  baseUrl: string = "https://api.innovator.dev"
+): Record<string, unknown> {
   const paths: Record<string, Record<string, unknown>> = {};
 
   for (const endpoint of API_ENDPOINTS) {
@@ -144,7 +200,8 @@ export function generateOpenApiSpec(baseUrl: string = "https://api.innovator.dev
     openapi: "3.1.0",
     info: {
       title: "Innovator API",
-      description: "AI-powered innovation engine API. Investigate subjects, generate ideas through multiple angles, and synthesize results.",
+      description:
+        "AI-powered innovation engine API. Investigate subjects, generate ideas through multiple angles, and synthesize results.",
       version: "1.0.0",
       contact: { name: "Innovator", url: "https://innovator.dev" },
       license: { name: "MIT", url: "https://opensource.org/licenses/MIT" },
@@ -209,6 +266,51 @@ response = requests.${endpoint.method.toLowerCase()}(
     },
 )
 data = response.json()`;
+
+    case "go":
+      return `package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"io"
+)
+
+func main() {
+	payload, _ := json.Marshal(map[string]string{
+		"subject": "Your innovation subject",
+	})
+	req, _ := http.NewRequest("${endpoint.method}", "${endpoint.path}", bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", "${apiKey}")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	fmt.Println(string(body))
+}`;
+
+    case "ruby":
+      return `require "net/http"
+require "json"
+require "uri"
+
+uri = URI("${endpoint.path}")
+http = Net::HTTP.new(uri.host, uri.port)
+http.use_ssl = uri.scheme == "https"
+
+request = Net::HTTP::${endpoint.method === "GET" ? "Get" : endpoint.method === "POST" ? "Post" : endpoint.method === "PUT" ? "Put" : "Delete"}.new(uri)
+request["Content-Type"] = "application/json"
+request["X-API-Key"] = "${apiKey}"
+request.body = { subject: "Your innovation subject" }.to_json
+
+response = http.request(request)
+data = JSON.parse(response.body)`;
 
     case "curl":
       return `curl -X ${endpoint.method} "${endpoint.path}" \\
