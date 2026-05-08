@@ -473,3 +473,17 @@ export function formatWithCollapsible(title: string, content: string, defaultOpe
 export function buildStreamingResponse(chunks: string[]): string {
   return chunks.join("");
 }
+
+// ---- VS Code Extension ----
+
+export {
+  type SidebarTreeItem,
+  type CodeContext,
+  type CodeInnovationSuggestion,
+  type CopilotParticipantConfig,
+  type CopilotSlashCommand,
+  buildSidebarTree,
+  analyzeCodeContext,
+  getCopilotParticipantConfig,
+  getExtensionContributions,
+} from "./vscode.js";
