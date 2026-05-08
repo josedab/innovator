@@ -263,6 +263,113 @@ For full PWA support, ensure your deployment includes:
 - A `public/sw.js` service worker for caching strategies
 - HTTPS (required for service workers in production)
 
+### Offline Behavior
+
+When the browser loses connectivity, the `usePWA()` hook sets `isOnline` to `false`. The app can display an offline banner and continue working with cached data.
+
+The service worker (`public/sw.js`) controls what is available offline. A typical caching strategy:
+
+- **App shell** — Cache the HTML, CSS, and JS bundles on install for instant offline loading
+- **API responses** — Use a network-first strategy so cached results are available when offline
+- **Static assets** — Cache images and fonts with a cache-first strategy
+
+```javascript
+// Example public/sw.js
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open("app-shell-v1").then((cache) => cache.addAll(["/", "/offline.html"]))
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+});
+```
+
+The service worker lifecycle follows standard patterns: `install` → `activate` → `fetch`. Updates are detected automatically — when a new `sw.js` is deployed, the browser installs it in the background and activates it on the next page load.
+
+### Push Notifications
+
+The `requestNotificationPermission()` method from `usePWA()` requests the browser's notification permission:
+
+```tsx
+const { requestNotificationPermission } = usePWA();
+
+async function enableNotifications() {
+  const permission = await requestNotificationPermission();
+  if (permission === "granted") {
+    // Subscribe to push notifications via service worker
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.subscribe({
+      userVisualContents: true,
+      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    });
+    // Send subscription to your backend
+  }
+}
+```
+
+Push notification setup requires:
+
+1. Generate VAPID keys for your server
+2. Set `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in your environment
+3. Implement a push subscription endpoint on your backend
+4. Handle `push` events in your service worker
+
+### Install to Home Screen
+
+The `canInstall` flag from `usePWA()` is `true` when the browser's install prompt is available. Call `install()` to show the native dialog:
+
+```tsx
+const { canInstall, install, isInstalled } = usePWA();
+
+// Show install button only when eligible
+{
+  canInstall && !isInstalled && <button onClick={install}>Add to Home Screen</button>;
+}
+```
+
+**Platform requirements:**
+
+| Platform         | Requirements                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------ |
+| **Chrome/Edge**  | Valid manifest with `name`, `icons` (192px + 512px), `start_url`, `display: "standalone"`        |
+| **Safari (iOS)** | Add `<meta name="apple-mobile-web-app-capable" content="yes">` and apple-touch-icon links        |
+| **Firefox**      | Same as Chrome; install prompt may not be available (use "Add to Home Screen" from browser menu) |
+
+### Manifest Configuration
+
+The PWA manifest (`public/manifest.json`) defines how the app appears when installed:
+
+```json
+{
+  "name": "Innovator",
+  "short_name": "Innovator",
+  "description": "AI-Powered Innovation Engine",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
+```
+
+Link the manifest in your root layout (`apps/web/src/app/layout.tsx`):
+
+```tsx
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3b82f6" />
+```
+
 ### Example: Call the investigation API directly
 
 ```bash
