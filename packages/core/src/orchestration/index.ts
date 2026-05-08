@@ -535,3 +535,33 @@ export function clearOrchestrationData(): void {
   appliedConfigs.clear();
   planHistory.clear();
 }
+
+// ---- Re-exports ----
+
+export {
+  type DAGNode,
+  type DAGWorkflow,
+  type DAGCondition,
+  type DAGNodeStatus,
+  type DAGNodeResult,
+  type DAGExecutionState,
+  type DAGProgressCallback,
+  type DAGGateHandler,
+  type DAGNodeExecutor,
+  DAGNodeSchema,
+  DAGWorkflowSchema,
+  DAGConditionSchema,
+  executeDAG,
+  validateDAG,
+  serializeDAGState,
+} from "./dag-engine.js";
+
+export {
+  type WorkflowTemplate,
+  getWorkflowTemplates,
+  getWorkflowTemplate,
+  registerWorkflowTemplate,
+  unregisterWorkflowTemplate,
+  getTemplatesByCategory,
+  clearCustomTemplates,
+} from "./templates.js";
