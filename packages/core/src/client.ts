@@ -28,6 +28,13 @@ export type {
   InnovationCanvas,
 } from "./canvas/index.js";
 export type {
+  CanvasOperationType,
+  CanvasOperation,
+  CanvasVote,
+  CursorState,
+  CollaborativeCanvasState,
+} from "./canvas/index.js";
+export type {
   OutcomeStage,
   ExternalLinkType,
   ExternalLink,
@@ -187,6 +194,18 @@ export type {
   OrchestrationPlan,
   ApplyResult,
   DriftReport,
+} from "./orchestration/index.js";
+export type {
+  DAGNode,
+  DAGWorkflow,
+  DAGCondition,
+  DAGNodeStatus,
+  DAGNodeResult,
+  DAGExecutionState,
+  DAGProgressCallback,
+  DAGGateHandler,
+  DAGNodeExecutor,
+  WorkflowTemplate,
 } from "./orchestration/index.js";
 export type {
   CaptureSourceType,

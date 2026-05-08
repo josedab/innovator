@@ -265,6 +265,21 @@ export {
 } from "./knowledge-graph/index.js";
 export type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./knowledge-graph/index.js";
 
+/** Cross-Session Knowledge Intelligence — entity resolution, temporal evolution, contextual retrieval. */
+export {
+  resolveEntities,
+  getTemporalEvolution,
+  findRelevantDiscoveries,
+  generateKnowledgeInsights,
+  clusterEntities,
+} from "./knowledge-graph/index.js";
+export type {
+  TemporalEvolution,
+  ContextualMatch,
+  KnowledgeInsight,
+  EntityCluster,
+} from "./knowledge-graph/index.js";
+
 /** Benchmark — evaluate and compare innovation quality across LLM models. */
 export {
   runBenchmark,
@@ -578,6 +593,15 @@ export {
 } from "./i18n/index.js";
 export type { SupportedLanguage, LanguageConfig } from "./i18n/index.js";
 
+/** i18n UI Translations & Cultural Context. */
+export {
+  getTranslations,
+  t as translate,
+  getCulturalContext,
+  culturalizePrompt,
+} from "./i18n/index.js";
+export type { UITranslations, CulturalContext } from "./i18n/index.js";
+
 /** Idea fitness tracker — track ideas through external platforms (Jira, Linear, GitHub) with status sync. */
 export {
   trackIdea,
@@ -797,6 +821,20 @@ export type {
   PivotRecommendation,
   CoachIntervention,
   CoachConfig,
+} from "./coaching/index.js";
+
+/** Innovation Profile & Proactive Coaching — persistent user profiles with learning paths. */
+export {
+  getInnovationProfile,
+  recordCoachingSession,
+  getProactiveCoaching,
+  getCoachingHistory,
+  clearCoachingProfiles,
+} from "./coaching/index.js";
+export type {
+  InnovationProfile,
+  CoachingSessionRecord,
+  ProactiveCoachingSuggestion,
 } from "./coaching/index.js";
 
 /** Smart angle recommendation — classify subjects and recommend optimal angle sets. */
@@ -1803,6 +1841,39 @@ export type {
   AuditLogEntry,
 } from "./rbac/index.js";
 
+/** Enterprise SSO & Governance — SAML/OIDC SSO, compliance, admin dashboard. */
+export {
+  configureSSOProvider,
+  getSSOConfig,
+  listSSOConfigs,
+  createSSOSession,
+  validateSSOSession,
+  revokeSSOSession,
+  revokeAllUserSessions,
+  listManagedUsers,
+  suspendUser,
+  reactivateUser,
+  updateUserRole,
+  setComplianceConfig,
+  getComplianceConfig,
+  generateComplianceReport,
+  getOrgStats,
+  clearEnterpriseData,
+} from "./rbac/index.js";
+export type {
+  SSOProvider,
+  IdentityProvider,
+  SSOConfig,
+  SSOSession,
+  ComplianceFramework,
+  DataResidency,
+  ComplianceConfig,
+  ComplianceReport,
+  ComplianceCheck as EnterpriseComplianceCheck,
+  OrgStats,
+  UserManagementEntry,
+} from "./rbac/index.js";
+
 /** Innovation Canvas — spatial idea arrangement with nodes, edges, clusters, and SVG export. */
 export {
   createCanvasFromResults,
@@ -1820,6 +1891,26 @@ export type {
   CanvasCluster,
   CanvasAnnotation,
   InnovationCanvas,
+} from "./canvas/index.js";
+
+/** Collaborative Canvas — CRDT-based shared canvas with voting, cursors, and AI clustering. */
+export {
+  createCollaborativeCanvas,
+  applyOperation,
+  mergeRemoteOperation,
+  getNodeVotes,
+  getTopVotedNodes,
+  autoClusterByAngle,
+  detectConsensus,
+  getActiveCursors,
+  serializeCollaborativeState,
+} from "./canvas/index.js";
+export type {
+  CanvasOperationType,
+  CanvasOperation,
+  CanvasVote,
+  CursorState,
+  CollaborativeCanvasState,
 } from "./canvas/index.js";
 
 /** Plugin Marketplace — publish, discover, install, and review community plugins. */
@@ -1844,6 +1935,15 @@ export type {
   InstalledPlugin,
   MarketplaceSearchOptions,
   PluginReview,
+  PluginManifest,
+} from "./marketplace/index.js";
+
+/** Marketplace Creator Tools — scaffolding, validation, and statistics. */
+export {
+  scaffoldPlugin,
+  validatePluginManifest,
+  getPluginVersions,
+  getMarketplaceStats as getPluginMarketplaceStats,
 } from "./marketplace/index.js";
 
 /** Innovation Embeddings & Semantic Search — TF-IDF vector search, similarity clustering, and cross-investigation discovery. */
@@ -2981,6 +3081,52 @@ export type {
   ApplyResult,
   DriftReport,
 } from "./orchestration/index.js";
+
+/** DAG execution engine for multi-stage innovation workflows. */
+export {
+  executeDAG,
+  validateDAG,
+  serializeDAGState,
+  DAGNodeSchema as WorkflowDAGNodeSchema,
+  DAGWorkflowSchema,
+  DAGConditionSchema,
+  getWorkflowTemplates,
+  getWorkflowTemplate,
+  registerWorkflowTemplate,
+  unregisterWorkflowTemplate,
+  getTemplatesByCategory,
+  clearCustomTemplates,
+} from "./orchestration/index.js";
+export type {
+  DAGNode as WorkflowDAGNode,
+  DAGWorkflow,
+  DAGCondition,
+  DAGNodeStatus,
+  DAGNodeResult,
+  DAGExecutionState,
+  DAGProgressCallback,
+  DAGGateHandler,
+  DAGNodeExecutor,
+  WorkflowTemplate,
+} from "./orchestration/index.js";
+
+/** Hosted Playground / SaaS — session management, usage limits, shareable URLs. */
+export {
+  createPlaygroundSession,
+  getPlaygroundSession,
+  getSessionByShareId,
+  updatePlaygroundSession,
+  getUserSessions,
+  getUserUsage,
+  checkUsageLimit,
+  isFeatureAvailable,
+  cleanupExpiredSessions,
+  clearPlaygroundData,
+  TIER_LIMITS as PLAYGROUND_TIER_LIMITS,
+  PlaygroundSessionSchema,
+  UsageLimitSchema,
+} from "./playground/index.js";
+export type { PlaygroundSession, UsageLimit, UserUsage } from "./playground/index.js";
 
 /** Ambient Innovation Capture — signal classification, dedup, topic clustering, investigation drafts. */
 export {
