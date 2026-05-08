@@ -129,6 +129,16 @@ npx @innovator/mcp-server --sse
 
 Available tools: `investigate`, `innovate`, and `auto`. See the [MCP Server README](packages/mcp-server/README.md) for client configuration examples.
 
+## Chat Bot
+
+The [`packages/bot/`](packages/bot/) package provides chat platform adapters for Slack, Discord, and Microsoft Teams. Expose a `/innovate` command that runs the full auto pipeline and streams progress updates directly into your chat channel.
+
+```bash
+npm install @innovator/bot
+```
+
+See the [Bot README](packages/bot/README.md) and the [Bot Guide](website/docs/guides/bot.md) for setup and configuration.
+
 ## GitHub Action
 
 The [`action/`](action/) directory contains a GitHub Action that runs AI-powered innovation analysis directly in your CI/CD workflows. Trigger it on issue labels, pull requests, or manual dispatch to automatically investigate subjects and post results as comments.
@@ -218,6 +228,7 @@ Have a question or idea? Join the conversation on [GitHub Discussions](https://g
 
 - **💡 [Ideas](https://github.com/josedab/innovator/discussions/categories/ideas)** — Propose new features, angles, or improvements
 - **❓ [Q&A](https://github.com/josedab/innovator/discussions/categories/q-a)** — Ask questions about setup, usage, or troubleshooting
+- **📜 [Code of Conduct](.github/CODE_OF_CONDUCT.md)** — Our community standards (Contributor Covenant 2.1)
 
 ## Security
 
