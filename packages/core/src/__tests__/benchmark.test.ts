@@ -58,7 +58,12 @@ const MOCK_ANGLE_RESULT: AngleResult = {
   angleName: "SCAMPER",
   ideas: [
     { title: "Idea1", description: "Desc1", potentialImpact: "High", implementationHint: "Do it" },
-    { title: "Idea2", description: "Desc2", potentialImpact: "Medium", implementationHint: "Try it" },
+    {
+      title: "Idea2",
+      description: "Desc2",
+      potentialImpact: "Medium",
+      implementationHint: "Try it",
+    },
   ],
   reasoning: "Applied SCAMPER",
 };
@@ -172,11 +177,17 @@ describe("benchmark", () => {
         }
         // model-b evaluation — higher scores
         return JSON.stringify({
-          evaluations: [{
-            ideaTitle: "high",
-            diversity: 10, specificity: 10, actionability: 10, novelty: 10,
-            overallScore: 10, feedback: "Perfect",
-          }],
+          evaluations: [
+            {
+              ideaTitle: "high",
+              diversity: 10,
+              specificity: 10,
+              actionability: 10,
+              novelty: 10,
+              overallScore: 10,
+              feedback: "Perfect",
+            },
+          ],
         });
       });
       mockExtractJson.mockImplementation((raw: string) => raw);
@@ -211,10 +222,19 @@ describe("benchmark", () => {
       await expect(runBenchmark("test", [])).rejects.toThrow("At least one model");
     });
 
-    it("defaults to first 3 angles when none specified", async () => {
+    it("defaults to all 8 angles when none specified", async () => {
       const report = await runBenchmark("test", ["model-a"]);
 
-      expect(report.angleIds).toEqual(["scamper", "first-principles", "cross-domain"]);
+      expect(report.angleIds).toEqual([
+        "scamper",
+        "first-principles",
+        "cross-domain",
+        "constraints",
+        "inversion",
+        "perspectives",
+        "what-if",
+        "trend-collision",
+      ]);
     });
 
     it("fires progress callbacks", async () => {
@@ -240,7 +260,13 @@ describe("benchmark", () => {
           angleId: "scamper",
           ideaCount: 2,
           evaluations: [],
-          averageScores: { diversity: 7, specificity: 8, actionability: 6, novelty: 9, overall: 7.5 },
+          averageScores: {
+            diversity: 7,
+            specificity: 8,
+            actionability: 6,
+            novelty: 9,
+            overall: 7.5,
+          },
           durationMs: 1234,
         },
         {
@@ -255,7 +281,12 @@ describe("benchmark", () => {
       ],
       summary: {
         bestOverall: "model-a",
-        bestByCategory: { diversity: "model-a", specificity: "model-a", actionability: "model-a", novelty: "model-a" },
+        bestByCategory: {
+          diversity: "model-a",
+          specificity: "model-a",
+          actionability: "model-a",
+          novelty: "model-a",
+        },
         ranking: [
           { model: "model-a", score: 7.5 },
           { model: "model-b", score: 0 },
