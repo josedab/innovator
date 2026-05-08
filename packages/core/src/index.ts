@@ -4190,3 +4190,244 @@ export type {
   Roadmap as MaturityRoadmap,
   ProgressEntry,
 } from "./maturity-assessment/index.js";
+
+/** Observability — structured logging, Prometheus metrics, health checks, pipeline instrumentation. */
+export {
+  logger,
+  log,
+  setLogLevel,
+  getLogLevel,
+  getLogBuffer,
+  clearLogBuffer,
+  incrementCounter,
+  setGauge,
+  observeHistogram,
+  recordPipelineExecution,
+  recordLLMLatency,
+  setActivePipelines,
+  recordIdeasGenerated,
+  renderPrometheusMetrics,
+  getAllMetrics,
+  clearMetrics,
+  registerHealthCheck,
+  unregisterHealthCheck,
+  getHealthReport,
+  clearHealthChecks,
+  createProviderHealthCheck,
+  createStorageHealthCheck,
+  beginStage,
+  endStage,
+  addStageEvent,
+  getActiveStages,
+  clearActiveStages,
+  generateGrafanaDashboard,
+  LogLevelSchema,
+  LogEntrySchema,
+  MetricTypeSchema,
+  PrometheusMetricSchema,
+  HealthStatusSchema,
+  ComponentHealthSchema,
+  HealthReportSchema,
+  PipelineStageNameSchema,
+  InstrumentedStageSchema,
+} from "./observability/index.js";
+export type {
+  LogLevel,
+  LogEntry,
+  MetricType,
+  PrometheusMetric,
+  HealthStatus,
+  ComponentHealth,
+  HealthReport,
+  PipelineStageName,
+  InstrumentedStage,
+  GrafanaDashboard,
+  GrafanaPanel,
+  GrafanaTarget,
+} from "./observability/index.js";
+
+/** Scheduler — cron-based automated periodic innovation runs with CRUD and run history. */
+export {
+  parseCron,
+  cronMatches,
+  getNextRunTime,
+  naturalLanguageToCron,
+  createSchedule,
+  getSchedule,
+  updateSchedule,
+  deleteSchedule,
+  listSchedules,
+  getDueSchedules,
+  recordScheduleRun,
+  getScheduleRuns,
+  clearSchedules,
+  setScheduleExecutionHandler,
+  startScheduleWorker,
+  stopScheduleWorker,
+  ScheduleStatusSchema,
+  ScheduleActionSchema,
+  ScheduleRunSchema,
+  DeliveryChannelSchema as SchedulerDeliveryChannelSchema,
+  ScheduleSchema as CronScheduleSchema,
+} from "./scheduler/index.js";
+export type {
+  ScheduleStatus,
+  ScheduleAction,
+  ScheduleRun,
+  DeliveryChannel as SchedulerDeliveryChannel,
+  Schedule as CronSchedule,
+  ParsedCron,
+  CronField,
+} from "./scheduler/index.js";
+
+/** Resilience — circuit breakers, failover chains, cost guardrails, and cost forecasting. */
+export {
+  CircuitBreaker as LLMCircuitBreaker,
+  executeWithFailover,
+  CostGuardrailManager,
+  forecastPipelineCost,
+  getCircuitBreaker as getLLMCircuitBreaker,
+  getProviderHealthDashboard,
+  clearCircuitBreakers,
+  createFailoverChain,
+  CircuitStateSchema as LLMCircuitStateSchema,
+  CostGuardrailSchema,
+} from "./resilience/index.js";
+export type {
+  CircuitState as LLMCircuitState,
+  CircuitBreakerConfig,
+  FailoverChainConfig,
+  CostGuardrail,
+} from "./resilience/index.js";
+
+/** Prompt Auto-Optimizer — self-improving prompts using genetic algorithm principles. */
+export {
+  registerVariant,
+  getVariant,
+  getVariantsByAngle,
+  getBestVariant,
+  recordVariantScore,
+  createMicroExperiment,
+  completeMicroExperiment,
+  getExperiment as getOptimizerExperiment,
+  listExperiments as listOptimizerExperiments,
+  mutatePrompt,
+  crossoverPrompts,
+  evolveGeneration,
+  getEvolutionHistory,
+  getPromptFitnessDashboard,
+  clearPromptOptimizer,
+  PromptVariantSchema as PromptOptimizerVariantSchema,
+  ScoreRecordSchema,
+  MicroExperimentSchema,
+  EvolutionConfigSchema as PromptEvolutionConfigSchema,
+  GenerationStatsSchema,
+} from "./prompt-optimizer/index.js";
+export type {
+  PromptVariant as OptimizerPromptVariant,
+  ScoreRecord,
+  MicroExperiment,
+  EvolutionConfig as PromptEvolutionConfig,
+  GenerationStats,
+} from "./prompt-optimizer/index.js";
+
+/** Decision Journal — structured decision log linking ideas to decisions with rationale tracking. */
+export {
+  createDecision,
+  getDecision,
+  updateDecisionStatus,
+  updateDecision,
+  deleteDecision,
+  listDecisions,
+  scheduleRevisit,
+  getDueRevisits,
+  dismissRevisit,
+  getDecisionVelocity,
+  clearDecisions,
+  DecisionStatusSchema,
+  DecisionRationaleSchema,
+  DecisionHistoryEntrySchema,
+  RevisitReminderSchema,
+  DecisionSchema,
+} from "./decision-journal/index.js";
+export type {
+  DecisionStatus,
+  DecisionRationale,
+  DecisionHistoryEntry,
+  RevisitReminder,
+  Decision,
+} from "./decision-journal/index.js";
+
+/** Tournament — gamified head-to-head idea competition with brackets and Elo rating. */
+export {
+  createTournament,
+  getTournament,
+  listTournaments,
+  deleteTournament,
+  startTournament,
+  resolveMatch,
+  voteInMatch,
+  updateElo,
+  getLeaderboard as getTournamentLeaderboard,
+  getBracketData,
+  clearTournaments,
+  TournamentFormatSchema,
+  TournamentStateSchema,
+  MatchResultSchema,
+  TournamentParticipantSchema,
+  MatchSchema as TournamentMatchSchema,
+  TournamentSchema,
+} from "./tournament/index.js";
+export type {
+  TournamentFormat,
+  TournamentState,
+  MatchResult as TournamentMatchResult,
+  TournamentParticipant,
+  Match as TournamentMatch,
+  Tournament,
+} from "./tournament/index.js";
+
+/** Token Budget Manager — context window management with compression and flow visualization. */
+export {
+  TokenBudgetManager,
+  countTokens,
+  countTokensRefined,
+  compressContext,
+  buildTokenFlowDiagram,
+  suggestModelChanges,
+  BUDGET_PROFILES,
+  TokenBudgetProfileSchema,
+  StageTokenAccountSchema,
+  TokenFlowNodeSchema,
+  TokenFlowLinkSchema,
+  TokenFlowDiagramSchema,
+  ModelSuggestionSchema,
+} from "./token-manager/index.js";
+export type {
+  TokenBudgetProfile,
+  StageTokenAccount,
+  TokenFlowNode,
+  TokenFlowLink,
+  TokenFlowDiagram,
+  ModelSuggestion,
+} from "./token-manager/index.js";
+
+/** Database drivers — filesystem, SQLite, and PostgreSQL backends with migrations. */
+export {
+  FilesystemDriver,
+  PostgreSQLDriver,
+  QueryOperatorSchema,
+  CORE_MIGRATIONS,
+} from "./storage/drivers/index.js";
+export type {
+  DatabaseDriver,
+  QueryOperator,
+  QueryCondition,
+  QueryOptions,
+  InsertOptions,
+  UpdateOptions,
+  DeleteOptions,
+  Migration,
+  MigrationStatus,
+  PostgreSQLConfig,
+} from "./storage/drivers/index.js";
