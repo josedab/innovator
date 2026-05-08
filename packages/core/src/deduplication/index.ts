@@ -48,16 +48,20 @@ export const IdeaClusterSchema = z.object({
 export const DeduplicationResultSchema = z.object({
   ideas: z.array(EmbeddedIdeaSchema),
   clusters: z.array(IdeaClusterSchema),
-  duplicatePairs: z.array(z.object({
-    ideaA: z.string(),
-    ideaB: z.string(),
-    similarity: z.number().min(0).max(1),
-  })),
-  mergedIdeas: z.array(z.object({
-    mergedTitle: z.string().max(500),
-    sourceIds: z.array(z.string()),
-    mergedDescription: z.string().max(5000),
-  })),
+  duplicatePairs: z.array(
+    z.object({
+      ideaA: z.string(),
+      ideaB: z.string(),
+      similarity: z.number().min(0).max(1),
+    })
+  ),
+  mergedIdeas: z.array(
+    z.object({
+      mergedTitle: z.string().max(500),
+      sourceIds: z.array(z.string()),
+      mergedDescription: z.string().max(5000),
+    })
+  ),
   outliers: z.array(z.string()).describe("IDs of ideas flagged as most innovative"),
   stats: z.object({
     totalIdeas: z.number(),
@@ -247,7 +251,9 @@ Only include pairs with similarity > 0.3 to keep the response manageable.`;
       },
       { signal }
     );
-    const parsed = JSON.parse(raw) as { pairs: Array<{ a: string; b: string; similarity: number }> };
+    const parsed = JSON.parse(raw) as {
+      pairs: Array<{ a: string; b: string; similarity: number }>;
+    };
 
     const idIndex = new Map(ideas.map((idea, idx) => [idea.id, idx]));
 
@@ -419,7 +425,9 @@ You MUST respond with valid JSON only:
       },
       { signal }
     );
-    const parsed = JSON.parse(raw) as { labels: Array<{ id: number; label: string; description: string }> };
+    const parsed = JSON.parse(raw) as {
+      labels: Array<{ id: number; label: string; description: string }>;
+    };
 
     for (const label of parsed.labels) {
       const cluster = clusters.find((c) => c.id === label.id);
@@ -476,7 +484,9 @@ async function mergeNearDuplicates(
 
   for (const group of uniqueGroups) {
     const groupIds = Array.from(group);
-    const groupIdeas = groupIds.map((id) => ideas.find((i) => i.id === id)).filter(Boolean) as EmbeddedIdea[];
+    const groupIdeas = groupIds
+      .map((id) => ideas.find((i) => i.id === id))
+      .filter(Boolean) as EmbeddedIdea[];
 
     if (groupIdeas.length < 2) continue;
 
@@ -509,4 +519,146 @@ function emptyResult(): DeduplicationResult {
     },
     processedAt: new Date().toISOString(),
   };
+}
+
+// ---- Gap Analysis ----
+
+export const GapAnalysisSchema = z.object({
+  coveredThemes: z.array(
+    z.object({
+      theme: z.string().max(500),
+      clusterIds: z.array(z.number()),
+      ideaCount: z.number(),
+      coverage: z.enum(["strong", "moderate", "weak"]),
+    })
+  ),
+  gaps: z.array(
+    z.object({
+      theme: z.string().max(500),
+      description: z.string().max(2000),
+      relevance: z.enum(["critical", "important", "nice-to-have"]),
+      suggestedAngles: z.array(z.string().max(100)).max(5),
+    })
+  ),
+  diversityScore: z.number().min(0).max(1),
+  summary: z.string().max(2000),
+});
+
+export type GapAnalysis = z.infer<typeof GapAnalysisSchema>;
+
+/**
+ * Analyze gaps in ideation coverage from deduplication results.
+ * Identifies themes that are over/under-explored and suggests angles to fill gaps.
+ */
+export async function analyzeGaps(
+  dedupResult: DeduplicationResult,
+  subject: string,
+  model?: string,
+  signal?: AbortSignal
+): Promise<GapAnalysis> {
+  const clusterSummaries = dedupResult.clusters.map((c) => ({
+    id: c.id,
+    label: c.label,
+    description: c.description,
+    size: c.ideaIds.length,
+  }));
+
+  const outlierTitles = dedupResult.outliers
+    .map((id) => dedupResult.ideas.find((i) => i.id === id)?.title)
+    .filter(Boolean);
+
+  const prompt = `You are an innovation gap analyst. Given the clusters of ideas generated for "${subject}", identify:
+1. Themes that are well-covered vs weakly-covered
+2. Important themes that were NOT explored at all
+3. A diversity score (0=all same theme, 1=highly diverse)
+
+CLUSTERS:
+${sanitizeLlmOutput(JSON.stringify(clusterSummaries, null, 2))}
+
+OUTLIER IDEAS (unclustered novel ideas):
+${sanitizeLlmOutput(JSON.stringify(outlierTitles, null, 2))}
+
+Stats: ${dedupResult.stats.totalIdeas} total ideas, ${dedupResult.stats.clustersFormed} clusters, ${dedupResult.stats.outliersDetected} outliers
+
+Respond with valid JSON only:
+{
+  "coveredThemes": [
+    { "theme": "Theme name", "clusterIds": [0, 1], "ideaCount": 5, "coverage": "strong" }
+  ],
+  "gaps": [
+    { "theme": "Missing theme", "description": "Why this matters", "relevance": "critical", "suggestedAngles": ["cross-domain", "inversion"] }
+  ],
+  "diversityScore": 0.65,
+  "summary": "Overall assessment of ideation coverage"
+}`;
+
+  try {
+    const raw = await withRetry(
+      async () => {
+        const result = await generateText({ prompt, model, serverMode: true, signal });
+        return extractJson(result);
+      },
+      { signal }
+    );
+    return GapAnalysisSchema.parse(JSON.parse(raw));
+  } catch {
+    // Fallback: compute basic gap analysis from cluster data
+    const coveredThemes = dedupResult.clusters.map((c) => ({
+      theme: c.label,
+      clusterIds: [c.id],
+      ideaCount: c.ideaIds.length,
+      coverage: (c.ideaIds.length >= 4 ? "strong" : c.ideaIds.length >= 2 ? "moderate" : "weak") as
+        | "strong"
+        | "moderate"
+        | "weak",
+    }));
+
+    const totalIdeas = dedupResult.stats.totalIdeas;
+    const clusterCount = dedupResult.stats.clustersFormed;
+    const diversityScore = totalIdeas > 0 ? Math.min(1, clusterCount / Math.sqrt(totalIdeas)) : 0;
+
+    return {
+      coveredThemes,
+      gaps: [],
+      diversityScore: Math.round(diversityScore * 100) / 100,
+      summary: `${clusterCount} distinct themes identified across ${totalIdeas} ideas. ${dedupResult.stats.outliersDetected} novel outliers detected.`,
+    };
+  }
+}
+
+// ---- Cross-Session Deduplication ----
+
+export interface CrossSessionDedupConfig extends DeduplicationConfig {
+  sessionIds?: string[];
+}
+
+/**
+ * Deduplicate ideas across multiple angle result sets (e.g., from different sessions).
+ */
+export async function crossSessionDeduplication(
+  sessions: Array<{ sessionId: string; angleResults: AngleResult[] }>,
+  config: CrossSessionDedupConfig = {},
+  signal?: AbortSignal
+): Promise<DeduplicationResult & { sessionBreakdown: Record<string, number> }> {
+  // Merge all angle results with session-prefixed IDs
+  const allAngleResults: AngleResult[] = [];
+  for (const session of sessions) {
+    for (const ar of session.angleResults) {
+      allAngleResults.push({
+        ...ar,
+        angleId: `${session.sessionId}/${ar.angleId}`,
+      });
+    }
+  }
+
+  const result = await deduplicateIdeas(allAngleResults, config, signal);
+
+  // Build session breakdown
+  const sessionBreakdown: Record<string, number> = {};
+  for (const session of sessions) {
+    const sessionIdeas = result.ideas.filter((i) => i.angleId.startsWith(`${session.sessionId}/`));
+    sessionBreakdown[session.sessionId] = sessionIdeas.length;
+  }
+
+  return { ...result, sessionBreakdown };
 }
