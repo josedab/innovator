@@ -89,3 +89,97 @@ A single actionable paragraph summarizing where to focus first.
 - If one angle fails, all in-flight angles are allowed to complete before the error is reported
 - If synthesis fails, you still get the individual angle results
 - In the web app, premature stream disconnection is detected and shown as a retry prompt
+
+## Pipeline DAG
+
+The `/api/pipeline-dag` endpoint extends Auto Mode by compiling **natural language descriptions** into executable pipeline DAGs (directed acyclic graphs). Instead of running the fixed 8-angle pipeline, you describe a custom pipeline in plain English and the system builds and optionally executes it.
+
+### Compiling a Pipeline
+
+Send a `compile` action to convert a description into a DAG without executing it:
+
+```bash
+curl -X POST http://localhost:3000/api/pipeline-dag \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "compile",
+    "description": "Investigate market trends then generate 5 ideas focused on mobile apps using SCAMPER and First Principles"
+  }'
+```
+
+The response contains the DAG structure and a text visualization:
+
+```json
+{
+  "dag": {
+    "id": "dag-abc123",
+    "name": "market trends",
+    "nodes": [
+      {
+        "id": "investigate-0",
+        "type": "investigate",
+        "label": "Investigation",
+        "dependsOn": [],
+        "status": "pending"
+      },
+      {
+        "id": "generate-scamper",
+        "type": "generate",
+        "label": "Generate: scamper",
+        "dependsOn": ["investigate-0"],
+        "status": "pending"
+      },
+      {
+        "id": "generate-first-principles",
+        "type": "generate",
+        "label": "Generate: first-principles",
+        "dependsOn": ["investigate-0"],
+        "status": "pending"
+      },
+      {
+        "id": "synthesize-0",
+        "type": "synthesize",
+        "label": "Synthesis",
+        "dependsOn": ["generate-scamper", "generate-first-principles"],
+        "status": "pending"
+      }
+    ],
+    "status": "pending"
+  },
+  "visualization": "investigate-0 → [generate-scamper, generate-first-principles] → synthesize-0"
+}
+```
+
+### Executing a Pipeline
+
+Send an `execute` action to compile and run the pipeline in one step:
+
+```bash
+curl -X POST http://localhost:3000/api/pipeline-dag \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "execute",
+    "description": "Investigate renewable energy then generate ideas with all angles and synthesize",
+    "model": "gpt-4.1"
+  }'
+```
+
+Nodes execute in dependency order — parallel branches (e.g., multiple `generate` nodes) run concurrently when their dependencies are satisfied. Each node tracks its status: `pending` → `running` → `completed` or `failed`.
+
+### DAG Node Types
+
+| Type          | Description                                      |
+| ------------- | ------------------------------------------------ |
+| `investigate` | Run subject investigation                        |
+| `generate`    | Generate innovations for a specific angle        |
+| `synthesize`  | Cross-reference and rank results from all angles |
+| `score`       | Score and evaluate generated ideas               |
+| `validate`    | Validate ideas against feasibility checks        |
+
+### Core Functions
+
+The pipeline DAG is powered by three functions from `@innovator/core`:
+
+- **`compilePipelineDAG(description, model?)`** — Parse natural language into a DAG structure
+- **`executePipelineDAG(dag, model?)`** — Execute a compiled DAG, running nodes in dependency order
+- **`dagToText(dag)`** — Generate a text visualization of the DAG
