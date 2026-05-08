@@ -160,11 +160,24 @@ export {
   computePriorityScore,
   getQuadrant,
   rankIdeas,
+  scoreWithEngine,
+  recordCalibrationFeedback,
+  clearCalibration,
+  DEFAULT_SCORING_DIMENSIONS,
   IdeaScoreSchema,
   ScoringResultSchema,
+  ScoringDimensionSchema,
+  ScoringEngineConfigSchema,
+  MultiDimensionalScoreSchema,
   TIME_TO_IMPLEMENT_ORDER,
 } from "./scoring/index.js";
-export type { IdeaScore, ScoringResult } from "./scoring/index.js";
+export type {
+  IdeaScore,
+  ScoringResult,
+  ScoringDimension,
+  ScoringEngineConfig,
+  MultiDimensionalScore,
+} from "./scoring/index.js";
 
 /** Interactive refinement conversations — iterative deepening with branching exploration trees. */
 export {
@@ -358,6 +371,11 @@ export {
   getExplorationTree as getReplayExplorationTree,
   timeTravel,
   clearTimeline,
+  persistRunRecord,
+  persistBranch,
+  loadPersistedRuns,
+  loadPersistedBranches,
+  buildBranchDiff,
   PromptRecordSchema,
   RunRecordSchema,
   RunComparisonSchema,
@@ -371,6 +389,7 @@ export type {
   ReplayOverrides,
   TimelineSnapshot,
   TimelineBranch,
+  BranchDiffView,
 } from "./replay/index.js";
 
 /** Audience-adaptive output — transform results for executive, technical, pitch, or research audiences. */
@@ -460,15 +479,20 @@ export type {
 /** Idea deduplication — cluster and merge semantically similar ideas. */
 export {
   deduplicateIdeas,
+  analyzeGaps,
+  crossSessionDeduplication,
   EmbeddedIdeaSchema,
   IdeaClusterSchema,
   DeduplicationResultSchema,
+  GapAnalysisSchema,
 } from "./deduplication/index.js";
 export type {
   EmbeddedIdea,
   IdeaCluster,
   DeduplicationResult,
   DeduplicationConfig,
+  GapAnalysis,
+  CrossSessionDedupConfig,
 } from "./deduplication/index.js";
 
 /** Sharing — publish, fork, and share investigations via unique URLs. */
@@ -505,6 +529,18 @@ export {
   VoiceTranscriptSchema,
   ParsedVoiceCommandSchema,
   NarrationSegmentSchema,
+  VoiceSessionStateSchema,
+  VoiceSessionSchema,
+  createVoiceSession,
+  getVoiceSession,
+  transitionVoiceSession,
+  addVoiceTranscript,
+  queueNarration,
+  dequeueNarration,
+  structureThinkingAloud,
+  endVoiceSession,
+  listVoiceSessions,
+  clearVoiceSessions,
 } from "./voice/index.js";
 export type {
   VoiceCommand,
@@ -512,6 +548,8 @@ export type {
   VoiceTranscript,
   ParsedVoiceCommand,
   NarrationSegment,
+  VoiceSessionState,
+  VoiceSession,
   SpeechRecognitionProvider,
   TextToSpeechProvider,
 } from "./voice/index.js";
@@ -612,12 +650,24 @@ export {
   TrackedIdeaSchema,
   ExternalStatusSchema,
   TrackerPlatformSchema,
+  ImpactLinkSchema,
+  ImpactMetricsSchema,
+  ImpactDashboardSchema,
+  linkImplementation,
+  getImpactLinks,
+  setIdeaROI,
+  autoDetectLinks,
+  buildImpactDashboard,
+  clearImpactTracking,
 } from "./tracker/index.js";
 export type {
   TrackedIdea,
   ExternalStatus,
   TrackerPlatform,
   TrackerDashboard,
+  ImpactLink,
+  ImpactMetrics,
+  ImpactDashboard,
 } from "./tracker/index.js";
 
 /** Offline / local-first — Ollama detection, network status, and recommended local models. */
@@ -1204,6 +1254,35 @@ export type {
   HypothesisSession,
 } from "./hypothesis/index.js";
 
+/** Automated Innovation Experiments — A/B prompt testing with statistical analysis. */
+export {
+  createExperiment as createInnovationExperiment,
+  getExperiment as getInnovationExperiment,
+  listExperiments as listInnovationExperiments,
+  deleteExperiment as deleteInnovationExperiment,
+  clearExperiments as clearInnovationExperiments,
+  runExperiment as runInnovationExperiment,
+  generateStatisticalReport,
+  compareVariants,
+  experimentToMarkdown,
+  ExperimentStatusSchema as InnovationExperimentStatusSchema,
+  PromptVariantSchema as InnovationPromptVariantSchema,
+  ExperimentResultSchema as InnovationExperimentResultSchema,
+  ExperimentHypothesisSchema,
+  StatisticalReportSchema,
+  ExperimentSchema as InnovationExperimentSchema,
+} from "./experiments/index.js";
+export type {
+  ExperimentStatus as InnovationExperimentStatus,
+  PromptVariant as InnovationPromptVariant,
+  ExperimentResult as InnovationExperimentResult,
+  ExperimentHypothesis,
+  StatisticalReport,
+  Experiment as InnovationExperiment,
+  ExperimentConfig as InnovationExperimentConfig,
+  ExperimentProgressCallback as InnovationExperimentProgressCallback,
+} from "./experiments/index.js";
+
 /** Workflow — define innovation sprints as YAML and execute them as multi-stage pipelines. */
 export {
   parseWorkflowYaml,
@@ -1460,7 +1539,20 @@ export {
 export type { ConfidenceScore, ConfidenceDimension, KnowledgeGap } from "./confidence/index.js";
 
 /** Embeddable widget SDK — generate embed code for third-party websites. */
-export { generateEmbedCode, getWidgetSource, WIDGET_SOURCE } from "./widget/index.js";
+export {
+  generateEmbedCode,
+  getWidgetSource,
+  WIDGET_SOURCE,
+  createMicroApp,
+  getMicroApp,
+  listMicroApps,
+  deleteMicroApp,
+  clearMicroApps,
+  generateInstallCode,
+  MicroAppTypeSchema,
+  MicroAppConfigSchema,
+} from "./widget/index.js";
+export type { MicroAppType, MicroAppConfig } from "./widget/index.js";
 
 /** Idea genealogy — track how ideas evolve across investigation runs. */
 export {
@@ -1572,6 +1664,20 @@ export {
   WebhookEventSchema,
   TenantSchema,
   DeveloperPortalInfoSchema,
+  WebhookSubscriptionSchema,
+  createWebhookSubscription,
+  listWebhookSubscriptions,
+  getWebhookSubscription,
+  deleteWebhookSubscription,
+  toggleWebhookSubscription,
+  dispatchWebhookEvent,
+  ApiVersionSchema,
+  API_VERSIONS,
+  getApiVersionInfo,
+  listApiVersions,
+  RateLimitConfigSchema,
+  getEndpointRateLimit,
+  checkUsageRateLimit,
 } from "./api-gateway/index.js";
 export type {
   BillingTier,
@@ -1581,6 +1687,9 @@ export type {
   WebhookEvent,
   Tenant,
   DeveloperPortalInfo,
+  WebhookSubscription,
+  ApiVersion,
+  RateLimitConfig,
 } from "./api-gateway/index.js";
 
 /** Decision packet — executive-ready decision documents with options, risks, and resource asks. */
@@ -2106,6 +2215,17 @@ export {
   FederationNodeSchema,
   PeerNodeSchema,
   NetworkDashboardSchema,
+  ActivityTypeSchema,
+  FederatedActivitySchema,
+  createActivity,
+  receiveActivity,
+  getInbox,
+  getOutbox,
+  privatizeCount,
+  privatizeRate,
+  createPrivateSummary,
+  InnovationPulseSchema,
+  getInnovationPulse,
 } from "./federation/index.js";
 export type {
   FederationPatternType,
@@ -2114,6 +2234,10 @@ export type {
   PeerNode,
   NetworkTrend,
   NetworkDashboard,
+  ActivityType,
+  FederatedActivity,
+  DifferentialPrivacyConfig,
+  InnovationPulse,
 } from "./federation/index.js";
 
 /** Innovation Sprints with Facilitation Engine — time-boxed sessions with automated facilitation. */
@@ -2295,6 +2419,10 @@ export {
   FileComplexitySchema,
   CodebaseSubjectSchema,
   CodebaseAnalysisSchema,
+  InnovationPRSchema,
+  generateInnovationPRs,
+  innovationPRToMarkdown,
+  deepAnalyze,
 } from "./codebase-analysis/index.js";
 export type {
   CodePattern,
@@ -2304,6 +2432,8 @@ export type {
   CodebaseSubject,
   CodebaseAnalysis,
   CodebaseAnalysisOptions,
+  InnovationPR,
+  DeepCodeAnalysis,
 } from "./codebase-analysis/index.js";
 
 /** Output contracts — custom Zod schemas for structured innovation output. */
