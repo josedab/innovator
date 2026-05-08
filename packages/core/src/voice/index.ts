@@ -79,13 +79,26 @@ export type NarrationSegment = z.infer<typeof NarrationSegmentSchema>;
 
 /** Command patterns for matching voice input to commands. */
 const COMMAND_PATTERNS: Array<{ command: VoiceCommand; patterns: RegExp[] }> = [
-  { command: "investigate", patterns: [/^investigate\s+(.+)/i, /^look into\s+(.+)/i, /^research\s+(.+)/i] },
+  {
+    command: "investigate",
+    patterns: [/^investigate\s+(.+)/i, /^look into\s+(.+)/i, /^research\s+(.+)/i],
+  },
   { command: "next-angle", patterns: [/^next\s*(angle)?/i, /^next\s+one/i, /^continue/i] },
   { command: "previous-angle", patterns: [/^previous\s*(angle)?/i, /^go\s+back/i, /^back/i] },
-  { command: "score-this", patterns: [/^score\s+(this|these|it)/i, /^rate\s+(this|these|it)/i, /^evaluate/i] },
+  {
+    command: "score-this",
+    patterns: [/^score\s+(this|these|it)/i, /^rate\s+(this|these|it)/i, /^evaluate/i],
+  },
   { command: "refine", patterns: [/^refine\s*(.*)/i, /^improve\s*(.*)/i, /^make\s+better/i] },
   { command: "export", patterns: [/^export\s*(.*)/i, /^save\s*(.*)/i, /^download/i] },
-  { command: "summarize", patterns: [/^summar(ize|y)\s*(.*)/i, /^what\s+are\s+the\s+results/i, /^give\s+me\s+a\s+summary/i] },
+  {
+    command: "summarize",
+    patterns: [
+      /^summar(ize|y)\s*(.*)/i,
+      /^what\s+are\s+the\s+results/i,
+      /^give\s+me\s+a\s+summary/i,
+    ],
+  },
   { command: "stop", patterns: [/^stop/i, /^cancel/i, /^quit/i, /^end\s+session/i] },
   { command: "help", patterns: [/^help/i, /^what\s+can\s+(I|you)\s+(say|do)/i, /^commands/i] },
 ];
@@ -270,4 +283,203 @@ export function listTTSProviders(): TextToSpeechProvider[] {
 export function clearVoiceProviders(): void {
   sttProviders.clear();
   ttsProviders.clear();
+}
+
+// ---- VoiceSession State Machine ----
+
+export const VoiceSessionStateSchema = z.enum([
+  "idle",
+  "listening",
+  "processing",
+  "speaking",
+  "thinking-aloud",
+  "paused",
+  "error",
+  "ended",
+]);
+
+export const VoiceSessionSchema = z.object({
+  id: z.string().max(100),
+  state: VoiceSessionStateSchema,
+  config: VoiceConfigSchema,
+  subject: z.string().max(500).optional(),
+  transcripts: z.array(VoiceTranscriptSchema),
+  commands: z.array(ParsedVoiceCommandSchema),
+  narrationQueue: z.array(NarrationSegmentSchema),
+  thinkingAloudBuffer: z.array(
+    z.object({
+      text: z.string().max(5000),
+      timestamp: z.string(),
+      structured: z.boolean().default(false),
+    })
+  ),
+  startedAt: z.string(),
+  lastActivityAt: z.string(),
+});
+
+export type VoiceSessionState = z.infer<typeof VoiceSessionStateSchema>;
+export type VoiceSession = z.infer<typeof VoiceSessionSchema>;
+
+// State machine transitions
+const VALID_TRANSITIONS: Record<VoiceSessionState, VoiceSessionState[]> = {
+  idle: ["listening", "ended"],
+  listening: ["processing", "thinking-aloud", "paused", "error", "ended"],
+  processing: ["speaking", "listening", "error", "ended"],
+  speaking: ["listening", "paused", "ended"],
+  "thinking-aloud": ["processing", "listening", "paused", "ended"],
+  paused: ["listening", "thinking-aloud", "ended"],
+  error: ["listening", "idle", "ended"],
+  ended: [],
+};
+
+const voiceSessions = new Map<string, VoiceSession>();
+
+/** Create a new voice session. */
+export function createVoiceSession(config?: Partial<VoiceConfig>): VoiceSession {
+  const id = `vsess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const now = new Date().toISOString();
+
+  const session: VoiceSession = {
+    id,
+    state: "idle",
+    config: VoiceConfigSchema.parse(config ?? {}),
+    transcripts: [],
+    commands: [],
+    narrationQueue: [],
+    thinkingAloudBuffer: [],
+    startedAt: now,
+    lastActivityAt: now,
+  };
+
+  voiceSessions.set(id, session);
+  return session;
+}
+
+/** Get a voice session by ID. */
+export function getVoiceSession(id: string): VoiceSession | undefined {
+  return voiceSessions.get(id);
+}
+
+/** Transition a voice session to a new state. */
+export function transitionVoiceSession(sessionId: string, newState: VoiceSessionState): boolean {
+  const session = voiceSessions.get(sessionId);
+  if (!session) return false;
+
+  const valid = VALID_TRANSITIONS[session.state];
+  if (!valid.includes(newState)) return false;
+
+  session.state = newState;
+  session.lastActivityAt = new Date().toISOString();
+  return true;
+}
+
+/** Add a transcript to a voice session. */
+export function addVoiceTranscript(
+  sessionId: string,
+  transcript: VoiceTranscript
+): ParsedVoiceCommand | undefined {
+  const session = voiceSessions.get(sessionId);
+  if (!session) return undefined;
+
+  session.transcripts.push(transcript);
+  session.lastActivityAt = new Date().toISOString();
+
+  // If in thinking-aloud mode, buffer the text
+  if (session.state === "thinking-aloud") {
+    session.thinkingAloudBuffer.push({
+      text: transcript.text,
+      timestamp: transcript.timestamp,
+      structured: false,
+    });
+    return undefined;
+  }
+
+  // Try to parse as a command
+  const command = parseVoiceCommand(transcript);
+  if (command) {
+    session.commands.push(command);
+  }
+
+  return command;
+}
+
+/** Queue narration segments for TTS. */
+export function queueNarration(sessionId: string, segments: NarrationSegment[]): boolean {
+  const session = voiceSessions.get(sessionId);
+  if (!session) return false;
+
+  session.narrationQueue.push(...segments);
+  return true;
+}
+
+/** Get and clear the next narration segment. */
+export function dequeueNarration(sessionId: string): NarrationSegment | undefined {
+  const session = voiceSessions.get(sessionId);
+  if (!session) return undefined;
+  return session.narrationQueue.shift();
+}
+
+/**
+ * Structure thinking-aloud buffer into coherent ideas.
+ * Extracts key themes and ideas from free-form spoken input.
+ */
+export function structureThinkingAloud(sessionId: string): Array<{
+  theme: string;
+  ideas: string[];
+  rawText: string;
+}> {
+  const session = voiceSessions.get(sessionId);
+  if (!session || session.thinkingAloudBuffer.length === 0) return [];
+
+  const fullText = session.thinkingAloudBuffer.map((b) => b.text).join(" ");
+
+  // Simple structuring: split by sentence boundaries and group by keywords
+  const sentences = fullText
+    .split(/[.!?]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const themes = new Map<string, string[]>();
+  const keywords = ["could", "should", "might", "idea", "what if", "maybe", "think", "consider"];
+
+  for (const sentence of sentences) {
+    const lower = sentence.toLowerCase();
+    const matchedKeyword = keywords.find((k) => lower.includes(k));
+    const theme = matchedKeyword ?? "general";
+
+    const existing = themes.get(theme) ?? [];
+    existing.push(sentence);
+    themes.set(theme, existing);
+  }
+
+  // Mark buffer as structured
+  for (const entry of session.thinkingAloudBuffer) {
+    entry.structured = true;
+  }
+
+  return Array.from(themes.entries()).map(([theme, ideas]) => ({
+    theme,
+    ideas,
+    rawText: ideas.join(". "),
+  }));
+}
+
+/** End a voice session. */
+export function endVoiceSession(sessionId: string): VoiceSession | undefined {
+  const session = voiceSessions.get(sessionId);
+  if (!session) return undefined;
+
+  session.state = "ended";
+  session.lastActivityAt = new Date().toISOString();
+  return session;
+}
+
+/** List all active voice sessions. */
+export function listVoiceSessions(): VoiceSession[] {
+  return Array.from(voiceSessions.values()).filter((s) => s.state !== "ended");
+}
+
+/** Clear all voice sessions (for testing). */
+export function clearVoiceSessions(): void {
+  voiceSessions.clear();
 }
