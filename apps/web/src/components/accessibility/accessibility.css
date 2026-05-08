@@ -81,3 +81,38 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ── System prefers-reduced-motion enforcement ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── System prefers-contrast enforcement ── */
+@media (prefers-contrast: more) {
+  :root {
+    --background: #000000;
+    --foreground: #ffffff;
+  }
+  button, a, [role="button"] {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+/* ── Cognitive Load Reduction: simplified grid and reduced information density ── */
+.cognitive-load-reduction .complexity-indicator,
+.cognitive-load-reduction .secondary-info,
+.cognitive-load-reduction .decorative {
+  display: none !important;
+}
+.cognitive-load-reduction main {
+  max-width: 640px;
+  margin: 0 auto;
+}
