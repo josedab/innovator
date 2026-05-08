@@ -1,0 +1,69 @@
+name: "Test Action"
+
+on:
+  pull_request:
+    paths:
+      - "action/**"
+      - "apps/cli/**"
+      - "packages/core/**"
+  push:
+    branches: [main]
+    paths:
+      - "action/**"
+      - "apps/cli/**"
+      - "packages/core/**"
+
+jobs:
+  validate-action:
+    name: Validate GitHub Action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate action.yml syntax
+        run: |
+          # Ensure action.yml is valid YAML and has required fields
+          node -e "
+            const fs = require('fs');
+            const yaml = require('js-yaml');
+            const action = yaml.load(fs.readFileSync('action/action.yml', 'utf8'));
+
+            const requiredFields = ['name', 'description', 'inputs', 'outputs', 'runs'];
+            const missing = requiredFields.filter(f => !action[f]);
+            if (missing.length) {
+              console.error('Missing required fields:', missing.join(', '));
+              process.exit(1);
+            }
+
+            // Validate runs.using is 'composite'
+            if (action.runs.using !== 'composite') {
+              console.error('Expected composite action, got:', action.runs.using);
+              process.exit(1);
+            }
+
+            // Validate all steps have required fields
+            for (const [i, step] of action.runs.steps.entries()) {
+              if (!step.name) {
+                console.error('Step', i, 'missing name');
+                process.exit(1);
+              }
+            }
+
+            console.log('✅ action.yml validation passed');
+            console.log('  Inputs:', Object.keys(action.inputs).join(', '));
+            console.log('  Outputs:', Object.keys(action.outputs).join(', '));
+            console.log('  Steps:', action.runs.steps.length);
+          "
+
+      - name: Verify CLI package builds
+        run: |
+          npm install
+          npm run build --workspace=packages/core
+          npm run build --workspace=apps/cli
+
+      - name: Verify CLI commands referenced in action exist
+        run: |
+          # The action uses 'npx innovator auto' — verify the CLI has an 'auto' command
+          npx tsx apps/cli/src/index.ts --help | grep -q "auto" || \
+            (echo "❌ CLI missing 'auto' command referenced by action" && exit 1)
+          echo "✅ CLI 'auto' command exists"
