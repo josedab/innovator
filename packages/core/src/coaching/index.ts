@@ -312,3 +312,16 @@ async function runLlmJson(prompt: string, model?: string, signal?: AbortSignal):
     }
   );
 }
+
+// ---- Re-exports ----
+
+export {
+  type InnovationProfile,
+  type SessionRecord as CoachingSessionRecord,
+  type ProactiveCoachingSuggestion,
+  getInnovationProfile,
+  recordSession as recordCoachingSession,
+  getProactiveCoaching,
+  getSessionHistory as getCoachingHistory,
+  clearCoachingProfiles,
+} from "./innovation-profile.js";
