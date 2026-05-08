@@ -389,6 +389,129 @@ interface AutoRequest {
 
 ---
 
+## Storage API
+
+The storage abstraction (`packages/core/src/storage/`) provides a pluggable backend for all persistent data — sessions, workspaces, API keys, collaboration, analytics, and knowledge graph. See [ADR-0008](../docs/../docs/adr/) for design rationale.
+
+Two built-in backends are available: **InMemoryStorageProvider** (default, no persistence) and **SQLiteStorageProvider** (file-based persistence).
+
+### `getStorage()`
+
+Return the current global storage provider.
+
+```typescript
+import { getStorage } from "@innovator/core";
+
+const storage = getStorage();
+const sessions = await storage.sessions.listSessions();
+```
+
+**Returns:** `StorageProvider`
+
+### `setStorage(provider)`
+
+Replace the global storage provider. Call `initializeStorage()` after setting a new provider.
+
+```typescript
+import { setStorage } from "@innovator/core";
+import { SQLiteStorageProvider } from "@innovator/core";
+
+setStorage(new SQLiteStorageProvider("./data/innovator.db"));
+await initializeStorage();
+```
+
+**Parameters:**
+
+| Param      | Type              | Required | Description                 |
+| ---------- | ----------------- | -------- | --------------------------- |
+| `provider` | `StorageProvider` | Yes      | The storage provider to use |
+
+**Returns:** `void`
+
+### `initializeStorage()`
+
+Initialize the current global storage provider (creates tables, runs migrations, etc.). Must be called after `setStorage()`.
+
+```typescript
+import { initializeStorage } from "@innovator/core";
+
+await initializeStorage();
+```
+
+**Returns:** `Promise<void>`
+
+### `closeStorage()`
+
+Gracefully shut down the current storage provider (close database connections, flush buffers). Call during application shutdown.
+
+```typescript
+import { closeStorage } from "@innovator/core";
+
+await closeStorage();
+```
+
+**Returns:** `Promise<void>`
+
+### `StorageProvider` interface
+
+All storage providers must implement this interface:
+
+```typescript
+interface StorageProvider {
+  readonly name: string;
+  sessions: SessionStorage;
+  workspaces: WorkspaceStorage;
+  apiGateway: ApiGatewayStorage;
+  collaboration: CollaborationStorage;
+  analytics: AnalyticsStorage;
+  knowledgeGraph: KnowledgeGraphStorage;
+
+  initialize(): Promise<void>;
+  close(): Promise<void>;
+}
+```
+
+Each sub-interface (`SessionStorage`, `WorkspaceStorage`, etc.) defines CRUD operations for its domain. Import the types from `@innovator/core`:
+
+```typescript
+import type {
+  StorageProvider,
+  SessionStorage,
+  WorkspaceStorage,
+  ApiGatewayStorage,
+  CollaborationStorage,
+  AnalyticsStorage,
+  KnowledgeGraphStorage,
+} from "@innovator/core";
+```
+
+### Custom Backend Example
+
+```typescript
+import { setStorage, initializeStorage, closeStorage } from "@innovator/core";
+import type { StorageProvider } from "@innovator/core";
+
+class MyRedisStorageProvider implements StorageProvider {
+  readonly name = "redis";
+  // ... implement all sub-interfaces
+  async initialize() {
+    /* connect to Redis */
+  }
+  async close() {
+    /* disconnect */
+  }
+}
+
+// At application startup
+setStorage(new MyRedisStorageProvider());
+await initializeStorage();
+
+// At shutdown
+await closeStorage();
+```
+
+---
+
 ## Workspace & Collaboration APIs
 
 ### `createCollaborativeSession(subject, participants)`
