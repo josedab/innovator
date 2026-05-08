@@ -1,5 +1,12 @@
 import { investigate, generateForAngle, runAutoPipeline } from "@innovator/core";
-import type { AngleId, PipelineProgress } from "@innovator/core";
+import {
+  analyzeCodebaseSync,
+  deepAnalyze,
+  generateInnovationPRs,
+  innovationPRToMarkdown,
+  analysisToMarkdown,
+} from "@innovator/core";
+import type { AngleId, PipelineProgress, CodebaseAnalysis, InnovationPR } from "@innovator/core";
 import { InvestigateInputSchema, GenerateInputSchema, AutoPipelineInputSchema } from "./schemas.js";
 
 /**
@@ -76,3 +83,104 @@ export async function handleAutoPipeline(args: unknown): Promise<string> {
     2
   );
 }
+
+/**
+ * Handle an MCP `innovate-from-code` tool call.
+ * Analyzes a codebase and generates innovation ideas grounded in code context.
+ */
+export async function handleInnovateFromCode(args: unknown): Promise<string> {
+  const input = z
+    .object({
+      path: z.string().min(1).describe("Path to the repository or directory to analyze"),
+      maxFiles: z.number().optional().default(200),
+    })
+    .parse(args);
+
+  const analysis = analyzeCodebaseSync(input.path, { maxFiles: input.maxFiles });
+  const deepResult = deepAnalyze(analysis as CodebaseAnalysis);
+  const prs = generateInnovationPRs(analysis as CodebaseAnalysis);
+
+  return JSON.stringify(
+    {
+      summary: {
+        files: analysis.fileCount,
+        lines: analysis.totalLines,
+        languages: analysis.languages,
+        patterns: analysis.patterns.length,
+        subjects: analysis.subjects.length,
+      },
+      architecturalDebt: deepResult.architecturalDebt,
+      featureGaps: deepResult.featureGaps,
+      performanceBottlenecks: deepResult.performanceBottlenecks,
+      innovationOpportunities: deepResult.innovationOpportunities,
+      innovationPRs: prs.slice(0, 10).map((pr: InnovationPR) => ({
+        title: pr.title,
+        category: pr.category,
+        priority: pr.priority,
+        effort: pr.estimatedEffort,
+      })),
+    },
+    null,
+    2
+  );
+}
+
+/**
+ * Handle an MCP `innovate-file` tool call.
+ * Analyzes a specific file and suggests innovations.
+ */
+export async function handleInnovateFile(args: unknown): Promise<string> {
+  const input = z
+    .object({
+      path: z.string().min(1).describe("Path to the specific file to analyze"),
+    })
+    .parse(args);
+
+  const { dirname } = await import("node:path");
+  const rootPath = dirname(input.path);
+  const analysis = analyzeCodebaseSync(rootPath, { maxFiles: 50 });
+
+  const fileHotspot = analysis.complexityHotspots.find((h: { path: string }) =>
+    input.path.endsWith(h.path)
+  );
+
+  const relevantPatterns = analysis.patterns.filter((p: { locations: string[] }) =>
+    p.locations.some((l: string) => input.path.endsWith(l))
+  );
+
+  return JSON.stringify(
+    {
+      file: input.path,
+      complexity: fileHotspot ?? null,
+      patterns: relevantPatterns,
+      subjects: analysis.subjects.filter((s: { relevantPatterns: string[] }) =>
+        s.relevantPatterns.some((p: string) => input.path.includes(p))
+      ),
+    },
+    null,
+    2
+  );
+}
+
+/**
+ * Handle an MCP `innovate-architecture` tool call.
+ * Analyzes architecture and generates a full report with Innovation PRs.
+ */
+export async function handleInnovateArchitecture(args: unknown): Promise<string> {
+  const input = z
+    .object({
+      path: z.string().min(1).describe("Path to the repository"),
+    })
+    .parse(args);
+
+  const analysis = analyzeCodebaseSync(input.path, { maxFiles: 500 });
+  const _deepResult = deepAnalyze(analysis as CodebaseAnalysis);
+  const prs = generateInnovationPRs(analysis as CodebaseAnalysis);
+
+  const report = analysisToMarkdown(analysis as CodebaseAnalysis);
+  const prReports = prs.map((pr: InnovationPR) => innovationPRToMarkdown(pr)).join("\n\n---\n\n");
+
+  return `${report}\n\n# Innovation PRs\n\n${prReports}`;
+}
+
+import { z } from "zod";

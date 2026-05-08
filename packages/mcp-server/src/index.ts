@@ -4,8 +4,19 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
-import { handleInvestigate, handleGenerate, handleAutoPipeline } from "./handlers.js";
-import { InvestigateInputSchema, GenerateInputSchema, AutoPipelineInputSchema } from "./schemas.js";
+import {
+  handleInvestigate,
+  handleGenerate,
+  handleAutoPipeline,
+  handleInnovateFromCode,
+  handleInnovateFile,
+  handleInnovateArchitecture,
+} from "./handlers.js";
+import {
+  InvestigateInputSchema as _InvestigateInputSchema,
+  GenerateInputSchema as _GenerateInputSchema,
+  AutoPipelineInputSchema as _AutoPipelineInputSchema,
+} from "./schemas.js";
 
 function createServer(): McpServer {
   const server = new McpServer({
@@ -80,6 +91,67 @@ function createServer(): McpServer {
     async ({ subject, model, angles }) => {
       try {
         const result = await handleAutoPipeline({ subject, model, angles });
+        return { content: [{ type: "text" as const, text: result }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    "innovate-from-code",
+    "Point at a codebase to auto-identify architectural debt, feature gaps, performance bottlenecks, and generate innovation ideas grounded in actual code context",
+    {
+      path: z.string().min(1).describe("Path to the repository or directory to analyze"),
+      maxFiles: z.number().optional().describe("Maximum files to analyze (default: 200)"),
+    },
+    async ({ path, maxFiles }) => {
+      try {
+        const result = await handleInnovateFromCode({ path, maxFiles });
+        return { content: [{ type: "text" as const, text: result }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    "innovate-file",
+    "Analyze a specific file for complexity, patterns, and innovation opportunities",
+    {
+      path: z.string().min(1).describe("Path to the specific file to analyze"),
+    },
+    async ({ path }) => {
+      try {
+        const result = await handleInnovateFile({ path });
+        return { content: [{ type: "text" as const, text: result }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    "innovate-architecture",
+    "Analyze repository architecture and generate Innovation PRs with implementation plans",
+    {
+      path: z.string().min(1).describe("Path to the repository"),
+    },
+    async ({ path }) => {
+      try {
+        const result = await handleInnovateArchitecture({ path });
         return { content: [{ type: "text" as const, text: result }] };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

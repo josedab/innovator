@@ -7,7 +7,12 @@ import { describe, it, expect, vi, beforeAll } from "vitest";
  * and capture the server's tool registrations on first import.
  */
 
-const toolRegistrations: Array<{ name: string; description: string; schema: unknown; handler: Function }> = [];
+const toolRegistrations: Array<{
+  name: string;
+  description: string;
+  schema: unknown;
+  handler: (...args: unknown[]) => unknown;
+}> = [];
 let serverConnectArgs: unknown = undefined;
 let constructorArgs: unknown = undefined;
 
@@ -22,7 +27,7 @@ vi.mock("@modelcontextprotocol/sdk/server/mcp.js", () => {
           name: args[0] as string,
           description: args[1] as string,
           schema: args[2],
-          handler: args[3] as Function,
+          handler: args[3] as (...args: unknown[]) => unknown,
         });
       }
       async connect(transport: unknown) {
@@ -76,12 +81,15 @@ describe("MCP Server (index.ts)", () => {
     });
   });
 
-  it("registers 3 tools: investigate, innovate, auto", () => {
-    expect(toolRegistrations).toHaveLength(3);
+  it("registers 6 tools: investigate, innovate, auto, innovate-from-code, innovate-file, innovate-architecture", () => {
+    expect(toolRegistrations).toHaveLength(6);
     const toolNames = toolRegistrations.map((t) => t.name);
     expect(toolNames).toContain("investigate");
     expect(toolNames).toContain("innovate");
     expect(toolNames).toContain("auto");
+    expect(toolNames).toContain("innovate-from-code");
+    expect(toolNames).toContain("innovate-file");
+    expect(toolNames).toContain("innovate-architecture");
   });
 
   it("connects to stdio transport (default)", () => {
@@ -119,7 +127,13 @@ describe("MCP Server (index.ts)", () => {
     const handler = toolRegistrations.find((t) => t.name === "innovate")!.handler;
     const result = await handler({
       subject: "test",
-      investigation: { summary: "S", keyAspects: [], currentState: "", challenges: [], opportunities: [] },
+      investigation: {
+        summary: "S",
+        keyAspects: [],
+        currentState: "",
+        challenges: [],
+        opportunities: [],
+      },
       angleId: "scamper",
     });
     expect(result).toEqual({
