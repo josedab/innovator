@@ -733,3 +733,156 @@ export function clearTimeline(): void {
   timelineSnapshots.clear();
   timelineBranches.length = 0;
 }
+
+// ---- JSONL Persistence ----
+
+import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+const REPLAY_DIR = join(homedir(), ".innovator", "replay");
+const SESSIONS_FILE = join(REPLAY_DIR, "sessions.jsonl");
+
+function ensureReplayDir(): void {
+  if (!existsSync(REPLAY_DIR)) mkdirSync(REPLAY_DIR, { recursive: true });
+}
+
+/** Persist a run record to JSONL storage. */
+export function persistRunRecord(runId: string): boolean {
+  const record = runRecords.get(runId);
+  if (!record) return false;
+
+  ensureReplayDir();
+
+  const entry = {
+    type: "run" as const,
+    timestamp: new Date().toISOString(),
+    data: record,
+  };
+
+  appendFileSync(SESSIONS_FILE, JSON.stringify(entry) + "\n", "utf-8");
+  return true;
+}
+
+/** Persist a branch to JSONL storage. */
+export function persistBranch(branchId: string): boolean {
+  const branch = timelineBranches.find((b) => b.id === branchId);
+  if (!branch) return false;
+
+  ensureReplayDir();
+
+  const entry = {
+    type: "branch" as const,
+    timestamp: new Date().toISOString(),
+    data: branch,
+  };
+
+  appendFileSync(SESSIONS_FILE, JSON.stringify(entry) + "\n", "utf-8");
+  return true;
+}
+
+/** Load all persisted run records from JSONL storage. */
+export function loadPersistedRuns(): RunRecord[] {
+  ensureReplayDir();
+
+  if (!existsSync(SESSIONS_FILE)) return [];
+
+  const content = readFileSync(SESSIONS_FILE, "utf-8");
+  const lines = content.trim().split("\n").filter(Boolean);
+  const runs: RunRecord[] = [];
+
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line) as { type: string; data: unknown };
+      if (entry.type === "run") {
+        const parsed = RunRecordSchema.safeParse(entry.data);
+        if (parsed.success) {
+          runs.push(parsed.data);
+          runRecords.set(parsed.data.id, parsed.data);
+        }
+      }
+    } catch {
+      // Skip malformed lines
+    }
+  }
+
+  return runs;
+}
+
+/** Load all persisted branches from JSONL storage. */
+export function loadPersistedBranches(): TimelineBranch[] {
+  ensureReplayDir();
+
+  if (!existsSync(SESSIONS_FILE)) return [];
+
+  const content = readFileSync(SESSIONS_FILE, "utf-8");
+  const lines = content.trim().split("\n").filter(Boolean);
+  const branches: TimelineBranch[] = [];
+
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line) as { type: string; data: unknown };
+      if (entry.type === "branch") {
+        const parsed = TimelineBranchSchema.safeParse(entry.data);
+        if (parsed.success) {
+          branches.push(parsed.data);
+          if (!timelineBranches.find((b) => b.id === parsed.data.id)) {
+            timelineBranches.push(parsed.data);
+          }
+        }
+      }
+    } catch {
+      // Skip malformed lines
+    }
+  }
+
+  return branches;
+}
+
+// ---- Side-by-Side Diff View Data ----
+
+export interface BranchDiffView {
+  parentRun: RunRecord;
+  branchRun: RunRecord;
+  commonInvestigation: boolean;
+  parentOnlyIdeas: string[];
+  branchOnlyIdeas: string[];
+  sharedIdeas: string[];
+  parentAngleCount: number;
+  branchAngleCount: number;
+}
+
+/** Build side-by-side diff data for two branches. */
+export function buildBranchDiff(
+  parentRunId: string,
+  branchRunId: string
+): BranchDiffView | undefined {
+  const parentRun = runRecords.get(parentRunId);
+  const branchRun = runRecords.get(branchRunId);
+  if (!parentRun || !branchRun) return undefined;
+
+  const parentIdeas = extractIdeaTitles(parentRun);
+  const branchIdeas = extractIdeaTitles(branchRun);
+
+  const parentSet = new Set(parentIdeas.map((t) => t.toLowerCase()));
+  const branchSet = new Set(branchIdeas.map((t) => t.toLowerCase()));
+
+  const parentOnly = parentIdeas.filter((t) => !branchSet.has(t.toLowerCase()));
+  const branchOnly = branchIdeas.filter((t) => !parentSet.has(t.toLowerCase()));
+  const shared = parentIdeas.filter((t) => branchSet.has(t.toLowerCase()));
+
+  const parentAngles = (parentRun.angleResults as AngleResult[] | undefined) ?? [];
+  const branchAngles = (branchRun.angleResults as AngleResult[] | undefined) ?? [];
+
+  return {
+    parentRun,
+    branchRun,
+    commonInvestigation:
+      JSON.stringify(parentRun.investigation) === JSON.stringify(branchRun.investigation),
+    parentOnlyIdeas: parentOnly,
+    branchOnlyIdeas: branchOnly,
+    sharedIdeas: shared,
+    parentAngleCount: parentAngles.length,
+    branchAngleCount: branchAngles.length,
+  };
+}
