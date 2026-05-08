@@ -359,3 +359,21 @@ function escapeXml(str: string): string {
 function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max - 1) + "…" : str;
 }
+
+// ---- Re-exports ----
+export {
+  type CanvasOperationType,
+  type CanvasOperation,
+  type CanvasVote,
+  type CursorState,
+  type CollaborativeCanvasState,
+  createCollaborativeCanvas,
+  applyOperation,
+  mergeRemoteOperation,
+  getNodeVotes,
+  getTopVotedNodes,
+  autoClusterByAngle,
+  detectConsensus,
+  getActiveCursors,
+  serializeCollaborativeState,
+} from "./collaborative.js";
