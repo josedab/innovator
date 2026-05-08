@@ -21,7 +21,15 @@ const GRAPH_FILE = join(GRAPH_DIR, "graph.json");
 export const EntityNodeSchema = z.object({
   id: z.string(),
   label: z.string().max(200),
-  type: z.enum(["concept", "technology", "challenge", "opportunity", "person", "organization", "domain"]),
+  type: z.enum([
+    "concept",
+    "technology",
+    "challenge",
+    "opportunity",
+    "person",
+    "organization",
+    "domain",
+  ]),
   description: z.string().max(2000).optional(),
   sourceSessionIds: z.array(z.string()),
   firstSeen: z.string(),
@@ -34,7 +42,14 @@ export const RelationshipEdgeSchema = z.object({
   id: z.string(),
   source: z.string(),
   target: z.string(),
-  type: z.enum(["related_to", "enables", "challenges", "part_of", "derived_from", "contrasts_with"]),
+  type: z.enum([
+    "related_to",
+    "enables",
+    "challenges",
+    "part_of",
+    "derived_from",
+    "contrasts_with",
+  ]),
   weight: z.number().min(0).max(1),
   sourceSessionIds: z.array(z.string()),
   label: z.string().max(200).optional(),
@@ -80,17 +95,98 @@ function saveGraph(graph: KnowledgeGraph): void {
 function extractTerms(text: string): string[] {
   // Remove common stop words and extract significant terms
   const stopWords = new Set([
-    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "could",
-    "should", "may", "might", "must", "shall", "can", "need", "dare",
-    "to", "of", "in", "for", "on", "with", "at", "by", "from", "as",
-    "into", "through", "during", "before", "after", "above", "below",
-    "between", "under", "again", "further", "then", "once", "here",
-    "there", "when", "where", "why", "how", "all", "both", "each",
-    "few", "more", "most", "other", "some", "such", "no", "nor",
-    "not", "only", "own", "same", "so", "than", "too", "very",
-    "and", "but", "or", "if", "while", "this", "that", "these", "those",
-    "it", "its", "they", "them", "their", "we", "our", "us",
+    "the",
+    "a",
+    "an",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "must",
+    "shall",
+    "can",
+    "need",
+    "dare",
+    "to",
+    "of",
+    "in",
+    "for",
+    "on",
+    "with",
+    "at",
+    "by",
+    "from",
+    "as",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "between",
+    "under",
+    "again",
+    "further",
+    "then",
+    "once",
+    "here",
+    "there",
+    "when",
+    "where",
+    "why",
+    "how",
+    "all",
+    "both",
+    "each",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "no",
+    "nor",
+    "not",
+    "only",
+    "own",
+    "same",
+    "so",
+    "than",
+    "too",
+    "very",
+    "and",
+    "but",
+    "or",
+    "if",
+    "while",
+    "this",
+    "that",
+    "these",
+    "those",
+    "it",
+    "its",
+    "they",
+    "them",
+    "their",
+    "we",
+    "our",
+    "us",
   ]);
 
   const words = text
@@ -128,9 +224,41 @@ function classifyTerm(
   term: string,
   context: { challenges: string[]; opportunities: string[] }
 ): EntityNode["type"] {
-  const techKeywords = ["api", "sdk", "framework", "platform", "database", "algorithm", "protocol", "software", "hardware", "cloud", "server", "web", "mobile", "machine learning", "neural", "blockchain"];
-  const challengeKeywords = ["challenge", "problem", "issue", "risk", "limitation", "barrier", "obstacle"];
-  const opportunityKeywords = ["opportunity", "potential", "growth", "innovation", "advantage", "benefit"];
+  const techKeywords = [
+    "api",
+    "sdk",
+    "framework",
+    "platform",
+    "database",
+    "algorithm",
+    "protocol",
+    "software",
+    "hardware",
+    "cloud",
+    "server",
+    "web",
+    "mobile",
+    "machine learning",
+    "neural",
+    "blockchain",
+  ];
+  const challengeKeywords = [
+    "challenge",
+    "problem",
+    "issue",
+    "risk",
+    "limitation",
+    "barrier",
+    "obstacle",
+  ];
+  const opportunityKeywords = [
+    "opportunity",
+    "potential",
+    "growth",
+    "innovation",
+    "advantage",
+    "benefit",
+  ];
 
   if (techKeywords.some((k) => term.includes(k))) return "technology";
   if (challengeKeywords.some((k) => term.includes(k))) return "challenge";
@@ -172,7 +300,10 @@ export function ingestInvestigation(
   ].join(" ");
 
   const terms = extractTerms(corpus);
-  const context = { challenges: investigation.challenges, opportunities: investigation.opportunities };
+  const context = {
+    challenges: investigation.challenges,
+    opportunities: investigation.opportunities,
+  };
 
   // Add subject as a primary node
   const subjectNode = findOrCreateNode(graph, subject.toLowerCase(), {
@@ -239,9 +370,7 @@ function findOrCreateNode(
     now: string;
   }
 ): EntityNode {
-  const existing = graph.nodes.find(
-    (n) => n.label.toLowerCase() === normalizedLabel
-  );
+  const existing = graph.nodes.find((n) => n.label.toLowerCase() === normalizedLabel);
 
   if (existing) {
     existing.occurrenceCount++;
@@ -315,8 +444,7 @@ export function queryRelatedSubjects(
   // Find seed nodes matching the subject
   const seedNodes = graph.nodes.filter(
     (n) =>
-      n.label.toLowerCase().includes(subjectLower) ||
-      subjectLower.includes(n.label.toLowerCase())
+      n.label.toLowerCase().includes(subjectLower) || subjectLower.includes(n.label.toLowerCase())
   );
 
   if (seedNodes.length === 0) return { nodes: [], edges: [] };
@@ -327,13 +455,15 @@ export function queryRelatedSubjects(
   const resultEdges: RelationshipEdge[] = [];
   let frontier = seedNodes.map((n) => n.id);
 
-  for (let depth = 0; depth < maxDepth && frontier.length > 0 && resultNodes.length < limit; depth++) {
+  for (
+    let depth = 0;
+    depth < maxDepth && frontier.length > 0 && resultNodes.length < limit;
+    depth++
+  ) {
     const nextFrontier: string[] = [];
 
     for (const nodeId of frontier) {
-      const edges = graph.edges.filter(
-        (e) => e.source === nodeId || e.target === nodeId
-      );
+      const edges = graph.edges.filter((e) => e.source === nodeId || e.target === nodeId);
 
       for (const edge of edges) {
         const neighborId = edge.source === nodeId ? edge.target : edge.source;
@@ -420,8 +550,27 @@ export function clearKnowledgeGraph(): void {
   if (existsSync(GRAPH_FILE)) {
     writeFileSync(
       GRAPH_FILE,
-      JSON.stringify({ nodes: [], edges: [], lastUpdated: new Date().toISOString(), sessionCount: 0 }),
+      JSON.stringify({
+        nodes: [],
+        edges: [],
+        lastUpdated: new Date().toISOString(),
+        sessionCount: 0,
+      }),
       "utf-8"
     );
   }
 }
+
+// ---- Cross-Session Intelligence ----
+
+export {
+  type TemporalEvolution,
+  type ContextualMatch,
+  type KnowledgeInsight,
+  type EntityCluster,
+  resolveEntities,
+  getTemporalEvolution,
+  findRelevantDiscoveries,
+  generateKnowledgeInsights,
+  clusterEntities,
+} from "./cross-session.js";
