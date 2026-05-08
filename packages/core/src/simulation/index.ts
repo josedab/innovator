@@ -46,3 +46,29 @@ export type {
   SensitivityFactor,
   ScenarioModel,
 } from "./scenario.js";
+
+// Monte Carlo Simulation
+export {
+  bassDiffusion,
+  runMonteCarloSimulation,
+  runSensitivityAnalysis,
+  compareMonteCarloScenarios,
+  generateProbabilityFan,
+  generateTornadoData,
+  monteCarloToMarkdown,
+  MonteCarloParamsSchema,
+  MonteCarloResultSchema,
+  TornadoEntrySchema,
+  ScenarioComparisonSchema,
+} from "./monte-carlo.js";
+export type {
+  BassDiffusionPoint,
+  MonteCarloParams,
+  PercentileSet,
+  MonteCarloResult,
+  TornadoEntry,
+  ScenarioComparison,
+  SensitivityRanking,
+  FanChartPoint,
+  TornadoChartData,
+} from "./monte-carlo.js";
