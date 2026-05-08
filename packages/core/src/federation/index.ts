@@ -62,11 +62,13 @@ export const FederationNodeSchema = z.object({
 export const NetworkDashboardSchema = z.object({
   totalNodes: z.number(),
   totalPatterns: z.number(),
-  trendingAngles: z.array(z.object({
-    angleId: z.string(),
-    frequency: z.number(),
-    trend: z.enum(["rising", "stable", "declining"]),
-  })),
+  trendingAngles: z.array(
+    z.object({
+      angleId: z.string(),
+      frequency: z.number(),
+      trend: z.enum(["rising", "stable", "declining"]),
+    })
+  ),
   topPatterns: z.array(FederationPatternSchema).max(20),
   networkHealth: z.enum(["healthy", "degraded", "offline"]),
 });
@@ -168,7 +170,12 @@ export function listNodes(): FederationNode[] {
 export function extractPatterns(params: {
   nodeId: string;
   domain: string;
-  angleResults: Array<{ angleId: string; angleName: string; ideasCount: number; successRate?: number }>;
+  angleResults: Array<{
+    angleId: string;
+    angleName: string;
+    ideasCount: number;
+    successRate?: number;
+  }>;
   subject?: string;
 }): FederationPattern[] {
   const node = nodes.get(params.nodeId);
@@ -253,20 +260,14 @@ export function discoverPeers(nodeId: string): PeerNode[] {
 }
 
 /** Fetch patterns from a remote peer node. */
-export function fetchRemotePatterns(
-  nodeId: string,
-  peerId: string
-): FederationPattern[] {
+export function fetchRemotePatterns(nodeId: string, peerId: string): FederationPattern[] {
   const peer = nodes.get(peerId);
   if (!peer || !peer.sharingEnabled) return [];
   return peer.localPatterns.map((p) => ({ ...p, sourceNodeId: peerId }));
 }
 
 /** Merge received patterns into local node, deduplicating by title. */
-export function mergePatterns(
-  nodeId: string,
-  patterns: FederationPattern[]
-): number {
+export function mergePatterns(nodeId: string, patterns: FederationPattern[]): number {
   const node = nodes.get(nodeId);
   if (!node) return 0;
 
@@ -296,9 +297,7 @@ export function mergePatterns(
 /** Get the network dashboard with trends and health metrics. */
 export function getNetworkDashboard(nodeId: string): NetworkDashboard {
   const node = nodes.get(nodeId);
-  const allPatterns = node
-    ? [...node.localPatterns, ...node.receivedPatterns]
-    : [];
+  const allPatterns = node ? [...node.localPatterns, ...node.receivedPatterns] : [];
 
   // Compute angle frequency
   const angleFreq = new Map<string, number>();
@@ -312,13 +311,15 @@ export function getNetworkDashboard(nodeId: string): NetworkDashboard {
     .map(([angleId, frequency]) => ({
       angleId,
       frequency,
-      trend: (frequency > 3 ? "rising" : frequency > 1 ? "stable" : "declining") as NetworkTrend["trend"],
+      trend: (frequency > 3
+        ? "rising"
+        : frequency > 1
+          ? "stable"
+          : "declining") as NetworkTrend["trend"],
     }))
     .sort((a, b) => b.frequency - a.frequency);
 
-  const topPatterns = allPatterns
-    .sort((a, b) => b.successRate - a.successRate)
-    .slice(0, 20);
+  const topPatterns = allPatterns.sort((a, b) => b.successRate - a.successRate).slice(0, 20);
 
   return {
     totalNodes: nodes.size,
@@ -332,4 +333,303 @@ export function getNetworkDashboard(nodeId: string): NetworkDashboard {
 /** Clear all federation data (for testing). */
 export function clearFederation(): void {
   nodes.clear();
+}
+
+// ---- ActivityPub-Inspired Protocol ----
+
+export const ActivityTypeSchema = z.enum([
+  "Create",
+  "Update",
+  "Share",
+  "Like",
+  "Follow",
+  "Announce",
+]);
+
+export const FederatedActivitySchema = z.object({
+  "@context": z.string().default("https://www.w3.org/ns/activitystreams"),
+  id: z.string().max(500),
+  type: ActivityTypeSchema,
+  actor: z.string().max(500),
+  object: z.object({
+    type: z.string().max(100),
+    content: z.string().max(5000),
+    attributedTo: z.string().max(500),
+    published: z.string(),
+    tags: z.array(z.string().max(100)).max(20).optional(),
+  }),
+  published: z.string(),
+  to: z.array(z.string().max(500)).max(50).default([]),
+});
+
+export type ActivityType = z.infer<typeof ActivityTypeSchema>;
+export type FederatedActivity = z.infer<typeof FederatedActivitySchema>;
+
+const activityInbox = new Map<string, FederatedActivity[]>();
+const activityOutbox = new Map<string, FederatedActivity[]>();
+
+/** Create a federated activity for sharing patterns. */
+export function createActivity(
+  nodeId: string,
+  type: ActivityType,
+  content: string,
+  tags?: string[]
+): FederatedActivity {
+  const activity: FederatedActivity = {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    id: `urn:innovator:${nodeId}:${Date.now().toString(36)}`,
+    type,
+    actor: `urn:innovator:node:${nodeId}`,
+    object: {
+      type: "InnovationPattern",
+      content,
+      attributedTo: `urn:innovator:node:${nodeId}`,
+      published: new Date().toISOString(),
+      tags,
+    },
+    published: new Date().toISOString(),
+    to: [],
+  };
+
+  const outbox = activityOutbox.get(nodeId) ?? [];
+  outbox.push(activity);
+  activityOutbox.set(nodeId, outbox);
+
+  return activity;
+}
+
+/** Receive an activity into a node's inbox. */
+export function receiveActivity(nodeId: string, activity: FederatedActivity): boolean {
+  const node = nodes.get(nodeId);
+  if (!node) return false;
+
+  const inbox = activityInbox.get(nodeId) ?? [];
+  inbox.push(activity);
+  activityInbox.set(nodeId, inbox);
+
+  return true;
+}
+
+/** Get a node's inbox. */
+export function getInbox(nodeId: string): FederatedActivity[] {
+  return activityInbox.get(nodeId) ?? [];
+}
+
+/** Get a node's outbox. */
+export function getOutbox(nodeId: string): FederatedActivity[] {
+  return activityOutbox.get(nodeId) ?? [];
+}
+
+// ---- Differential Privacy ----
+
+export interface DifferentialPrivacyConfig {
+  epsilon: number;
+  delta: number;
+  clippingBound: number;
+}
+
+const DEFAULT_DP_CONFIG: DifferentialPrivacyConfig = {
+  epsilon: 1.0,
+  delta: 1e-5,
+  clippingBound: 10,
+};
+
+/** Add Laplace noise for differential privacy. */
+function laplaceMechanism(value: number, sensitivity: number, epsilon: number): number {
+  const scale = sensitivity / epsilon;
+  // Laplace noise using inverse CDF
+  const u = Math.random() - 0.5;
+  const noise = -scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+  return value + noise;
+}
+
+/** Apply differential privacy to a count statistic. */
+export function privatizeCount(count: number, config?: Partial<DifferentialPrivacyConfig>): number {
+  const cfg = { ...DEFAULT_DP_CONFIG, ...config };
+  const clipped = Math.min(count, cfg.clippingBound);
+  return Math.max(0, Math.round(laplaceMechanism(clipped, 1, cfg.epsilon)));
+}
+
+/** Apply differential privacy to a rate/proportion statistic. */
+export function privatizeRate(
+  rate: number,
+  sampleSize: number,
+  config?: Partial<DifferentialPrivacyConfig>
+): number {
+  const cfg = { ...DEFAULT_DP_CONFIG, ...config };
+  const sensitivity = 1 / Math.max(1, sampleSize);
+  const noisy = laplaceMechanism(rate, sensitivity, cfg.epsilon);
+  return Math.max(0, Math.min(1, noisy));
+}
+
+/** Create a differentially-private summary of innovation patterns. */
+export function createPrivateSummary(
+  patterns: FederationPattern[],
+  config?: Partial<DifferentialPrivacyConfig>
+): {
+  totalPatterns: number;
+  avgSuccessRate: number;
+  trendingAngles: Array<{ angleId: string; count: number }>;
+  topDomains: Array<{ domain: string; count: number }>;
+} {
+  const cfg = { ...DEFAULT_DP_CONFIG, ...config };
+
+  // Privatize total count
+  const totalPatterns = privatizeCount(patterns.length, cfg);
+
+  // Privatize average success rate
+  const avgRate =
+    patterns.length > 0 ? patterns.reduce((s, p) => s + p.successRate, 0) / patterns.length : 0;
+  const avgSuccessRate = privatizeRate(avgRate, patterns.length, cfg);
+
+  // Privatize angle counts
+  const angleCounts = new Map<string, number>();
+  for (const p of patterns) {
+    for (const a of p.angleIds) {
+      angleCounts.set(a, (angleCounts.get(a) ?? 0) + 1);
+    }
+  }
+
+  const trendingAngles = Array.from(angleCounts.entries())
+    .map(([angleId, count]) => ({
+      angleId,
+      count: privatizeCount(count, cfg),
+    }))
+    .filter((a) => a.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  // Privatize domain counts
+  const domainCounts = new Map<string, number>();
+  for (const p of patterns) {
+    domainCounts.set(p.anonymizedDomain, (domainCounts.get(p.anonymizedDomain) ?? 0) + 1);
+  }
+
+  const topDomains = Array.from(domainCounts.entries())
+    .map(([domain, count]) => ({
+      domain,
+      count: privatizeCount(count, cfg),
+    }))
+    .filter((d) => d.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    totalPatterns,
+    avgSuccessRate: Math.round(avgSuccessRate * 100) / 100,
+    trendingAngles,
+    topDomains,
+  };
+}
+
+// ---- Global Innovation Pulse Dashboard ----
+
+export const InnovationPulseSchema = z.object({
+  timestamp: z.string(),
+  networkSize: z.number(),
+  totalActivities: z.number(),
+  patternsSharedLast24h: z.number(),
+  trendingTopics: z
+    .array(
+      z.object({
+        topic: z.string().max(200),
+        momentum: z.number().min(-1).max(1),
+        nodeCount: z.number(),
+      })
+    )
+    .max(20),
+  methodologyEffectiveness: z
+    .array(
+      z.object({
+        methodology: z.string().max(200),
+        avgSuccessRate: z.number().min(0).max(1),
+        usageCount: z.number(),
+      })
+    )
+    .max(10),
+  geographicSpread: z
+    .array(
+      z.object({
+        region: z.string().max(100),
+        nodeCount: z.number(),
+      })
+    )
+    .max(20),
+  healthScore: z.number().min(0).max(100),
+});
+
+export type InnovationPulse = z.infer<typeof InnovationPulseSchema>;
+
+/** Generate the Global Innovation Pulse dashboard data. */
+export function getInnovationPulse(): InnovationPulse {
+  const allNodes = Array.from(nodes.values());
+  const allPatterns: FederationPattern[] = [];
+  for (const node of allNodes) {
+    allPatterns.push(...node.localPatterns, ...node.receivedPatterns);
+  }
+
+  // Count activities in last 24h
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  let recentActivities = 0;
+  for (const activities of activityOutbox.values()) {
+    recentActivities += activities.filter((a) => a.published >= dayAgo).length;
+  }
+
+  // Trending topics from pattern titles
+  const topicCounts = new Map<string, { count: number; nodes: Set<string> }>();
+  for (const pattern of allPatterns) {
+    const topic = pattern.anonymizedDomain;
+    const entry = topicCounts.get(topic) ?? { count: 0, nodes: new Set() };
+    entry.count += pattern.frequency;
+    if (pattern.sourceNodeId) entry.nodes.add(pattern.sourceNodeId);
+    topicCounts.set(topic, entry);
+  }
+
+  const trendingTopics = Array.from(topicCounts.entries())
+    .map(([topic, data]) => ({
+      topic,
+      momentum: Math.min(1, data.count / 10),
+      nodeCount: privatizeCount(data.nodes.size),
+    }))
+    .sort((a, b) => b.momentum - a.momentum)
+    .slice(0, 20);
+
+  // Methodology effectiveness
+  const methodMap = new Map<string, { totalRate: number; count: number }>();
+  for (const pattern of allPatterns) {
+    if (pattern.type === "methodology") {
+      const entry = methodMap.get(pattern.title) ?? { totalRate: 0, count: 0 };
+      entry.totalRate += pattern.successRate;
+      entry.count++;
+      methodMap.set(pattern.title, entry);
+    }
+  }
+
+  const methodologyEffectiveness = Array.from(methodMap.entries())
+    .map(([methodology, data]) => ({
+      methodology,
+      avgSuccessRate: privatizeRate(data.totalRate / data.count, data.count),
+      usageCount: privatizeCount(data.count),
+    }))
+    .sort((a, b) => b.avgSuccessRate - a.avgSuccessRate)
+    .slice(0, 10);
+
+  // Health score based on network activity
+  const healthScore = Math.min(
+    100,
+    Math.round(
+      (allNodes.length > 0 ? 30 : 0) +
+        (allPatterns.length > 0 ? 30 : 0) +
+        (recentActivities > 0 ? 40 : 0)
+    )
+  );
+
+  return {
+    timestamp: new Date().toISOString(),
+    networkSize: privatizeCount(allNodes.length),
+    totalActivities: privatizeCount(recentActivities),
+    patternsSharedLast24h: privatizeCount(allPatterns.filter((p) => p.lastSeenAt >= dayAgo).length),
+    trendingTopics,
+    methodologyEffectiveness,
+    geographicSpread: [],
+    healthScore,
+  };
 }
