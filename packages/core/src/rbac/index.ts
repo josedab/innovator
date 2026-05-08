@@ -261,3 +261,35 @@ export function getAuditLog(options?: {
 export function clearAuditLog(): void {
   auditLog.length = 0;
 }
+
+// ---- Enterprise SSO & Governance ----
+
+export {
+  type SSOProvider,
+  type IdentityProvider,
+  type SSOConfig,
+  type SSOSession,
+  type ComplianceFramework,
+  type DataResidency,
+  type ComplianceConfig,
+  type ComplianceReport,
+  type ComplianceCheck,
+  type OrgStats,
+  type UserManagementEntry,
+  configureSSOProvider,
+  getSSOConfig,
+  listSSOConfigs,
+  createSSOSession,
+  validateSSOSession,
+  revokeSSOSession,
+  revokeAllUserSessions,
+  listManagedUsers,
+  suspendUser,
+  reactivateUser,
+  updateUserRole,
+  setComplianceConfig,
+  getComplianceConfig,
+  generateComplianceReport,
+  getOrgStats,
+  clearEnterpriseData,
+} from "./enterprise.js";
