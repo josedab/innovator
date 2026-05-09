@@ -150,9 +150,9 @@ describe("AngleSelector", () => {
     it("aria-label includes angle name", () => {
       render(<AngleSelector onSubmit={vi.fn()} />);
       const scamperBtn = screen.getByLabelText("Toggle SCAMPER");
-      expect(scamperBtn).toBeDefined();
+      expect(scamperBtn).toBeInstanceOf(HTMLElement);
       const fpBtn = screen.getByLabelText("Toggle First Principles");
-      expect(fpBtn).toBeDefined();
+      expect(fpBtn).toBeInstanceOf(HTMLElement);
     });
 
     it("disabled submit has disabled attribute", () => {

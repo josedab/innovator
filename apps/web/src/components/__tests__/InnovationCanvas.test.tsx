@@ -84,7 +84,7 @@ describe("InnovationCanvas component", () => {
   describe("empty canvas", () => {
     it("renders without crashing with empty nodes/edges", () => {
       const { container } = render(<InnovationCanvas canvas={makeCanvas()} />);
-      expect(container).toBeTruthy();
+      expect(container).toBeInstanceOf(HTMLElement);
     });
 
     it("renders toolbar buttons", () => {

@@ -37,7 +37,7 @@ describe("IdeaMap Component", () => {
   it("renders with sample angleResults producing SVG with nodes", () => {
     const { container } = render(<IdeaMap angleResults={sampleAngleResults} />);
     const svg = container.querySelector("svg");
-    expect(svg).toBeTruthy();
+    expect(svg).not.toBeNull();
 
     // Should have circle elements for each idea (3 total)
     const circles = svg!.querySelectorAll("circle");
@@ -63,7 +63,7 @@ describe("IdeaMap Component", () => {
     const circles = container.querySelectorAll("circle");
     expect(circles.length).toBe(0);
     // Should still show the info text
-    expect(screen.getByText(/0 ideas/)).toBeTruthy();
+    expect(screen.getByText(/0 ideas/)).not.toBeNull();
   });
 
   it("renders with single angle and single idea", () => {
@@ -78,13 +78,13 @@ describe("IdeaMap Component", () => {
   it("shows details panel when a node is clicked", () => {
     const { container } = render(<IdeaMap angleResults={sampleAngleResults} />);
     const firstG = container.querySelector("g.cursor-pointer");
-    expect(firstG).toBeTruthy();
+    expect(firstG).not.toBeNull();
 
     fireEvent.click(firstG!);
 
     // Should show the details panel with idea info
     const detailsPanel = container.querySelector(".font-semibold");
-    expect(detailsPanel).toBeTruthy();
+    expect(detailsPanel).not.toBeNull();
   });
 
   it("hides details panel when clicking selected node again", () => {
@@ -93,7 +93,7 @@ describe("IdeaMap Component", () => {
 
     // Click to select
     fireEvent.click(firstG!);
-    expect(container.querySelector(".font-semibold")).toBeTruthy();
+    expect(container.querySelector(".font-semibold")).not.toBeNull();
 
     // Click again to deselect
     fireEvent.click(firstG!);
@@ -106,9 +106,9 @@ describe("IdeaMap Component", () => {
   it("angle filter buttons are rendered for each unique angle", () => {
     render(<IdeaMap angleResults={sampleAngleResults} />);
     // "All" button + one per unique angle
-    expect(screen.getByText("All")).toBeTruthy();
-    expect(screen.getByText("scamper")).toBeTruthy();
-    expect(screen.getByText("first-principles")).toBeTruthy();
+    expect(screen.getByText("All")).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText("scamper")).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText("first-principles")).toBeInstanceOf(HTMLElement);
   });
 
   it("clicking angle filter shows only that angle's ideas", () => {
@@ -164,6 +164,6 @@ describe("IdeaMap Component", () => {
     render(<IdeaMap angleResults={sampleAngleResults} />);
     // The footer shows "X ideas • Y connections"
     const footer = screen.getByText(/ideas.*connections/);
-    expect(footer).toBeTruthy();
+    expect(footer).toBeInstanceOf(HTMLElement);
   });
 });

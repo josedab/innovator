@@ -203,7 +203,7 @@ describe("useAnnouncer", () => {
 
     // The AnnouncerRegion is a functional component; we test the hook state
     // by verifying it doesn't throw
-    expect(result.current.AnnouncerRegion).toBeDefined();
+    expect(typeof result.current.AnnouncerRegion).toBe("function");
   });
 });
 
@@ -244,12 +244,12 @@ describe("useReducedMotion", () => {
 describe("useFocusTrap", () => {
   it("returns a container ref", () => {
     const { result } = renderHook(() => useFocusTrap(true));
-    expect(result.current).toBeDefined();
+    expect(result.current).not.toBeNull();
     expect(result.current.current).toBeNull(); // not mounted
   });
 
   it("does not error when not active", () => {
     const { result } = renderHook(() => useFocusTrap(false));
-    expect(result.current).toBeDefined();
+    expect(result.current).not.toBeNull();
   });
 });
