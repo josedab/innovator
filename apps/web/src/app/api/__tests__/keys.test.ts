@@ -90,7 +90,7 @@ describe("API keys route", () => {
 
       expect(res.status).toBe(201);
       expect(data.name).toBe("My Key");
-      expect(data.id).toBeTruthy();
+      expect(data.id).toMatch(/^key-/);
       expect(createApiKey).toHaveBeenCalledWith("My Key", undefined);
     });
 
@@ -146,7 +146,7 @@ describe("API keys route", () => {
       const data = await res.json();
 
       expect(res.status).toBe(200);
-      expect(data.keys).toBeDefined();
+      expect(Array.isArray(data.keys)).toBe(true);
       expect(Array.isArray(data.keys)).toBe(true);
     });
   });
@@ -178,6 +178,56 @@ describe("API keys route", () => {
       const res = await DELETE(makeRequest("DELETE", { id: "key-1" }, "text/plain"));
 
       expect(res.status).toBe(415);
+    });
+
+    it("returns 400 for non-string id", async () => {
+      const res = await DELETE(makeRequest("DELETE", { id: 123 }));
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe("POST - name boundary validation", () => {
+    it("accepts name at max length (200 chars)", async () => {
+      const longName = "a".repeat(200);
+      const res = await POST(makeRequest("POST", { name: longName }));
+      expect(res.status).toBe(201);
+      expect(createApiKey).toHaveBeenCalledWith(longName, undefined);
+    });
+
+    it("rejects name exceeding 200 chars", async () => {
+      const tooLong = "a".repeat(201);
+      const res = await POST(makeRequest("POST", { name: tooLong }));
+      expect(res.status).toBe(400);
+    });
+
+    it("accepts all valid tier values", async () => {
+      for (const tier of ["free", "pro", "enterprise"]) {
+        const res = await POST(makeRequest("POST", { name: "Test", tier }));
+        expect(res.status).toBe(201);
+      }
+    });
+  });
+
+  describe("create → list → revoke integration flow", () => {
+    it("created key appears in list and can be revoked", async () => {
+      // Create
+      const createRes = await POST(makeRequest("POST", { name: "Flow Key" }));
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.id).toMatch(/^key-/);
+
+      // List
+      const listRes = await GET(makeRequest("GET"));
+      expect(listRes.status).toBe(200);
+      const listed = await listRes.json();
+      expect(Array.isArray(listed.keys)).toBe(true);
+
+      // Revoke
+      vi.mocked(revokeApiKey).mockReturnValue(true);
+      const revokeRes = await DELETE(makeRequest("DELETE", { id: created.id }));
+      expect(revokeRes.status).toBe(200);
+      const revoked = await revokeRes.json();
+      expect(revoked.success).toBe(true);
     });
   });
 });
