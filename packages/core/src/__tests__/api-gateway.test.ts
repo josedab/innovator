@@ -25,6 +25,16 @@ import {
   addTenantApiKey,
   getDeveloperPortalInfo,
   createDemoKey,
+  createWebhookSubscription,
+  listWebhookSubscriptions,
+  getWebhookSubscription,
+  deleteWebhookSubscription,
+  toggleWebhookSubscription,
+  dispatchWebhookEvent,
+  getApiVersionInfo,
+  listApiVersions,
+  getEndpointRateLimit,
+  checkUsageRateLimit,
   TIER_LIMITS,
 } from "../api-gateway/index.js";
 
@@ -512,6 +522,201 @@ describe("api-gateway", () => {
       expect(demo.rateLimit.minuteLimit).toBe(2);
       expect(demo.metadata).toBeDefined();
       expect(demo.metadata!.demo).toBe("true");
+    });
+  });
+
+  // ---- Webhook Subscriptions ----
+
+  describe("webhook subscriptions", () => {
+    it("creates a subscription and retrieves it by ID", () => {
+      const key = createApiKey("WH Sub Test");
+      const sub = createWebhookSubscription(key.id, "https://example.com/hook", [
+        "pipeline.complete",
+      ]);
+      expect(sub.id).toMatch(/^whsub_/);
+      expect(sub.keyId).toBe(key.id);
+      expect(sub.url).toBe("https://example.com/hook");
+      expect(sub.events).toEqual(["pipeline.complete"]);
+      expect(sub.active).toBe(true);
+      expect(sub.failureCount).toBe(0);
+
+      const retrieved = getWebhookSubscription(sub.id);
+      expect(retrieved).toBeDefined();
+      expect(retrieved!.id).toBe(sub.id);
+    });
+
+    it("lists subscriptions by key ID", () => {
+      const key = createApiKey("List Subs");
+      createWebhookSubscription(key.id, "https://a.com", ["pipeline.complete"]);
+      createWebhookSubscription(key.id, "https://b.com", ["investigation.complete"]);
+      const subs = listWebhookSubscriptions(key.id);
+      expect(subs).toHaveLength(2);
+    });
+
+    it("does not list subscriptions for a different key", () => {
+      const key1 = createApiKey("Key1");
+      const key2 = createApiKey("Key2");
+      createWebhookSubscription(key1.id, "https://a.com", ["pipeline.complete"]);
+      expect(listWebhookSubscriptions(key2.id)).toHaveLength(0);
+    });
+
+    it("deletes a subscription", () => {
+      const key = createApiKey("Delete Sub");
+      const sub = createWebhookSubscription(key.id, "https://a.com", ["pipeline.complete"]);
+      expect(deleteWebhookSubscription(sub.id)).toBe(true);
+      expect(getWebhookSubscription(sub.id)).toBeUndefined();
+    });
+
+    it("returns false when deleting nonexistent subscription", () => {
+      expect(deleteWebhookSubscription("nonexistent")).toBe(false);
+    });
+
+    it("toggles subscription active status", () => {
+      const key = createApiKey("Toggle");
+      const sub = createWebhookSubscription(key.id, "https://a.com", ["pipeline.complete"]);
+      expect(sub.active).toBe(true);
+      expect(toggleWebhookSubscription(sub.id)).toBe(true);
+      expect(getWebhookSubscription(sub.id)!.active).toBe(false);
+      expect(toggleWebhookSubscription(sub.id)).toBe(true);
+      expect(getWebhookSubscription(sub.id)!.active).toBe(true);
+    });
+
+    it("returns false when toggling nonexistent subscription", () => {
+      expect(toggleWebhookSubscription("nonexistent")).toBe(false);
+    });
+  });
+
+  describe("dispatchWebhookEvent", () => {
+    it("auto-disables subscription after 10 consecutive failures", async () => {
+      const key = createApiKey("Auto Disable");
+      const sub = createWebhookSubscription(key.id, "https://fail.invalid/hook", [
+        "pipeline.complete",
+      ]);
+
+      // Mock fetch to always fail
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockRejectedValue(new Error("Network error")) as typeof fetch;
+
+      try {
+        for (let i = 0; i < 10; i++) {
+          await dispatchWebhookEvent({
+            id: `evt-${i}`,
+            type: "pipeline.complete",
+            payload: {},
+            timestamp: new Date().toISOString(),
+            keyId: key.id,
+          });
+        }
+
+        const updated = getWebhookSubscription(sub.id)!;
+        expect(updated.active).toBe(false);
+        expect(updated.failureCount).toBe(10);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it("skips inactive subscriptions", async () => {
+      const key = createApiKey("Inactive");
+      const sub = createWebhookSubscription(key.id, "https://a.com/hook", ["pipeline.complete"]);
+      toggleWebhookSubscription(sub.id); // deactivate
+
+      const fetchSpy = vi.fn();
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = fetchSpy as unknown as typeof fetch;
+
+      try {
+        const result = await dispatchWebhookEvent({
+          id: "evt-1",
+          type: "pipeline.complete",
+          payload: {},
+          timestamp: new Date().toISOString(),
+          keyId: key.id,
+        });
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(result.delivered).toBe(0);
+        expect(result.failed).toBe(0);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it("dispatches to matching subscriptions and counts results", async () => {
+      const key = createApiKey("Dispatch");
+      createWebhookSubscription(key.id, "https://a.com/hook", ["pipeline.complete"]);
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
+
+      try {
+        const result = await dispatchWebhookEvent({
+          id: "evt-1",
+          type: "pipeline.complete",
+          payload: { data: "test" },
+          timestamp: new Date().toISOString(),
+          keyId: key.id,
+        });
+        expect(result.delivered).toBe(1);
+        expect(result.failed).toBe(0);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+  });
+
+  // ---- API Versioning ----
+
+  describe("API versioning", () => {
+    it("returns v1 version info", () => {
+      const info = getApiVersionInfo("v1");
+      expect(info.version).toBe("1.0.0");
+      expect(info.status).toBe("stable");
+      expect(info.endpoints.length).toBeGreaterThan(0);
+    });
+
+    it("returns v2 version info", () => {
+      const info = getApiVersionInfo("v2");
+      expect(info.version).toBe("2.0.0");
+      expect(info.status).toBe("beta");
+    });
+
+    it("lists all API versions", () => {
+      const versions = listApiVersions();
+      expect(versions.length).toBe(2);
+      expect(versions.map((v) => v.apiVersion)).toContain("v1");
+      expect(versions.map((v) => v.apiVersion)).toContain("v2");
+    });
+  });
+
+  // ---- Endpoint Rate Limiting ----
+
+  describe("endpoint rate limiting", () => {
+    it("returns configured limits for known endpoints", () => {
+      const freeInvestigate = getEndpointRateLimit("/investigate", "free");
+      expect(freeInvestigate.limit).toBe(5);
+      expect(freeInvestigate.windowMs).toBe(60_000);
+
+      const proInvestigate = getEndpointRateLimit("/investigate", "pro");
+      expect(proInvestigate.limit).toBe(30);
+    });
+
+    it("returns default limits for unknown endpoints", () => {
+      const limits = getEndpointRateLimit("/unknown", "free");
+      expect(limits.limit).toBeGreaterThan(0);
+      expect(limits.windowMs).toBe(60_000);
+    });
+
+    it("checkUsageRateLimit combines key tier with endpoint config", () => {
+      const key = createApiKey("Rate Test", "pro");
+      const result = checkUsageRateLimit(key.id, "/investigate");
+      expect(result.allowed).toBe(true);
+      expect(result.tier).toBe("pro");
+      expect(result.remaining).toBeGreaterThanOrEqual(0);
+    });
+
+    it("defaults to free tier for unknown key", () => {
+      const result = checkUsageRateLimit("nonexistent", "/investigate");
+      expect(result.tier).toBe("free");
     });
   });
 });
