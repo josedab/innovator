@@ -30,6 +30,93 @@ const autoRateLimitMap = new Map<string, RateLimitEntry>();
 const innovateRateLimitMap = new Map<string, RateLimitEntry>();
 const inFlightMap = new Map<string, number>();
 
+// ---- Per-key API metering ----
+// Lightweight in-memory metering that runs in edge middleware.
+// Records API calls per key for the usage dashboard at /dashboard/usage.
+
+interface MeteringEntry {
+  keyId: string;
+  route: string;
+  method: string;
+  timestamp: number;
+}
+
+const meteringLog: MeteringEntry[] = [];
+const MAX_METERING_ENTRIES = 50_000;
+const METERING_RETENTION_MS = 30 * 86_400_000; // 30 days
+
+/** Record an API call for metering. Called after auth succeeds. */
+function recordMeteringEntry(keyId: string, route: string, method: string): void {
+  meteringLog.push({ keyId, route, method, timestamp: Date.now() });
+  if (meteringLog.length > MAX_METERING_ENTRIES) {
+    meteringLog.splice(0, meteringLog.length - MAX_METERING_ENTRIES);
+  }
+}
+
+/** Exported for the /api/metering route to read. */
+export function getMeteringLog(): MeteringEntry[] {
+  return meteringLog;
+}
+
+// Per-key tier-based rate limiting (free: 100/day, pro: 10K/day, enterprise: unlimited)
+interface KeyTierConfig {
+  dailyLimit: number; // -1 = unlimited
+  burstPerMinute: number;
+}
+
+const KEY_TIERS: Record<string, KeyTierConfig> = {};
+
+/** Set tier limits for a key. Called from /api/metering set-tier action. */
+export function setMeteringKeyTier(keyId: string, tier: "free" | "pro" | "enterprise"): void {
+  const configs: Record<string, KeyTierConfig> = {
+    free: { dailyLimit: 100, burstPerMinute: 10 },
+    pro: { dailyLimit: 10_000, burstPerMinute: 60 },
+    enterprise: { dailyLimit: -1, burstPerMinute: 200 },
+  };
+  KEY_TIERS[keyId] = configs[tier];
+}
+
+/** Check if a key has exceeded its tier quota. Returns error response or null. */
+function checkKeyQuota(keyId: string, requestId: string): NextResponse | null {
+  const config = KEY_TIERS[keyId];
+  if (!config) return null; // No tier set = no metering enforcement
+
+  const now = Date.now();
+  const dayStart = new Date(now);
+  dayStart.setUTCHours(0, 0, 0, 0);
+  const dayStartMs = dayStart.getTime();
+  const minuteStart = now - 60_000;
+
+  const dailyCount = meteringLog.filter(
+    (e) => e.keyId === keyId && e.timestamp >= dayStartMs
+  ).length;
+  const burstCount = meteringLog.filter(
+    (e) => e.keyId === keyId && e.timestamp >= minuteStart
+  ).length;
+
+  if (config.dailyLimit !== -1 && dailyCount >= config.dailyLimit) {
+    return new NextResponse(
+      JSON.stringify({ error: "Daily API quota exceeded. Upgrade your plan for higher limits." }),
+      {
+        status: 429,
+        headers: { ...SECURITY_HEADERS, "X-Request-ID": requestId, "X-Quota-Exceeded": "daily" },
+      }
+    );
+  }
+
+  if (burstCount >= config.burstPerMinute) {
+    return new NextResponse(
+      JSON.stringify({ error: "Rate limit exceeded. Please slow down requests." }),
+      {
+        status: 429,
+        headers: { ...SECURITY_HEADERS, "X-Request-ID": requestId, "X-Quota-Exceeded": "burst" },
+      }
+    );
+  }
+
+  return null;
+}
+
 // Periodically clean up expired entries to prevent memory leaks
 const CLEANUP_INTERVAL_MS = 5 * 60_000;
 let lastCleanup = Date.now();
@@ -66,6 +153,13 @@ function cleanup() {
     for (let i = 0; i < excess; i++) {
       inFlightMap.delete(keys[i]);
     }
+  }
+
+  // Clean up old metering entries
+  const meteringCutoff = now - METERING_RETENTION_MS;
+  const firstValid = meteringLog.findIndex((e) => e.timestamp >= meteringCutoff);
+  if (firstValid > 0) {
+    meteringLog.splice(0, firstValid);
   }
 }
 
@@ -164,6 +258,9 @@ export function middleware(request: NextRequest) {
 
   // API key authentication: if INNOVATOR_API_KEY is set, require it on all /api/* routes
   const apiKey = process.env.INNOVATOR_API_KEY;
+  const apiKeys = (process.env.INNOVATOR_API_KEYS ?? "").split(",").filter(Boolean);
+  let meteringKeyId = "anonymous";
+
   if (apiKey) {
     const providedKey = request.headers.get("x-api-key");
     if (!providedKey || providedKey !== apiKey) {
@@ -172,7 +269,20 @@ export function middleware(request: NextRequest) {
         headers: { ...SECURITY_HEADERS },
       });
     }
+    meteringKeyId = "key-0";
+  } else if (apiKeys.length > 0) {
+    const providedKey =
+      request.headers.get("x-api-key") ??
+      request.headers.get("authorization")?.replace("Bearer ", "");
+    if (providedKey) {
+      const keyIndex = apiKeys.indexOf(providedKey);
+      if (keyIndex >= 0) meteringKeyId = `key-${keyIndex}`;
+    }
   }
+
+  // Per-key metering: record the call and check quota
+  const route = request.nextUrl.pathname;
+  recordMeteringEntry(meteringKeyId, route, request.method);
 
   // Reject oversized request bodies before they consume parsing resources
   const contentLength = request.headers.get("content-length");
@@ -195,6 +305,10 @@ export function middleware(request: NextRequest) {
   const requestId = crypto.randomUUID();
   const ip = getClientIp(request);
   const now = Date.now();
+
+  // Per-key tier-based quota check (free: 100/day, pro: 10K/day, enterprise: unlimited)
+  const quotaResponse = checkKeyQuota(meteringKeyId, requestId);
+  if (quotaResponse) return quotaResponse;
 
   const globalRateLimitResponse = checkRouteRateLimit(
     rateLimitMap,
