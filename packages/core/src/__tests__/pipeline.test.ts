@@ -165,4 +165,154 @@ describe("runAutoPipeline", () => {
 
     expect(mockGenerateForAngle).toHaveBeenCalledTimes(8);
   });
+
+  // ---- AbortSignal tests ----
+
+  it("aborts before investigation when signal is already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    const result = await runAutoPipeline(
+      "test",
+      () => {},
+      undefined,
+      ["scamper"],
+      controller.signal
+    );
+
+    expect(result.stage).toBe("error");
+    expect(result.error).toContain("aborted");
+    expect(mockInvestigate).not.toHaveBeenCalled();
+  });
+
+  it("aborts before generation when signal fires after investigation", async () => {
+    const controller = new AbortController();
+    mockInvestigate.mockImplementation(async () => {
+      controller.abort();
+      return MOCK_INVESTIGATION;
+    });
+
+    const result = await runAutoPipeline(
+      "test",
+      () => {},
+      undefined,
+      ["scamper"],
+      controller.signal
+    );
+
+    expect(result.stage).toBe("error");
+    expect(result.error).toContain("aborted");
+  });
+
+  it("aborts before synthesis when signal fires after generation", async () => {
+    const controller = new AbortController();
+    mockGenerateForAngle.mockImplementation(async () => {
+      controller.abort();
+      return MOCK_ANGLE_RESULT;
+    });
+
+    const result = await runAutoPipeline(
+      "test",
+      () => {},
+      undefined,
+      ["scamper"],
+      controller.signal
+    );
+
+    expect(result.stage).toBe("error");
+    expect(result.error).toContain("aborted");
+  });
+
+  // ---- Partial failure tests ----
+
+  it("investigation failure prevents generate/synthesize", async () => {
+    mockInvestigate.mockRejectedValue(new Error("fail"));
+
+    await runAutoPipeline("test", () => {}, undefined, ["scamper"]);
+
+    expect(mockGenerateForAngle).not.toHaveBeenCalled();
+    expect(mockGenerateText).not.toHaveBeenCalled();
+  });
+
+  it("partial angle failures → remaining angles synthesized", async () => {
+    mockGenerateForAngle.mockImplementation(async (_s, _i, angleId) => {
+      if (angleId === "scamper") throw new Error("angle fail");
+      return { ...MOCK_ANGLE_RESULT, angleId: angleId as string, angleName: angleId as string };
+    });
+
+    const result = await runAutoPipeline("test", () => {}, undefined, ["scamper", "inversion"]);
+
+    expect(result.stage).toBe("complete");
+    expect(result.angleResults).toHaveLength(1);
+    expect(result.angleResults[0].angleId).toBe("inversion");
+    expect(result.failedAngles).toHaveLength(1);
+    expect(result.failedAngles![0].angleId).toBe("scamper");
+  });
+
+  it("all angles fail → error state", async () => {
+    mockGenerateForAngle.mockRejectedValue(new Error("all fail"));
+
+    const result = await runAutoPipeline("test", () => {}, undefined, ["scamper", "inversion"]);
+
+    expect(result.stage).toBe("error");
+    expect(result.error).toContain("Generation");
+  });
+
+  // ---- Concurrency ----
+
+  it("runWithConcurrency respects MAX_CONCURRENCY of 2", async () => {
+    let concurrent = 0;
+    let maxConcurrent = 0;
+
+    mockGenerateForAngle.mockImplementation(async (_s, _i, angleId) => {
+      concurrent++;
+      maxConcurrent = Math.max(maxConcurrent, concurrent);
+      await new Promise((r) => setTimeout(r, 30));
+      concurrent--;
+      return { ...MOCK_ANGLE_RESULT, angleId: angleId as string };
+    });
+
+    await runAutoPipeline("test", () => {}, undefined, [
+      "scamper",
+      "first-principles",
+      "cross-domain",
+      "constraints",
+    ]);
+
+    expect(maxConcurrent).toBeLessThanOrEqual(2);
+  });
+
+  // ---- Progress callback resilience ----
+
+  it("pipeline continues when progress callback throws", async () => {
+    const onProgress = vi.fn().mockImplementation(() => {
+      throw new Error("callback crash");
+    });
+
+    const result = await runAutoPipeline("test", onProgress, undefined, ["scamper"]);
+
+    expect(result.stage).toBe("complete");
+  });
+
+  // ---- Model routing ----
+
+  it("passes modelRouting to each stage", async () => {
+    const routing = {
+      investigation: "model-a",
+      generation: "model-b",
+      synthesis: "model-c",
+    };
+
+    await runAutoPipeline("test", () => {}, undefined, ["scamper"], undefined, routing);
+
+    expect(mockInvestigate).toHaveBeenCalledWith("test", "model-a", undefined);
+    expect(mockGenerateForAngle).toHaveBeenCalledWith(
+      "test",
+      MOCK_INVESTIGATION,
+      "scamper",
+      "model-b",
+      undefined
+    );
+    expect(mockGenerateText).toHaveBeenCalledWith(expect.objectContaining({ model: "model-c" }));
+  });
 });
