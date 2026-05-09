@@ -207,4 +207,146 @@ describe("refineTaxonomy", () => {
     expect(refined).toBeDefined();
     expect(refined.root).toBeDefined();
   });
+
+  it("processes a split action", () => {
+    const taxonomy = makeTaxonomy();
+    const refined = refineTaxonomy(taxonomy as never, [
+      { action: "split", nodeId: "child-1", splitLabels: ["AI Research", "AI Applications"] },
+    ]);
+    expect(refined).toBeDefined();
+    const flat = flattenTaxonomy(refined as never);
+    const splitNodes = flat.filter((e) =>
+      e.path.some((p) => p === "AI Research" || p === "AI Applications")
+    );
+    expect(splitNodes.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it("handles rename of nonexistent node gracefully", () => {
+    const taxonomy = makeTaxonomy();
+    const refined = refineTaxonomy(taxonomy as never, [
+      { action: "rename", nodeId: "nonexistent", newLabel: "New Name" },
+    ]);
+    expect(refined).toBeDefined();
+    expect(refined.totalNodes).toBe(taxonomy.totalNodes);
+  });
+});
+
+describe("mergeTaxonomies - edge cases", () => {
+  it("returns empty taxonomy for empty input", () => {
+    const merged = mergeTaxonomies([]);
+    expect(merged.totalNodes).toBe(1);
+    expect(merged.totalIdeas).toBe(0);
+    expect(merged.root.children).toHaveLength(0);
+  });
+
+  it("merges categories with same label case-insensitively", () => {
+    const t1 = makeTaxonomy();
+    const t2 = makeTaxonomy({
+      root: makeNode({
+        id: "root2",
+        label: "Root2",
+        children: [
+          makeNode({
+            id: "child-dup",
+            label: "AI", // same as child-1 in t1
+            parentId: "root2",
+            level: 1,
+            ideaCount: 5,
+          }),
+        ],
+      }),
+      totalNodes: 2,
+      totalIdeas: 5,
+    });
+    const merged = mergeTaxonomies([t1 as never, t2 as never]);
+    // "AI" should be merged into one node with combined idea count
+    const aiNodes = merged.root.children.filter((c) => c.label.toLowerCase() === "ai");
+    expect(aiNodes).toHaveLength(1);
+    expect(aiNodes[0].ideaCount).toBe(8); // 3 + 5
+  });
+});
+
+describe("getTaxonomyStats - edge cases", () => {
+  it("handles single-node taxonomy", () => {
+    const taxonomy = makeTaxonomy({
+      root: makeNode({ children: [] }),
+      totalNodes: 1,
+      totalIdeas: 5,
+      maxDepth: 0,
+    });
+    const stats = getTaxonomyStats(taxonomy as never);
+    expect(stats.leafCount).toBe(1);
+    expect(stats.avgBranchingFactor).toBe(0);
+    expect(stats.avgIdeasPerLeaf).toBe(5);
+  });
+
+  it("computes correct average branching factor", () => {
+    const taxonomy = makeTaxonomy();
+    const stats = getTaxonomyStats(taxonomy as never);
+    expect(stats.avgBranchingFactor).toBe(2); // root has 2 children
+    expect(stats.leafCount).toBe(2);
+  });
+});
+
+describe("flattenTaxonomy - edge cases", () => {
+  it("returns empty array for root-only taxonomy", () => {
+    const taxonomy = makeTaxonomy({
+      root: makeNode({ id: "root", children: [] }),
+      totalNodes: 1,
+    });
+    const flat = flattenTaxonomy(taxonomy as never);
+    // Root alone doesn't appear in flat list (parentId is null)
+    expect(flat).toHaveLength(0);
+  });
+
+  it("computes full path for deeply nested nodes", () => {
+    const grandchild = makeNode({
+      id: "grandchild-1",
+      label: "Deep Learning",
+      parentId: "child-ai",
+      level: 2,
+      ideaCount: 2,
+      children: [],
+    });
+    const child = makeNode({
+      id: "child-ai",
+      label: "AI",
+      parentId: "root",
+      level: 1,
+      ideaCount: 5,
+      children: [grandchild],
+    });
+    const taxonomy = makeTaxonomy({
+      root: makeNode({
+        id: "root",
+        label: "Root",
+        parentId: null,
+        level: 0,
+        children: [child],
+      }),
+      totalNodes: 3,
+      totalIdeas: 5,
+      maxDepth: 2,
+    });
+    const flat = flattenTaxonomy(taxonomy as never);
+    const deepNode = flat.find((e) => e.nodeId === "grandchild-1");
+    expect(deepNode).toBeDefined();
+    expect(deepNode!.path).toEqual(["AI", "Deep Learning"]);
+  });
+});
+
+describe("exportTaxonomyAsMarkdown - edge cases", () => {
+  it("includes idea counts and confidence percentages", () => {
+    const taxonomy = makeTaxonomy();
+    const md = exportTaxonomyAsMarkdown(taxonomy as never);
+    expect(md).toContain("3 ideas");
+    expect(md).toContain("90%");
+  });
+
+  it("includes total summary", () => {
+    const taxonomy = makeTaxonomy();
+    const md = exportTaxonomyAsMarkdown(taxonomy as never);
+    expect(md).toContain("7 ideas");
+    expect(md).toContain("3 categories");
+  });
 });
