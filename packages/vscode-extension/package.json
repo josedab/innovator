@@ -1,0 +1,51 @@
+{
+  "name": "@innovator/vscode-extension",
+  "displayName": "Innovator — AI Innovation Engine",
+  "description": "AI-powered innovation engine for GitHub Copilot Chat. Investigate subjects, generate ideas, and score innovations from within VS Code.",
+  "version": "0.1.0",
+  "publisher": "innovator",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": ["AI", "Chat"],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "innovator.chat",
+        "fullName": "Innovator",
+        "name": "innovator",
+        "description": "AI-powered innovation engine — investigate, ideate, and score from any subject",
+        "isSticky": false,
+        "commands": [
+          {
+            "name": "investigate",
+            "description": "Investigate a subject to discover key aspects, challenges, and opportunities"
+          },
+          {
+            "name": "innovate",
+            "description": "Generate innovation ideas for a subject using creativity angles (SCAMPER, First Principles, etc.)"
+          },
+          {
+            "name": "score",
+            "description": "Score and rank innovation ideas by feasibility, impact, and novelty"
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -watch -p tsconfig.json",
+    "package": "npx @vscode/vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "@innovator/core": "*"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.93.0",
+    "typescript": "^5.6.0"
+  }
+}
