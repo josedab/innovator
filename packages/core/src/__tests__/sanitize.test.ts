@@ -143,4 +143,21 @@ describe("sanitizeLlmOutput", () => {
     const result = sanitizeLlmOutput(nfd);
     expect(result).toBe("caf\u00E9");
   });
+
+  it("strips system/user/assistant XML tags from output", () => {
+    expect(sanitizeLlmOutput("<system>hidden</system> response")).toBe("hidden response");
+    expect(sanitizeLlmOutput("before <user>injected</user> after")).toBe("before injected after");
+    expect(sanitizeLlmOutput("<assistant>fake</assistant>")).toBe("fake");
+  });
+
+  it("preserves legitimate content (URLs, code, non-English)", () => {
+    expect(sanitizeLlmOutput("https://example.com/path?q=test")).toBe(
+      "https://example.com/path?q=test"
+    );
+    expect(sanitizeLlmOutput("function foo() { return 42; }")).toBe(
+      "function foo() { return 42; }"
+    );
+    expect(sanitizeLlmOutput("日本語テスト")).toBe("日本語テスト");
+    expect(sanitizeLlmOutput("Price: $19.99")).toBe("Price: $19.99");
+  });
 });
