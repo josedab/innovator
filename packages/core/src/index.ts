@@ -4431,3 +4431,248 @@ export type {
   MigrationStatus,
   PostgreSQLConfig,
 } from "./storage/drivers/index.js";
+
+/** Agentic Innovation Swarms — multi-agent collective intelligence for breakthrough ideas. */
+export {
+  runSwarm,
+  swarmToMarkdown,
+  detectPersonalityConflicts,
+  AgentPersonalitySchema,
+  SwarmAgentStatusSchema,
+  BlackboardEntrySchema,
+  BlackboardSchema,
+  SwarmAgentSchema,
+  SwarmStageSchema,
+  SwarmIdeaSchema,
+  SwarmResultSchema,
+  PERSONALITY_DESCRIPTIONS,
+} from "./swarm/index.js";
+export type {
+  AgentPersonality,
+  SwarmAgentStatus,
+  BlackboardEntry,
+  Blackboard,
+  SwarmAgent,
+  SwarmConfig,
+  SwarmStage,
+  SwarmProgress,
+  SwarmIdea,
+  SwarmResult,
+} from "./swarm/index.js";
+
+/** Synthetic User Panels — AI persona-based idea evaluation and debate. */
+export {
+  runPanel,
+  panelToMarkdown,
+  PersonaArchetypeSchema,
+  SyntheticPersonaSchema,
+  PersonaEvaluationSchema,
+  PanelDebateEntrySchema,
+  PanelConsensusSchema,
+  PanelResultSchema,
+  ARCHETYPE_PROFILES,
+} from "./synthetic-panels/index.js";
+export type {
+  PersonaArchetype,
+  SyntheticPersona,
+  PersonaEvaluation,
+  PanelDebateEntry,
+  PanelConsensus,
+  PanelResult,
+  PanelConfig,
+  PanelProgress,
+} from "./synthetic-panels/index.js";
+
+/** Innovation Failure Pattern Library — curated failure patterns with semantic matching. */
+export {
+  getAllPatterns,
+  findSimilarPatterns,
+  analyzeFailureRisk,
+  reportFailure,
+  getPatternsByCategory,
+  failureAnalysisToMarkdown,
+  CANONICAL_FAILURE_PATTERNS,
+  FailureCategorySchema,
+  FailurePatternSchema,
+  FailureMatchSchema,
+  FailureAnalysisResultSchema,
+  UserReportedFailureSchema,
+} from "./failure-library/index.js";
+export type {
+  FailureCategory,
+  FailurePattern,
+  FailureMatch,
+  FailureAnalysisResult,
+  UserReportedFailure,
+  FailureLibraryConfig,
+} from "./failure-library/index.js";
+
+/** Explainable Innovation (XAI) — reasoning chain visualization and counterfactual analysis. */
+export {
+  explainIdea,
+  captureDecisionPoints,
+  explainabilityToMarkdown,
+  XaiDecisionPointTypeSchema,
+  XaiDecisionPointSchema,
+  ReasoningStepSchema,
+  ReasoningChainSchema,
+  XaiConfidenceDimensionSchema,
+  ConfidenceDecompositionSchema,
+  CounterfactualSchema,
+  ExplainabilityReportSchema,
+} from "./explainability/index.js";
+export type {
+  XaiDecisionPointType,
+  XaiDecisionPoint,
+  ReasoningStep,
+  ReasoningChain,
+  XaiConfidenceDimension,
+  ConfidenceDecomposition,
+  Counterfactual,
+  ExplainabilityReport,
+  ExplainabilityConfig,
+  ExplainabilityProgress,
+} from "./explainability/index.js";
+
+/** Innovation Narrative Engine — audience-adapted compelling narrative generation. */
+export {
+  generateNarrative,
+  generateNarrativeBundle,
+  narrativeBundleToMarkdown,
+  AudienceTypeSchema,
+  NarrativeFormatSchema,
+  NarrativeArchetypeSchema,
+  NarrativeSchema,
+  NarrativeBundleSchema,
+  AUDIENCE_PROFILES,
+  ARCHETYPE_STRUCTURES,
+} from "./narrative/index.js";
+export type {
+  AudienceType,
+  NarrativeFormat,
+  NarrativeArchetype,
+  Narrative,
+  NarrativeBundle,
+  NarrativeConfig,
+  NarrativeProgress,
+} from "./narrative/index.js";
+
+/** Biomimicry & Nature-Inspired Innovation — biological strategies mapped to technical problems. */
+export {
+  runBiomimicryAnalysis,
+  findRelevantEntries,
+  biomimicryToMarkdown,
+  BIOMIMICRY_TAXONOMY,
+  BiologicalFunctionSchema,
+  BiomimicryEntrySchema,
+  BiomimicryTransferSchema,
+  BiomimicryResultSchema,
+} from "./biomimicry/index.js";
+export type {
+  BiologicalFunction,
+  BiomimicryEntry,
+  BiomimicryTransfer,
+  BiomimicryResult,
+  BiomimicryConfig,
+  BiomimicryProgress,
+} from "./biomimicry/index.js";
+
+/** Innovation Constraint Ladder — dynamic difficulty scaling for forced creativity. */
+export {
+  runConstraintLadder,
+  constraintLadderToMarkdown,
+  LadderDifficultyLevelSchema,
+  LadderConstraintTypeSchema,
+  LadderConstraintSchema,
+  ConstrainedIdeaSchema,
+  LadderStepSchema,
+  LadderResultSchema,
+  DIFFICULTY_CONFIGS,
+  DIFFICULTY_BADGES,
+} from "./constraint-ladder/index.js";
+export type {
+  LadderDifficultyLevel,
+  LadderConstraintType,
+  LadderConstraint,
+  ConstrainedIdea,
+  LadderStep,
+  LadderResult,
+  ConstraintLadderConfig,
+  ConstraintLadderProgress,
+} from "./constraint-ladder/index.js";
+
+/** Innovation Time Capsule — schedule ideas for future re-evaluation. */
+export {
+  createTimeCapsule,
+  getTimeCapsule,
+  listTimeCapsules,
+  getDueCapsules,
+  deleteTimeCapsule,
+  openTimeCapsule,
+  openingCeremonyToMarkdown,
+  CapsuleStatusSchema,
+  FutureContextSchema,
+  IdeaSnapshotSchema,
+  ReEvaluationSchema,
+  TimeCapsuleSchema,
+  OpeningCeremonySchema,
+} from "./time-capsule/index.js";
+export type {
+  CapsuleStatus,
+  FutureContext,
+  IdeaSnapshot,
+  ReEvaluation,
+  TimeCapsule,
+  OpeningCeremony,
+  TimeCapsuleConfig,
+  TimeCapsuleProgress,
+} from "./time-capsule/index.js";
+
+/** Dynamic Stakeholder Simulation — multi-stakeholder debate and political feasibility scoring. */
+export {
+  runStakeholderSimulation,
+  stakeholderSimToMarkdown,
+  detectCoalitions,
+  StakeholderRoleSchema,
+  SimStakeholderReactionSchema,
+  DebateTurnSchema,
+  StakeholderSimResultSchema,
+  STAKEHOLDER_PROFILES,
+} from "./stakeholder-sim/index.js";
+export type {
+  StakeholderRole,
+  SimStakeholderReaction,
+  DebateTurn,
+  StakeholderSimResult,
+  StakeholderSimConfig,
+  StakeholderSimProgress,
+} from "./stakeholder-sim/index.js";
+
+/** Innovation Context Mesh — ambient context ingestion and proactive suggestion engine. */
+export {
+  ingestSignal,
+  ingestFromAdapter,
+  getMeshState,
+  resetMesh,
+  detectPatternsLocal,
+  detectPatternsLLM,
+  analyzeAndSuggest,
+  dismissSuggestion,
+  getActiveSuggestions,
+  contextMeshToMarkdown,
+  ContextSourceTypeSchema,
+  ContextSignalSchema,
+  DetectedPatternSchema,
+  ProactiveSuggestionSchema,
+  ContextMeshStateSchema,
+} from "./context-mesh/index.js";
+export type {
+  ContextSourceType,
+  ContextSignal,
+  DetectedPattern,
+  ProactiveSuggestion,
+  ContextMeshState,
+  ContextAdapter,
+  ContextMeshConfig,
+  ContextMeshProgress,
+} from "./context-mesh/index.js";
