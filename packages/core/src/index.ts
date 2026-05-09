@@ -4676,3 +4676,139 @@ export type {
   ContextMeshConfig,
   ContextMeshProgress,
 } from "./context-mesh/index.js";
+
+/** API metering — per-key quotas, rate-limit tiers, and usage tracking. */
+export {
+  ApiMeter,
+  getApiMeter,
+  resetApiMeter,
+  RATE_LIMIT_TIERS,
+  getTierForKey,
+  setKeyTier,
+  removeKeyTier,
+  listKeyTiers,
+  AlertConfigSchema,
+} from "./metering/index.js";
+export type {
+  MeteringRecord,
+  ApiUsageSummary,
+  RateLimitTier,
+  TierConfig,
+  QuotaStatus,
+  MeteringAlert,
+  AlertConfig,
+} from "./metering/index.js";
+
+/** Session templates — wizard-based pipeline configuration. */
+export {
+  WIZARD_QUESTIONS,
+  generateConfig,
+  saveTemplate,
+  getSessionTemplate,
+  listTemplates,
+  deleteTemplate,
+  updateSessionTemplate,
+  WizardAnswersSchema,
+  SaveTemplateSchema,
+} from "./session-templates/index.js";
+export type {
+  WizardQuestion,
+  WizardAnswers,
+  GeneratedConfig,
+  SessionTemplate,
+} from "./session-templates/index.js";
+
+/** Citation engine — source management, claim extraction, and verification. */
+export {
+  getCitationContext,
+  addSource,
+  removeSource,
+  extractCitations,
+  verifyCitation,
+  groundIdeas,
+  resetCitationContext,
+  listCitationSessions,
+  AddSourceSchema,
+  VerifyCitationSchema,
+} from "./citations/index.js";
+export type {
+  CitationSource,
+  Citation,
+  CitationContext,
+  CitationStatus,
+  SourceType,
+  GroundedIdea,
+} from "./citations/index.js";
+
+/** Session handoff — portable bundles for cross-instance sharing. */
+export {
+  createBundle,
+  importSessionBundle,
+  getBundle,
+  listBundles,
+  deleteBundle,
+  shareBundle,
+  getShareInfo,
+  SESSION_BUNDLE_VERSION,
+  CreateBundleSchema,
+  ImportBundleSchema,
+} from "./session-handoff/index.js";
+export type { SessionBundle, SessionMetadata, SessionShareInfo } from "./session-handoff/index.js";
+
+/** Progressive refinement — Concept → Plan → Specification with convergence detection. */
+export {
+  startRefinementSession,
+  refineIdea,
+  getRefinementSession,
+  listRefinementSessions,
+  deleteRefinementSession,
+  getIdeaHistory,
+  StartRefinementSchema,
+  RefineIdeaSchema,
+} from "./refinement-loop/index.js";
+export type {
+  RefinementTier,
+  RefinementStatus,
+  RefinableIdea,
+  RefinementIteration,
+  RefinementOutput,
+  RefinementSession,
+} from "./refinement-loop/index.js";
+
+/** Innovation Health Score — composite codebase health metrics. */
+export { computeHealthScore, HEALTH_AXES, HealthScoreInputSchema } from "./health-score/index.js";
+export type { HealthAxis, AxisScore, HealthScore, HealthScoreInput } from "./health-score/index.js";
+
+/** Hybrid search — BM25 + semantic similarity with faceted filtering. */
+export {
+  indexSearchDocument,
+  removeSearchDocument,
+  hybridSearch,
+  getSearchSuggestions,
+  getSearchIndexStats,
+  clearSearchIndex,
+  IdeaSearchSchema,
+  IndexDocumentSchema,
+} from "./hybrid-search/index.js";
+export type {
+  SearchableDocument,
+  SearchFacets,
+  IdeaSearchResult,
+  SearchResponse,
+} from "./hybrid-search/index.js";
+
+/** Team metrics — innovation velocity tracking and leaderboards. */
+export {
+  recordInnovationEvent,
+  getTeamMetrics,
+  getTeamLeaderboard,
+  getTeamEvents,
+  clearTeamEvents,
+  RecordEventSchema,
+} from "./team-metrics/index.js";
+export type {
+  InnovationEventType,
+  InnovationEvent,
+  TeamMetrics as TeamInnovationMetrics,
+  LeaderboardEntry as TeamLeaderboardEntry,
+} from "./team-metrics/index.js";
