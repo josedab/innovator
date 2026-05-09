@@ -3,6 +3,7 @@
   "short_name": "Innovator",
   "description": "AI-powered innovation engine — investigate subjects, generate ideas across multiple creativity angles, and synthesize strategic recommendations.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
@@ -23,5 +24,33 @@
   ],
   "categories": ["productivity", "business"],
   "screenshots": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+innovator",
+      "url": "/session/%s"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Innovation",
+      "short_name": "New",
+      "url": "/",
+      "description": "Start a new innovation session"
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "url": "/dashboard",
+      "description": "View innovation dashboard"
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Analytics",
+      "url": "/analytics",
+      "description": "View innovation analytics"
+    }
+  ],
+  "related_applications": [],
+  "handle_links": "preferred"
 }
