@@ -152,4 +152,168 @@ describe("Innovation Coach - Profile & Proactive Coaching", () => {
       expect(getCoachingHistory("nobody")).toHaveLength(0);
     });
   });
+
+  describe("XP calculation", () => {
+    it("awards 10 base + 5/angle + 15 if exported", () => {
+      const profile = recordCoachingSession(
+        "user-xp",
+        makeSessionRecord({ anglesUsed: ["scamper", "inversion"], exported: true })
+      );
+      // 10 + 2*5 + 15 = 35
+      expect(profile.learningPath.xp).toBe(35);
+    });
+
+    it("awards 10 base + 5/angle without export bonus", () => {
+      const profile = recordCoachingSession(
+        "user-xp2",
+        makeSessionRecord({ anglesUsed: ["scamper"], exported: false })
+      );
+      // 10 + 1*5 = 15
+      expect(profile.learningPath.xp).toBe(15);
+    });
+  });
+
+  describe("level thresholds", () => {
+    it("stays beginner below 100 XP", () => {
+      // 3 sessions × 15xp = 45xp
+      for (let i = 0; i < 3; i++) {
+        recordCoachingSession(
+          "lvl-user",
+          makeSessionRecord({
+            sessionId: `s-${i}`,
+            anglesUsed: ["scamper"],
+            exported: false,
+          })
+        );
+      }
+      const profile = getInnovationProfile("lvl-user");
+      expect(profile.learningPath.level).toBe("beginner");
+    });
+
+    it("reaches intermediate at 100 XP", () => {
+      // Each: 10 + 2*5 + 15 = 35xp. 3 sessions = 105xp
+      for (let i = 0; i < 3; i++) {
+        recordCoachingSession(
+          "int-user",
+          makeSessionRecord({
+            sessionId: `s-${i}`,
+            anglesUsed: ["scamper", "inversion"],
+            exported: true,
+          })
+        );
+      }
+      const profile = getInnovationProfile("int-user");
+      expect(profile.learningPath.level).toBe("intermediate");
+      expect(profile.learningPath.nextLevelXp).toBe(500);
+    });
+
+    it("reaches advanced at 500 XP", () => {
+      // Each: 10 + 3*5 + 15 = 40xp. 13 sessions = 520xp
+      for (let i = 0; i < 13; i++) {
+        recordCoachingSession(
+          "adv-user",
+          makeSessionRecord({
+            sessionId: `s-${i}`,
+            anglesUsed: ["scamper", "inversion", "cross-domain"],
+            exported: true,
+          })
+        );
+      }
+      const profile = getInnovationProfile("adv-user");
+      expect(profile.learningPath.level).toBe("advanced");
+      expect(profile.learningPath.nextLevelXp).toBe(2000);
+    });
+
+    it("reaches expert at 2000 XP", () => {
+      // Each: 10 + 8*5 + 15 = 65xp. 31 sessions = 2015xp
+      const allAngles = [
+        "scamper",
+        "first-principles",
+        "cross-domain",
+        "constraints",
+        "inversion",
+        "perspectives",
+        "what-if",
+        "trend-collision",
+      ];
+      for (let i = 0; i < 31; i++) {
+        recordCoachingSession(
+          "exp-user",
+          makeSessionRecord({
+            sessionId: `s-${i}`,
+            anglesUsed: allAngles,
+            exported: true,
+          })
+        );
+      }
+      const profile = getInnovationProfile("exp-user");
+      expect(profile.learningPath.level).toBe("expert");
+      expect(profile.learningPath.nextLevelXp).toBe(-1);
+    });
+  });
+
+  describe("topic affinity cap", () => {
+    it("caps at 30 topics", () => {
+      for (let i = 0; i < 40; i++) {
+        recordCoachingSession(
+          "topic-user",
+          makeSessionRecord({
+            sessionId: `s-${i}`,
+            subject: `unique_topic_word_${i}_longword`,
+          })
+        );
+      }
+      const profile = getInnovationProfile("topic-user");
+      expect(profile.topicAffinity.length).toBeLessThanOrEqual(30);
+    });
+  });
+
+  describe("proactive coaching: bias warning", () => {
+    it("detects angle bias when one angle dominates >50%", () => {
+      // Need angleHistory.length > 2 (3+ distinct angles)
+      for (let i = 0; i < 6; i++) {
+        recordCoachingSession(
+          "bias-user",
+          makeSessionRecord({
+            sessionId: `s-${i}`,
+            anglesUsed: ["scamper"],
+          })
+        );
+      }
+      recordCoachingSession(
+        "bias-user",
+        makeSessionRecord({
+          sessionId: "s-inv",
+          anglesUsed: ["inversion"],
+        })
+      );
+      recordCoachingSession(
+        "bias-user",
+        makeSessionRecord({
+          sessionId: "s-cd",
+          anglesUsed: ["cross-domain"],
+        })
+      );
+
+      const suggestions = getProactiveCoaching("bias-user");
+      const biasWarning = suggestions.find((s) => s.type === "bias-warning");
+      expect(biasWarning).toBeDefined();
+      expect(biasWarning!.message).toContain("scamper");
+    });
+  });
+
+  describe("recommendations: suggests unexplored angles", () => {
+    it("recommends blind spot angle with high priority", () => {
+      recordCoachingSession(
+        "rec-user",
+        makeSessionRecord({
+          anglesUsed: ["scamper"],
+        })
+      );
+      const profile = getInnovationProfile("rec-user");
+      const angleRec = profile.recommendations.find((r) => r.type === "angle");
+      expect(angleRec).toBeDefined();
+      expect(angleRec!.priority).toBe("high");
+    });
+  });
 });
