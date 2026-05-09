@@ -56,8 +56,8 @@ describe("API /api/share/[slug]", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.slug).toBe("test-slug");
-      expect(body.investigation).toBeDefined();
-      expect(body.angleResults).toBeDefined();
+      expect(body.investigation.summary).toBe("Test investigation");
+      expect(Array.isArray(body.angleResults)).toBe(true);
     });
 
     it("returns 404 for nonexistent slug", async () => {

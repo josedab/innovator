@@ -31,8 +31,8 @@ describe("GET /api/health", () => {
   it("includes a version field", async () => {
     const res = GET();
     const data = await res.json();
-    expect(data.version).toBeDefined();
     expect(typeof data.version).toBe("string");
+    expect(data.version.length).toBeGreaterThan(0);
   });
 
   it("returns JSON content-type", async () => {

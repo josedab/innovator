@@ -60,7 +60,7 @@ describe("API /api/v1/keys", () => {
       expect(res.status).toBe(201);
       const body = await res.json();
       expect(body.name).toBe("My Key");
-      expect(body.key).toBeDefined();
+      expect(typeof body.key).toBe("string");
     });
 
     it("creates key with tier", async () => {
@@ -84,7 +84,7 @@ describe("API /api/v1/keys", () => {
       const res = await POST(makeNextRequest("POST", {}));
       expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error).toBeDefined();
+      expect(typeof body.error).toBe("string");
     });
 
     it("returns 400 for invalid tier", async () => {
@@ -117,7 +117,6 @@ describe("API /api/v1/keys", () => {
   describe("GET", () => {
     it("lists keys with usage summaries", async () => {
       vi.mocked(listApiKeys).mockReturnValue([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {
           id: "k1",
           name: "Key1",
@@ -125,6 +124,7 @@ describe("API /api/v1/keys", () => {
           enabled: true,
           createdAt: "2025-01-01",
           lastUsedAt: null,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
       ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -135,7 +135,7 @@ describe("API /api/v1/keys", () => {
       const body = await res.json();
       expect(body.keys).toHaveLength(1);
       expect(body.keys[0].id).toBe("k1");
-      expect(body.keys[0].usage).toBeDefined();
+      expect(body.keys[0].usage).toEqual({ requests: 10, tokens: 100 });
     });
 
     it("returns empty keys array when none exist", async () => {

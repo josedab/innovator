@@ -323,7 +323,8 @@ describe("POST /api/collaborate", () => {
     );
     expect(res.status).toBe(201);
     const data = await res.json();
-    expect(data.data).toBeDefined();
+    expect(data.data).not.toBeNull();
+    expect(typeof data.data).toBe("object");
     expect(mockCreate).toHaveBeenCalledTimes(1);
     expect(mockCreate).toHaveBeenCalledWith("New Session", "u1", "User 1");
   });
@@ -438,7 +439,8 @@ describe("POST /api/collaborate", () => {
     );
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.details).toBeDefined();
+    expect(data.details).not.toBeNull();
+    expect(typeof data.details).toBe("object");
   });
 
   it("returns 400 when join fails", async () => {
