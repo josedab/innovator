@@ -409,6 +409,11 @@ export function clearMarketplace(): void {
     JSON.stringify({ plugins: [], installed: [], reviews: [] }),
     "utf-8"
   );
+  writeFileSync(
+    TEMPLATE_REGISTRY_FILE,
+    JSON.stringify({ templates: [], collections: [] }),
+    "utf-8"
+  );
 }
 
 // ---- Creator Tools ----
