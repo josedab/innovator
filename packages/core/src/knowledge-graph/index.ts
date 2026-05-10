@@ -574,3 +574,17 @@ export {
   generateKnowledgeInsights,
   clusterEntities,
 } from "./cross-session.js";
+
+// ---- Natural Language Query & Suggestions ----
+
+export {
+  type NLQueryResult,
+  type GraphSuggestion,
+  type SubjectContext,
+  type GraphVisualizationData,
+  parseNLQuery,
+  executeNLQuery,
+  generateSuggestions,
+  buildSubjectContext,
+  toVisualizationData,
+} from "./nl-query.js";
