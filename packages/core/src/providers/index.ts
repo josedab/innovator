@@ -443,7 +443,9 @@ export function loadConfig(): InnovatorConfig {
     }
     const raw = readFileSync(CONFIG_PATH, "utf-8");
     return InnovatorConfigSchema.parse(JSON.parse(raw));
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`Warning: Failed to load config from ${CONFIG_PATH}: ${message}. Using defaults.`);
     return InnovatorConfigSchema.parse({});
   }
 }
