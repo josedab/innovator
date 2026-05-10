@@ -377,3 +377,42 @@ export {
   getActiveCursors,
   serializeCollaborativeState,
 } from "./collaborative.js";
+
+// ---- Workshop Mode ----
+export {
+  type WorkshopPhase,
+  type WorkshopConfig,
+  type WorkshopParticipant,
+  type WorkshopTimer,
+  type WorkshopEvent,
+  type WorkshopSession,
+  type WorkshopSummary,
+  DEFAULT_WORKSHOP_CONFIG,
+  createWorkshop,
+  getWorkshop,
+  joinWorkshop,
+  leaveWorkshop,
+  advanceWorkshopPhase,
+  pauseTimer,
+  resumeTimer,
+  extendTimer,
+  submitWorkshopIdea,
+  castWorkshopVote,
+  generateWorkshopSummary,
+  getWorkshopReplay,
+  deleteWorkshop,
+  clearWorkshops,
+  listWorkshops,
+} from "./workshop.js";
+
+// ---- AI Canvas Features ----
+export {
+  type CanvasCluster as AICanvasCluster,
+  type ConnectionSuggestion,
+  type ConsensusResult,
+  type CanvasSynthesis,
+  autoClusterNodes,
+  suggestConnections,
+  detectConsensus as detectAIConsensus,
+  synthesizeCanvas,
+} from "./ai-canvas.js";
