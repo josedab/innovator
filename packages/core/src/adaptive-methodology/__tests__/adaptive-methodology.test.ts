@@ -47,8 +47,8 @@ describe("adaptive-methodology", () => {
   describe("recordEffectiveness", () => {
     it("records a single effectiveness entry and assigns timestamp", () => {
       const result = recordEffectiveness(makeRecord());
-      expect(result.timestamp).toBeDefined();
-      expect(result.runId).toBeDefined();
+      expect(result.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(typeof result.runId).toBe("string");
       expect(result.outputScore).toBe(75);
     });
 
@@ -184,8 +184,12 @@ describe("adaptive-methodology", () => {
     });
 
     it("accounts for exported flag in scoring", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", angleId: "a1", outputScore: 50, exported: true }));
-      recordEffectiveness(makeRecord({ runId: "r2", angleId: "a2", outputScore: 50, exported: false }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", angleId: "a1", outputScore: 50, exported: true })
+      );
+      recordEffectiveness(
+        makeRecord({ runId: "r2", angleId: "a2", outputScore: 50, exported: false })
+      );
       const recs = getAngleRecommendations("technology");
       const a1 = recs.find((r) => r.angleId === "a1")!;
       const a2 = recs.find((r) => r.angleId === "a2")!;
@@ -193,8 +197,12 @@ describe("adaptive-methodology", () => {
     });
 
     it("accounts for userRating in scoring", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", angleId: "a1", outputScore: 50, userRating: 9 }));
-      recordEffectiveness(makeRecord({ runId: "r2", angleId: "a2", outputScore: 50, userRating: 1 }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", angleId: "a1", outputScore: 50, userRating: 9 })
+      );
+      recordEffectiveness(
+        makeRecord({ runId: "r2", angleId: "a2", outputScore: 50, userRating: 1 })
+      );
       const recs = getAngleRecommendations("technology");
       const a1 = recs.find((r) => r.angleId === "a1")!;
       const a2 = recs.find((r) => r.angleId === "a2")!;
@@ -222,16 +230,24 @@ describe("adaptive-methodology", () => {
     });
 
     it("returns tuned config when history exists", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", angleId: "a1", outputScore: 80, domain: "technology" }));
-      recordEffectiveness(makeRecord({ runId: "r2", angleId: "a2", outputScore: 60, domain: "technology" }));
-      recordEffectiveness(makeRecord({ runId: "r3", angleId: "a3", outputScore: 90, domain: "technology" }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", angleId: "a1", outputScore: 80, domain: "technology" })
+      );
+      recordEffectiveness(
+        makeRecord({ runId: "r2", angleId: "a2", outputScore: 60, domain: "technology" })
+      );
+      recordEffectiveness(
+        makeRecord({ runId: "r3", angleId: "a3", outputScore: 90, domain: "technology" })
+      );
       const rec = getPipelineRecommendation("AI software platform", { domain: "technology" });
       expect(rec.recommendedAngles.length).toBeGreaterThan(0);
       expect(rec.explanation).toContain("technology");
     });
 
     it("extracts domain from subject when not provided", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", domain: "healthcare", angleId: "a1", outputScore: 70 }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "healthcare", angleId: "a1", outputScore: 70 })
+      );
       const rec = getPipelineRecommendation("new medical diagnosis tool");
       expect(rec.recommendedAngles.length).toBeGreaterThan(0);
     });
@@ -251,8 +267,12 @@ describe("adaptive-methodology", () => {
     });
 
     it("respects teamId filter", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", angleId: "a1", outputScore: 90, teamId: "team-x" }));
-      recordEffectiveness(makeRecord({ runId: "r2", angleId: "a2", outputScore: 30, teamId: "team-y" }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", angleId: "a1", outputScore: 90, teamId: "team-x" })
+      );
+      recordEffectiveness(
+        makeRecord({ runId: "r2", angleId: "a2", outputScore: 30, teamId: "team-y" })
+      );
       const rec = getPipelineRecommendation("tech app", { domain: "technology", teamId: "team-x" });
       expect(rec.recommendedAngles).toContain("a1");
     });
@@ -309,7 +329,7 @@ describe("adaptive-methodology", () => {
       const fb = recordFeedback("run-1", { rating: 8 });
       expect(fb.runId).toBe("run-1");
       expect(fb.rating).toBe(8);
-      expect(fb.timestamp).toBeDefined();
+      expect(fb.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     it("records feedback with exported flag", () => {
@@ -357,7 +377,9 @@ describe("adaptive-methodology", () => {
     });
 
     it("creates a profile for a single domain", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 80 }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 80 })
+      );
       const profiles = recalculateProfiles();
       expect(profiles).toHaveLength(1);
       expect(profiles[0].domain).toBe("technology");
@@ -381,34 +403,46 @@ describe("adaptive-methodology", () => {
     });
 
     it("computes angleEffectiveness correctly", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 60 }));
-      recordEffectiveness(makeRecord({ runId: "r2", domain: "technology", angleId: "a1", outputScore: 80 }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 60 })
+      );
+      recordEffectiveness(
+        makeRecord({ runId: "r2", domain: "technology", angleId: "a1", outputScore: 80 })
+      );
       const profiles = recalculateProfiles();
       expect(profiles[0].angleEffectiveness["a1"]).toBe(70);
     });
 
     it("includes recommendations", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 80 }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 80 })
+      );
       const profiles = recalculateProfiles();
       expect(profiles[0].recommendations.length).toBeGreaterThan(0);
     });
 
     it("sets optimalConfig with preferredAngles", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 80 }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 80 })
+      );
       const profiles = recalculateProfiles();
       expect(profiles[0].optimalConfig.preferredAngles).toContain("a1");
     });
 
     it("confidenceScore increases with more runs", () => {
       for (let i = 0; i < 20; i++) {
-        recordEffectiveness(makeRecord({ runId: `r${i}`, domain: "technology", angleId: "a1", outputScore: 70 }));
+        recordEffectiveness(
+          makeRecord({ runId: `r${i}`, domain: "technology", angleId: "a1", outputScore: 70 })
+        );
       }
       const profiles = recalculateProfiles();
       expect(profiles[0].optimalConfig.confidenceScore).toBe(1);
     });
 
     it("incorporates feedback into scores", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 50 }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 50 })
+      );
       recordFeedback("r1", { rating: 9 });
       const profiles = recalculateProfiles();
       // With feedback rating 9 → score becomes 9*10=90 instead of 50
@@ -481,7 +515,10 @@ describe("adaptive-methodology", () => {
         angles: ["custom-angle"],
       });
       const results = getExperimentResults(exp.experimentId);
-      expect(results).toBeDefined();
+      expect(results).toMatchObject({
+        experimentId: exp.experimentId,
+        winner: expect.any(String),
+      });
       expect(results!.experimentId).toBe(exp.experimentId);
     });
 
@@ -499,7 +536,9 @@ describe("adaptive-methodology", () => {
       const exp = createMethodologyExperiment("technology", {
         angles: ["tuned-a"],
       });
-      recordEffectiveness(makeRecord({ runId: "r1", angleId: "first-principles", outputScore: 80 }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", angleId: "first-principles", outputScore: 80 })
+      );
       recordEffectiveness(makeRecord({ runId: "r2", angleId: "tuned-a", outputScore: 90 }));
       const results = getExperimentResults(exp.experimentId)!;
       expect(results.variantAMetrics.sampleSize).toBeGreaterThan(0);
@@ -531,7 +570,10 @@ describe("adaptive-methodology", () => {
       recordEffectiveness(makeRecord({ runId: "r1", angleId: "a1", outputScore: 90 }));
       const insights = generateMethodologyInsights("technology");
       const topAngle = insights.find((i) => i.title === "Top Performing Angle");
-      expect(topAngle).toBeDefined();
+      expect(topAngle).toMatchObject({
+        type: "trend",
+        title: "Top Performing Angle",
+      });
       expect(topAngle!.type).toBe("trend");
       expect(topAngle!.description).toContain("a1");
     });
@@ -542,7 +584,10 @@ describe("adaptive-methodology", () => {
       }
       const insights = generateMethodologyInsights("technology");
       const anomaly = insights.find((i) => i.title === "Underperforming Angles Detected");
-      expect(anomaly).toBeDefined();
+      expect(anomaly).toMatchObject({
+        type: "anomaly",
+        title: "Underperforming Angles Detected",
+      });
       expect(anomaly!.type).toBe("anomaly");
       expect(anomaly!.description).toContain("weak-angle");
     });
@@ -553,13 +598,20 @@ describe("adaptive-methodology", () => {
       }
       const insights = generateMethodologyInsights("technology");
       const diversity = insights.find((i) => i.title === "Limited Angle Diversity");
-      expect(diversity).toBeDefined();
+      expect(diversity).toMatchObject({
+        type: "recommendation",
+        title: "Limited Angle Diversity",
+      });
       expect(diversity!.type).toBe("recommendation");
     });
 
     it("filters by domain when provided", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 80 }));
-      recordEffectiveness(makeRecord({ runId: "r2", domain: "healthcare", angleId: "a2", outputScore: 60 }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 80 })
+      );
+      recordEffectiveness(
+        makeRecord({ runId: "r2", domain: "healthcare", angleId: "a2", outputScore: 60 })
+      );
       const insights = generateMethodologyInsights("technology");
       const topAngle = insights.find((i) => i.title === "Top Performing Angle");
       expect(topAngle!.description).toContain("a1");
@@ -587,26 +639,38 @@ describe("adaptive-methodology", () => {
       }
       const insights = generateMethodologyInsights("technology");
       const lowFeedback = insights.find((i) => i.title === "Low Feedback Rate");
-      expect(lowFeedback).toBeDefined();
+      expect(lowFeedback).toMatchObject({
+        title: "Low Feedback Rate",
+      });
     });
 
     it("generates high export rate trend", () => {
       for (let i = 0; i < 5; i++) {
-        recordEffectiveness(makeRecord({ runId: `r${i}`, angleId: "a1", outputScore: 70, exported: true }));
+        recordEffectiveness(
+          makeRecord({ runId: `r${i}`, angleId: "a1", outputScore: 70, exported: true })
+        );
       }
       const insights = generateMethodologyInsights("technology");
       const highExport = insights.find((i) => i.title === "High Export Rate");
-      expect(highExport).toBeDefined();
+      expect(highExport).toMatchObject({
+        type: "trend",
+        title: "High Export Rate",
+      });
       expect(highExport!.type).toBe("trend");
     });
 
     it("generates low export rate anomaly", () => {
       for (let i = 0; i < 10; i++) {
-        recordEffectiveness(makeRecord({ runId: `r${i}`, angleId: "a1", outputScore: 50, exported: false }));
+        recordEffectiveness(
+          makeRecord({ runId: `r${i}`, angleId: "a1", outputScore: 50, exported: false })
+        );
       }
       const insights = generateMethodologyInsights("technology");
       const lowExport = insights.find((i) => i.title === "Low Export Rate");
-      expect(lowExport).toBeDefined();
+      expect(lowExport).toMatchObject({
+        type: "anomaly",
+        title: "Low Export Rate",
+      });
       expect(lowExport!.type).toBe("anomaly");
     });
   });
@@ -640,9 +704,27 @@ describe("adaptive-methodology", () => {
 
     it("includes type-specific emojis", () => {
       const insights = [
-        { type: "trend" as const, title: "T", description: "D", confidence: 0.5, actionable: false },
-        { type: "anomaly" as const, title: "A", description: "D", confidence: 0.5, actionable: false },
-        { type: "recommendation" as const, title: "R", description: "D", confidence: 0.5, actionable: false },
+        {
+          type: "trend" as const,
+          title: "T",
+          description: "D",
+          confidence: 0.5,
+          actionable: false,
+        },
+        {
+          type: "anomaly" as const,
+          title: "A",
+          description: "D",
+          confidence: 0.5,
+          actionable: false,
+        },
+        {
+          type: "recommendation" as const,
+          title: "R",
+          description: "D",
+          confidence: 0.5,
+          actionable: false,
+        },
       ];
       const md = insightsToMarkdown(insights);
       expect(md).toContain("📈");
@@ -652,8 +734,20 @@ describe("adaptive-methodology", () => {
 
     it("handles multiple insights", () => {
       const insights = [
-        { type: "trend" as const, title: "Insight 1", description: "D1", confidence: 0.8, actionable: true },
-        { type: "anomaly" as const, title: "Insight 2", description: "D2", confidence: 0.6, actionable: false },
+        {
+          type: "trend" as const,
+          title: "Insight 1",
+          description: "D1",
+          confidence: 0.8,
+          actionable: true,
+        },
+        {
+          type: "anomaly" as const,
+          title: "Insight 2",
+          description: "D2",
+          confidence: 0.6,
+          actionable: false,
+        },
       ];
       const md = insightsToMarkdown(insights);
       expect(md).toContain("Insight 1");
@@ -665,8 +759,12 @@ describe("adaptive-methodology", () => {
 
   describe("edge cases", () => {
     it("handles duplicate domains across multiple records", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 80 }));
-      recordEffectiveness(makeRecord({ runId: "r2", domain: "technology", angleId: "a1", outputScore: 60 }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 80 })
+      );
+      recordEffectiveness(
+        makeRecord({ runId: "r2", domain: "technology", angleId: "a1", outputScore: 60 })
+      );
       const recs = getAngleRecommendations("technology");
       expect(recs).toHaveLength(1);
       // Average should be (80+60)/2 related
@@ -685,8 +783,12 @@ describe("adaptive-methodology", () => {
     });
 
     it("full workflow: record → feedback → recalculate → recommend → explain", () => {
-      recordEffectiveness(makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 85 }));
-      recordEffectiveness(makeRecord({ runId: "r2", domain: "technology", angleId: "a2", outputScore: 45 }));
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "technology", angleId: "a1", outputScore: 85 })
+      );
+      recordEffectiveness(
+        makeRecord({ runId: "r2", domain: "technology", angleId: "a2", outputScore: 45 })
+      );
       recordFeedback("r1", { rating: 9, exported: true });
       const profiles = recalculateProfiles();
       expect(profiles.length).toBeGreaterThan(0);
@@ -698,6 +800,123 @@ describe("adaptive-methodology", () => {
       expect(insights.length).toBeGreaterThan(0);
       const md = insightsToMarkdown(insights);
       expect(md).toContain("Methodology Insights");
+    });
+  });
+
+  // ---- Boundary and extreme input tests ----
+
+  describe("boundary tests", () => {
+    it("empty session history returns no recommendations", () => {
+      expect(getAngleRecommendations("any-domain")).toHaveLength(0);
+    });
+
+    it("single data point produces valid recommendation", () => {
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "tech", angleId: "a1", outputScore: 50 })
+      );
+      const recs = getAngleRecommendations("tech");
+      expect(recs).toHaveLength(1);
+      expect(recs[0]).toMatchObject({
+        angleId: "a1",
+        historicalScore: expect.any(Number),
+        confidence: expect.any(Number),
+        reasoning: expect.any(String),
+        suggestedWeight: expect.any(Number),
+      });
+    });
+
+    it("handles zero outputScore", () => {
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "tech", angleId: "a1", outputScore: 0 })
+      );
+      const recs = getAngleRecommendations("tech");
+      expect(recs).toHaveLength(1);
+      expect(recs[0].historicalScore).toBe(0);
+    });
+
+    it("handles max outputScore (100)", () => {
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "tech", angleId: "a1", outputScore: 100 })
+      );
+      const recs = getAngleRecommendations("tech");
+      expect(recs[0].historicalScore).toBeGreaterThan(0);
+    });
+
+    it("handles zero confidence scenario (0 outputScore)", () => {
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "tech", angleId: "a1", outputScore: 0 })
+      );
+      const recs = getAngleRecommendations("tech");
+      expect(recs[0].confidence).toBeGreaterThanOrEqual(0);
+      expect(recs[0].confidence).toBeLessThanOrEqual(1);
+    });
+
+    it("100% export rate produces high export trend insight", () => {
+      for (let i = 0; i < 5; i++) {
+        recordEffectiveness(
+          makeRecord({
+            runId: `r${i}`,
+            domain: "tech",
+            angleId: "a1",
+            outputScore: 80,
+            exported: true,
+          })
+        );
+      }
+      const insights = generateMethodologyInsights("tech");
+      const highExport = insights.find((i) => i.title === "High Export Rate");
+      expect(highExport).toMatchObject({ type: "trend" });
+    });
+
+    it("conflicting signals (high score but 0% export) produces insights", () => {
+      for (let i = 0; i < 10; i++) {
+        recordEffectiveness(
+          makeRecord({
+            runId: `r${i}`,
+            domain: "tech",
+            angleId: "a1",
+            outputScore: 90,
+            exported: false,
+          })
+        );
+      }
+      const insights = generateMethodologyInsights("tech");
+      const lowExport = insights.find((i) => i.title === "Low Export Rate");
+      expect(lowExport).toMatchObject({ type: "anomaly" });
+    });
+
+    it("methodology switching: profile recalculates after feedback changes scoring", () => {
+      recordEffectiveness(
+        makeRecord({ runId: "r1", domain: "tech", angleId: "a1", outputScore: 30 })
+      );
+      const profilesBefore = recalculateProfiles();
+      const scoreBefore = profilesBefore[0].angleEffectiveness["a1"];
+
+      // User feedback overrides the score
+      recordFeedback("r1", { rating: 10 });
+      const profilesAfter = recalculateProfiles();
+      const scoreAfter = profilesAfter[0].angleEffectiveness["a1"];
+
+      expect(scoreAfter).toBeGreaterThan(scoreBefore);
+    });
+
+    it("pipeline recommendation with many domains picks best angles", () => {
+      const domains = ["tech", "healthcare", "finance"];
+      for (const domain of domains) {
+        recordEffectiveness(
+          makeRecord({ runId: `r-${domain}`, domain, angleId: "a1", outputScore: 80 })
+        );
+        recordEffectiveness(
+          makeRecord({ runId: `r-${domain}-2`, domain, angleId: "a2", outputScore: 20 })
+        );
+      }
+      const rec = getPipelineRecommendation("medical AI platform", { domain: "healthcare" });
+      // Should recommend a1 (scored 80) over a2 (scored 20)
+      if (rec.recommendedAngles.includes("a1") && rec.recommendedAngles.includes("a2")) {
+        const a1Idx = rec.recommendedAngles.indexOf("a1");
+        const a2Idx = rec.recommendedAngles.indexOf("a2");
+        expect(a1Idx).toBeLessThan(a2Idx);
+      }
     });
   });
 });
