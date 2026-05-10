@@ -433,4 +433,136 @@ describe("automation", () => {
     expect(listAutomationRules()).toHaveLength(0);
     expect(getAutomationLog()).toHaveLength(0);
   });
+
+  // ---- All 7 action types ----
+  describe("all action types", () => {
+    it("executes generate-prd action successfully", async () => {
+      createAutomationRule({
+        name: "PRD",
+        enabled: true,
+        triggerEvent: "idea.scored",
+        conditions: [],
+        actions: [{ type: "generate-prd" }],
+      });
+      await emitEvent("idea.scored", {}, "Test subject");
+      const log = getAutomationLog();
+      expect(log[0].actionsExecuted[0].type).toBe("generate-prd");
+      expect(log[0].actionsExecuted[0].status).toBe("success");
+      expect(log[0].actionsExecuted[0].result).toContain("PRD generation");
+    });
+
+    it("executes create-github-issue action successfully", async () => {
+      createAutomationRule({
+        name: "GH Issue",
+        enabled: true,
+        triggerEvent: "idea.scored",
+        conditions: [],
+        actions: [{ type: "create-github-issue", config: { repo: "org/repo" } }],
+      });
+      await emitEvent("idea.scored", {}, "Test");
+      const log = getAutomationLog();
+      expect(log[0].actionsExecuted[0].type).toBe("create-github-issue");
+      expect(log[0].actionsExecuted[0].status).toBe("success");
+    });
+
+    it("executes send-notification action successfully", async () => {
+      createAutomationRule({
+        name: "Notify",
+        enabled: true,
+        triggerEvent: "pipeline.completed",
+        conditions: [],
+        actions: [{ type: "send-notification", config: { channel: "alerts" } }],
+      });
+      await emitEvent("pipeline.completed", {});
+      const log = getAutomationLog();
+      expect(log[0].actionsExecuted[0].type).toBe("send-notification");
+      expect(log[0].actionsExecuted[0].status).toBe("success");
+      expect(log[0].actionsExecuted[0].result).toContain("alerts");
+    });
+
+    it("executes index-for-search action successfully", async () => {
+      createAutomationRule({
+        name: "Index",
+        enabled: true,
+        triggerEvent: "pipeline.completed",
+        conditions: [],
+        actions: [{ type: "index-for-search" }],
+      });
+      await emitEvent("pipeline.completed", {});
+      const log = getAutomationLog();
+      expect(log[0].actionsExecuted[0].type).toBe("index-for-search");
+      expect(log[0].actionsExecuted[0].status).toBe("success");
+    });
+
+    it("executes record-outcome action successfully", async () => {
+      createAutomationRule({
+        name: "Record",
+        enabled: true,
+        triggerEvent: "pipeline.completed",
+        conditions: [],
+        actions: [{ type: "record-outcome" }],
+      });
+      await emitEvent("pipeline.completed", {});
+      const log = getAutomationLog();
+      expect(log[0].actionsExecuted[0].type).toBe("record-outcome");
+      expect(log[0].actionsExecuted[0].status).toBe("success");
+    });
+  });
+
+  // ---- Edge cases ----
+  describe("edge cases", () => {
+    it("rule with 0 conditions always matches", async () => {
+      const rule = createAutomationRule({
+        name: "Always",
+        enabled: true,
+        triggerEvent: "pipeline.completed",
+        conditions: [],
+        actions: [{ type: "log" }],
+      });
+      await emitEvent("pipeline.completed", {});
+      expect(getAutomationRule(rule.id)!.triggerCount).toBe(1);
+    });
+
+    it("action failure does not block subsequent actions", async () => {
+      createAutomationRule({
+        name: "Multi",
+        enabled: true,
+        triggerEvent: "pipeline.completed",
+        conditions: [],
+        actions: [
+          { type: "webhook" }, // Will be skipped (no URL)
+          { type: "log" }, // Should still execute
+          { type: "record-outcome" }, // Should still execute
+        ],
+      });
+      await emitEvent("pipeline.completed", {});
+      const log = getAutomationLog();
+      expect(log[0].actionsExecuted).toHaveLength(3);
+      expect(log[0].actionsExecuted[0].status).toBe("skipped");
+      expect(log[0].actionsExecuted[1].status).toBe("success");
+      expect(log[0].actionsExecuted[2].status).toBe("success");
+    });
+
+    it("concurrent rules on same event both trigger", async () => {
+      const rule1 = createAutomationRule({
+        name: "R1",
+        enabled: true,
+        triggerEvent: "pipeline.completed",
+        conditions: [],
+        actions: [{ type: "log" }],
+      });
+      const rule2 = createAutomationRule({
+        name: "R2",
+        enabled: true,
+        triggerEvent: "pipeline.completed",
+        conditions: [],
+        actions: [{ type: "record-outcome" }],
+      });
+
+      await emitEvent("pipeline.completed", {});
+
+      expect(getAutomationRule(rule1.id)!.triggerCount).toBe(1);
+      expect(getAutomationRule(rule2.id)!.triggerCount).toBe(1);
+    });
+  });
 });
