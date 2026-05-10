@@ -217,5 +217,72 @@ describe("constraints", () => {
         })
       ).toThrow();
     });
+
+    it("rejects weight above 1", () => {
+      expect(() =>
+        ConstraintSchema.parse({
+          type: "soft",
+          dimension: "budget",
+          operator: "less-than",
+          value: "50K",
+          weight: 1.5,
+        })
+      ).toThrow();
+    });
+
+    it("rejects weight below 0", () => {
+      expect(() =>
+        ConstraintSchema.parse({
+          type: "soft",
+          dimension: "budget",
+          operator: "less-than",
+          value: "50K",
+          weight: -0.1,
+        })
+      ).toThrow();
+    });
+
+    it("rejects empty dimension", () => {
+      expect(() =>
+        ConstraintSchema.parse({
+          type: "hard",
+          dimension: "",
+          operator: "less-than",
+          value: "50K",
+        })
+      ).toThrow();
+    });
+
+    it("rejects empty value", () => {
+      expect(() =>
+        ConstraintSchema.parse({
+          type: "hard",
+          dimension: "budget",
+          operator: "less-than",
+          value: "",
+        })
+      ).toThrow();
+    });
+
+    it("rejects missing required fields", () => {
+      expect(() => ConstraintSchema.parse({ type: "hard" })).toThrow();
+      expect(() => ConstraintSchema.parse({})).toThrow();
+    });
+  });
+
+  describe("parseConstraintString — whitespace handling", () => {
+    it("trims whitespace around dimension and value", () => {
+      const c = parseConstraintString("  budget  <  50K  ");
+      expect(c.dimension).toBe("budget");
+      expect(c.value).toBe("50K");
+    });
+
+    it("throws descriptive error for no operator", () => {
+      expect(() => parseConstraintString("noop")).toThrow(/Cannot parse constraint.*format/);
+    });
+
+    it("throws descriptive error for empty string", () => {
+      expect(() => parseConstraintString("")).toThrow(/Cannot parse constraint/);
+    });
   });
 });
