@@ -633,3 +633,24 @@ export function getInnovationPulse(): InnovationPulse {
     healthScore,
   };
 }
+
+// ---- Cross-Org Insights ----
+
+export {
+  type CrossOrgBenchmark,
+  type IndustryTrend,
+  type PrivacyBudget,
+  type AggregateInsight,
+  type DataResidencyConfig,
+  DataResidencyConfigSchema,
+  privatizeValue,
+  getPrivacyBudget,
+  generateBenchmarks,
+  detectIndustryTrends,
+  generateAggregateInsights,
+  getAggregateInsights,
+  setDataResidency,
+  getDataResidency,
+  checkDataResidencyCompliance,
+  clearCrossOrgData,
+} from "./cross-org-insights.js";
