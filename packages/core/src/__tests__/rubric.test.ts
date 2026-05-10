@@ -152,6 +152,23 @@ describe("rubric", () => {
       expect(updateRubric("nonexistent", { name: "X" })).toBeUndefined();
     });
 
+    it("updates description and tags", () => {
+      createRubric({
+        id: "desc-update",
+        name: "Name",
+        description: "Old desc",
+        tags: ["old"],
+        dimensions: testDimensions,
+      });
+
+      const updated = updateRubric("desc-update", {
+        description: "New desc",
+        tags: ["new", "tags"],
+      });
+      expect(updated?.description).toBe("New desc");
+      expect(updated?.tags).toEqual(["new", "tags"]);
+    });
+
     it("validates weights on dimension update", () => {
       createRubric({
         id: "val",
@@ -270,6 +287,23 @@ describe("rubric", () => {
   });
 
   describe("built-in rubric initialization", () => {
+    it("has exactly 3 built-in templates", () => {
+      expect(BUILT_IN_RUBRICS).toHaveLength(3);
+    });
+
+    it("each built-in has 4 dimensions", () => {
+      for (const rubric of BUILT_IN_RUBRICS) {
+        expect(rubric.dimensions).toHaveLength(4);
+      }
+    });
+
+    it("each built-in has weights summing to 1.0", () => {
+      for (const rubric of BUILT_IN_RUBRICS) {
+        const total = rubric.dimensions.reduce((s, d) => s + d.weight, 0);
+        expect(Math.abs(total - 1.0)).toBeLessThanOrEqual(0.01);
+      }
+    });
+
     it("initializes regulatory-risk rubric", () => {
       const rubric = getRubric("regulatory-risk");
       expect(rubric).toBeDefined();
