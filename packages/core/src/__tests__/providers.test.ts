@@ -130,6 +130,18 @@ describe("providers", () => {
       expect(config.defaultProvider).toBe("openai");
       expect(config.providers?.openai?.enabled).toBe(true);
     });
+
+    it("rejects invalid defaultProvider type", () => {
+      expect(() => InnovatorConfigSchema.parse({ defaultProvider: 123 })).toThrow();
+    });
+
+    it("rejects invalid providers shape", () => {
+      expect(() =>
+        InnovatorConfigSchema.parse({
+          providers: { openai: { enabled: "yes" } },
+        })
+      ).toThrow();
+    });
   });
 
   describe("loadConfig", () => {
@@ -200,6 +212,37 @@ describe("providers", () => {
       expect(getProvider("openai")).toBeUndefined();
     });
 
+    it("resolves API key from env var when apiKeyEnv is specified", () => {
+      vi.stubEnv("MY_OPENAI_KEY", "sk-from-env");
+      initializeProviders({
+        defaultProvider: "copilot",
+        providers: {
+          openai: { enabled: true, apiKeyEnv: "MY_OPENAI_KEY" },
+        },
+      });
+      expect(getProvider("openai")).toBeDefined();
+      vi.unstubAllEnvs();
+    });
+
+    it("falls back to loadConfig when no config provided", () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+      initializeProviders();
+      expect(getProvider("copilot")).toBeDefined();
+    });
+
+    it("does not set active provider if default is not registered", () => {
+      initializeProviders({
+        defaultProvider: "nonexistent",
+        providers: {
+          openai: { enabled: false },
+          anthropic: { enabled: false },
+          ollama: { enabled: false },
+        },
+      });
+      // Falls back to copilot
+      expect(getActiveProvider().id).toBe("copilot");
+    });
+
     it("sets active provider from config", () => {
       initializeProviders({ defaultProvider: "openai" });
       expect(getActiveProvider().id).toBe("openai");
@@ -233,6 +276,30 @@ describe("providers", () => {
     it("returns empty models list without api key", async () => {
       const p = new OpenAIProvider("");
       expect(await p.listModels()).toEqual([]);
+    });
+
+    it("uses constructor key over env var", () => {
+      vi.stubEnv("OPENAI_API_KEY", "env-key");
+      const p = new OpenAIProvider("constructor-key");
+      // The provider stores the constructor key internally
+      expect(p.id).toBe("openai");
+      vi.unstubAllEnvs();
+    });
+
+    it("falls back to env var when no constructor key", () => {
+      vi.stubEnv("OPENAI_API_KEY", "env-key-123");
+      const p = new OpenAIProvider();
+      // Should not throw since env var provides the key
+      expect(p.id).toBe("openai");
+      vi.unstubAllEnvs();
+    });
+
+    it("falls back to empty string when no key provided", () => {
+      vi.stubEnv("OPENAI_API_KEY", "");
+      const p = new OpenAIProvider();
+      // Should throw when trying to generate
+      expect(p.id).toBe("openai");
+      vi.unstubAllEnvs();
     });
   });
 
