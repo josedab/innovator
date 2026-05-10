@@ -412,6 +412,89 @@ describe("NLPipelineSession", () => {
   });
 });
 
+// ---- 5b. dryRunPipeline (additional coverage) ----
+
+describe("dryRunPipeline — additional coverage", () => {
+  it("calculates correct token totals for known phases", () => {
+    // investigate: input=800, output=1500
+    // generate: input=1000, output=2000
+    const config = makeConfig({ phases: ["investigate", "generate"] });
+    const dag = makeDAG([
+      makeNode({ id: "investigate-0", type: "investigate", label: "Investigate", dependsOn: [] }),
+      makeNode({ id: "generate-1", type: "generate", label: "Generate", dependsOn: ["investigate-0"] }),
+    ]);
+    const result = dryRunPipeline(config, dag);
+
+    expect(result.estimatedTokens.totalInput).toBe(800 + 1000);
+    expect(result.estimatedTokens.totalOutput).toBe(1500 + 2000);
+  });
+
+  it("calculates cost using known formula", () => {
+    const config = makeConfig({ phases: ["investigate"] });
+    const dag = makeDAG([
+      makeNode({ id: "investigate-0", type: "investigate", label: "Investigate", dependsOn: [] }),
+    ]);
+    const result = dryRunPipeline(config, dag);
+
+    // cost = (800/1000)*0.01 + (1500/1000)*0.03 = 0.008 + 0.045 = 0.053
+    expect(result.estimatedCostUsd).toBeCloseTo(0.053, 3);
+  });
+
+  it("calculates duration as (totalInput + totalOutput) / 50", () => {
+    const config = makeConfig({ phases: ["score"] });
+    const dag = makeDAG([
+      makeNode({ id: "score-0", type: "score", label: "Score", dependsOn: [] }),
+    ]);
+    const result = dryRunPipeline(config, dag);
+
+    // score: input=600, output=800 => (600+800)/50 = 28
+    expect(result.estimatedDurationSeconds).toBe(28);
+  });
+
+  it("warns when more than 20 nodes", () => {
+    const nodes: DAGNode[] = Array.from({ length: 21 }, (_, i) =>
+      makeNode({ id: `node-${i}`, type: "investigate", label: `Node ${i}`, dependsOn: i > 0 ? [`node-${i - 1}`] : [] })
+    );
+    const config = makeConfig();
+    const dag = makeDAG(nodes);
+    const result = dryRunPipeline(config, dag);
+
+    expect(result.warnings.some((w) => w.includes("more than 20 nodes"))).toBe(true);
+  });
+
+  it("uses fallback estimates for unknown phase type", () => {
+    const nodes = [makeNode({ id: "unknown-0", type: "nonexistent" as never, label: "Unknown", dependsOn: [] })];
+    const dag = makeDAG(nodes);
+    const config = makeConfig({ phases: ["investigate"] });
+    const result = dryRunPipeline(config, dag);
+
+    expect(result.estimatedTokens.perNode[0].estimatedInputTokens).toBe(500);
+    expect(result.estimatedTokens.perNode[0].estimatedOutputTokens).toBe(500);
+  });
+});
+
+// ---- 5c. buildStubDAG via dryRunPipeline ----
+
+describe("buildStubDAG (via dryRunPipeline)", () => {
+  it("creates chained dependencies for multi-phase config", () => {
+    const config = makeConfig({ phases: ["investigate", "generate", "synthesize"] });
+    const result = dryRunPipeline(config);
+
+    const perNode = result.estimatedTokens.perNode;
+    expect(perNode).toHaveLength(3);
+    expect(perNode[0].nodeId).toBe("investigate-0");
+    expect(perNode[1].nodeId).toBe("generate-1");
+    expect(perNode[2].nodeId).toBe("synthesize-2");
+  });
+
+  it("capitalizes phase labels", () => {
+    const config = makeConfig({ phases: ["score"] });
+    const result = dryRunPipeline(config);
+
+    expect(result.estimatedTokens.perNode[0].label).toBe("Score");
+  });
+});
+
 // ---- 6. suggestPipelineFromGoal ----
 
 describe("suggestPipelineFromGoal", () => {
