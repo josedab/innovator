@@ -92,6 +92,33 @@ describe("API /api/v1/keys", () => {
       expect(res.status).toBe(400);
     });
 
+    it("returns 400 for name exceeding 200 chars", async () => {
+      const longName = "a".repeat(201);
+      const res = await POST(makeNextRequest("POST", { name: longName }));
+      expect(res.status).toBe(400);
+    });
+
+    it("accepts name at exactly 200 chars", async () => {
+      const maxName = "a".repeat(200);
+      const fakeKey = {
+        id: "k3",
+        name: maxName,
+        key: "inv_max",
+        tier: "free",
+        enabled: true,
+        createdAt: "2025-01-01",
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(createApiKey).mockReturnValue(fakeKey as any);
+      const res = await POST(makeNextRequest("POST", { name: maxName }));
+      expect(res.status).toBe(201);
+    });
+
+    it("returns 400 for empty name", async () => {
+      const res = await POST(makeNextRequest("POST", { name: "" }));
+      expect(res.status).toBe(400);
+    });
+
     it("returns 400 for invalid JSON body", async () => {
       const req = new NextRequest(new URL("http://localhost/api/v1/keys"), {
         method: "POST",
@@ -144,6 +171,50 @@ describe("API /api/v1/keys", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.keys).toEqual([]);
+    });
+
+    it("does not return the raw API key secret in the response", async () => {
+      vi.mocked(listApiKeys).mockReturnValue([
+        {
+          id: "k1",
+          name: "Key1",
+          tier: "free",
+          enabled: true,
+          createdAt: "2025-01-01",
+          lastUsedAt: null,
+          // The full 'key' field should not be in listApiKeys output
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+      ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(getUsageSummary).mockReturnValue({ requests: 0, tokens: 0 } as any);
+
+      const res = await GET(makeNextRequest("GET"));
+      const body = await res.json();
+      // The GET handler maps specific fields (id, name, tier, enabled, createdAt, lastUsedAt, usage)
+      // and does NOT include the 'key' field
+      expect(body.keys[0]).not.toHaveProperty("key");
+    });
+
+    it("includes usage summary per key", async () => {
+      vi.mocked(listApiKeys).mockReturnValue([
+        {
+          id: "k1",
+          name: "Key1",
+          tier: "free",
+          enabled: true,
+          createdAt: "2025-01-01",
+          lastUsedAt: "2025-06-01",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+      ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(getUsageSummary).mockReturnValue({ requests: 42, tokens: 500 } as any);
+
+      const res = await GET(makeNextRequest("GET"));
+      const body = await res.json();
+      expect(body.keys[0].usage).toEqual({ requests: 42, tokens: 500 });
+      expect(getUsageSummary).toHaveBeenCalledWith("k1", 30);
     });
   });
 
