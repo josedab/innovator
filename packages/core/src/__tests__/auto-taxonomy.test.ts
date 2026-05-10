@@ -149,7 +149,7 @@ describe("flattenTaxonomy", () => {
     const taxonomy = makeTaxonomy();
     const flat = flattenTaxonomy(taxonomy as never);
     const aiEntry = flat.find((e) => e.nodeId === "child-1");
-    expect(aiEntry).toBeDefined();
+    expect(aiEntry).toMatchObject({ nodeId: "child-1", ideaCount: 3 });
     expect(aiEntry!.path.length).toBeGreaterThan(0);
   });
 });
@@ -175,15 +175,15 @@ describe("mergeTaxonomies", () => {
       totalIdeas: 2,
     });
     const merged = mergeTaxonomies([t1 as never, t2 as never]);
-    expect(merged).toBeDefined();
-    expect(merged.root).toBeDefined();
+    expect(merged).toMatchObject({ totalNodes: expect.any(Number) });
+    expect(merged.root).toMatchObject({ label: expect.any(String), children: expect.any(Array) });
     expect(merged.totalNodes).toBeGreaterThanOrEqual(2);
   });
 
   it("handles single taxonomy merge", () => {
     const t1 = makeTaxonomy();
     const merged = mergeTaxonomies([t1 as never]);
-    expect(merged.root).toBeDefined();
+    expect(merged.root).toMatchObject({ label: expect.any(String), children: expect.any(Array) });
   });
 });
 
@@ -193,10 +193,10 @@ describe("refineTaxonomy", () => {
     const refined = refineTaxonomy(taxonomy as never, [
       { action: "rename", nodeId: "child-1", newLabel: "Artificial Intelligence" },
     ]);
-    expect(refined).toBeDefined();
+    expect(refined).toMatchObject({ root: expect.any(Object), totalNodes: expect.any(Number) });
     const flat = flattenTaxonomy(refined as never);
     const renamedNode = flat.find((e) => e.nodeId === "child-1");
-    expect(renamedNode).toBeDefined();
+    expect(renamedNode).toMatchObject({ nodeId: "child-1" });
   });
 
   it("processes a merge action", () => {
@@ -204,8 +204,8 @@ describe("refineTaxonomy", () => {
     const refined = refineTaxonomy(taxonomy as never, [
       { action: "merge", nodeId: "child-2", mergeIntoId: "child-1" },
     ]);
-    expect(refined).toBeDefined();
-    expect(refined.root).toBeDefined();
+    expect(refined).toMatchObject({ root: expect.any(Object), totalNodes: expect.any(Number) });
+    expect(refined.root).toMatchObject({ label: expect.any(String), children: expect.any(Array) });
   });
 
   it("processes a split action", () => {
@@ -213,7 +213,7 @@ describe("refineTaxonomy", () => {
     const refined = refineTaxonomy(taxonomy as never, [
       { action: "split", nodeId: "child-1", splitLabels: ["AI Research", "AI Applications"] },
     ]);
-    expect(refined).toBeDefined();
+    expect(refined).toMatchObject({ root: expect.any(Object), totalNodes: expect.any(Number) });
     const flat = flattenTaxonomy(refined as never);
     const splitNodes = flat.filter((e) =>
       e.path.some((p) => p === "AI Research" || p === "AI Applications")
@@ -226,8 +226,7 @@ describe("refineTaxonomy", () => {
     const refined = refineTaxonomy(taxonomy as never, [
       { action: "rename", nodeId: "nonexistent", newLabel: "New Name" },
     ]);
-    expect(refined).toBeDefined();
-    expect(refined.totalNodes).toBe(taxonomy.totalNodes);
+    expect(refined).toMatchObject({ root: expect.any(Object), totalNodes: taxonomy.totalNodes });
   });
 });
 
@@ -330,7 +329,7 @@ describe("flattenTaxonomy - edge cases", () => {
     });
     const flat = flattenTaxonomy(taxonomy as never);
     const deepNode = flat.find((e) => e.nodeId === "grandchild-1");
-    expect(deepNode).toBeDefined();
+    expect(deepNode).toMatchObject({ nodeId: "grandchild-1", ideaCount: 2 });
     expect(deepNode!.path).toEqual(["AI", "Deep Learning"]);
   });
 });

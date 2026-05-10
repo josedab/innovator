@@ -99,16 +99,17 @@ describe("SankeyDiagramSchema", () => {
 describe("buildProvenanceChain", () => {
   it("builds a chain with subject, findings, and ideas", () => {
     const chain = makeChain();
-    expect(chain).toBeDefined();
+    expect(chain).toMatchObject({ subject: "AI in healthcare" });
     expect(chain.subject).toBe("AI in healthcare");
-    expect(chain.investigationFindings).toBeDefined();
-    expect(chain.angles).toBeDefined();
+    expect(Array.isArray(chain.investigationFindings)).toBe(true);
+    expect(chain.investigationFindings.length).toBeGreaterThan(0);
+    expect(Array.isArray(chain.angles)).toBe(true);
   });
 
   it("includes connections between elements", () => {
     const chain = makeChain();
-    expect(chain.connections).toBeDefined();
     expect(Array.isArray(chain.connections)).toBe(true);
+    expect(chain.connections.length).toBeGreaterThanOrEqual(0);
   });
 });
 
@@ -116,9 +117,8 @@ describe("generateSankeyDiagram", () => {
   it("generates a diagram from a provenance chain", () => {
     const chain = makeChain();
     const diagram = generateSankeyDiagram(chain);
-    expect(diagram.nodes).toBeDefined();
-    expect(diagram.links).toBeDefined();
-    expect(diagram.nodes.length).toBeGreaterThan(0);
+    expect(Array.isArray(diagram.nodes)).toBe(true);
+    expect(Array.isArray(diagram.links)).toBe(true);
     expect(diagram.links.length).toBeGreaterThan(0);
   });
 
@@ -137,9 +137,9 @@ describe("traceIdeaProvenance", () => {
   it("traces provenance for an existing idea", () => {
     const chain = makeChain();
     const trace = traceIdeaProvenance("Anti-AI diagnostics", chain);
-    expect(trace).toBeDefined();
-    expect(trace.path).toBeDefined();
+    expect(trace).toMatchObject({ path: expect.any(Array) });
     expect(Array.isArray(trace.path)).toBe(true);
+    expect(trace.path.length).toBeGreaterThan(0);
   });
 
   it("returns empty path for unknown idea", () => {
@@ -154,10 +154,12 @@ describe("getFlowMetrics", () => {
     const chain = makeChain();
     const diagram = generateSankeyDiagram(chain);
     const metrics = getFlowMetrics(diagram);
-    expect(metrics).toBeDefined();
+    expect(metrics).toMatchObject({
+      totalFlow: expect.any(Number),
+      branchingFactor: expect.any(Number),
+      averagePathLength: expect.any(Number),
+    });
     expect(metrics.totalFlow).toBeGreaterThanOrEqual(0);
-    expect(metrics).toHaveProperty("branchingFactor");
-    expect(metrics).toHaveProperty("averagePathLength");
   });
 });
 
@@ -168,8 +170,8 @@ describe("exportSankeyAsJSON", () => {
     const json = exportSankeyAsJSON(diagram);
     expect(typeof json).toBe("string");
     const parsed = JSON.parse(json);
-    expect(parsed.nodes).toBeDefined();
-    expect(parsed.links).toBeDefined();
+    expect(Array.isArray(parsed.nodes)).toBe(true);
+    expect(Array.isArray(parsed.links)).toBe(true);
   });
 });
 
@@ -209,8 +211,8 @@ describe("collapseSmallFlows", () => {
     const chain = makeChain();
     const diagram = generateSankeyDiagram(chain);
     const collapsed = collapseSmallFlows(diagram, 0.5);
-    expect(collapsed.nodes).toBeDefined();
-    expect(collapsed.links).toBeDefined();
+    expect(Array.isArray(collapsed.nodes)).toBe(true);
+    expect(Array.isArray(collapsed.links)).toBe(true);
     expect(collapsed.nodes.length).toBeLessThanOrEqual(diagram.nodes.length);
   });
 
