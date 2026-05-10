@@ -108,9 +108,7 @@ export function readEvents(limit?: number): AnalyticsEvent[] {
   if (!existsSync(EVENTS_FILE)) return [];
 
   try {
-    const lines = readFileSync(EVENTS_FILE, "utf-8")
-      .split("\n")
-      .filter(Boolean);
+    const lines = readFileSync(EVENTS_FILE, "utf-8").split("\n").filter(Boolean);
 
     const events: AnalyticsEvent[] = [];
     for (const line of lines) {
@@ -144,10 +142,7 @@ export function generateSummary(events?: AnalyticsEvent[]): AnalyticsSummary {
   const angleEvents = allEvents.filter((e) => e.type === "angle_generated");
 
   const totalPipelines = pipelineStarts.length;
-  const successRate =
-    totalPipelines > 0
-      ? pipelineCompletes.length / totalPipelines
-      : 0;
+  const successRate = totalPipelines > 0 ? pipelineCompletes.length / totalPipelines : 0;
 
   // Ideas over time (daily)
   const ideasByDate = new Map<string, number>();
@@ -171,10 +166,27 @@ export function generateSummary(events?: AnalyticsEvent[]): AnalyticsSummary {
 
   // Subject word cloud
   const wordCounts = new Map<string, number>();
-  const stopWords = new Set(["the", "a", "an", "is", "are", "and", "or", "for", "to", "of", "in", "on", "with"]);
+  const stopWords = new Set([
+    "the",
+    "a",
+    "an",
+    "is",
+    "are",
+    "and",
+    "or",
+    "for",
+    "to",
+    "of",
+    "in",
+    "on",
+    "with",
+  ]);
   for (const e of pipelineStarts) {
     const subject = (e.data?.subject as string) ?? "";
-    const words = subject.toLowerCase().split(/\s+/).filter((w) => w.length > 2 && !stopWords.has(w));
+    const words = subject
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 2 && !stopWords.has(w));
     for (const word of words) {
       wordCounts.set(word, (wordCounts.get(word) ?? 0) + 1);
     }
@@ -199,15 +211,10 @@ export function generateSummary(events?: AnalyticsEvent[]): AnalyticsSummary {
     .map((e) => (e.data?.durationMs as number) ?? 0)
     .filter((d) => d > 0);
   const averageDurationMs =
-    durations.length > 0
-      ? durations.reduce((a, b) => a + b, 0) / durations.length
-      : 0;
+    durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
 
   // Total ideas
-  const totalIdeas = angleEvents.reduce(
-    (sum, e) => sum + ((e.data?.ideaCount as number) ?? 0),
-    0
-  );
+  const totalIdeas = angleEvents.reduce((sum, e) => sum + ((e.data?.ideaCount as number) ?? 0), 0);
 
   return {
     totalPipelines,
@@ -263,7 +270,16 @@ export function generateInsights(summary?: AnalyticsSummary): AnalyticsInsight[]
   }
 
   // Pattern: Usage gaps
-  const allAngleIds = ["scamper", "first-principles", "cross-domain", "constraints", "inversion", "perspectives", "what-if", "trend-collision"];
+  const allAngleIds = [
+    "scamper",
+    "first-principles",
+    "cross-domain",
+    "constraints",
+    "inversion",
+    "perspectives",
+    "what-if",
+    "trend-collision",
+  ];
   const usedAngles = new Set(data.angleUsage.map((a) => a.angleId));
   const unusedAngles = allAngleIds.filter((a) => !usedAngles.has(a));
   if (unusedAngles.length > 0 && data.totalPipelines > 5) {
@@ -294,9 +310,8 @@ export function generateInsights(summary?: AnalyticsSummary): AnalyticsInsight[]
     const recent = data.sessionFrequency.slice(-7);
     const earlier = data.sessionFrequency.slice(-14, -7);
     const recentAvg = recent.reduce((s, d) => s + d.count, 0) / recent.length;
-    const earlierAvg = earlier.length > 0
-      ? earlier.reduce((s, d) => s + d.count, 0) / earlier.length
-      : 0;
+    const earlierAvg =
+      earlier.length > 0 ? earlier.reduce((s, d) => s + d.count, 0) / earlier.length : 0;
 
     if (earlierAvg > 0 && recentAvg > earlierAvg * 1.5) {
       insights.push({
@@ -345,3 +360,18 @@ export function clearAnalytics(): void {
   ensureDir();
   writeFileSync(EVENTS_FILE, "", "utf-8");
 }
+
+// ---- Re-exports ----
+
+export {
+  type TimeSeriesDataPoint,
+  type TimeSeriesResult,
+  type HeatmapCell,
+  type LeaderboardEntry,
+  type AnalyticsReport,
+  getTimeSeries,
+  getActivityHeatmap,
+  getLeaderboard,
+  generateReport,
+  reportToMarkdown,
+} from "./advanced.js";
