@@ -171,6 +171,19 @@ async function main(): Promise<void> {
 
   const server = createServer();
 
+  // Graceful shutdown handler
+  const shutdown = async (signal: string) => {
+    console.error(`Received ${signal}, shutting down MCP server...`);
+    try {
+      await server.close();
+    } catch {
+      // Best-effort cleanup
+    }
+    process.exit(0);
+  };
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+
   if (transport === "stdio") {
     const stdioTransport = new StdioServerTransport();
     await server.connect(stdioTransport);
@@ -181,22 +194,32 @@ async function main(): Promise<void> {
     let sseTransport: SSEServerTransport | null = null;
 
     const httpServer = createHttpServer(async (req, res) => {
-      if (req.method === "GET" && req.url === "/sse") {
-        sseTransport = new SSEServerTransport("/messages", res);
-        await server.connect(sseTransport);
-      } else if (req.method === "POST" && req.url === "/messages") {
-        if (sseTransport) {
-          await sseTransport.handlePostMessage(req, res);
+      try {
+        if (req.method === "GET" && req.url === "/sse") {
+          sseTransport = new SSEServerTransport("/messages", res);
+          await server.connect(sseTransport);
+        } else if (req.method === "POST" && req.url === "/messages") {
+          if (sseTransport) {
+            await sseTransport.handlePostMessage(req, res);
+          } else {
+            res.writeHead(400);
+            res.end("No SSE connection established");
+          }
+        } else if (req.method === "GET" && req.url === "/health") {
+          const connected = sseTransport !== null;
+          const status = connected ? "ok" : "waiting";
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ status, transport: "sse", connected }));
         } else {
-          res.writeHead(400);
-          res.end("No SSE connection established");
+          res.writeHead(404);
+          res.end("Not found");
         }
-      } else if (req.method === "GET" && req.url === "/health") {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ status: "ok", transport: "sse" }));
-      } else {
-        res.writeHead(404);
-        res.end("Not found");
+      } catch (err) {
+        console.error("SSE handler error:", err);
+        if (!res.headersSent) {
+          res.writeHead(500);
+          res.end("Internal server error");
+        }
       }
     });
 

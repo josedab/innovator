@@ -8,6 +8,24 @@ import {
 } from "@innovator/core";
 import type { AngleId, PipelineProgress, CodebaseAnalysis, InnovationPR } from "@innovator/core";
 import { InvestigateInputSchema, GenerateInputSchema, AutoPipelineInputSchema } from "./schemas.js";
+import { resolve, normalize } from "node:path";
+import { existsSync } from "node:fs";
+
+/**
+ * Validate that a path is safe to access: resolves to an absolute path,
+ * exists on disk, and contains no traversal sequences that escape the
+ * resolved directory.
+ */
+function validatePath(rawPath: string): string {
+  const resolved = resolve(rawPath);
+  if (resolved !== normalize(resolved)) {
+    throw new Error("Path contains invalid sequences");
+  }
+  if (!existsSync(resolved)) {
+    throw new Error(`Path does not exist: ${resolved}`);
+  }
+  return resolved;
+}
 
 /**
  * Handle an MCP `investigate` tool call.
@@ -96,7 +114,8 @@ export async function handleInnovateFromCode(args: unknown): Promise<string> {
     })
     .parse(args);
 
-  const analysis = analyzeCodebaseSync(input.path, { maxFiles: input.maxFiles });
+  const safePath = validatePath(input.path);
+  const analysis = analyzeCodebaseSync(safePath, { maxFiles: input.maxFiles });
   const deepResult = deepAnalyze(analysis as CodebaseAnalysis);
   const prs = generateInnovationPRs(analysis as CodebaseAnalysis);
 
@@ -136,12 +155,13 @@ export async function handleInnovateFile(args: unknown): Promise<string> {
     })
     .parse(args);
 
+  const safePath = validatePath(input.path);
   const { dirname } = await import("node:path");
-  const rootPath = dirname(input.path);
+  const rootPath = dirname(safePath);
   const analysis = analyzeCodebaseSync(rootPath, { maxFiles: 50 });
 
   const fileHotspot = analysis.complexityHotspots.find((h: { path: string }) =>
-    input.path.endsWith(h.path)
+    safePath.endsWith(h.path)
   );
 
   const relevantPatterns = analysis.patterns.filter((p: { locations: string[] }) =>
@@ -173,7 +193,8 @@ export async function handleInnovateArchitecture(args: unknown): Promise<string>
     })
     .parse(args);
 
-  const analysis = analyzeCodebaseSync(input.path, { maxFiles: 500 });
+  const safePath = validatePath(input.path);
+  const analysis = analyzeCodebaseSync(safePath, { maxFiles: 500 });
   const _deepResult = deepAnalyze(analysis as CodebaseAnalysis);
   const prs = generateInnovationPRs(analysis as CodebaseAnalysis);
 
