@@ -15,6 +15,9 @@ export class CostTracker {
   private budget: BudgetConfig | null = null;
   private counter = 0;
 
+  /** Max records to retain; oldest are pruned when exceeded. */
+  private static readonly MAX_RECORDS = 10_000;
+
   /** Set a budget cap for this tracker. */
   setBudget(config: BudgetConfig): void {
     this.budget = config;
@@ -47,6 +50,11 @@ export class CostTracker {
     };
 
     this.records.push(usage);
+
+    // Prune oldest records to prevent unbounded growth
+    if (this.records.length > CostTracker.MAX_RECORDS) {
+      this.records = this.records.slice(-CostTracker.MAX_RECORDS);
+    }
 
     // Check budget
     if (this.budget) {
