@@ -110,8 +110,10 @@ innovator/
 │   │   ├── innovation/ # Investigation, generation, pipeline
 │   │   └── prompts/  # Prompt templates for each angle
 │   ├── bot/          # Chat bot integration
-│   ├── create-innovator/ # Project scaffolder (npx create-innovator)
-│   └── mcp-server/   # MCP server for AI tool integration
+│   ├── copilot-extension/ # GitHub Copilot Extension (@innovator in Copilot Chat)
+│   ├── create-innovator/  # Project scaffolder (npx create-innovator)
+│   ├── mcp-server/   # MCP server for AI tool integration
+│   └── vscode-extension/  # VS Code extension
 └── package.json      # Workspace root
 ```
 
@@ -127,7 +129,7 @@ npx @innovator/mcp-server
 npx @innovator/mcp-server --sse
 ```
 
-Available tools: `investigate`, `innovate`, and `auto`. See the [MCP Server README](packages/mcp-server/README.md) for client configuration examples.
+Available tools: `investigate`, `innovate`, `auto`, `innovate-from-code`, `innovate-file`, and `innovate-architecture`. See the [MCP Server README](packages/mcp-server/README.md) for client configuration examples.
 
 ## Chat Bot
 

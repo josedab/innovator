@@ -1,6 +1,6 @@
 # Architecture
 
-Innovator is a monorepo with four workspaces and a documentation site.
+Innovator is a monorepo with eight workspaces and a documentation site.
 
 ## Workspace Dependency Graph
 
@@ -13,6 +13,7 @@ graph BT
   mcp["packages/mcp-server<br/><i>MCP server</i>"]
   bot["packages/bot<br/><i>Chat bot</i>"]
   vscode["packages/vscode-extension<br/><i>VS Code extension</i>"]
+  copilot["packages/copilot-extension<br/><i>Copilot Extension</i>"]
   create["packages/create-innovator<br/><i>Project scaffolder</i>"]
   action["action/<br/><i>GitHub Action</i>"]
   website["website/<br/><i>Docusaurus docs</i>"]
@@ -22,6 +23,7 @@ graph BT
   mcp --> core
   bot --> core
   vscode --> core
+  copilot --> core
   action -.->|uses CLI| cli
 
   style core fill:#4f46e5,color:#fff,stroke:#4338ca
@@ -191,6 +193,9 @@ graph LR
 | `packages/core/src/presets/`          | Pipeline presets and templates                                |
 | `packages/mcp-server/src/`            | MCP server exposing tools via stdio/SSE transports            |
 | `packages/bot/`                       | Chat platform bot (Slack, Discord, Teams)                     |
+| `packages/vscode-extension/`          | VS Code extension for in-editor innovation                    |
+| `packages/copilot-extension/`         | GitHub Copilot Extension (@innovator in Copilot Chat)         |
+| `packages/create-innovator/`          | Project scaffolder (`npx create-innovator`)                   |
 | `apps/web/src/components/`            | React UI components                                           |
 | `apps/web/src/app/api/`               | Next.js API route handlers                                    |
 | `apps/cli/src/`                       | Commander.js CLI entry point                                  |
