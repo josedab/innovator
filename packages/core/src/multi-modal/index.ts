@@ -456,3 +456,34 @@ export async function processMultiModalInput(
   const context = buildMultiModalContext(validated, parseResults);
   return { context, parseResults };
 }
+
+// ---- Batch Processing & Voice Pipeline ----
+
+export {
+  type BatchStatus,
+  type BatchItem,
+  type BatchProgress,
+  type BatchResult,
+  type BatchConfig,
+  type TranscriptionConfig,
+  type TranscriptionResult,
+  type TranscriptionSegment,
+  processBatch,
+  createVoiceAttachment,
+  createDocumentAttachment,
+  createURLAttachment,
+  buildInvestigationInput,
+} from "./batch.js";
+
+// ---- Vision Model Integration ----
+
+export {
+  type VisionAnalysis,
+  type WhiteboardSession,
+  VisionAnalysisSchema,
+  WhiteboardSessionSchema,
+  analyzeImage,
+  visionToSubject,
+  processWhiteboard,
+  validateImage,
+} from "./vision.js";
