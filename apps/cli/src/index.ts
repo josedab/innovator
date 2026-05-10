@@ -3,6 +3,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import {
   investigate,
   generateForAngle,
@@ -104,7 +105,18 @@ import {
   analyzeTimings,
   timingToMarkdown,
 } from "@innovator/core";
-import type { AngleId, CustomAngle, ExportData, IdeaScore, InnovatorConfig, ValidationCheck, OutputMode, Depth, AngleChain, Constraint } from "@innovator/core";
+import type {
+  AngleId,
+  CustomAngle,
+  ExportData,
+  IdeaScore,
+  InnovatorConfig,
+  ValidationCheck,
+  OutputMode,
+  Depth,
+  AngleChain,
+  Constraint,
+} from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
 
 const program = new Command();
@@ -112,11 +124,13 @@ const program = new Command();
 let verbose = false;
 let commandCleanup: (() => Promise<void>) | null = null;
 
-// Graceful shutdown on SIGINT/SIGTERM — runs per-command cleanup first
+// Graceful shutdown on SIGINT/SIGTERM — runs per-command cleanup first.
+// Preserves the current exitCode so CI pipelines detect failures correctly.
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, () => {
+    const code = process.exitCode ?? 130; // 130 = SIGINT convention
     const cleanup = commandCleanup ? commandCleanup() : Promise.resolve();
-    cleanup.finally(() => stopCopilotClient().finally(() => process.exit(0)));
+    cleanup.finally(() => stopCopilotClient().finally(() => process.exit(code)));
   });
 }
 
@@ -188,98 +202,122 @@ program
   .option("--score", "Score and rank ideas after generation")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
-  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; file?: string; url?: string }) => {
-    if (!validateSubjectWithLog(subject)) return;
-    if (!validateModelWithLog(opts.model)) return;
+  .action(
+    async (
+      subject: string,
+      opts: {
+        model?: string;
+        depth?: string;
+        lang?: string;
+        score?: boolean;
+        file?: string;
+        url?: string;
+      }
+    ) => {
+      if (!validateSubjectWithLog(subject)) return;
+      if (!validateModelWithLog(opts.model)) return;
 
-    // Validate depth option
-    const depthParse = DepthSchema.safeParse(opts.depth ?? "standard");
-    if (!depthParse.success) {
-      console.error(chalk.red(`Invalid depth: ${opts.depth}. Use: shallow, standard, or deep`));
-      process.exitCode = 1;
-      return;
-    }
-    const depth: Depth = depthParse.data;
-    const depthConfig = getDepthConfig(depth);
-
-    // Show depth info
-    const suggestedDepth = suggestDepth(subject);
-    if (suggestedDepth !== depth && depth === "standard") {
-      console.log(chalk.dim(`💡 Suggested depth for this subject: ${suggestedDepth} (use --depth ${suggestedDepth})`));
-    }
-    console.log(chalk.dim(`📐 Depth: ${depthConfig.label} — ${depthConfig.description}`));
-    console.log(chalk.dim(`⏱️  Estimated: ${depthConfig.estimatedTimeSeconds}s, ~${depthConfig.estimatedCalls} LLM call(s)\n`));
-
-    // Handle --file or --url input
-    let enrichedSubject = subject;
-    if (opts.file || opts.url) {
-      const source = opts.file ?? opts.url!;
-      const extractSpinner = ora(`Extracting content from ${source}...`).start();
-      try {
-        const extracted = await extractContent(source);
-        enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
-        extractSpinner.succeed(`Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`);
-      } catch (err) {
-        extractSpinner.fail("Content extraction failed");
-        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      // Validate depth option
+      const depthParse = DepthSchema.safeParse(opts.depth ?? "standard");
+      if (!depthParse.success) {
+        console.error(chalk.red(`Invalid depth: ${opts.depth}. Use: shallow, standard, or deep`));
         process.exitCode = 1;
         return;
       }
-    }
+      const depth: Depth = depthParse.data;
+      const depthConfig = getDepthConfig(depth);
 
-    const spinner = ora(`Investigating "${subject}"...`).start();
-    debugLog("COMMAND", "investigate", { subject, model: opts.model });
-    const endTimer = timeStart("investigate");
-
-    try {
-      const result = await investigate(subject, opts.model);
-      endTimer();
-      spinner.succeed("Investigation complete!\n");
-      debugLog("RESPONSE", JSON.stringify(result, null, 2));
-
-      console.log(chalk.bold.blue("📋 Summary"));
-      console.log(`   ${stripAnsi(result.summary)}\n`);
-
-      console.log(chalk.bold.blue("🔑 Key Aspects"));
-      for (const aspect of result.keyAspects) {
-        console.log(`   ${chalk.bold(stripAnsi(aspect.title))}: ${stripAnsi(aspect.description)}`);
+      // Show depth info
+      const suggestedDepth = suggestDepth(subject);
+      if (suggestedDepth !== depth && depth === "standard") {
+        console.log(
+          chalk.dim(
+            `💡 Suggested depth for this subject: ${suggestedDepth} (use --depth ${suggestedDepth})`
+          )
+        );
       }
-      console.log();
-
-      console.log(chalk.bold.blue("🎯 Current State"));
-      console.log(`   ${stripAnsi(result.currentState)}\n`);
-
-      console.log(chalk.bold.yellow("⚠️  Challenges"));
-      for (const c of result.challenges) {
-        console.log(`   ${chalk.yellow("•")} ${stripAnsi(c)}`);
-      }
-      console.log();
-
-      console.log(chalk.bold.green("✨ Opportunities"));
-      for (const o of result.opportunities) {
-        console.log(`   ${chalk.green("•")} ${stripAnsi(o)}`);
-      }
-      console.log();
-
-      console.log(chalk.dim("Available angles:"));
-      for (const angle of ANGLES) {
-        console.log(`   ${angle.icon} ${chalk.bold(angle.id)} — ${angle.shortDescription}`);
-      }
+      console.log(chalk.dim(`📐 Depth: ${depthConfig.label} — ${depthConfig.description}`));
       console.log(
-        chalk.dim(`\nRun: innovator innovate "${subject}" --angles scamper,first-principles`)
+        chalk.dim(
+          `⏱️  Estimated: ${depthConfig.estimatedTimeSeconds}s, ~${depthConfig.estimatedCalls} LLM call(s)\n`
+        )
       );
-    } catch (err) {
-      spinner.fail("Investigation failed");
-      if (verbose) {
-        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      } else {
-        console.error(chalk.red("Investigation failed. Use --verbose for details."));
+
+      // Handle --file or --url input
+      let enrichedSubject = subject;
+      if (opts.file || opts.url) {
+        const source = opts.file ?? opts.url!;
+        const extractSpinner = ora(`Extracting content from ${source}...`).start();
+        try {
+          const extracted = await extractContent(source);
+          enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
+          extractSpinner.succeed(
+            `Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`
+          );
+        } catch (err) {
+          extractSpinner.fail("Content extraction failed");
+          console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          process.exitCode = 1;
+          return;
+        }
       }
-      process.exitCode = 1;
-    } finally {
-      await stopCopilotClient();
+
+      const spinner = ora(`Investigating "${subject}"...`).start();
+      debugLog("COMMAND", "investigate", { subject, model: opts.model });
+      const endTimer = timeStart("investigate");
+
+      try {
+        const result = await investigate(subject, opts.model);
+        endTimer();
+        spinner.succeed("Investigation complete!\n");
+        debugLog("RESPONSE", JSON.stringify(result, null, 2));
+
+        console.log(chalk.bold.blue("📋 Summary"));
+        console.log(`   ${stripAnsi(result.summary)}\n`);
+
+        console.log(chalk.bold.blue("🔑 Key Aspects"));
+        for (const aspect of result.keyAspects) {
+          console.log(
+            `   ${chalk.bold(stripAnsi(aspect.title))}: ${stripAnsi(aspect.description)}`
+          );
+        }
+        console.log();
+
+        console.log(chalk.bold.blue("🎯 Current State"));
+        console.log(`   ${stripAnsi(result.currentState)}\n`);
+
+        console.log(chalk.bold.yellow("⚠️  Challenges"));
+        for (const c of result.challenges) {
+          console.log(`   ${chalk.yellow("•")} ${stripAnsi(c)}`);
+        }
+        console.log();
+
+        console.log(chalk.bold.green("✨ Opportunities"));
+        for (const o of result.opportunities) {
+          console.log(`   ${chalk.green("•")} ${stripAnsi(o)}`);
+        }
+        console.log();
+
+        console.log(chalk.dim("Available angles:"));
+        for (const angle of ANGLES) {
+          console.log(`   ${angle.icon} ${chalk.bold(angle.id)} — ${angle.shortDescription}`);
+        }
+        console.log(
+          chalk.dim(`\nRun: innovator innovate "${subject}" --angles scamper,first-principles`)
+        );
+      } catch (err) {
+        spinner.fail("Investigation failed");
+        if (verbose) {
+          console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        } else {
+          console.error(chalk.red("Investigation failed. Use --verbose for details."));
+        }
+        process.exitCode = 1;
+      } finally {
+        await stopCopilotClient();
+      }
     }
-  });
+  );
 
 // ---- innovate command ----
 program
@@ -294,87 +332,94 @@ program
   .option("--score", "Score and rank ideas after generation")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
-  .action(async (subject: string, opts: { angles: string; model?: string; score?: boolean; file?: string; url?: string }) => {
-    if (!validateSubjectWithLog(subject)) return;
-    if (!validateModelWithLog(opts.model)) return;
+  .action(
+    async (
+      subject: string,
+      opts: { angles: string; model?: string; score?: boolean; file?: string; url?: string }
+    ) => {
+      if (!validateSubjectWithLog(subject)) return;
+      if (!validateModelWithLog(opts.model)) return;
 
-    // Handle --file or --url input
-    let enrichedSubject = subject;
-    if (opts.file || opts.url) {
-      const source = opts.file ?? opts.url!;
-      const extractSpinner = ora(`Extracting content from ${source}...`).start();
-      try {
-        const extracted = await extractContent(source);
-        enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
-        extractSpinner.succeed(`Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`);
-      } catch (err) {
-        extractSpinner.fail("Content extraction failed");
-        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      // Handle --file or --url input
+      let enrichedSubject = subject;
+      if (opts.file || opts.url) {
+        const source = opts.file ?? opts.url!;
+        const extractSpinner = ora(`Extracting content from ${source}...`).start();
+        try {
+          const extracted = await extractContent(source);
+          enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
+          extractSpinner.succeed(
+            `Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`
+          );
+        } catch (err) {
+          extractSpinner.fail("Content extraction failed");
+          console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          process.exitCode = 1;
+          return;
+        }
+      }
+
+      const angleIds = opts.angles.split(",").map((a) => a.trim()) as AngleId[];
+      const invalid = angleIds.filter((a) => !(ANGLE_IDS as readonly string[]).includes(a));
+      if (invalid.length) {
+        console.error(chalk.red(`Unknown angles: ${invalid.join(", ")}`));
+        console.log(chalk.dim(`Valid angles: ${ANGLE_IDS.join(", ")}`));
         process.exitCode = 1;
         return;
       }
-    }
 
-    const angleIds = opts.angles.split(",").map((a) => a.trim()) as AngleId[];
-    const invalid = angleIds.filter((a) => !(ANGLE_IDS as readonly string[]).includes(a));
-    if (invalid.length) {
-      console.error(chalk.red(`Unknown angles: ${invalid.join(", ")}`));
-      console.log(chalk.dim(`Valid angles: ${ANGLE_IDS.join(", ")}`));
-      process.exitCode = 1;
-      return;
-    }
+      const spinner = ora(`Investigating "${subject}"...`).start();
+      debugLog("COMMAND", "innovate", { subject, angles: angleIds, model: opts.model });
 
-    const spinner = ora(`Investigating "${subject}"...`).start();
-    debugLog("COMMAND", "innovate", { subject, angles: angleIds, model: opts.model });
+      try {
+        const endInvestigate = timeStart("investigate");
+        const investigation = await investigate(subject, opts.model);
+        endInvestigate();
+        spinner.succeed("Investigation complete");
+        debugLog("RESPONSE", "investigation", JSON.stringify(investigation, null, 2));
 
-    try {
-      const endInvestigate = timeStart("investigate");
-      const investigation = await investigate(subject, opts.model);
-      endInvestigate();
-      spinner.succeed("Investigation complete");
-      debugLog("RESPONSE", "investigation", JSON.stringify(investigation, null, 2));
+        for (let i = 0; i < angleIds.length; i += MAX_CONCURRENCY) {
+          const batch = angleIds.slice(i, i + MAX_CONCURRENCY);
+          const batchResults = await Promise.all(
+            batch.map(async (angleId) => {
+              const angle = ANGLES.find((a) => a.id === angleId);
+              if (!angle) {
+                throw new Error(`Unknown angle: ${angleId}`);
+              }
+              spinner.start(`${angle.icon} Generating: ${angle.name}...`);
 
-      for (let i = 0; i < angleIds.length; i += MAX_CONCURRENCY) {
-        const batch = angleIds.slice(i, i + MAX_CONCURRENCY);
-        const batchResults = await Promise.all(
-          batch.map(async (angleId) => {
-            const angle = ANGLES.find((a) => a.id === angleId);
-            if (!angle) {
-              throw new Error(`Unknown angle: ${angleId}`);
+              const endAngle = timeStart(`generate:${angleId}`);
+              const result = await generateForAngle(subject, investigation, angleId, opts.model);
+              endAngle();
+              debugLog("RESPONSE", angleId, JSON.stringify(result, null, 2));
+              return { angle, result };
+            })
+          );
+          for (const { angle, result } of batchResults) {
+            spinner.succeed(`${angle.icon} ${angle.name}`);
+            console.log(chalk.dim(`   Reasoning: ${stripAnsi(result.reasoning)}`));
+            for (const idea of result.ideas) {
+              console.log(`\n   ${chalk.bold.cyan(stripAnsi(idea.title))}`);
+              console.log(`   ${stripAnsi(idea.description)}`);
+              console.log(`   ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}`);
+              console.log(`   ${chalk.dim("How to start:")} ${stripAnsi(idea.implementationHint)}`);
             }
-            spinner.start(`${angle.icon} Generating: ${angle.name}...`);
-
-            const endAngle = timeStart(`generate:${angleId}`);
-            const result = await generateForAngle(subject, investigation, angleId, opts.model);
-            endAngle();
-            debugLog("RESPONSE", angleId, JSON.stringify(result, null, 2));
-            return { angle, result };
-          })
-        );
-        for (const { angle, result } of batchResults) {
-          spinner.succeed(`${angle.icon} ${angle.name}`);
-          console.log(chalk.dim(`   Reasoning: ${stripAnsi(result.reasoning)}`));
-          for (const idea of result.ideas) {
-            console.log(`\n   ${chalk.bold.cyan(stripAnsi(idea.title))}`);
-            console.log(`   ${stripAnsi(idea.description)}`);
-            console.log(`   ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}`);
-            console.log(`   ${chalk.dim("How to start:")} ${stripAnsi(idea.implementationHint)}`);
+            console.log();
           }
-          console.log();
         }
+      } catch (err) {
+        spinner.fail("Innovation generation failed");
+        if (verbose) {
+          console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        } else {
+          console.error(chalk.red("Innovation generation failed. Use --verbose for details."));
+        }
+        process.exitCode = 1;
+      } finally {
+        await stopCopilotClient();
       }
-    } catch (err) {
-      spinner.fail("Innovation generation failed");
-      if (verbose) {
-        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      } else {
-        console.error(chalk.red("Innovation generation failed. Use --verbose for details."));
-      }
-      process.exitCode = 1;
-    } finally {
-      await stopCopilotClient();
     }
-  });
+  );
 
 // ---- auto command ----
 program
@@ -386,498 +431,616 @@ program
   .option("--lang <language>", "Output language: en, es, ja, de, pt")
   .option("--score", "Score and rank ideas after generation")
   .option("--validate", "Validate ideas against patent, market, and feasibility checks")
-  .option("--audience <mode>", "Generate audience-adapted output (executive, technical, pitch, research)")
+  .option(
+    "--audience <mode>",
+    "Generate audience-adapted output (executive, technical, pitch, research)"
+  )
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
   .option("--constraint <expr...>", "Apply constraints (e.g., 'budget<50K', 'timeline<3months')")
-  .option("--min-confidence <score>", "Minimum investigation confidence score (0-100) before generating ideas")
+  .option(
+    "--min-confidence <score>",
+    "Minimum investigation confidence score (0-100) before generating ideas"
+  )
   .option("--playbook [format]", "Generate an Innovation Playbook (markdown or html)")
   .option("--debate", "Run structured debate on top ideas after synthesis")
   .option("--debate-rounds <n>", "Number of debate rounds (1-5)", "2")
   .option("--decision-packet", "Generate an executive decision packet from results")
   .option("--stress-test", "Run stress test scenarios on top ideas")
   .option("--stakeholders", "Run stakeholder simulation on top ideas")
-  .action(async (subject: string, opts: { model?: string; depth?: string; lang?: string; score?: boolean; validate?: boolean; audience?: string; file?: string; url?: string; constraint?: string[]; minConfidence?: string; playbook?: string | boolean; debate?: boolean; debateRounds?: string; decisionPacket?: boolean; stressTest?: boolean; stakeholders?: boolean }) => {
-    if (!validateSubjectWithLog(subject)) return;
-    if (!validateModelWithLog(opts.model)) return;
+  .action(
+    async (
+      subject: string,
+      opts: {
+        model?: string;
+        depth?: string;
+        lang?: string;
+        score?: boolean;
+        validate?: boolean;
+        audience?: string;
+        file?: string;
+        url?: string;
+        constraint?: string[];
+        minConfidence?: string;
+        playbook?: string | boolean;
+        debate?: boolean;
+        debateRounds?: string;
+        decisionPacket?: boolean;
+        stressTest?: boolean;
+        stakeholders?: boolean;
+      }
+    ) => {
+      if (!validateSubjectWithLog(subject)) return;
+      if (!validateModelWithLog(opts.model)) return;
 
-    // Auto-detect or validate language
-    const detectedLang = opts.lang ?? detectLanguage(subject);
-    const langParse = SupportedLanguageSchema.safeParse(detectedLang);
-    if (opts.lang && !langParse.success) {
-      console.error(chalk.red(`Invalid language: ${opts.lang}. Supported: en, es, ja, de, pt`));
-      process.exitCode = 1;
-      return;
-    }
-    if (detectedLang !== "en") {
-      console.log(chalk.dim(`🌐 Language: ${detectedLang}${!opts.lang ? " (auto-detected)" : ""}`));
-    }
-
-    // Validate and display depth info
-    const depthParse = DepthSchema.safeParse(opts.depth ?? "standard");
-    if (!depthParse.success) {
-      console.error(chalk.red(`Invalid depth: ${opts.depth}. Use: shallow, standard, or deep`));
-      process.exitCode = 1;
-      return;
-    }
-    const depth: Depth = depthParse.data;
-    const depthConfig = getDepthConfig(depth);
-    console.log(chalk.dim(`📐 Depth: ${depthConfig.label} — ${depthConfig.description}`));
-    console.log(chalk.dim(`⏱️  Estimated: ${depthConfig.estimatedTimeSeconds}s, ~${depthConfig.estimatedCalls} LLM call(s)\n`));
-
-    // Handle --file or --url input
-    let enrichedSubject = subject;
-    if (opts.file || opts.url) {
-      const source = opts.file ?? opts.url!;
-      const extractSpinner = ora(`Extracting content from ${source}...`).start();
-      try {
-        const extracted = await extractContent(source);
-        enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
-        extractSpinner.succeed(`Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`);
-      } catch (err) {
-        extractSpinner.fail("Content extraction failed");
-        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      // Auto-detect or validate language
+      const detectedLang = opts.lang ?? detectLanguage(subject);
+      const langParse = SupportedLanguageSchema.safeParse(detectedLang);
+      if (opts.lang && !langParse.success) {
+        console.error(chalk.red(`Invalid language: ${opts.lang}. Supported: en, es, ja, de, pt`));
         process.exitCode = 1;
         return;
       }
-    }
+      if (detectedLang !== "en") {
+        console.log(
+          chalk.dim(`🌐 Language: ${detectedLang}${!opts.lang ? " (auto-detected)" : ""}`)
+        );
+      }
 
-    const spinner = ora("Starting auto pipeline...").start();
-    debugLog("COMMAND", "auto", { subject, model: opts.model });
-    const endTimer = timeStart("auto-pipeline");
-
-    const controller = new AbortController();
-    commandCleanup = async () => controller.abort();
-
-    try {
-      const result = await runAutoPipeline(
-        enrichedSubject,
-        (progress) => {
-          debugLog("PIPELINE", progress.stage, {
-            completedAngles: progress.completedAngles.length,
-            totalAngles: progress.totalAngles,
-          });
-          if (progress.stage === "investigating") {
-            spinner.text = "🔍 Investigating subject...";
-          } else if (progress.stage === "generating") {
-            const done = progress.completedAngles.length;
-            const total = progress.totalAngles;
-            spinner.text = `⚡ Generating innovations... (${done}/${total})`;
-          } else if (progress.stage === "synthesizing") {
-            spinner.text = "🧪 Synthesizing results...";
-          }
-        },
-        opts.model,
-        undefined,
-        controller.signal
+      // Validate and display depth info
+      const depthParse = DepthSchema.safeParse(opts.depth ?? "standard");
+      if (!depthParse.success) {
+        console.error(chalk.red(`Invalid depth: ${opts.depth}. Use: shallow, standard, or deep`));
+        process.exitCode = 1;
+        return;
+      }
+      const depth: Depth = depthParse.data;
+      const depthConfig = getDepthConfig(depth);
+      console.log(chalk.dim(`📐 Depth: ${depthConfig.label} — ${depthConfig.description}`));
+      console.log(
+        chalk.dim(
+          `⏱️  Estimated: ${depthConfig.estimatedTimeSeconds}s, ~${depthConfig.estimatedCalls} LLM call(s)\n`
+        )
       );
 
-      if (result.stage === "error") {
+      // Handle --file or --url input
+      let enrichedSubject = subject;
+      if (opts.file || opts.url) {
+        const source = opts.file ?? opts.url!;
+        const extractSpinner = ora(`Extracting content from ${source}...`).start();
+        try {
+          const extracted = await extractContent(source);
+          enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
+          extractSpinner.succeed(
+            `Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`
+          );
+        } catch (err) {
+          extractSpinner.fail("Content extraction failed");
+          console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          process.exitCode = 1;
+          return;
+        }
+      }
+
+      const spinner = ora("Starting auto pipeline...").start();
+      debugLog("COMMAND", "auto", { subject, model: opts.model });
+      const endTimer = timeStart("auto-pipeline");
+
+      const controller = new AbortController();
+      commandCleanup = async () => controller.abort();
+
+      try {
+        const result = await runAutoPipeline(
+          enrichedSubject,
+          (progress) => {
+            debugLog("PIPELINE", progress.stage, {
+              completedAngles: progress.completedAngles.length,
+              totalAngles: progress.totalAngles,
+            });
+            if (progress.stage === "investigating") {
+              spinner.text = "🔍 Investigating subject...";
+            } else if (progress.stage === "generating") {
+              const done = progress.completedAngles.length;
+              const total = progress.totalAngles;
+              spinner.text = `⚡ Generating innovations... (${done}/${total})`;
+            } else if (progress.stage === "synthesizing") {
+              spinner.text = "🧪 Synthesizing results...";
+            }
+          },
+          opts.model,
+          undefined,
+          controller.signal
+        );
+
+        if (result.stage === "error") {
+          endTimer();
+          spinner.fail("Pipeline failed");
+          if (verbose) {
+            console.error(chalk.red(result.error));
+          } else {
+            console.error(chalk.red("Pipeline failed. Use --verbose for details."));
+          }
+          process.exitCode = 1;
+          return;
+        }
+
         endTimer();
-        spinner.fail("Pipeline failed");
-        if (verbose) {
-          console.error(chalk.red(result.error));
-        } else {
-          console.error(chalk.red("Pipeline failed. Use --verbose for details."));
-        }
-        process.exitCode = 1;
-        return;
-      }
+        spinner.succeed("Pipeline complete!\n");
+        debugLog("RESPONSE", "pipeline complete", {
+          anglesCompleted: result.angleResults.length,
+          hasSynthesis: !!result.synthesis,
+        });
 
-      endTimer();
-      spinner.succeed("Pipeline complete!\n");
-      debugLog("RESPONSE", "pipeline complete", {
-        anglesCompleted: result.angleResults.length,
-        hasSynthesis: !!result.synthesis,
-      });
+        // Print angle results
+        for (const angle of result.angleResults) {
+          console.log(chalk.bold(`\n${"═".repeat(60)}`));
+          console.log(chalk.bold.blue(`${stripAnsi(angle.angleName)}`));
+          console.log(chalk.dim(stripAnsi(angle.reasoning)));
 
-      // Print angle results
-      for (const angle of result.angleResults) {
-        console.log(chalk.bold(`\n${"═".repeat(60)}`));
-        console.log(chalk.bold.blue(`${stripAnsi(angle.angleName)}`));
-        console.log(chalk.dim(stripAnsi(angle.reasoning)));
-
-        for (const idea of angle.ideas) {
-          console.log(`\n  ${chalk.bold.cyan(stripAnsi(idea.title))}`);
-          console.log(`  ${stripAnsi(idea.description)}`);
-          console.log(`  ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}`);
-          console.log(`  ${chalk.dim("Start:")} ${stripAnsi(idea.implementationHint)}`);
-        }
-      }
-
-      // Print synthesis
-      if (result.synthesis) {
-        console.log(chalk.bold(`\n${"═".repeat(60)}`));
-        console.log(chalk.bold.magenta("🏆 SYNTHESIS & TOP IDEAS\n"));
-
-        for (const idea of result.synthesis.topIdeas) {
-          const feasColor =
-            idea.feasibility === "high"
-              ? chalk.green
-              : idea.feasibility === "medium"
-                ? chalk.yellow
-                : chalk.red;
-          console.log(
-            `  ${chalk.bold(stripAnsi(idea.title))} ${feasColor(`[${idea.feasibility}]`)}`
-          );
-          console.log(`  ${stripAnsi(idea.description)}`);
-          console.log(
-            `  ${chalk.dim("From:")} ${stripAnsi(idea.sourceAngle)} • ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}\n`
-          );
+          for (const idea of angle.ideas) {
+            console.log(`\n  ${chalk.bold.cyan(stripAnsi(idea.title))}`);
+            console.log(`  ${stripAnsi(idea.description)}`);
+            console.log(`  ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}`);
+            console.log(`  ${chalk.dim("Start:")} ${stripAnsi(idea.implementationHint)}`);
+          }
         }
 
-        console.log(chalk.bold("\n🔗 Themes:"));
-        for (const theme of result.synthesis.themes) {
-          console.log(`  ${chalk.magenta("•")} ${stripAnsi(theme)}`);
+        // Print synthesis
+        if (result.synthesis) {
+          console.log(chalk.bold(`\n${"═".repeat(60)}`));
+          console.log(chalk.bold.magenta("🏆 SYNTHESIS & TOP IDEAS\n"));
+
+          for (const idea of result.synthesis.topIdeas) {
+            const feasColor =
+              idea.feasibility === "high"
+                ? chalk.green
+                : idea.feasibility === "medium"
+                  ? chalk.yellow
+                  : chalk.red;
+            console.log(
+              `  ${chalk.bold(stripAnsi(idea.title))} ${feasColor(`[${idea.feasibility}]`)}`
+            );
+            console.log(`  ${stripAnsi(idea.description)}`);
+            console.log(
+              `  ${chalk.dim("From:")} ${stripAnsi(idea.sourceAngle)} • ${chalk.dim("Impact:")} ${stripAnsi(idea.potentialImpact)}\n`
+            );
+          }
+
+          console.log(chalk.bold("\n🔗 Themes:"));
+          for (const theme of result.synthesis.themes) {
+            console.log(`  ${chalk.magenta("•")} ${stripAnsi(theme)}`);
+          }
+
+          console.log(chalk.bold("\n📌 Recommendation:"));
+          console.log(`  ${stripAnsi(result.synthesis.recommendation)}`);
         }
 
-        console.log(chalk.bold("\n📌 Recommendation:"));
-        console.log(`  ${stripAnsi(result.synthesis.recommendation)}`);
-      }
+        // Check investigation confidence if --min-confidence flag is set
+        if (opts.minConfidence && result.investigation) {
+          const minConf = parseInt(opts.minConfidence, 10);
+          if (isNaN(minConf) || minConf < 0 || minConf > 100) {
+            console.error(chalk.red("Invalid --min-confidence value. Use 0-100."));
+          } else {
+            const confSpinner = ora("📊 Scoring investigation quality...").start();
+            try {
+              const confidence = await scoreInvestigationQuality(
+                subject,
+                result.investigation,
+                opts.model
+              );
+              const passes = meetsConfidenceThreshold(confidence, minConf);
+              if (passes) {
+                confSpinner.succeed(`Investigation confidence: ${confidence.overallScore}/100 ✓\n`);
+              } else {
+                confSpinner.warn(
+                  `Investigation confidence: ${confidence.overallScore}/100 (below ${minConf} threshold)\n`
+                );
+              }
 
-      // Check investigation confidence if --min-confidence flag is set
-      if (opts.minConfidence && result.investigation) {
-        const minConf = parseInt(opts.minConfidence, 10);
-        if (isNaN(minConf) || minConf < 0 || minConf > 100) {
-          console.error(chalk.red("Invalid --min-confidence value. Use 0-100."));
-        } else {
-          const confSpinner = ora("📊 Scoring investigation quality...").start();
-          try {
-            const confidence = await scoreInvestigationQuality(subject, result.investigation, opts.model);
-            const passes = meetsConfidenceThreshold(confidence, minConf);
-            if (passes) {
-              confSpinner.succeed(`Investigation confidence: ${confidence.overallScore}/100 ✓\n`);
-            } else {
-              confSpinner.warn(`Investigation confidence: ${confidence.overallScore}/100 (below ${minConf} threshold)\n`);
-            }
+              for (const dim of confidence.dimensions) {
+                const color =
+                  dim.score >= 70 ? chalk.green : dim.score >= 50 ? chalk.yellow : chalk.red;
+                console.log(
+                  `  ${color(`${dim.score}`)} ${dim.name}: ${stripAnsi(dim.explanation)}`
+                );
+              }
 
-            for (const dim of confidence.dimensions) {
-              const color = dim.score >= 70 ? chalk.green : dim.score >= 50 ? chalk.yellow : chalk.red;
-              console.log(`  ${color(`${dim.score}`)} ${dim.name}: ${stripAnsi(dim.explanation)}`);
-            }
-
-            const gaps = formatGapSuggestions(confidence);
-            if (gaps.length > 0) {
-              console.log(chalk.bold.yellow("\n  💡 Knowledge Gaps:"));
-              for (const gap of gaps) {
-                console.log(`    ${chalk.yellow("→")} ${stripAnsi(gap)}`);
+              const gaps = formatGapSuggestions(confidence);
+              if (gaps.length > 0) {
+                console.log(chalk.bold.yellow("\n  💡 Knowledge Gaps:"));
+                for (const gap of gaps) {
+                  console.log(`    ${chalk.yellow("→")} ${stripAnsi(gap)}`);
+                }
+              }
+              console.log();
+            } catch (err) {
+              confSpinner.fail("Confidence scoring failed");
+              if (verbose) {
+                console.error(chalk.red(err instanceof Error ? err.message : String(err)));
               }
             }
-            console.log();
-          } catch (err) {
-            confSpinner.fail("Confidence scoring failed");
-            if (verbose) {
-              console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-            }
           }
         }
-      }
 
-      // Score ideas if --score flag is set
-      if (opts.score && result.angleResults.length > 0) {
-        const scoreSpinner = ora("📊 Scoring ideas...").start();
-        try {
-          const scoring = await scoreIdeas(
-            subject,
-            result.angleResults,
-            result.investigation,
-            opts.model
-          );
-          scoreSpinner.succeed("Ideas scored!\n");
-
-          const ranked = rankIdeas(scoring.scores);
-          console.log(chalk.bold.blue("📊 PRIORITY MATRIX\n"));
-          console.log(
-            chalk.dim(
-              "  " +
-                "Idea".padEnd(40) +
-                "Feasibility".padEnd(14) +
-                "Impact".padEnd(9) +
-                "Novelty".padEnd(10) +
-                "Time".padEnd(10) +
-                "Quadrant"
-            )
-          );
-          console.log(chalk.dim("  " + "─".repeat(90)));
-          for (const score of ranked) {
-            const quadrant = getQuadrant(score);
-            const quadrantColor =
-              quadrant === "quick-wins"
-                ? chalk.green
-                : quadrant === "strategic-bets"
-                  ? chalk.yellow
-                  : quadrant === "low-hanging-fruit"
-                    ? chalk.cyan
-                    : chalk.dim;
-            const title = stripAnsi(score.ideaTitle).slice(0, 38).padEnd(40);
-            console.log(
-              `  ${title}${String(score.feasibility).padEnd(14)}${String(score.impact).padEnd(9)}${String(score.novelty).padEnd(10)}${score.timeToImplement.padEnd(10)}${quadrantColor(quadrant)}`
-            );
-          }
-          console.log();
-        } catch (err) {
-          scoreSpinner.fail("Scoring failed");
-          if (verbose) {
-            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-          }
-        }
-      }
-
-      // Validate ideas if --validate flag is set
-      if (opts.validate && result.angleResults.length > 0) {
-        const allIdeas = result.angleResults.flatMap((ar) => ar.ideas);
-        const validateSpinner = ora(`🔍 Validating ${allIdeas.length} ideas...`).start();
-        try {
-          const scorecard = await validateIdeas(allIdeas, subject, opts.model);
-          validateSpinner.succeed("Ideas validated!\n");
-
-          console.log(chalk.bold.blue("🔍 VALIDATION SCORECARD\n"));
-          console.log(
-            chalk.dim(
-              "  " +
-                "Idea".padEnd(40) +
-                "Score".padEnd(8) +
-                "Status".padEnd(20) +
-                "Patent".padEnd(10) +
-                "Market".padEnd(10) +
-                "Feasibility"
-            )
-          );
-          console.log(chalk.dim("  " + "─".repeat(95)));
-          for (const vr of scorecard.results) {
-            const statusColor =
-              vr.overallStatus === "validated"
-                ? chalk.green
-                : vr.overallStatus === "caution"
-                  ? chalk.yellow
-                  : vr.overallStatus === "risky"
-                    ? chalk.red
-                    : chalk.dim;
-            const title = stripAnsi(vr.ideaTitle).slice(0, 38).padEnd(40);
-            const patent = vr.checks.find((c: ValidationCheck) => c.category === "patent");
-            const market = vr.checks.find((c: ValidationCheck) => c.category === "competitor");
-            const feasibility = vr.checks.find((c: ValidationCheck) => c.category === "feasibility");
-            console.log(
-              `  ${title}${String(vr.overallScore).padEnd(8)}${statusColor(vr.overallStatus.padEnd(20))}${(patent?.status ?? "n/a").padEnd(10)}${(market?.status ?? "n/a").padEnd(10)}${feasibility?.status ?? "n/a"}`
-            );
-          }
-          console.log(`\n  ${chalk.dim(scorecard.summary)}\n`);
-        } catch (err) {
-          validateSpinner.fail("Validation failed");
-          if (verbose) {
-            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-          }
-        }
-      }
-
-      // Generate audience-adapted output if --audience flag is set
-      if (opts.audience && result.synthesis) {
-        const validModes = OUTPUT_MODES as readonly string[];
-        if (!validModes.includes(opts.audience)) {
-          console.error(chalk.red(`Unknown audience mode: ${opts.audience}. Valid: ${OUTPUT_MODES.join(", ")}`));
-        } else {
-          const audienceSpinner = ora(`📝 Generating ${opts.audience} output...`).start();
+        // Score ideas if --score flag is set
+        if (opts.score && result.angleResults.length > 0) {
+          const scoreSpinner = ora("📊 Scoring ideas...").start();
           try {
-            const output = await transformForAudience(
-              result.synthesis,
-              opts.audience as OutputMode,
+            const scoring = await scoreIdeas(
               subject,
+              result.angleResults,
               result.investigation,
               opts.model
             );
-            audienceSpinner.succeed(`${opts.audience} output generated!\n`);
-            console.log(chalk.bold.blue(`📝 ${output.modeName} (for ${output.audience})\n`));
-            console.log(JSON.stringify(output.content, null, 2));
+            scoreSpinner.succeed("Ideas scored!\n");
+
+            const ranked = rankIdeas(scoring.scores);
+            console.log(chalk.bold.blue("📊 PRIORITY MATRIX\n"));
+            console.log(
+              chalk.dim(
+                "  " +
+                  "Idea".padEnd(40) +
+                  "Feasibility".padEnd(14) +
+                  "Impact".padEnd(9) +
+                  "Novelty".padEnd(10) +
+                  "Time".padEnd(10) +
+                  "Quadrant"
+              )
+            );
+            console.log(chalk.dim("  " + "─".repeat(90)));
+            for (const score of ranked) {
+              const quadrant = getQuadrant(score);
+              const quadrantColor =
+                quadrant === "quick-wins"
+                  ? chalk.green
+                  : quadrant === "strategic-bets"
+                    ? chalk.yellow
+                    : quadrant === "low-hanging-fruit"
+                      ? chalk.cyan
+                      : chalk.dim;
+              const title = stripAnsi(score.ideaTitle).slice(0, 38).padEnd(40);
+              console.log(
+                `  ${title}${String(score.feasibility).padEnd(14)}${String(score.impact).padEnd(9)}${String(score.novelty).padEnd(10)}${score.timeToImplement.padEnd(10)}${quadrantColor(quadrant)}`
+              );
+            }
             console.log();
           } catch (err) {
-            audienceSpinner.fail("Audience output generation failed");
+            scoreSpinner.fail("Scoring failed");
             if (verbose) {
               console.error(chalk.red(err instanceof Error ? err.message : String(err)));
             }
           }
         }
-      }
 
-      // Evaluate constraints if --constraint flags are set
-      if (opts.constraint && opts.constraint.length > 0 && result.angleResults.length > 0) {
-        const constraintSpinner = ora("🔒 Evaluating constraints...").start();
-        try {
-          const constraints: Constraint[] = opts.constraint.map((c) => parseConstraintString(c));
-          const ideas = flattenIdeas(result.angleResults);
-          const constraintResult = await evaluateConstraints(ideas, constraints, opts.model);
-          constraintSpinner.succeed("Constraints evaluated!\n");
+        // Validate ideas if --validate flag is set
+        if (opts.validate && result.angleResults.length > 0) {
+          const allIdeas = result.angleResults.flatMap((ar) => ar.ideas);
+          const validateSpinner = ora(`🔍 Validating ${allIdeas.length} ideas...`).start();
+          try {
+            const scorecard = await validateIdeas(allIdeas, subject, opts.model);
+            validateSpinner.succeed("Ideas validated!\n");
 
-          console.log(chalk.bold.blue("🔒 CONSTRAINT EVALUATION\n"));
-          for (const evaluation of constraintResult.evaluations) {
-            const passIcon = evaluation.passes ? chalk.green("✓") : chalk.red("✗");
-            console.log(`  ${passIcon} ${chalk.bold(stripAnsi(evaluation.ideaTitle))} — score: ${evaluation.score}/100`);
-            for (const cr of evaluation.constraintResults) {
-              const crIcon = cr.satisfied ? chalk.green("  ✓") : chalk.red("  ✗");
-              console.log(`    ${crIcon} ${stripAnsi(cr.dimension)}: ${stripAnsi(cr.explanation)}`);
+            console.log(chalk.bold.blue("🔍 VALIDATION SCORECARD\n"));
+            console.log(
+              chalk.dim(
+                "  " +
+                  "Idea".padEnd(40) +
+                  "Score".padEnd(8) +
+                  "Status".padEnd(20) +
+                  "Patent".padEnd(10) +
+                  "Market".padEnd(10) +
+                  "Feasibility"
+              )
+            );
+            console.log(chalk.dim("  " + "─".repeat(95)));
+            for (const vr of scorecard.results) {
+              const statusColor =
+                vr.overallStatus === "validated"
+                  ? chalk.green
+                  : vr.overallStatus === "caution"
+                    ? chalk.yellow
+                    : vr.overallStatus === "risky"
+                      ? chalk.red
+                      : chalk.dim;
+              const title = stripAnsi(vr.ideaTitle).slice(0, 38).padEnd(40);
+              const patent = vr.checks.find((c: ValidationCheck) => c.category === "patent");
+              const market = vr.checks.find((c: ValidationCheck) => c.category === "competitor");
+              const feasibility = vr.checks.find(
+                (c: ValidationCheck) => c.category === "feasibility"
+              );
+              console.log(
+                `  ${title}${String(vr.overallScore).padEnd(8)}${statusColor(vr.overallStatus.padEnd(20))}${(patent?.status ?? "n/a").padEnd(10)}${(market?.status ?? "n/a").padEnd(10)}${feasibility?.status ?? "n/a"}`
+              );
+            }
+            console.log(`\n  ${chalk.dim(scorecard.summary)}\n`);
+          } catch (err) {
+            validateSpinner.fail("Validation failed");
+            if (verbose) {
+              console.error(chalk.red(err instanceof Error ? err.message : String(err)));
             }
           }
-          console.log(`\n  ${chalk.dim(stripAnsi(constraintResult.summary))}\n`);
-        } catch (err) {
-          constraintSpinner.fail("Constraint evaluation failed");
-          if (verbose) {
-            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-          }
         }
-      }
 
-      // Run debate on top ideas if --debate flag is set
-      if (opts.debate && result.synthesis && result.synthesis.topIdeas.length > 0) {
-        const debateRounds = Math.min(5, Math.max(1, parseInt(opts.debateRounds ?? "2", 10) || 2));
-        const topIdeas = result.synthesis.topIdeas.slice(0, 3);
-        const debateSpinner = ora(`🗣️  Debating top ${topIdeas.length} ideas (${debateRounds} rounds)...`).start();
-        try {
-          for (const topIdea of topIdeas) {
-            debateSpinner.text = `🗣️  Debating: ${stripAnsi(topIdea.title)}...`;
-            const debateResult = await runDebate(
-              { title: topIdea.title, description: topIdea.description, potentialImpact: topIdea.potentialImpact, implementationHint: "" },
-              result.investigation,
-              { rounds: debateRounds, model: opts.model, signal: controller.signal }
+        // Generate audience-adapted output if --audience flag is set
+        if (opts.audience && result.synthesis) {
+          const validModes = OUTPUT_MODES as readonly string[];
+          if (!validModes.includes(opts.audience)) {
+            console.error(
+              chalk.red(
+                `Unknown audience mode: ${opts.audience}. Valid: ${OUTPUT_MODES.join(", ")}`
+              )
             );
-            console.log(chalk.bold(`\n${"═".repeat(60)}`));
-            console.log(debateToMarkdown(debateResult));
-          }
-          debateSpinner.succeed("Debates complete!\n");
-        } catch (err) {
-          debateSpinner.fail("Debate failed");
-          if (verbose) {
-            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          } else {
+            const audienceSpinner = ora(`📝 Generating ${opts.audience} output...`).start();
+            try {
+              const output = await transformForAudience(
+                result.synthesis,
+                opts.audience as OutputMode,
+                subject,
+                result.investigation,
+                opts.model
+              );
+              audienceSpinner.succeed(`${opts.audience} output generated!\n`);
+              console.log(chalk.bold.blue(`📝 ${output.modeName} (for ${output.audience})\n`));
+              console.log(JSON.stringify(output.content, null, 2));
+              console.log();
+            } catch (err) {
+              audienceSpinner.fail("Audience output generation failed");
+              if (verbose) {
+                console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+              }
+            }
           }
         }
-      }
 
-      // Run stress test on top ideas if --stress-test flag is set
-      if (opts.stressTest && result.synthesis && result.synthesis.topIdeas.length > 0) {
-        const topIdeas = result.synthesis.topIdeas.slice(0, 3);
-        const stressSpinner = ora(`🔥 Stress testing ${topIdeas.length} ideas...`).start();
-        try {
-          for (const topIdea of topIdeas) {
-            stressSpinner.text = `🔥 Stress testing: ${stripAnsi(topIdea.title)}...`;
-            const stressResult = await generateStressScenarios(
-              { title: topIdea.title, description: topIdea.description, potentialImpact: topIdea.potentialImpact, implementationHint: "" },
+        // Evaluate constraints if --constraint flags are set
+        if (opts.constraint && opts.constraint.length > 0 && result.angleResults.length > 0) {
+          const constraintSpinner = ora("🔒 Evaluating constraints...").start();
+          try {
+            const constraints: Constraint[] = opts.constraint.map((c) => parseConstraintString(c));
+            const ideas = flattenIdeas(result.angleResults);
+            const constraintResult = await evaluateConstraints(ideas, constraints, opts.model);
+            constraintSpinner.succeed("Constraints evaluated!\n");
+
+            console.log(chalk.bold.blue("🔒 CONSTRAINT EVALUATION\n"));
+            for (const evaluation of constraintResult.evaluations) {
+              const passIcon = evaluation.passes ? chalk.green("✓") : chalk.red("✗");
+              console.log(
+                `  ${passIcon} ${chalk.bold(stripAnsi(evaluation.ideaTitle))} — score: ${evaluation.score}/100`
+              );
+              for (const cr of evaluation.constraintResults) {
+                const crIcon = cr.satisfied ? chalk.green("  ✓") : chalk.red("  ✗");
+                console.log(
+                  `    ${crIcon} ${stripAnsi(cr.dimension)}: ${stripAnsi(cr.explanation)}`
+                );
+              }
+            }
+            console.log(`\n  ${chalk.dim(stripAnsi(constraintResult.summary))}\n`);
+          } catch (err) {
+            constraintSpinner.fail("Constraint evaluation failed");
+            if (verbose) {
+              console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+            }
+          }
+        }
+
+        // Run debate on top ideas if --debate flag is set
+        if (opts.debate && result.synthesis && result.synthesis.topIdeas.length > 0) {
+          const debateRounds = Math.min(
+            5,
+            Math.max(1, parseInt(opts.debateRounds ?? "2", 10) || 2)
+          );
+          const topIdeas = result.synthesis.topIdeas.slice(0, 3);
+          const debateSpinner = ora(
+            `🗣️  Debating top ${topIdeas.length} ideas (${debateRounds} rounds)...`
+          ).start();
+          try {
+            for (const topIdea of topIdeas) {
+              debateSpinner.text = `🗣️  Debating: ${stripAnsi(topIdea.title)}...`;
+              const debateResult = await runDebate(
+                {
+                  title: topIdea.title,
+                  description: topIdea.description,
+                  potentialImpact: topIdea.potentialImpact,
+                  implementationHint: "",
+                },
+                result.investigation,
+                { rounds: debateRounds, model: opts.model, signal: controller.signal }
+              );
+              console.log(chalk.bold(`\n${"═".repeat(60)}`));
+              console.log(debateToMarkdown(debateResult));
+            }
+            debateSpinner.succeed("Debates complete!\n");
+          } catch (err) {
+            debateSpinner.fail("Debate failed");
+            if (verbose) {
+              console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+            }
+          }
+        }
+
+        // Run stress test on top ideas if --stress-test flag is set
+        if (opts.stressTest && result.synthesis && result.synthesis.topIdeas.length > 0) {
+          const topIdeas = result.synthesis.topIdeas.slice(0, 3);
+          const stressSpinner = ora(`🔥 Stress testing ${topIdeas.length} ideas...`).start();
+          try {
+            for (const topIdea of topIdeas) {
+              stressSpinner.text = `🔥 Stress testing: ${stripAnsi(topIdea.title)}...`;
+              const stressResult = await generateStressScenarios(
+                {
+                  title: topIdea.title,
+                  description: topIdea.description,
+                  potentialImpact: topIdea.potentialImpact,
+                  implementationHint: "",
+                },
+                subject,
+                { model: opts.model, signal: controller.signal }
+              );
+              console.log(chalk.bold(`\n${"═".repeat(60)}`));
+              console.log(stressTestToMarkdown(stressResult));
+            }
+            stressSpinner.succeed("Stress tests complete!\n");
+          } catch (err) {
+            stressSpinner.fail("Stress test failed");
+            if (verbose) {
+              console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+            }
+          }
+        }
+
+        // Generate playbook if --playbook flag is set
+        if (opts.playbook && result.investigation && result.synthesis) {
+          const format =
+            typeof opts.playbook === "string" && opts.playbook === "html"
+              ? ("html" as const)
+              : ("markdown" as const);
+          const playbookSpinner = ora(`📕 Generating Innovation Playbook (${format})...`).start();
+          try {
+            const playbook = await generatePlaybook(
+              subject,
+              result.investigation,
+              result.angleResults,
+              result.synthesis,
+              format,
+              opts.model
+            );
+            playbookSpinner.succeed("Innovation Playbook generated!\n");
+
+            const filename = `playbook-${subject
+              .slice(0, 30)
+              .replace(/[^a-z0-9]/gi, "-")
+              .toLowerCase()}.${format === "html" ? "html" : "md"}`;
+            const fs = await import("node:fs");
+            fs.writeFileSync(filename, playbook.content, "utf-8");
+            console.log(chalk.green(`  📄 Saved to ${filename}`));
+            console.log(
+              chalk.dim(
+                `  ${playbook.content.length} characters, ${playbook.sections.roadmap.length} phases, ${playbook.sections.risks.length} risks\n`
+              )
+            );
+          } catch (err) {
+            playbookSpinner.fail("Playbook generation failed");
+            if (verbose) {
+              console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+            }
+          }
+        }
+
+        // Generate decision packet if --decision-packet flag is set
+        if (opts.decisionPacket && result.investigation && result.synthesis) {
+          const packetSpinner = ora("📋 Generating Executive Decision Packet...").start();
+          try {
+            const packet = await generateDecisionPacket(
+              result.synthesis,
+              result.investigation,
               subject,
               { model: opts.model, signal: controller.signal }
             );
-            console.log(chalk.bold(`\n${"═".repeat(60)}`));
-            console.log(stressTestToMarkdown(stressResult));
-          }
-          stressSpinner.succeed("Stress tests complete!\n");
-        } catch (err) {
-          stressSpinner.fail("Stress test failed");
-          if (verbose) {
-            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-          }
-        }
-      }
+            packetSpinner.succeed("Decision Packet generated!\n");
 
-      // Generate playbook if --playbook flag is set
-      if (opts.playbook && result.investigation && result.synthesis) {
-        const format = typeof opts.playbook === "string" && opts.playbook === "html" ? "html" as const : "markdown" as const;
-        const playbookSpinner = ora(`📕 Generating Innovation Playbook (${format})...`).start();
-        try {
-          const playbook = await generatePlaybook(
-            subject,
-            result.investigation,
-            result.angleResults,
-            result.synthesis,
-            format,
-            opts.model
-          );
-          playbookSpinner.succeed("Innovation Playbook generated!\n");
-
-          const filename = `playbook-${subject.slice(0, 30).replace(/[^a-z0-9]/gi, "-").toLowerCase()}.${format === "html" ? "html" : "md"}`;
-          const fs = await import("node:fs");
-          fs.writeFileSync(filename, playbook.content, "utf-8");
-          console.log(chalk.green(`  📄 Saved to ${filename}`));
-          console.log(chalk.dim(`  ${playbook.content.length} characters, ${playbook.sections.roadmap.length} phases, ${playbook.sections.risks.length} risks\n`));
-        } catch (err) {
-          playbookSpinner.fail("Playbook generation failed");
-          if (verbose) {
-            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-          }
-        }
-      }
-
-      // Generate decision packet if --decision-packet flag is set
-      if (opts.decisionPacket && result.investigation && result.synthesis) {
-        const packetSpinner = ora("📋 Generating Executive Decision Packet...").start();
-        try {
-          const packet = await generateDecisionPacket(
-            result.synthesis,
-            result.investigation,
-            subject,
-            { model: opts.model, signal: controller.signal }
-          );
-          packetSpinner.succeed("Decision Packet generated!\n");
-
-          const md = decisionPacketToMarkdown(packet);
-          const filename = `decision-packet-${subject.slice(0, 30).replace(/[^a-z0-9]/gi, "-").toLowerCase()}.md`;
-          const fs = await import("node:fs");
-          fs.writeFileSync(filename, md, "utf-8");
-          console.log(chalk.green(`  📄 Saved to ${filename}`));
-          console.log(chalk.dim(`  ${packet.options.length} options, ${packet.risks.length} risks, ${packet.resourceAsk.length} resources\n`));
-        } catch (err) {
-          packetSpinner.fail("Decision packet generation failed");
-          if (verbose) {
-            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-          }
-        }
-      }
-
-      // Run stakeholder simulation if --stakeholders flag is set
-      if (opts.stakeholders && result.synthesis && result.synthesis.topIdeas.length > 0) {
-        const topIdeas = result.synthesis.topIdeas.slice(0, 5);
-        const stakeholderSpinner = ora(`👥 Simulating stakeholder reactions for ${topIdeas.length} ideas...`).start();
-        try {
-          const ideas = topIdeas.map((ti) => ({
-            title: ti.title,
-            description: ti.description,
-            potentialImpact: ti.potentialImpact,
-            implementationHint: "",
-          }));
-          const simulations = await simulateStakeholdersBatch(ideas, undefined, opts.model, controller.signal);
-          stakeholderSpinner.succeed("Stakeholder simulation complete!\n");
-
-          const matrices = computeReadinessScores(simulations);
-
-          console.log(chalk.bold.blue("👥 STAKEHOLDER SIMULATION\n"));
-          for (const sim of simulations) {
-            console.log(chalk.bold(`  ${stripAnsi(sim.ideaTitle)}`));
-            console.log(chalk.dim("  " + "Persona".padEnd(25) + "Enthusiasm".padEnd(14) + "Likely Action"));
-            console.log(chalk.dim("  " + "─".repeat(65)));
-            for (const r of sim.reactions) {
-              const color = r.enthusiasm >= 7 ? chalk.green : r.enthusiasm >= 4 ? chalk.yellow : chalk.red;
-              console.log(`  ${stripAnsi(r.personaName).padEnd(25)}${color(String(r.enthusiasm) + "/10").padEnd(14)}${stripAnsi(r.likelyAction)}`);
+            const md = decisionPacketToMarkdown(packet);
+            const filename = `decision-packet-${subject
+              .slice(0, 30)
+              .replace(/[^a-z0-9]/gi, "-")
+              .toLowerCase()}.md`;
+            const fs = await import("node:fs");
+            fs.writeFileSync(filename, md, "utf-8");
+            console.log(chalk.green(`  📄 Saved to ${filename}`));
+            console.log(
+              chalk.dim(
+                `  ${packet.options.length} options, ${packet.risks.length} risks, ${packet.resourceAsk.length} resources\n`
+              )
+            );
+          } catch (err) {
+            packetSpinner.fail("Decision packet generation failed");
+            if (verbose) {
+              console.error(chalk.red(err instanceof Error ? err.message : String(err)));
             }
-            console.log(chalk.dim(`  Consensus: ${sim.consensusScore}/10 | Most enthusiastic: ${sim.mostEnthusiastic} | Most concerned: ${sim.mostConcerned}\n`));
-          }
-
-          console.log(chalk.bold.blue("📊 READINESS SCORES\n"));
-          console.log(chalk.dim("  " + "Idea".padEnd(40) + "Readiness".padEnd(12) + "Alignment".padEnd(12) + "Support/Oppose/Neutral"));
-          console.log(chalk.dim("  " + "─".repeat(85)));
-          for (const m of matrices) {
-            const readColor = m.readinessScore >= 70 ? chalk.green : m.readinessScore >= 40 ? chalk.yellow : chalk.red;
-            const title = stripAnsi(m.ideaTitle).slice(0, 38).padEnd(40);
-            console.log(`  ${title}${readColor(`${m.readinessScore}%`).padEnd(12)}${String(Math.round(m.alignmentScore * 100) + "%").padEnd(12)}${m.supportCount}/${m.oppositionCount}/${m.neutralCount}`);
-          }
-          console.log();
-        } catch (err) {
-          stakeholderSpinner.fail("Stakeholder simulation failed");
-          if (verbose) {
-            console.error(chalk.red(err instanceof Error ? err.message : String(err)));
           }
         }
+
+        // Run stakeholder simulation if --stakeholders flag is set
+        if (opts.stakeholders && result.synthesis && result.synthesis.topIdeas.length > 0) {
+          const topIdeas = result.synthesis.topIdeas.slice(0, 5);
+          const stakeholderSpinner = ora(
+            `👥 Simulating stakeholder reactions for ${topIdeas.length} ideas...`
+          ).start();
+          try {
+            const ideas = topIdeas.map((ti) => ({
+              title: ti.title,
+              description: ti.description,
+              potentialImpact: ti.potentialImpact,
+              implementationHint: "",
+            }));
+            const simulations = await simulateStakeholdersBatch(
+              ideas,
+              undefined,
+              opts.model,
+              controller.signal
+            );
+            stakeholderSpinner.succeed("Stakeholder simulation complete!\n");
+
+            const matrices = computeReadinessScores(simulations);
+
+            console.log(chalk.bold.blue("👥 STAKEHOLDER SIMULATION\n"));
+            for (const sim of simulations) {
+              console.log(chalk.bold(`  ${stripAnsi(sim.ideaTitle)}`));
+              console.log(
+                chalk.dim("  " + "Persona".padEnd(25) + "Enthusiasm".padEnd(14) + "Likely Action")
+              );
+              console.log(chalk.dim("  " + "─".repeat(65)));
+              for (const r of sim.reactions) {
+                const color =
+                  r.enthusiasm >= 7 ? chalk.green : r.enthusiasm >= 4 ? chalk.yellow : chalk.red;
+                console.log(
+                  `  ${stripAnsi(r.personaName).padEnd(25)}${color(String(r.enthusiasm) + "/10").padEnd(14)}${stripAnsi(r.likelyAction)}`
+                );
+              }
+              console.log(
+                chalk.dim(
+                  `  Consensus: ${sim.consensusScore}/10 | Most enthusiastic: ${sim.mostEnthusiastic} | Most concerned: ${sim.mostConcerned}\n`
+                )
+              );
+            }
+
+            console.log(chalk.bold.blue("📊 READINESS SCORES\n"));
+            console.log(
+              chalk.dim(
+                "  " +
+                  "Idea".padEnd(40) +
+                  "Readiness".padEnd(12) +
+                  "Alignment".padEnd(12) +
+                  "Support/Oppose/Neutral"
+              )
+            );
+            console.log(chalk.dim("  " + "─".repeat(85)));
+            for (const m of matrices) {
+              const readColor =
+                m.readinessScore >= 70
+                  ? chalk.green
+                  : m.readinessScore >= 40
+                    ? chalk.yellow
+                    : chalk.red;
+              const title = stripAnsi(m.ideaTitle).slice(0, 38).padEnd(40);
+              console.log(
+                `  ${title}${readColor(`${m.readinessScore}%`).padEnd(12)}${String(Math.round(m.alignmentScore * 100) + "%").padEnd(12)}${m.supportCount}/${m.oppositionCount}/${m.neutralCount}`
+              );
+            }
+            console.log();
+          } catch (err) {
+            stakeholderSpinner.fail("Stakeholder simulation failed");
+            if (verbose) {
+              console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+            }
+          }
+        }
+      } catch (err) {
+      } finally {
+        commandCleanup = null;
+        await stopCopilotClient();
       }
-    } catch (err) {
-    } finally {
-      commandCleanup = null;
-      await stopCopilotClient();
     }
-  });
+  );
 
 // ---- evolve command ----
 program
@@ -887,46 +1050,57 @@ program
   .option("-m, --model <model>", "LLM model to use")
   .option("--generations <n>", "Number of evolution generations (1-10)", "3")
   .option("--population <n>", "Population size per generation", "6")
-  .action(async (subject: string, opts: { model?: string; generations?: string; population?: string }) => {
-    if (!validateSubjectWithLog(subject)) return;
-    if (!validateModelWithLog(opts.model)) return;
+  .action(
+    async (
+      subject: string,
+      opts: { model?: string; generations?: string; population?: string }
+    ) => {
+      if (!validateSubjectWithLog(subject)) return;
+      if (!validateModelWithLog(opts.model)) return;
 
-    const gens = Math.min(10, Math.max(1, parseInt(opts.generations ?? "3", 10) || 3));
-    const popSize = Math.min(20, Math.max(4, parseInt(opts.population ?? "6", 10) || 6));
+      const gens = Math.min(10, Math.max(1, parseInt(opts.generations ?? "3", 10) || 3));
+      const popSize = Math.min(20, Math.max(4, parseInt(opts.population ?? "6", 10) || 6));
 
-    const spinner = ora("🔍 Investigating subject for initial population...").start();
-    const controller = new AbortController();
-    commandCleanup = async () => controller.abort();
+      const spinner = ora("🔍 Investigating subject for initial population...").start();
+      const controller = new AbortController();
+      commandCleanup = async () => controller.abort();
 
-    try {
-      const investigation = await investigate(subject, opts.model, controller.signal);
-      spinner.succeed("Investigation complete");
+      try {
+        const investigation = await investigate(subject, opts.model, controller.signal);
+        spinner.succeed("Investigation complete");
 
-      spinner.start("⚡ Generating initial idea population...");
-      const angleResult = await generateForAngle(subject, investigation, "first-principles", opts.model, controller.signal);
-      spinner.succeed(`Generated ${angleResult.ideas.length} seed ideas`);
+        spinner.start("⚡ Generating initial idea population...");
+        const angleResult = await generateForAngle(
+          subject,
+          investigation,
+          "first-principles",
+          opts.model,
+          controller.signal
+        );
+        spinner.succeed(`Generated ${angleResult.ideas.length} seed ideas`);
 
-      spinner.start(`🧬 Evolving over ${gens} generations (pop: ${popSize})...`);
-      const result = await runEvolution(
-        angleResult.ideas,
-        gens,
-        { populationSize: popSize, model: opts.model, signal: controller.signal },
-        (progress) => {
-          spinner.text = `🧬 Gen ${progress.generation + 1}/${progress.totalGenerations} — best fitness: ${progress.bestFitness} (${progress.phase})`;
-        }
-      );
-      spinner.succeed("Evolution complete!\n");
+        spinner.start(`🧬 Evolving over ${gens} generations (pop: ${popSize})...`);
+        const result = await runEvolution(
+          angleResult.ideas,
+          gens,
+          { populationSize: popSize, model: opts.model, signal: controller.signal },
+          (progress) => {
+            spinner.text = `🧬 Gen ${progress.generation + 1}/${progress.totalGenerations} — best fitness: ${progress.bestFitness} (${progress.phase})`;
+          }
+        );
+        spinner.succeed("Evolution complete!\n");
 
-      console.log(evolutionToMarkdown(result));
-    } catch (err) {
-      spinner.fail("Evolution failed");
-      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      process.exitCode = 1;
-    } finally {
-      commandCleanup = null;
-      await stopCopilotClient();
+        console.log(evolutionToMarkdown(result));
+      } catch (err) {
+        spinner.fail("Evolution failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
+      } finally {
+        commandCleanup = null;
+        await stopCopilotClient();
+      }
     }
-  });
+  );
 
 // ---- diff command ----
 program
@@ -951,7 +1125,12 @@ program
 
       console.log(chalk.bold.yellow("🔄 What Changed"));
       for (const item of result.changed) {
-        const sig = item.significance === "high" ? chalk.red("●") : item.significance === "medium" ? chalk.yellow("●") : chalk.dim("●");
+        const sig =
+          item.significance === "high"
+            ? chalk.red("●")
+            : item.significance === "medium"
+              ? chalk.yellow("●")
+              : chalk.dim("●");
         console.log(`  ${sig} ${chalk.bold(stripAnsi(item.title))}`);
         console.log(`    ${stripAnsi(item.description)}`);
       }
@@ -1084,9 +1263,7 @@ chainCmd
     for (const chain of listChains()) {
       console.log(`  ${chalk.bold.cyan(chain.id)} — ${chain.name}`);
       console.log(`  ${chalk.dim(chain.description)}`);
-      console.log(
-        `  Steps: ${chain.steps.map((s) => s.angleId).join(" → ")}\n`
-      );
+      console.log(`  Steps: ${chain.steps.map((s) => s.angleId).join(" → ")}\n`);
     }
   });
 
@@ -1103,7 +1280,13 @@ chainCmd
     const chain = getChainById(chainId);
     if (!chain) {
       console.error(chalk.red(`Unknown chain: ${chainId}`));
-      console.log(chalk.dim(`Available chains: ${listChains().map((c) => c.id).join(", ")}`));
+      console.log(
+        chalk.dim(
+          `Available chains: ${listChains()
+            .map((c) => c.id)
+            .join(", ")}`
+        )
+      );
       process.exitCode = 1;
       return;
     }
@@ -1177,13 +1360,21 @@ feedbackCmd
   .action(() => {
     const summary = getFeedbackSummary();
     if (summary.totalFeedback === 0) {
-      console.log(chalk.dim("No feedback collected yet. Use --rate with auto/innovate to rate ideas."));
+      console.log(
+        chalk.dim("No feedback collected yet. Use --rate with auto/innovate to rate ideas.")
+      );
       return;
     }
     console.log(chalk.bold(`\n📊 Feedback Summary (${summary.totalFeedback} ratings)\n`));
     for (const score of summary.angleScores) {
-      const bar = score.qualityScore >= 0.7 ? chalk.green("■") : score.qualityScore >= 0.4 ? chalk.yellow("■") : chalk.red("■");
-      const trendIcon = score.recentTrend === "improving" ? "📈" : score.recentTrend === "declining" ? "📉" : "➡️";
+      const bar =
+        score.qualityScore >= 0.7
+          ? chalk.green("■")
+          : score.qualityScore >= 0.4
+            ? chalk.yellow("■")
+            : chalk.red("■");
+      const trendIcon =
+        score.recentTrend === "improving" ? "📈" : score.recentTrend === "declining" ? "📉" : "➡️";
       console.log(
         `  ${bar} ${chalk.bold(score.angleId)} — ${Math.round(score.qualityScore * 100)}% positive (${score.thumbsUp}👍 ${score.thumbsDown}👎) ${trendIcon}`
       );
@@ -1205,26 +1396,30 @@ feedbackCmd
   .option("--idea <title>", "Idea title to rate", "general")
   .option("--comment <text>", "Optional comment on why")
   .option("--session <id>", "Session ID")
-  .action((angleId: string, rating: string, opts: { idea: string; comment?: string; session?: string }) => {
-    if (rating !== "up" && rating !== "down") {
-      console.error(chalk.red("Rating must be 'up' or 'down'"));
-      process.exitCode = 1;
-      return;
+  .action(
+    (
+      angleId: string,
+      rating: string,
+      opts: { idea: string; comment?: string; session?: string }
+    ) => {
+      if (rating !== "up" && rating !== "down") {
+        console.error(chalk.red("Rating must be 'up' or 'down'"));
+        process.exitCode = 1;
+        return;
+      }
+      const id = submitFeedback({
+        angleId,
+        rating: rating as "up" | "down",
+        ideaTitle: opts.idea,
+        comment: opts.comment,
+        sessionId: opts.session,
+      });
+      console.log(chalk.green(`✅ Feedback recorded (${id.slice(0, 8)})`));
     }
-    const id = submitFeedback({
-      angleId,
-      rating: rating as "up" | "down",
-      ideaTitle: opts.idea,
-      comment: opts.comment,
-      sessionId: opts.session,
-    });
-    console.log(chalk.green(`✅ Feedback recorded (${id.slice(0, 8)})`));
-  });
+  );
 
 // ---- angles command (utility) ----
-const anglesCmd = program
-  .command("angles")
-  .description("List and manage innovation angles");
+const anglesCmd = program.command("angles").description("List and manage innovation angles");
 
 anglesCmd
   .command("list")
@@ -1257,28 +1452,41 @@ anglesCmd
   .requiredOption("--id <id>", "Unique angle identifier (lowercase, hyphens)")
   .requiredOption("--name <name>", "Display name")
   .requiredOption("--description <desc>", "Short description of the angle")
-  .requiredOption("--template <template>", "Prompt template with {{subject}} and {{investigation}} placeholders")
+  .requiredOption(
+    "--template <template>",
+    "Prompt template with {{subject}} and {{investigation}} placeholders"
+  )
   .option("--icon <icon>", "Emoji icon", "🔧")
   .option("--author <author>", "Author name")
   .option("--tags <tags>", "Comma-separated tags")
-  .action((opts: { id: string; name: string; description: string; template: string; icon: string; author?: string; tags?: string }) => {
-    try {
-      const angle: CustomAngle = {
-        id: opts.id,
-        name: opts.name,
-        description: opts.description,
-        promptTemplate: opts.template,
-        icon: opts.icon,
-        author: opts.author,
-        tags: opts.tags?.split(",").map((t) => t.trim()),
-      };
-      addCustomAngle(angle);
-      console.log(chalk.green(`✓ Custom angle "${opts.id}" created successfully`));
-    } catch (err) {
-      console.error(chalk.red(err instanceof Error ? err.message : "Failed to create angle"));
-      process.exitCode = 1;
+  .action(
+    (opts: {
+      id: string;
+      name: string;
+      description: string;
+      template: string;
+      icon: string;
+      author?: string;
+      tags?: string;
+    }) => {
+      try {
+        const angle: CustomAngle = {
+          id: opts.id,
+          name: opts.name,
+          description: opts.description,
+          promptTemplate: opts.template,
+          icon: opts.icon,
+          author: opts.author,
+          tags: opts.tags?.split(",").map((t) => t.trim()),
+        };
+        addCustomAngle(angle);
+        console.log(chalk.green(`✓ Custom angle "${opts.id}" created successfully`));
+      } catch (err) {
+        console.error(chalk.red(err instanceof Error ? err.message : "Failed to create angle"));
+        process.exitCode = 1;
+      }
     }
-  });
+  );
 
 anglesCmd
   .command("remove <id>")
@@ -1302,7 +1510,6 @@ anglesCmd
     try {
       const angleIds = opts.angles?.split(",").map((a) => a.trim());
       const pack = exportAnglePack(opts.name, angleIds);
-      const { writeFileSync } = require("node:fs");
       writeFileSync(opts.output, JSON.stringify(pack, null, 2), "utf-8");
       console.log(chalk.green(`✓ Exported ${pack.angles.length} angle(s) to ${opts.output}`));
     } catch (err) {
@@ -1316,7 +1523,6 @@ anglesCmd
   .description("Import angles from an .angle.json pack file")
   .action((file: string) => {
     try {
-      const { readFileSync } = require("node:fs");
       const raw = readFileSync(file, "utf-8");
       const pack = JSON.parse(raw);
       const result = importAnglePack(pack);
@@ -1370,7 +1576,10 @@ program
       case "github-issue": {
         const issue = generateGitHubIssueBody(data);
         output = `Title: ${issue.title}\nLabels: ${issue.labels.join(", ")}\n\n${issue.body}`;
-        filename = `issue-${session.subject.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30)}.md`;
+        filename = `issue-${session.subject
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .slice(0, 30)}.md`;
         break;
       }
       default:
@@ -1380,7 +1589,6 @@ program
     }
 
     if (opts.output) {
-      const { writeFileSync } = require("node:fs");
       writeFileSync(opts.output, output, "utf-8");
       console.log(chalk.green(`✓ Exported to ${opts.output}`));
     } else {
@@ -1416,9 +1624,15 @@ historyCmd
       const date = new Date(s.createdAt).toLocaleDateString();
       const angleCount = s.angleResults.length;
       const tags = s.tags.length > 0 ? chalk.cyan(` [${s.tags.join(", ")}]`) : "";
-      console.log(`  ${chalk.dim(s.id.slice(0, 8))} ${chalk.bold(s.subject)} ${chalk.dim(date)} ${chalk.dim(`(${angleCount} angles)`)}${tags}`);
+      console.log(
+        `  ${chalk.dim(s.id.slice(0, 8))} ${chalk.bold(s.subject)} ${chalk.dim(date)} ${chalk.dim(`(${angleCount} angles)`)}${tags}`
+      );
     }
-    console.log(chalk.dim(`\nShowing ${sessions.length} session(s). Use 'innovator history show <id>' for details.`));
+    console.log(
+      chalk.dim(
+        `\nShowing ${sessions.length} session(s). Use 'innovator history show <id>' for details.`
+      )
+    );
   });
 
 historyCmd.action(() => {
@@ -1493,9 +1707,7 @@ historyCmd
   });
 
 // ---- presets command ----
-const presetsCmd = program
-  .command("presets")
-  .description("Browse and use domain presets");
+const presetsCmd = program.command("presets").description("Browse and use domain presets");
 
 presetsCmd
   .command("list")
@@ -1504,10 +1716,14 @@ presetsCmd
     const presets = getPresets();
     console.log(chalk.bold("\n📋 Available Presets\n"));
     for (const preset of presets) {
-      console.log(`  ${preset.icon} ${chalk.bold(preset.name)} ${chalk.dim(`(${preset.category})`)}`);
+      console.log(
+        `  ${preset.icon} ${chalk.bold(preset.name)} ${chalk.dim(`(${preset.category})`)}`
+      );
       console.log(`     ${chalk.dim(preset.description)}`);
       console.log(`     ${chalk.cyan("Angles:")} ${preset.selectedAngles.join(", ")}`);
-      console.log(`     ${chalk.dim("Try:")} innovator presets run ${preset.id} "${preset.suggestedSubject}"\n`);
+      console.log(
+        `     ${chalk.dim("Try:")} innovator presets run ${preset.id} "${preset.suggestedSubject}"\n`
+      );
     }
   });
 
@@ -1522,95 +1738,100 @@ presetsCmd
   .option("--score", "Score and rank ideas after generation")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
-  .action(async (presetId: string, subject: string, opts: { model?: string; score?: boolean; file?: string; url?: string }) => {
-    const preset = getPresetById(presetId);
-    if (!preset) {
-      console.error(chalk.red(`Preset "${presetId}" not found`));
-      const presets = getPresets();
-      console.log(chalk.dim(`Available: ${presets.map((p) => p.id).join(", ")}`));
-      process.exitCode = 1;
-      return;
-    }
-    if (!validateSubjectWithLog(subject)) return;
-    if (!validateModelWithLog(opts.model)) return;
-
-    // Handle --file or --url input
-    let enrichedSubject = subject;
-    if (opts.file || opts.url) {
-      const source = opts.file ?? opts.url!;
-      const extractSpinner = ora(`Extracting content from ${source}...`).start();
-      try {
-        const extracted = await extractContent(source);
-        enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
-        extractSpinner.succeed(`Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`);
-      } catch (err) {
-        extractSpinner.fail("Content extraction failed");
-        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+  .action(
+    async (
+      presetId: string,
+      subject: string,
+      opts: { model?: string; score?: boolean; file?: string; url?: string }
+    ) => {
+      const preset = getPresetById(presetId);
+      if (!preset) {
+        console.error(chalk.red(`Preset "${presetId}" not found`));
+        const presets = getPresets();
+        console.log(chalk.dim(`Available: ${presets.map((p) => p.id).join(", ")}`));
         process.exitCode = 1;
         return;
       }
-    }
+      if (!validateSubjectWithLog(subject)) return;
+      if (!validateModelWithLog(opts.model)) return;
 
-
-    console.log(chalk.bold(`\n${preset.icon} Using preset: ${preset.name}`));
-    console.log(chalk.dim(preset.description));
-    console.log(chalk.dim(`Angles: ${preset.selectedAngles.join(", ")}\n`));
-
-    const spinner = ora("Starting pipeline with preset...").start();
-    const controller = new AbortController();
-    commandCleanup = async () => controller.abort();
-
-    try {
-      const result = await runAutoPipeline(
-        enrichedSubject,
-        (progress) => {
-          if (progress.stage === "investigating") spinner.text = "🔍 Investigating subject...";
-          else if (progress.stage === "generating") {
-            spinner.text = `⚡ Generating (${progress.completedAngles.length}/${progress.totalAngles})...`;
-          } else if (progress.stage === "synthesizing") spinner.text = "🧪 Synthesizing...";
-        },
-        opts.model,
-        preset.selectedAngles,
-        controller.signal
-      );
-
-      if (result.stage === "error") {
-        spinner.fail("Pipeline failed");
-        console.error(chalk.red(result.error ?? "Unknown error"));
-        process.exitCode = 1;
-        return;
-      }
-
-      spinner.succeed("Pipeline complete!\n");
-
-      for (const angle of result.angleResults) {
-        console.log(chalk.bold(`\n${"═".repeat(60)}`));
-        console.log(chalk.bold.blue(stripAnsi(angle.angleName)));
-        for (const idea of angle.ideas) {
-          console.log(`\n  ${chalk.bold.cyan(stripAnsi(idea.title))}`);
-          console.log(`  ${stripAnsi(idea.description)}`);
+      // Handle --file or --url input
+      let enrichedSubject = subject;
+      if (opts.file || opts.url) {
+        const source = opts.file ?? opts.url!;
+        const extractSpinner = ora(`Extracting content from ${source}...`).start();
+        try {
+          const extracted = await extractContent(source);
+          enrichedSubject = `${subject}\n\nCONTEXT FROM ${extracted.sourceType.toUpperCase()} "${extracted.title}":\n${extracted.content.slice(0, 5000)}`;
+          extractSpinner.succeed(
+            `Extracted content from ${extracted.title} (${extracted.metadata.wordCount} words)`
+          );
+        } catch (err) {
+          extractSpinner.fail("Content extraction failed");
+          console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+          process.exitCode = 1;
+          return;
         }
       }
 
-      if (result.synthesis) {
-        console.log(chalk.bold(`\n${"═".repeat(60)}`));
-        console.log(chalk.bold.magenta("🏆 SYNTHESIS\n"));
-        console.log(`  ${stripAnsi(result.synthesis.recommendation)}`);
+      console.log(chalk.bold(`\n${preset.icon} Using preset: ${preset.name}`));
+      console.log(chalk.dim(preset.description));
+      console.log(chalk.dim(`Angles: ${preset.selectedAngles.join(", ")}\n`));
+
+      const spinner = ora("Starting pipeline with preset...").start();
+      const controller = new AbortController();
+      commandCleanup = async () => controller.abort();
+
+      try {
+        const result = await runAutoPipeline(
+          enrichedSubject,
+          (progress) => {
+            if (progress.stage === "investigating") spinner.text = "🔍 Investigating subject...";
+            else if (progress.stage === "generating") {
+              spinner.text = `⚡ Generating (${progress.completedAngles.length}/${progress.totalAngles})...`;
+            } else if (progress.stage === "synthesizing") spinner.text = "🧪 Synthesizing...";
+          },
+          opts.model,
+          preset.selectedAngles,
+          controller.signal
+        );
+
+        if (result.stage === "error") {
+          spinner.fail("Pipeline failed");
+          console.error(chalk.red(result.error ?? "Unknown error"));
+          process.exitCode = 1;
+          return;
+        }
+
+        spinner.succeed("Pipeline complete!\n");
+
+        for (const angle of result.angleResults) {
+          console.log(chalk.bold(`\n${"═".repeat(60)}`));
+          console.log(chalk.bold.blue(stripAnsi(angle.angleName)));
+          for (const idea of angle.ideas) {
+            console.log(`\n  ${chalk.bold.cyan(stripAnsi(idea.title))}`);
+            console.log(`  ${stripAnsi(idea.description)}`);
+          }
+        }
+
+        if (result.synthesis) {
+          console.log(chalk.bold(`\n${"═".repeat(60)}`));
+          console.log(chalk.bold.magenta("🏆 SYNTHESIS\n"));
+          console.log(`  ${stripAnsi(result.synthesis.recommendation)}`);
+        }
+      } catch (err) {
+        spinner.fail("Preset run failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
+      } finally {
+        commandCleanup = null;
+        await stopCopilotClient();
       }
-    } catch (err) {
-      spinner.fail("Preset run failed");
-      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      process.exitCode = 1;
-    } finally {
-      commandCleanup = null;
-      await stopCopilotClient();
     }
-  });
+  );
 
 // ---- plugin command ----
-const pluginCmd = program
-  .command("plugin")
-  .description("Manage innovator plugins");
+const pluginCmd = program.command("plugin").description("Manage innovator plugins");
 
 pluginCmd
   .command("list")
@@ -1646,7 +1867,6 @@ pluginCmd
   .description("Scaffold a new plugin project")
   .option("--type <type>", "Plugin type: angle, exporter, or visualizer", "angle")
   .action((name: string, opts: { type: string }) => {
-    const { mkdirSync, writeFileSync, existsSync } = require("node:fs");
     const dir = name;
     if (existsSync(dir)) {
       console.error(chalk.red(`Directory "${dir}" already exists`));
@@ -1743,7 +1963,10 @@ program
   .description("Compare innovation quality across models")
   .argument("<subject>", "The subject to benchmark")
   .requiredOption("--models <models>", "Comma-separated model IDs to compare")
-  .option("--angles <angles>", "Comma-separated angle IDs (default: scamper,first-principles,cross-domain)")
+  .option(
+    "--angles <angles>",
+    "Comma-separated angle IDs (default: scamper,first-principles,cross-domain)"
+  )
   .option("--judge <model>", "Model to use as evaluator/judge")
   .option("-o, --output <file>", "Output report file path")
   .action(
@@ -1766,15 +1989,9 @@ program
       const spinner = ora("Running benchmark...").start();
 
       try {
-        const report = await runBenchmark(
-          subject,
-          models,
-          angles,
-          opts.judge,
-          (status) => {
-            spinner.text = status;
-          }
-        );
+        const report = await runBenchmark(subject, models, angles, opts.judge, (status) => {
+          spinner.text = status;
+        });
 
         spinner.succeed("Benchmark complete!\n");
 
@@ -1795,7 +2012,6 @@ program
         // Save if output specified
         if (opts.output) {
           const md = benchmarkToMarkdown(report);
-          const { writeFileSync } = require("node:fs");
           writeFileSync(opts.output, md, "utf-8");
           console.log(chalk.green(`\n✓ Report saved to ${opts.output}`));
         }
@@ -1810,9 +2026,7 @@ program
   );
 
 // ---- config command ----
-const configCmd = program
-  .command("config")
-  .description("Manage LLM provider configuration");
+const configCmd = program.command("config").description("Manage LLM provider configuration");
 
 configCmd
   .command("show")
@@ -1824,7 +2038,9 @@ configCmd
     if (config.providers) {
       console.log(chalk.dim("\nProviders:"));
       for (const [id, cfg] of Object.entries(config.providers)) {
-        console.log(`  ${chalk.bold(id)}: ${cfg.enabled !== false ? chalk.green("enabled") : chalk.red("disabled")}`);
+        console.log(
+          `  ${chalk.bold(id)}: ${cfg.enabled !== false ? chalk.green("enabled") : chalk.red("disabled")}`
+        );
         if (cfg.baseUrl) console.log(`    ${chalk.dim("URL:")} ${cfg.baseUrl}`);
         if (cfg.defaultModel) console.log(`    ${chalk.dim("Model:")} ${cfg.defaultModel}`);
         if (cfg.apiKeyEnv) console.log(`    ${chalk.dim("API Key Env:")} ${cfg.apiKeyEnv}`);
@@ -1833,7 +2049,8 @@ configCmd
     if (config.modelPreferences) {
       console.log(chalk.dim("\nModel preferences per stage:"));
       const prefs = config.modelPreferences;
-      if (prefs.investigation) console.log(`  ${chalk.dim("Investigation:")} ${prefs.investigation}`);
+      if (prefs.investigation)
+        console.log(`  ${chalk.dim("Investigation:")} ${prefs.investigation}`);
       if (prefs.generation) console.log(`  ${chalk.dim("Generation:")} ${prefs.generation}`);
       if (prefs.synthesis) console.log(`  ${chalk.dim("Synthesis:")} ${prefs.synthesis}`);
     }
@@ -1852,7 +2069,9 @@ configCmd
 
 configCmd
   .command("set-model <stage> <model>")
-  .description("Set the preferred model for a pipeline stage (investigation, generation, synthesis)")
+  .description(
+    "Set the preferred model for a pipeline stage (investigation, generation, synthesis)"
+  )
   .action((stage: string, model: string) => {
     if (!["investigation", "generation", "synthesis"].includes(stage)) {
       console.error(chalk.red(`Invalid stage. Use: investigation, generation, or synthesis`));
@@ -1917,7 +2136,9 @@ configCmd
     for (const rec of RECOMMENDED_MODELS) {
       const installed = status.ollama.models.some((m) => m.startsWith(rec.id.split(":")[0]));
       const indicator = installed ? chalk.green("✓") : chalk.dim("○");
-      console.log(`  ${indicator} ${chalk.bold(rec.id.padEnd(20))} [${rec.useCase}] ${rec.description}`);
+      console.log(
+        `  ${indicator} ${chalk.bold(rec.id.padEnd(20))} [${rec.useCase}] ${rec.description}`
+      );
       console.log(chalk.dim(`    Min RAM: ${rec.minRamGb}GB`));
     }
 
@@ -1943,7 +2164,6 @@ configCmd
       console.log(chalk.yellow("Network: 🔴 Offline (using Ollama for all requests)"));
     }
   });
-
 
 // ---- refine command (interactive REPL) ----
 program
@@ -1990,7 +2210,9 @@ program
       });
 
       console.log(chalk.bold.blue("💬 Conversation Mode"));
-      console.log(chalk.dim("Type your questions to refine ideas. Type 'exit' or 'quit' to end.\n"));
+      console.log(
+        chalk.dim("Type your questions to refine ideas. Type 'exit' or 'quit' to end.\n")
+      );
 
       if (result.synthesis) {
         console.log(chalk.dim("Top ideas:"));
@@ -2086,15 +2308,23 @@ program
 
     try {
       const result = await findSerendipitousConnections(minSim, maxConn, opts.model);
-      spinner.succeed(`Found ${result.connections.length} connection(s) across ${result.totalSessionsAnalyzed} sessions\n`);
+      spinner.succeed(
+        `Found ${result.connections.length} connection(s) across ${result.totalSessionsAnalyzed} sessions\n`
+      );
 
       if (result.connections.length === 0) {
-        console.log(chalk.dim("No serendipitous connections found. Run more investigations to build your knowledge base."));
+        console.log(
+          chalk.dim(
+            "No serendipitous connections found. Run more investigations to build your knowledge base."
+          )
+        );
         return;
       }
 
       for (const conn of result.connections) {
-        console.log(chalk.bold.magenta(`\n🔗 ${stripAnsi(conn.subjectA)} ↔ ${stripAnsi(conn.subjectB)}`));
+        console.log(
+          chalk.bold.magenta(`\n🔗 ${stripAnsi(conn.subjectA)} ↔ ${stripAnsi(conn.subjectB)}`)
+        );
         console.log(chalk.dim(`   Similarity: ${(conn.similarityScore * 100).toFixed(0)}%`));
         console.log(`   ${stripAnsi(conn.explanation)}`);
 
@@ -2128,12 +2358,8 @@ program
   .description("Migrate file-based data (~/.innovator/) into a SQLite database")
   .option("--db <path>", "SQLite database file path", "~/.innovator/innovator.db")
   .action(async (opts: { db: string }) => {
-    const { createSQLiteStorage } = await import(
-      "@innovator/core/storage/sqlite"
-    );
-    const { migrateFileDataToStorage } = await import(
-      "@innovator/core"
-    );
+    const { createSQLiteStorage } = await import("@innovator/core/storage/sqlite");
+    const { migrateFileDataToStorage } = await import("@innovator/core");
     const dbPath = opts.db.replace("~", process.env.HOME ?? "");
     const spinner = ora("Initializing SQLite database…").start();
     try {
@@ -2163,9 +2389,7 @@ program
   });
 
 // ── marketplace ──────────────────────────────────────────────────────
-const marketplace = program
-  .command("marketplace")
-  .description("Plugin marketplace commands");
+const marketplace = program.command("marketplace").description("Plugin marketplace commands");
 
 marketplace
   .command("search [query]")
@@ -2210,18 +2434,27 @@ marketplace
   .requiredOption("--source <source>", "npm package or git URL")
   .requiredOption("--version <version>", "Plugin version")
   .requiredOption("--author <author>", "Author name")
-  .action(async (opts: { name: string; description: string; category: string; source: string; version: string; author: string }) => {
-    const { publishPlugin } = await import("@innovator/core");
-    const plugin = publishPlugin({
-      name: opts.name,
-      description: opts.description,
-      category: opts.category as never,
-      source: opts.source,
-      version: opts.version,
-      author: { name: opts.author },
-    });
-    console.log(chalk.green(`✅ Published ${plugin.name} v${plugin.version} (${plugin.id})`));
-  });
+  .action(
+    async (opts: {
+      name: string;
+      description: string;
+      category: string;
+      source: string;
+      version: string;
+      author: string;
+    }) => {
+      const { publishPlugin } = await import("@innovator/core");
+      const plugin = publishPlugin({
+        name: opts.name,
+        description: opts.description,
+        category: opts.category as never,
+        source: opts.source,
+        version: opts.version,
+        author: { name: opts.author },
+      });
+      console.log(chalk.green(`✅ Published ${plugin.name} v${plugin.version} (${plugin.id})`));
+    }
+  );
 
 // ── radar ────────────────────────────────────────────────────────────
 const radar = program
@@ -2258,7 +2491,9 @@ radar
     }
     for (const w of watches) {
       const status = w.enabled ? chalk.green("●") : chalk.red("●");
-      console.log(`  ${status} ${chalk.bold(w.subject)} — ${w.frequency} | Next: ${w.nextRunAt.split("T")[0]}`);
+      console.log(
+        `  ${status} ${chalk.bold(w.subject)} — ${w.frequency} | Next: ${w.nextRunAt.split("T")[0]}`
+      );
     }
   });
 
@@ -2271,15 +2506,28 @@ program
   .option("--impact <impact>", "Potential impact", "High impact innovation")
   .option("--stack <stack>", "Tech stack: typescript, python, go, rust", "typescript")
   .option("--name <name>", "Project name")
-  .action(async (opts: { title: string; description: string; impact: string; stack: string; name?: string }) => {
-    const { generateScaffold, scaffoldToMarkdown } = await import("@innovator/core");
-    const scaffold = generateScaffold({
-      idea: { title: opts.title, description: opts.description, potentialImpact: opts.impact, implementationHint: "" },
-      stack: opts.stack as "typescript" | "python" | "go" | "rust",
-      projectName: opts.name,
-    });
-    console.log(scaffoldToMarkdown(scaffold));
-  });
+  .action(
+    async (opts: {
+      title: string;
+      description: string;
+      impact: string;
+      stack: string;
+      name?: string;
+    }) => {
+      const { generateScaffold, scaffoldToMarkdown } = await import("@innovator/core");
+      const scaffold = generateScaffold({
+        idea: {
+          title: opts.title,
+          description: opts.description,
+          potentialImpact: opts.impact,
+          implementationHint: "",
+        },
+        stack: opts.stack as "typescript" | "python" | "go" | "rust",
+        projectName: opts.name,
+      });
+      console.log(scaffoldToMarkdown(scaffold));
+    }
+  );
 
 // ── telemetry ────────────────────────────────────────────────────────
 program
@@ -2296,20 +2544,38 @@ program
 
     if (Object.keys(dashboard.stageMetrics).length > 0) {
       console.log(chalk.bold("  Stage Metrics:"));
-      console.log(chalk.dim("  " + "Stage".padEnd(20) + "Count".padEnd(8) + "Avg Duration".padEnd(15) + "Tokens".padEnd(10) + "Cost".padEnd(10) + "Success"));
+      console.log(
+        chalk.dim(
+          "  " +
+            "Stage".padEnd(20) +
+            "Count".padEnd(8) +
+            "Avg Duration".padEnd(15) +
+            "Tokens".padEnd(10) +
+            "Cost".padEnd(10) +
+            "Success"
+        )
+      );
       console.log(chalk.dim("  " + "─".repeat(75)));
       for (const [stage, m] of Object.entries(dashboard.stageMetrics)) {
-        console.log(`  ${stage.padEnd(20)}${String(m.count).padEnd(8)}${(m.avgDurationMs + "ms").padEnd(15)}${String(m.totalTokens).padEnd(10)}$${m.totalCostUsd.toFixed(4).padEnd(9)}${(m.successRate * 100).toFixed(0)}%`);
+        console.log(
+          `  ${stage.padEnd(20)}${String(m.count).padEnd(8)}${(m.avgDurationMs + "ms").padEnd(15)}${String(m.totalTokens).padEnd(10)}$${m.totalCostUsd.toFixed(4).padEnd(9)}${(m.successRate * 100).toFixed(0)}%`
+        );
       }
       console.log();
     }
 
     if (Object.keys(dashboard.angleMetrics).length > 0) {
       console.log(chalk.bold("  Angle Performance:"));
-      console.log(chalk.dim("  " + "Angle".padEnd(25) + "Count".padEnd(8) + "Avg Duration".padEnd(15) + "Avg Ideas"));
+      console.log(
+        chalk.dim(
+          "  " + "Angle".padEnd(25) + "Count".padEnd(8) + "Avg Duration".padEnd(15) + "Avg Ideas"
+        )
+      );
       console.log(chalk.dim("  " + "─".repeat(55)));
       for (const [angle, m] of Object.entries(dashboard.angleMetrics)) {
-        console.log(`  ${angle.padEnd(25)}${String(m.count).padEnd(8)}${(m.avgDurationMs + "ms").padEnd(15)}${m.avgIdeaCount}`);
+        console.log(
+          `  ${angle.padEnd(25)}${String(m.count).padEnd(8)}${(m.avgDurationMs + "ms").padEnd(15)}${m.avgIdeaCount}`
+        );
       }
       console.log();
     }
@@ -2317,7 +2583,12 @@ program
     if (dashboard.recentSpans.length > 0) {
       console.log(chalk.bold("  Recent Spans (last 10):"));
       for (const span of dashboard.recentSpans.slice(-10)) {
-        const statusIcon = span.status === "ok" ? chalk.green("✓") : span.status === "error" ? chalk.red("✗") : chalk.yellow("⋯");
+        const statusIcon =
+          span.status === "ok"
+            ? chalk.green("✓")
+            : span.status === "error"
+              ? chalk.red("✗")
+              : chalk.yellow("⋯");
         const dur = span.durationMs ? `${span.durationMs}ms` : "in progress";
         console.log(`  ${statusIcon} ${span.operationName.padEnd(30)} ${dur}`);
       }
@@ -2343,31 +2614,45 @@ contextCmd
   .option("--url <url>", "Base URL (for Confluence)")
   .option("--space <space>", "Space key (for Confluence)")
   .option("--token <token>", "Auth token")
-  .action(async (opts: { type: string; name: string; repo?: string; path?: string; url?: string; space?: string; token?: string }) => {
-    const { registerConnector, ConnectorTypeSchema } = await import("@innovator/core");
-    const typeParse = ConnectorTypeSchema.safeParse(opts.type);
-    if (!typeParse.success) {
-      console.error(chalk.red(`Invalid connector type: ${opts.type}. Use: github, confluence, notion, local-file`));
-      return;
-    }
-    const config: Record<string, string> = {};
-    if (opts.repo) config.repo = opts.repo;
-    if (opts.path) config.path = opts.path;
-    if (opts.url) config.baseUrl = opts.url;
-    if (opts.space) config.spaceKey = opts.space;
-    if (opts.token) config.token = opts.token;
+  .action(
+    async (opts: {
+      type: string;
+      name: string;
+      repo?: string;
+      path?: string;
+      url?: string;
+      space?: string;
+      token?: string;
+    }) => {
+      const { registerConnector, ConnectorTypeSchema } = await import("@innovator/core");
+      const typeParse = ConnectorTypeSchema.safeParse(opts.type);
+      if (!typeParse.success) {
+        console.error(
+          chalk.red(
+            `Invalid connector type: ${opts.type}. Use: github, confluence, notion, local-file`
+          )
+        );
+        return;
+      }
+      const config: Record<string, string> = {};
+      if (opts.repo) config.repo = opts.repo;
+      if (opts.path) config.path = opts.path;
+      if (opts.url) config.baseUrl = opts.url;
+      if (opts.space) config.spaceKey = opts.space;
+      if (opts.token) config.token = opts.token;
 
-    const id = `${opts.type}-${Date.now()}`;
-    registerConnector({
-      id,
-      type: typeParse.data,
-      name: opts.name,
-      enabled: true,
-      syncIntervalMinutes: 60,
-      config,
-    });
-    console.log(chalk.green(`✓ Registered connector: ${opts.name} (${id})`));
-  });
+      const id = `${opts.type}-${Date.now()}`;
+      registerConnector({
+        id,
+        type: typeParse.data,
+        name: opts.name,
+        enabled: true,
+        syncIntervalMinutes: 60,
+        config,
+      });
+      console.log(chalk.green(`✓ Registered connector: ${opts.name} (${id})`));
+    }
+  );
 
 contextCmd
   .command("list")
@@ -2381,8 +2666,15 @@ contextCmd
     }
     console.log(chalk.bold.blue("\n📚 Knowledge Source Connectors\n"));
     for (const c of connectors) {
-      const statusIcon = c.status.status === "connected" ? chalk.green("●") : c.status.status === "error" ? chalk.red("●") : chalk.yellow("●");
-      console.log(`  ${statusIcon} ${chalk.bold(c.name)} (${c.type}) — ${c.status.documentsIndexed} docs indexed`);
+      const statusIcon =
+        c.status.status === "connected"
+          ? chalk.green("●")
+          : c.status.status === "error"
+            ? chalk.red("●")
+            : chalk.yellow("●");
+      console.log(
+        `  ${statusIcon} ${chalk.bold(c.name)} (${c.type}) — ${c.status.documentsIndexed} docs indexed`
+      );
       if (c.status.lastError) console.log(chalk.red(`    Error: ${c.status.lastError}`));
     }
     console.log();
@@ -2441,9 +2733,7 @@ webhooksCmd
   });
 
 // ── monitor ─────────────────────────────────────────────────────────
-const monitorCmd = program
-  .command("monitor")
-  .description("Competitive intelligence monitoring");
+const monitorCmd = program.command("monitor").description("Competitive intelligence monitoring");
 
 monitorCmd
   .command("create")
@@ -2452,18 +2742,25 @@ monitorCmd
   .option("--competitors <list>", "Comma-separated competitor names")
   .option("--keywords <list>", "Comma-separated keywords")
   .option("--frequency <freq>", "Monitoring frequency: hourly, daily, weekly", "daily")
-  .action(async (opts: { domain: string; competitors?: string; keywords?: string; frequency?: string }) => {
-    const { createMonitor } = await import("@innovator/core");
-    const monitor = createMonitor({
-      domain: opts.domain,
-      competitors: opts.competitors ? opts.competitors.split(",").map((s) => s.trim()) : [],
-      keywords: opts.keywords ? opts.keywords.split(",").map((s) => s.trim()) : [],
-      enabled: true,
-      frequency: (opts.frequency ?? "daily") as "hourly" | "daily" | "weekly",
-    });
-    console.log(chalk.green(`✓ Monitor created: ${monitor.id}`));
-    console.log(chalk.dim(`  Domain: ${monitor.domain} | Frequency: ${monitor.frequency}`));
-  });
+  .action(
+    async (opts: {
+      domain: string;
+      competitors?: string;
+      keywords?: string;
+      frequency?: string;
+    }) => {
+      const { createMonitor } = await import("@innovator/core");
+      const monitor = createMonitor({
+        domain: opts.domain,
+        competitors: opts.competitors ? opts.competitors.split(",").map((s) => s.trim()) : [],
+        keywords: opts.keywords ? opts.keywords.split(",").map((s) => s.trim()) : [],
+        enabled: true,
+        frequency: (opts.frequency ?? "daily") as "hourly" | "daily" | "weekly",
+      });
+      console.log(chalk.green(`✓ Monitor created: ${monitor.id}`));
+      console.log(chalk.dim(`  Domain: ${monitor.domain} | Frequency: ${monitor.frequency}`));
+    }
+  );
 
 monitorCmd
   .command("list")
@@ -2480,7 +2777,9 @@ monitorCmd
       const status = m.enabled ? chalk.green("●") : chalk.red("●");
       console.log(`  ${status} ${chalk.bold(m.domain)} (${m.id})`);
       console.log(`    Competitors: ${m.competitors.join(", ") || "none"}`);
-      console.log(`    Frequency: ${m.frequency} | Next run: ${m.nextRunAt?.split("T")[0] ?? "N/A"}\n`);
+      console.log(
+        `    Frequency: ${m.frequency} | Next run: ${m.nextRunAt?.split("T")[0] ?? "N/A"}\n`
+      );
     }
   });
 
@@ -2490,7 +2789,8 @@ monitorCmd
   .option("--domain <domain>", "Filter by domain")
   .option("--limit <n>", "Maximum signals to show", "20")
   .action(async (opts: { domain?: string; limit?: string }) => {
-    const { getSignals, detectTrends, generateInvestigationSuggestions } = await import("@innovator/core");
+    const { getSignals, detectTrends, generateInvestigationSuggestions } =
+      await import("@innovator/core");
     const limit = parseInt(opts.limit ?? "20", 10);
     const signals = getSignals({ domain: opts.domain, limit });
 
@@ -2501,10 +2801,15 @@ monitorCmd
 
     console.log(chalk.bold.blue("\n📡 Competitive Signals\n"));
     for (const s of signals) {
-      const relColor = s.relevanceScore >= 0.7 ? chalk.green : s.relevanceScore >= 0.4 ? chalk.yellow : chalk.dim;
+      const relColor =
+        s.relevanceScore >= 0.7 ? chalk.green : s.relevanceScore >= 0.4 ? chalk.yellow : chalk.dim;
       console.log(`  ${relColor("●")} ${chalk.bold(s.title)} [${s.signalType}]`);
-      console.log(`    ${chalk.dim(s.description.slice(0, 100))}${s.description.length > 100 ? "..." : ""}`);
-      console.log(`    Source: ${s.source} | Relevance: ${Math.round(s.relevanceScore * 100)}% | ${s.detectedAt.split("T")[0]}\n`);
+      console.log(
+        `    ${chalk.dim(s.description.slice(0, 100))}${s.description.length > 100 ? "..." : ""}`
+      );
+      console.log(
+        `    Source: ${s.source} | Relevance: ${Math.round(s.relevanceScore * 100)}% | ${s.detectedAt.split("T")[0]}\n`
+      );
     }
 
     const trends = detectTrends(opts.domain);
@@ -2552,7 +2857,7 @@ program
       subject: session.subject ?? "Unknown",
       angleResults: session.angleResults ?? [],
       investigation: session.investigation,
-      model: (session as any).model,
+      model: (session as unknown as { model?: string }).model,
     });
 
     if (opts.format === "json-ld") {
@@ -2578,33 +2883,46 @@ program
   .option("-m, --model <model>", "LLM model to use")
   .option("--rounds <n>", "Number of wargaming rounds (1-5)", "3")
   .option("--markdown", "Output as Markdown")
-  .action(async (subject: string, opts: { idea: string; description: string; model?: string; rounds?: string; markdown?: boolean }) => {
-    if (!validateSubjectWithLog(subject)) return;
-    if (opts.model && !validateModelWithLog(opts.model)) return;
-    const spinner = ora("Running wargaming simulation...").start();
-    try {
-      const result = await runWargaming(opts.idea, opts.description, subject, {
-        model: opts.model,
-        rounds: parseInt(opts.rounds ?? "3", 10),
-      });
-      spinner.stop();
-      if (opts.markdown) {
-        console.log(wargamingToMarkdown(result));
-      } else {
-        console.log(chalk.bold.red(`\n🎯 Wargaming: ${result.ideaTitle}\n`));
-        console.log(`  Resilience Score: ${chalk.bold(String(result.overallResilienceScore))}/100`);
-        console.log(`  Competitors: ${result.competitors.map((c) => c.name).join(", ")}`);
-        console.log(`  Rounds: ${result.rounds.length}`);
-        console.log(`  Vulnerabilities: ${result.vulnerabilities.length}`);
-        console.log(`  Counter-strategies: ${result.counterStrategies.length}\n`);
-        console.log(chalk.dim(result.strategicBrief));
+  .action(
+    async (
+      subject: string,
+      opts: {
+        idea: string;
+        description: string;
+        model?: string;
+        rounds?: string;
+        markdown?: boolean;
       }
-    } catch (err) {
-      spinner.fail("Wargaming failed");
-      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      process.exitCode = 1;
+    ) => {
+      if (!validateSubjectWithLog(subject)) return;
+      if (opts.model && !validateModelWithLog(opts.model)) return;
+      const spinner = ora("Running wargaming simulation...").start();
+      try {
+        const result = await runWargaming(opts.idea, opts.description, subject, {
+          model: opts.model,
+          rounds: parseInt(opts.rounds ?? "3", 10),
+        });
+        spinner.stop();
+        if (opts.markdown) {
+          console.log(wargamingToMarkdown(result));
+        } else {
+          console.log(chalk.bold.red(`\n🎯 Wargaming: ${result.ideaTitle}\n`));
+          console.log(
+            `  Resilience Score: ${chalk.bold(String(result.overallResilienceScore))}/100`
+          );
+          console.log(`  Competitors: ${result.competitors.map((c) => c.name).join(", ")}`);
+          console.log(`  Rounds: ${result.rounds.length}`);
+          console.log(`  Vulnerabilities: ${result.vulnerabilities.length}`);
+          console.log(`  Counter-strategies: ${result.counterStrategies.length}\n`);
+          console.log(chalk.dim(result.strategicBrief));
+        }
+      } catch (err) {
+        spinner.fail("Wargaming failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
+      }
     }
-  });
+  );
 
 // ---- Rubric Commands ----
 const rubricCmd = program.command("rubric").description("Manage custom scoring rubrics");
@@ -2661,7 +2979,9 @@ program
       if (report.recommendations.length > 0) {
         console.log(chalk.bold("  Routing Recommendations:"));
         for (const r of report.recommendations) {
-          console.log(`    ${r.stage}: ${chalk.cyan(r.recommendedModel)} (quality: ${r.expectedQuality.toFixed(2)})`);
+          console.log(
+            `    ${r.stage}: ${chalk.cyan(r.recommendedModel)} (quality: ${r.expectedQuality.toFixed(2)})`
+          );
         }
       }
     }
@@ -2676,29 +2996,36 @@ program
   .requiredOption("--description <desc>", "Idea description")
   .option("-m, --model <model>", "LLM model to use")
   .option("--markdown", "Output as Markdown")
-  .action(async (subject: string, opts: { idea: string; description: string; model?: string; markdown?: boolean }) => {
-    if (!validateSubjectWithLog(subject)) return;
-    if (opts.model && !validateModelWithLog(opts.model)) return;
-    const spinner = ora("Mapping supply chain...").start();
-    try {
-      const result = await mapSupplyChain(opts.idea, opts.description, subject, opts.model);
-      spinner.stop();
-      if (opts.markdown) {
-        console.log(supplyChainToMarkdown(result));
-      } else {
-        console.log(chalk.bold.blue(`\n🔗 Supply Chain: ${result.ideaTitle}\n`));
-        console.log(`  Readiness: ${result.readinessScore}/100`);
-        console.log(`  Total Cost: $${result.totalEstimatedCostUsd.toLocaleString()}`);
-        console.log(`  Build: ${result.buildItems} | Buy: ${result.buyItems} | Partner: ${result.partnerItems}`);
-        console.log(`  Gaps: ${result.gaps.length}\n`);
-        console.log(chalk.dim(result.summary));
+  .action(
+    async (
+      subject: string,
+      opts: { idea: string; description: string; model?: string; markdown?: boolean }
+    ) => {
+      if (!validateSubjectWithLog(subject)) return;
+      if (opts.model && !validateModelWithLog(opts.model)) return;
+      const spinner = ora("Mapping supply chain...").start();
+      try {
+        const result = await mapSupplyChain(opts.idea, opts.description, subject, opts.model);
+        spinner.stop();
+        if (opts.markdown) {
+          console.log(supplyChainToMarkdown(result));
+        } else {
+          console.log(chalk.bold.blue(`\n🔗 Supply Chain: ${result.ideaTitle}\n`));
+          console.log(`  Readiness: ${result.readinessScore}/100`);
+          console.log(`  Total Cost: $${result.totalEstimatedCostUsd.toLocaleString()}`);
+          console.log(
+            `  Build: ${result.buildItems} | Buy: ${result.buyItems} | Partner: ${result.partnerItems}`
+          );
+          console.log(`  Gaps: ${result.gaps.length}\n`);
+          console.log(chalk.dim(result.summary));
+        }
+      } catch (err) {
+        spinner.fail("Supply chain mapping failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
       }
-    } catch (err) {
-      spinner.fail("Supply chain mapping failed");
-      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      process.exitCode = 1;
     }
-  });
+  );
 
 // ---- Timing Command ----
 program
@@ -2711,10 +3038,18 @@ program
     if (!validateSubjectWithLog(subject)) return;
     if (opts.model && !validateModelWithLog(opts.model)) return;
     console.log(chalk.dim("Note: Provide ideas via --idea flags or pipe from auto command."));
-    console.log(chalk.dim("Example: innovator timing 'AI in healthcare' --idea 'AI Diagnostics::AI-powered diagnostic tool'\n"));
+    console.log(
+      chalk.dim(
+        "Example: innovator timing 'AI in healthcare' --idea 'AI Diagnostics::AI-powered diagnostic tool'\n"
+      )
+    );
     const spinner = ora("Analyzing timing signals...").start();
     try {
-      const result = await analyzeTimings(subject, [{ title: subject, description: subject }], opts.model);
+      const result = await analyzeTimings(
+        subject,
+        [{ title: subject, description: subject }],
+        opts.model
+      );
       spinner.stop();
       if (opts.markdown) {
         console.log(timingToMarkdown(result));
@@ -2722,8 +3057,17 @@ program
         console.log(chalk.bold(`\n⏰ Timing Analysis: ${result.subject}\n`));
         console.log(`  Market Maturity: ${result.marketMaturityStage}`);
         for (const idea of result.ideas) {
-          const emoji = idea.classification === "right-time" ? "✅" : idea.classification === "peak-window" ? "🔥" : idea.classification === "too-early" ? "🕐" : "⚠️";
-          console.log(`  ${emoji} ${idea.ideaTitle}: ${idea.classification} (urgency: ${idea.urgencyScore}/100)`);
+          const emoji =
+            idea.classification === "right-time"
+              ? "✅"
+              : idea.classification === "peak-window"
+                ? "🔥"
+                : idea.classification === "too-early"
+                  ? "🕐"
+                  : "⚠️";
+          console.log(
+            `  ${emoji} ${idea.ideaTitle}: ${idea.classification} (urgency: ${idea.urgencyScore}/100)`
+          );
         }
         console.log(`\n${chalk.dim(result.overallTimingAdvice)}`);
       }
@@ -2751,8 +3095,12 @@ ideaCmd
     console.log(chalk.bold(`\n📜 Version Log: ${ideaId}\n`));
     for (const v of versions) {
       const date = new Date(v.createdAt).toISOString().slice(0, 16);
-      console.log(`  ${chalk.yellow(v.id.slice(0, 8))} ${chalk.dim(date)} ${v.message ?? "(no message)"}`);
-      console.log(`    ${chalk.dim(`branch: ${v.branchName}${v.author ? ` | author: ${v.author}` : ""}`)}`);
+      console.log(
+        `  ${chalk.yellow(v.id.slice(0, 8))} ${chalk.dim(date)} ${v.message ?? "(no message)"}`
+      );
+      console.log(
+        `    ${chalk.dim(`branch: ${v.branchName}${v.author ? ` | author: ${v.author}` : ""}`)}`
+      );
     }
   });
 
@@ -2763,11 +3111,15 @@ ideaCmd
     const { createBranch } = await import("@innovator/core");
     const branch = createBranch(versionId, branchName);
     if (!branch) {
-      console.error(chalk.red("Failed to create branch. Version not found or branch already exists."));
+      console.error(
+        chalk.red("Failed to create branch. Version not found or branch already exists.")
+      );
       process.exitCode = 1;
       return;
     }
-    console.log(chalk.green(`Branch "${branchName}" created from version ${versionId.slice(0, 8)}`));
+    console.log(
+      chalk.green(`Branch "${branchName}" created from version ${versionId.slice(0, 8)}`)
+    );
   });
 
 ideaCmd
@@ -2781,11 +3133,18 @@ ideaCmd
     try {
       const diff = await semanticDiff(fromId, toId, opts.model);
       spinner.stop();
-      console.log(chalk.bold(`\n📊 Diff: ${diff.fromVersion.slice(0, 8)} → ${diff.toVersion.slice(0, 8)}\n`));
+      console.log(
+        chalk.bold(`\n📊 Diff: ${diff.fromVersion.slice(0, 8)} → ${diff.toVersion.slice(0, 8)}\n`)
+      );
       console.log(`  Overall: ${chalk.bold(diff.overallSignificance)}`);
       console.log(`  ${diff.summary}\n`);
       for (const c of diff.changes) {
-        const color = c.changeType === "added" ? chalk.green : c.changeType === "removed" ? chalk.red : chalk.yellow;
+        const color =
+          c.changeType === "added"
+            ? chalk.green
+            : c.changeType === "removed"
+              ? chalk.red
+              : chalk.yellow;
         console.log(`  ${color(`[${c.changeType}]`)} ${c.field} (${c.significance})`);
         if (c.before) console.log(`    ${chalk.dim(`- ${c.before}`)}`);
         if (c.after) console.log(`    ${chalk.dim(`+ ${c.after}`)}`);
@@ -2810,7 +3169,11 @@ program
       const recipe = await analyzeProduct(productDescription, { model: opts.model });
       spinner.stop();
       console.log(chalk.bold(`\n🔍 ${recipe.recipe.title}\n`));
-      console.log(chalk.dim(`Disruption: ${recipe.productAnalysis.disruptionType} | Difficulty: ${recipe.recipe.estimatedDifficulty}`));
+      console.log(
+        chalk.dim(
+          `Disruption: ${recipe.productAnalysis.disruptionType} | Difficulty: ${recipe.recipe.estimatedDifficulty}`
+        )
+      );
       console.log(`\n${chalk.bold("Key Insight:")} ${recipe.recipe.keyInsight}\n`);
       console.log(chalk.bold(`Patterns (${recipe.patterns.length}):`));
       for (const p of recipe.patterns) {
@@ -2820,7 +3183,8 @@ program
       for (const s of recipe.recipe.steps.slice(0, 5)) {
         console.log(`  ${chalk.yellow(`${s.order}.`)} ${s.technique}: ${s.prompt.slice(0, 80)}...`);
       }
-      if (recipe.recipe.steps.length > 5) console.log(chalk.dim(`  ...and ${recipe.recipe.steps.length - 5} more steps`));
+      if (recipe.recipe.steps.length > 5)
+        console.log(chalk.dim(`  ...and ${recipe.recipe.steps.length - 5} more steps`));
       console.log(chalk.bold(`\nSuggested Angles:`), recipe.recipe.suggestedAngles.join(", "));
     } catch (err) {
       spinner.fail("Product analysis failed");
@@ -2828,7 +3192,6 @@ program
       process.exitCode = 1;
     }
   });
-
 
 // ---- Diffusion Simulator ----
 program
@@ -2838,34 +3201,50 @@ program
   .option("-m, --model <model>", "LLM model to use")
   .option("--no-monte-carlo", "Skip Monte Carlo simulation")
   .option("--iterations <n>", "Monte Carlo iterations", "500")
-  .action(async (ideaTitle: string, description: string | undefined, opts: { model?: string; monteCarlo?: boolean; iterations?: string }) => {
-    if (opts.model && !validateModelWithLog(opts.model)) return;
-    const { simulateDiffusion, diffusionToMarkdown } = await import("@innovator/core");
-    const spinner = ora("Simulating diffusion...").start();
-    try {
-      const result = await simulateDiffusion(
-        { title: ideaTitle, description: description ?? ideaTitle, potentialImpact: "", implementationHint: "" },
-        { model: opts.model, runMonteCarlo: opts.monteCarlo !== false, monteCarloIterations: parseInt(opts.iterations ?? "500") }
-      );
-      spinner.stop();
-      console.log(chalk.bold(`\n📈 Diffusion: ${result.ideaTitle}\n`));
-      console.log(`  Peak adoption month: ${chalk.cyan(String(result.peakAdoptionMonth))}`);
-      console.log(`  Time to majority: ${chalk.cyan(`${result.timeToMajority} months`)}`);
-      console.log(`  Market size: ${chalk.cyan(result.parameters.m.toLocaleString())}`);
-      if (result.monteCarlo) {
-        console.log(`  Adoption probability: ${chalk.green(`${(result.monteCarlo.adoptionProbability * 100).toFixed(1)}%`)}`);
+  .action(
+    async (
+      ideaTitle: string,
+      description: string | undefined,
+      opts: { model?: string; monteCarlo?: boolean; iterations?: string }
+    ) => {
+      if (opts.model && !validateModelWithLog(opts.model)) return;
+      const { simulateDiffusion, diffusionToMarkdown } = await import("@innovator/core");
+      const spinner = ora("Simulating diffusion...").start();
+      try {
+        const result = await simulateDiffusion(
+          {
+            title: ideaTitle,
+            description: description ?? ideaTitle,
+            potentialImpact: "",
+            implementationHint: "",
+          },
+          {
+            model: opts.model,
+            runMonteCarlo: opts.monteCarlo !== false,
+            monteCarloIterations: parseInt(opts.iterations ?? "500"),
+          }
+        );
+        spinner.stop();
+        console.log(chalk.bold(`\n📈 Diffusion: ${result.ideaTitle}\n`));
+        console.log(`  Peak adoption month: ${chalk.cyan(String(result.peakAdoptionMonth))}`);
+        console.log(`  Time to majority: ${chalk.cyan(`${result.timeToMajority} months`)}`);
+        console.log(`  Market size: ${chalk.cyan(result.parameters.m.toLocaleString())}`);
+        if (result.monteCarlo) {
+          console.log(
+            `  Adoption probability: ${chalk.green(`${(result.monteCarlo.adoptionProbability * 100).toFixed(1)}%`)}`
+          );
+        }
+        console.log(chalk.bold("\nStrategies:"));
+        for (const s of result.strategies) {
+          console.log(`  ${chalk.yellow(s.phase)}: ${s.recommendation.slice(0, 80)}`);
+        }
+      } catch (err) {
+        spinner.fail("Diffusion simulation failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
       }
-      console.log(chalk.bold("\nStrategies:"));
-      for (const s of result.strategies) {
-        console.log(`  ${chalk.yellow(s.phase)}: ${s.recommendation.slice(0, 80)}`);
-      }
-    } catch (err) {
-      spinner.fail("Diffusion simulation failed");
-      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      process.exitCode = 1;
     }
-  });
-
+  );
 
 // ---- Adaptive Scaling ----
 program
@@ -2880,21 +3259,28 @@ program
       const plan = generateExecutionPlan(subject, complexity, {
         level: "intermediate",
         domains: [],
-        preferredDepth: (opts.depth as "overview" | "standard" | "deep" | "exhaustive") ?? "standard",
+        preferredDepth:
+          (opts.depth as "overview" | "standard" | "deep" | "exhaustive") ?? "standard",
         sessionCount: 0,
       });
       spinner.stop();
       console.log(chalk.bold(`\n⚡ Adaptive Plan for: "${subject}"\n`));
-      console.log(`  Complexity: ${chalk.cyan(complexity.level)} (score: ${complexity.score.toFixed(2)})`);
+      console.log(
+        `  Complexity: ${chalk.cyan(complexity.level)} (score: ${complexity.score.toFixed(2)})`
+      );
       console.log(`  Recommended depth: ${chalk.cyan(plan.recommendedDepth)}`);
-      console.log(`  Angles: ${chalk.cyan(String(plan.angleCount))} (${plan.recommendedAngles.join(", ")})`);
+      console.log(
+        `  Angles: ${chalk.cyan(String(plan.angleCount))} (${plan.recommendedAngles.join(", ")})`
+      );
       console.log(`  Model: ${chalk.cyan(plan.modelSelection.generation)}`);
       console.log(`  Est. cost savings: ${chalk.green(`${plan.costSavingsPercent.toFixed(0)}%`)}`);
       console.log(`  Est. time: ${chalk.cyan(`${plan.estimatedTimeSeconds}s`)}`);
       if (plan.adjustments.length > 0) {
         console.log(chalk.bold("\nAdjustments:"));
         for (const a of plan.adjustments) {
-          console.log(`  ${a.parameter}: ${chalk.dim(a.original)} → ${chalk.green(a.adjusted)} (${a.reason})`);
+          console.log(
+            `  ${a.parameter}: ${chalk.dim(a.original)} → ${chalk.green(a.adjusted)} (${a.reason})`
+          );
         }
       }
     } catch (err) {
@@ -2904,7 +3290,6 @@ program
     }
   });
 
-
 // ---- Market Test ----
 program
   .command("market-test <ideaTitle>")
@@ -2913,32 +3298,52 @@ program
   .option("-m, --model <model>", "LLM model to use")
   .option("--personas <n>", "Number of personas", "1000")
   .option("--price <usd>", "Base price in USD")
-  .action(async (ideaTitle: string, description: string | undefined, opts: { model?: string; personas?: string; price?: string }) => {
-    if (opts.model && !validateModelWithLog(opts.model)) return;
-    const { runMarketTest } = await import("@innovator/core");
-    const spinner = ora(`Testing with ${opts.personas ?? "1000"} personas...`).start();
-    try {
-      const result = await runMarketTest(
-        { title: ideaTitle, description: description ?? ideaTitle, potentialImpact: "", implementationHint: "" },
-        { model: opts.model, personaCount: parseInt(opts.personas ?? "1000"), basePrice: opts.price ? parseFloat(opts.price) : undefined }
-      );
-      spinner.stop();
-      console.log(chalk.bold(`\n🏪 Market Test: ${result.ideaTitle}\n`));
-      console.log(`  Personas: ${chalk.cyan(result.totalPersonas.toLocaleString())}`);
-      console.log(`  Adoption: ${chalk.cyan(`${(result.overallAdoptionRate * 100).toFixed(1)}%`)}`);
-      console.log(`  Viability: ${chalk.bold(result.marketViability)}`);
-      console.log(`  Optimal price: ${chalk.green(`$${result.optimalPriceUsd}`)}`);
-      console.log(chalk.bold("\nTop Segments:"));
-      for (const s of result.segmentAnalysis.sort((a, b) => b.adoptionRate - a.adoptionRate).slice(0, 5)) {
-        console.log(`  ${chalk.cyan(s.segment)}: ${(s.adoptionRate * 100).toFixed(1)}% adoption, $${s.avgWillingnessToPayUsd} WTP`);
+  .action(
+    async (
+      ideaTitle: string,
+      description: string | undefined,
+      opts: { model?: string; personas?: string; price?: string }
+    ) => {
+      if (opts.model && !validateModelWithLog(opts.model)) return;
+      const { runMarketTest } = await import("@innovator/core");
+      const spinner = ora(`Testing with ${opts.personas ?? "1000"} personas...`).start();
+      try {
+        const result = await runMarketTest(
+          {
+            title: ideaTitle,
+            description: description ?? ideaTitle,
+            potentialImpact: "",
+            implementationHint: "",
+          },
+          {
+            model: opts.model,
+            personaCount: parseInt(opts.personas ?? "1000"),
+            basePrice: opts.price ? parseFloat(opts.price) : undefined,
+          }
+        );
+        spinner.stop();
+        console.log(chalk.bold(`\n🏪 Market Test: ${result.ideaTitle}\n`));
+        console.log(`  Personas: ${chalk.cyan(result.totalPersonas.toLocaleString())}`);
+        console.log(
+          `  Adoption: ${chalk.cyan(`${(result.overallAdoptionRate * 100).toFixed(1)}%`)}`
+        );
+        console.log(`  Viability: ${chalk.bold(result.marketViability)}`);
+        console.log(`  Optimal price: ${chalk.green(`$${result.optimalPriceUsd}`)}`);
+        console.log(chalk.bold("\nTop Segments:"));
+        for (const s of result.segmentAnalysis
+          .sort((a, b) => b.adoptionRate - a.adoptionRate)
+          .slice(0, 5)) {
+          console.log(
+            `  ${chalk.cyan(s.segment)}: ${(s.adoptionRate * 100).toFixed(1)}% adoption, $${s.avgWillingnessToPayUsd} WTP`
+          );
+        }
+      } catch (err) {
+        spinner.fail("Market test failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
       }
-    } catch (err) {
-      spinner.fail("Market test failed");
-      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      process.exitCode = 1;
     }
-  });
-
+  );
 
 // ---- Flow State ----
 program
@@ -2963,14 +3368,17 @@ program
     const intervention = selectIntervention(flowState);
 
     console.log(chalk.bold(`\n🧠 Flow State: ${flowState.state}\n`));
-    console.log(`  Cognitive load: ${chalk.cyan(`${(flowState.cognitiveLoad * 100).toFixed(0)}%`)}`);
-    console.log(`  Creative energy: ${chalk.cyan(`${(flowState.creativeEnergy * 100).toFixed(0)}%`)}`);
+    console.log(
+      `  Cognitive load: ${chalk.cyan(`${(flowState.cognitiveLoad * 100).toFixed(0)}%`)}`
+    );
+    console.log(
+      `  Creative energy: ${chalk.cyan(`${(flowState.creativeEnergy * 100).toFixed(0)}%`)}`
+    );
     console.log(`  Focus: ${chalk.cyan(`${(flowState.focusLevel * 100).toFixed(0)}%`)}`);
     console.log(`  ${chalk.dim(flowState.recommendation)}`);
     console.log(chalk.bold(`\n💡 Suggested: ${intervention.title}`));
     console.log(`  ${intervention.description}`);
   });
-
 
 // ---- Regulatory Simulator ----
 program
@@ -2979,35 +3387,53 @@ program
   .argument("[description]", "Idea description")
   .option("-m, --model <model>", "LLM model to use")
   .option("--jurisdictions <list>", "Comma-separated jurisdictions")
-  .action(async (ideaTitle: string, description: string | undefined, opts: { model?: string; jurisdictions?: string }) => {
-    if (opts.model && !validateModelWithLog(opts.model)) return;
-    const { simulateRegulatory } = await import("@innovator/core");
-    const spinner = ora("Simulating regulatory compliance...").start();
-    try {
-      const jurisdictions = opts.jurisdictions?.split(",").map((j) => j.trim());
-      const result = await simulateRegulatory(
-        { title: ideaTitle, description: description ?? ideaTitle, potentialImpact: "", implementationHint: "" },
-        { model: opts.model, jurisdictions }
-      );
-      spinner.stop();
-      console.log(chalk.bold(`\n⚖️  Regulatory Simulation: ${result.ideaTitle}\n`));
-      const statusColor = { green: chalk.green, yellow: chalk.yellow, red: chalk.red };
-      for (const j of result.jurisdictions) {
-        const color = statusColor[j.overallStatus];
-        console.log(`  ${color(`[${j.overallStatus.toUpperCase()}]`)} ${j.jurisdiction} — ${(j.overallScore * 100).toFixed(0)}% (${j.recommendation})`);
+  .action(
+    async (
+      ideaTitle: string,
+      description: string | undefined,
+      opts: { model?: string; jurisdictions?: string }
+    ) => {
+      if (opts.model && !validateModelWithLog(opts.model)) return;
+      const { simulateRegulatory } = await import("@innovator/core");
+      const spinner = ora("Simulating regulatory compliance...").start();
+      try {
+        const jurisdictions = opts.jurisdictions?.split(",").map((j) => j.trim());
+        const result = await simulateRegulatory(
+          {
+            title: ideaTitle,
+            description: description ?? ideaTitle,
+            potentialImpact: "",
+            implementationHint: "",
+          },
+          { model: opts.model, jurisdictions }
+        );
+        spinner.stop();
+        console.log(chalk.bold(`\n⚖️  Regulatory Simulation: ${result.ideaTitle}\n`));
+        const statusColor = { green: chalk.green, yellow: chalk.yellow, red: chalk.red };
+        for (const j of result.jurisdictions) {
+          const color = statusColor[j.overallStatus];
+          console.log(
+            `  ${color(`[${j.overallStatus.toUpperCase()}]`)} ${j.jurisdiction} — ${(j.overallScore * 100).toFixed(0)}% (${j.recommendation})`
+          );
+        }
+        if (result.lowestRiskJurisdictions.length > 0) {
+          console.log(
+            chalk.bold(`\n  Lowest risk:`),
+            chalk.green(result.lowestRiskJurisdictions.join(", "))
+          );
+        }
+        if (result.highestRiskJurisdictions.length > 0) {
+          console.log(
+            chalk.bold(`  Highest risk:`),
+            chalk.red(result.highestRiskJurisdictions.join(", "))
+          );
+        }
+      } catch (err) {
+        spinner.fail("Regulatory simulation failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
       }
-      if (result.lowestRiskJurisdictions.length > 0) {
-        console.log(chalk.bold(`\n  Lowest risk:`), chalk.green(result.lowestRiskJurisdictions.join(", ")));
-      }
-      if (result.highestRiskJurisdictions.length > 0) {
-        console.log(chalk.bold(`  Highest risk:`), chalk.red(result.highestRiskJurisdictions.join(", ")));
-      }
-    } catch (err) {
-      spinner.fail("Regulatory simulation failed");
-      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      process.exitCode = 1;
     }
-  });
-
+  );
 
 program.parse();
