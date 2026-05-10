@@ -565,3 +565,23 @@ export {
   getTemplatesByCategory,
   clearCustomTemplates,
 } from "./templates.js";
+
+export {
+  type WorkflowDSL,
+  type WorkflowStepDSL,
+  WorkflowDSLSchema,
+  WorkflowStepDSLSchema,
+  dslToDAG,
+  dagToDSL,
+} from "./workflow-dsl.js";
+
+export {
+  QUICK_EXPLORE_DSL,
+  DEEP_DIVE_DSL,
+  COMPETITIVE_ANALYSIS_DSL,
+  PRODUCT_LAUNCH_DSL,
+  PATENT_SCAN_DSL,
+  BUILTIN_WORKFLOW_DSLS,
+  getBuiltinDSL,
+  listBuiltinDSLs,
+} from "./builtin-templates.js";
