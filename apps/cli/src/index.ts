@@ -104,6 +104,45 @@ import {
   portfolioOptimizationToMarkdown,
   analyzeTimings,
   timingToMarkdown,
+  retrieveRelatedMemories,
+  generateOrgDNA,
+  orgDNAToMarkdown,
+  getIdeaLineage,
+  detectConvergence,
+  autoIndexSession,
+  generateNLExecutionPlan,
+  executeWithStreaming,
+  conversationToMarkdown,
+  ConversationSession,
+  addMonitorSource,
+  listMonitorSources,
+  generateMonitorDigest,
+  monitorDigestToMarkdown,
+  getMonitorState,
+  startMonitor,
+  stopMonitor,
+  getRecentSignals,
+  trackImpactIdea,
+  listTrackedIdeas,
+  calculateImpactScore,
+  rankByImpact,
+  getInnovationFunnel,
+  generateImpactDashboard,
+  dashboardToMarkdown,
+  listCompetitors,
+  addCompetitor,
+  runGapAnalysis,
+  gapReportToMarkdown,
+  generateRadarDashboard,
+  radarDashboardToMarkdown,
+  getAngleRecommendations,
+  getPipelineRecommendation,
+  explainRecommendation,
+  generateMethodologyInsights,
+  insightsToMarkdown as methodologyInsightsToMarkdown,
+  listPersonas,
+  generateStakeholderAssessment,
+  assessmentToMarkdown,
 } from "@innovator/core";
 import type {
   AngleId,
@@ -3435,5 +3474,344 @@ program
       }
     }
   );
+
+// ---- Innovation Monitor Commands ----
+
+const innovMonitorCmd = program
+  .command("innov-monitor")
+  .description("Innovation monitor — continuous domain monitoring and digest generation");
+
+innovMonitorCmd
+  .command("status")
+  .description("Show monitor status")
+  .action(async () => {
+    const state = getMonitorState();
+    console.log(chalk.bold("Monitor Status:"), chalk.cyan(state.status));
+    console.log(chalk.dim(`  Last poll: ${state.lastPollAt ?? "never"}`));
+    console.log(chalk.dim(`  Signals: ${state.signalCount} | Digests: ${state.digestCount}`));
+  });
+
+innovMonitorCmd
+  .command("sources")
+  .description("List configured monitor sources")
+  .action(async () => {
+    const sources = listMonitorSources();
+    if (sources.length === 0) {
+      console.log(chalk.yellow("No sources configured. Use 'monitor add-source' to add one."));
+      return;
+    }
+    for (const s of sources) {
+      console.log(chalk.cyan(`  [${s.type}]`), chalk.bold(s.name), s.enabled ? chalk.green("✓") : chalk.red("✗"));
+    }
+  });
+
+innovMonitorCmd
+  .command("digest")
+  .description("Generate an innovation digest from recent signals")
+  .option("-p, --period <period>", "Digest period (daily/weekly)", "daily")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (opts: { period: string; model?: string }) => {
+    const spinner = ora("Generating innovation digest...").start();
+    try {
+      const digest = await generateMonitorDigest(opts.period as "daily" | "weekly", opts.model);
+      spinner.succeed("Digest generated");
+      console.log(monitorDigestToMarkdown(digest));
+    } catch (err) {
+      spinner.fail("Digest generation failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+innovMonitorCmd
+  .command("signals")
+  .description("Show recent opportunity signals")
+  .option("-l, --limit <n>", "Max signals", "10")
+  .action(async (opts: { limit: string }) => {
+    const signals = getRecentSignals({ limit: parseInt(opts.limit, 10) });
+    if (signals.length === 0) {
+      console.log(chalk.yellow("No signals detected yet."));
+      return;
+    }
+    for (const s of signals) {
+      const urgencyColor = s.urgency === "critical" ? chalk.red : s.urgency === "high" ? chalk.yellow : chalk.dim;
+      console.log(urgencyColor(`  [${s.urgency}]`), chalk.bold(s.title));
+      console.log(chalk.dim(`    ${s.description.slice(0, 120)}...`));
+    }
+  });
+
+// ---- NL Innovation API Commands ----
+
+program
+  .command("nl-innovate <prompt>")
+  .description("Run innovation pipeline from a natural language prompt")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (prompt: string, opts: { model?: string }) => {
+    const spinner = ora("Generating execution plan...").start();
+    try {
+      const result = await generateNLExecutionPlan(prompt, opts.model);
+      const plan = result.plan;
+      spinner.succeed(`Plan generated: ${plan.steps.length} steps`);
+      for (const step of plan.steps) {
+        console.log(chalk.cyan(`  [${step.type}]`), step.description);
+      }
+
+      const execSpinner = ora("Executing plan...").start();
+      await executeWithStreaming(plan, (event) => {
+        if (event.type === "step_started") {
+          execSpinner.text = `Step: ${event.description}`;
+        } else if (event.type === "step_completed") {
+          execSpinner.succeed(`Step ${event.stepId} complete`);
+          execSpinner.start("Next step...");
+        } else if (event.type === "execution_completed") {
+          execSpinner.succeed("All steps completed");
+          console.log(chalk.green("\n✓ Innovation pipeline finished"));
+        }
+      }, { model: opts.model });
+    } catch (err) {
+      spinner.fail("NL innovation failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+// ---- Memory Graph Commands ----
+
+const memoryCmd = program
+  .command("memory")
+  .description("Innovation memory graph — cross-session semantic memory");
+
+memoryCmd
+  .command("search <query>")
+  .description("Search the memory graph for related past ideas")
+  .option("-t, --threshold <n>", "Similarity threshold (0-1)", "0.3")
+  .option("-l, --limit <n>", "Max results", "10")
+  .action(async (query: string, opts: { threshold: string; limit: string }) => {
+    const spinner = ora("Searching memory graph...").start();
+    try {
+      const { nodes, scores } = retrieveRelatedMemories(query, {
+        threshold: parseFloat(opts.threshold),
+        limit: parseInt(opts.limit, 10),
+      });
+      spinner.succeed(`Found ${nodes.length} related memories`);
+      for (const node of nodes) {
+        const score = scores.get(node.id) ?? 0;
+        console.log(chalk.cyan(`  [${score.toFixed(2)}]`), chalk.bold(node.title));
+        console.log(chalk.dim(`    ${node.content.slice(0, 120)}...`));
+      }
+    } catch (err) {
+      spinner.fail("Memory search failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+memoryCmd
+  .command("org-dna")
+  .description("Generate organizational innovation DNA report")
+  .action(async () => {
+    const spinner = ora("Generating org DNA report...").start();
+    try {
+      const report = generateOrgDNA();
+      spinner.succeed("Org DNA report generated");
+      console.log(orgDNAToMarkdown(report));
+    } catch (err) {
+      spinner.fail("Org DNA generation failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+memoryCmd
+  .command("lineage <ideaId>")
+  .description("Trace the lineage of an idea through sessions")
+  .action(async (ideaId: string) => {
+    const spinner = ora("Tracing idea lineage...").start();
+    try {
+      const lineage = getIdeaLineage(ideaId);
+      spinner.succeed(`Lineage traced for: ${lineage.ideaId}`);
+      console.log(chalk.bold(`  Ancestors: ${lineage.ancestors.length}`));
+      console.log(chalk.bold(`  Descendants: ${lineage.descendants.length}`));
+    } catch (err) {
+      spinner.fail("Lineage tracing failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+memoryCmd
+  .command("convergence")
+  .description("Detect convergent thinking across sessions")
+  .action(async () => {
+    const spinner = ora("Detecting convergence patterns...").start();
+    try {
+      const patterns = detectConvergence();
+      spinner.succeed(`Found ${patterns.length} convergence patterns`);
+      for (const p of patterns) {
+        console.log(chalk.cyan(`  [${p.similarityScore.toFixed(2)}]`), chalk.bold(p.description));
+        console.log(chalk.dim(`    Sessions: ${p.sessionIds.join(", ")}`));
+      }
+    } catch (err) {
+      spinner.fail("Convergence detection failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+// ---- Impact Tracker Commands ----
+
+const impactCmd = program
+  .command("impact")
+  .description("Innovation impact tracker — connect ideas to real-world outcomes");
+
+impactCmd
+  .command("funnel")
+  .description("Show innovation funnel metrics")
+  .action(async () => {
+    const funnel = getInnovationFunnel();
+    console.log(chalk.bold("Innovation Funnel:"));
+    console.log(chalk.dim(`  Total ideas: ${funnel.totalIdeas}`));
+    console.log(chalk.dim(`  In progress: ${funnel.inProgress}`));
+    console.log(chalk.green(`  Shipped: ${funnel.shipped}`));
+    console.log(chalk.red(`  Abandoned: ${funnel.abandoned}`));
+    console.log(chalk.cyan(`  Conversion rate: ${(funnel.conversionRate * 100).toFixed(1)}%`));
+  });
+
+impactCmd
+  .command("rank")
+  .description("Rank ideas by impact score")
+  .action(async () => {
+    const ranked = rankByImpact();
+    if (ranked.length === 0) {
+      console.log(chalk.yellow("No tracked ideas yet."));
+      return;
+    }
+    for (const item of ranked.slice(0, 10)) {
+      console.log(chalk.cyan(`  [${item.compositeScore}]`), chalk.bold(item.ideaId));
+    }
+  });
+
+impactCmd
+  .command("dashboard")
+  .description("Generate full impact dashboard")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (opts: { model?: string }) => {
+    const spinner = ora("Generating impact dashboard...").start();
+    try {
+      const dashboard = await generateImpactDashboard(opts.model);
+      spinner.succeed("Dashboard generated");
+      console.log(dashboardToMarkdown(dashboard));
+    } catch (err) {
+      spinner.fail("Dashboard generation failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+// ---- Competitive Radar Commands ----
+
+const compRadarCmd = program
+  .command("comp-radar")
+  .description("Competitive intelligence radar");
+
+compRadarCmd
+  .command("competitors")
+  .description("List registered competitors")
+  .action(async () => {
+    const competitors = listCompetitors();
+    if (competitors.length === 0) {
+      console.log(chalk.yellow("No competitors registered."));
+      return;
+    }
+    for (const c of competitors) {
+      const threatColor = c.threatLevel === "critical" ? chalk.red : c.threatLevel === "high" ? chalk.yellow : chalk.dim;
+      console.log(threatColor(`  [${c.threatLevel}]`), chalk.bold(c.name));
+    }
+  });
+
+compRadarCmd
+  .command("gap-analysis <competitorId>")
+  .description("Run gap analysis against a competitor")
+  .option("-c, --capabilities <caps>", "Our capabilities (comma-separated)")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (competitorId: string, opts: { capabilities?: string; model?: string }) => {
+    const spinner = ora("Running gap analysis...").start();
+    try {
+      const caps = opts.capabilities?.split(",").map((c) => c.trim()) ?? [];
+      const report = await runGapAnalysis(competitorId, caps, opts.model);
+      spinner.succeed("Gap analysis complete");
+      console.log(gapReportToMarkdown(report));
+    } catch (err) {
+      spinner.fail("Gap analysis failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+compRadarCmd
+  .command("dashboard")
+  .description("Generate competitive radar dashboard")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (opts: { model?: string }) => {
+    const spinner = ora("Generating radar dashboard...").start();
+    try {
+      const dashboard = await generateRadarDashboard({ model: opts.model });
+      spinner.succeed("Radar dashboard generated");
+      console.log(radarDashboardToMarkdown(dashboard));
+    } catch (err) {
+      spinner.fail("Radar dashboard generation failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+// ---- Adaptive Methodology Commands ----
+
+program
+  .command("recommend <subject>")
+  .description("Get adaptive pipeline recommendation for a subject")
+  .option("-d, --domain <domain>", "Innovation domain")
+  .option("-t, --team <teamId>", "Team ID")
+  .action(async (subject: string, opts: { domain?: string; team?: string }) => {
+    const spinner = ora("Generating recommendation...").start();
+    try {
+      const recommendation = getPipelineRecommendation(subject, { domain: opts.domain, teamId: opts.team });
+      spinner.succeed("Recommendation generated");
+      console.log(chalk.bold("\nRecommended Pipeline:"));
+      console.log(chalk.cyan(`  Angles: ${recommendation.recommendedAngles.join(", ")}`));
+      console.log(chalk.cyan(`  Depth: ${recommendation.suggestedDepth}`));
+      console.log(chalk.cyan(`  Quality estimate: ${(recommendation.estimatedQuality * 100).toFixed(0)}%`));
+      console.log(chalk.dim(`\n  ${recommendation.explanation}`));
+    } catch (err) {
+      spinner.fail("Recommendation failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+// ---- Persona Evaluation Commands ----
+
+program
+  .command("persona-eval <ideaTitle>")
+  .description("Evaluate an idea through multiple stakeholder personas")
+  .option("-p, --personas <ids>", "Persona IDs (comma-separated)", "cto,end-user,investor,regulator")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (ideaTitle: string, opts: { personas: string; model?: string }) => {
+    const spinner = ora("Running persona evaluation...").start();
+    try {
+      const personaIds = opts.personas.split(",").map((p) => p.trim());
+      const assessment = await generateStakeholderAssessment(
+        ideaTitle,
+        personaIds,
+        { model: opts.model }
+      );
+      spinner.succeed("Assessment complete");
+      console.log(assessmentToMarkdown(assessment));
+    } catch (err) {
+      spinner.fail("Persona evaluation failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
 
 program.parse();
