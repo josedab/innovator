@@ -23,7 +23,18 @@ interface ChatContext {
   lastSubject?: string;
 }
 
-const sessionContext: ChatContext = {};
+// Per-conversation context; keyed by request thread so different chat
+// sessions don't leak state into each other.
+const sessionContexts = new Map<string, ChatContext>();
+
+function getSessionContext(request: vscode.ChatRequest): ChatContext {
+  // Use the request's thread ID when available to scope context per conversation
+  const key = (request as unknown as { threadId?: string }).threadId ?? "default";
+  if (!sessionContexts.has(key)) {
+    sessionContexts.set(key, {});
+  }
+  return sessionContexts.get(key)!;
+}
 
 export function activate(context: vscode.ExtensionContext) {
   const participant = vscode.chat.createChatParticipant(PARTICIPANT_ID, chatHandler);
@@ -43,6 +54,7 @@ async function chatHandler(
 ): Promise<vscode.ChatResult> {
   const command = request.command;
   const prompt = request.prompt.trim();
+  const ctx = getSessionContext(request);
 
   if (!prompt && command !== "score") {
     stream.markdown("Please provide a subject to investigate or innovate on.\n\n");
@@ -56,13 +68,13 @@ async function chatHandler(
   try {
     switch (command) {
       case "investigate":
-        return await handleInvestigate(prompt, stream, token);
+        return await handleInvestigate(prompt, stream, token, ctx);
       case "innovate":
-        return await handleInnovate(prompt, stream, token);
+        return await handleInnovate(prompt, stream, token, ctx);
       case "score":
-        return await handleScore(prompt, stream, token);
+        return await handleScore(prompt, stream, token, ctx);
       default:
-        return await handleDefault(prompt, stream, token);
+        return await handleDefault(prompt, stream, token, ctx);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -74,7 +86,8 @@ async function chatHandler(
 async function handleInvestigate(
   subject: string,
   stream: vscode.ChatResponseStream,
-  token: vscode.CancellationToken
+  token: vscode.CancellationToken,
+  ctx: ChatContext
 ): Promise<vscode.ChatResult> {
   stream.progress("Investigating subject...");
 
@@ -83,8 +96,8 @@ async function handleInvestigate(
 
   const result = await investigate(subject, undefined, abortController.signal);
 
-  sessionContext.lastInvestigation = result;
-  sessionContext.lastSubject = subject;
+  ctx.lastInvestigation = result;
+  ctx.lastSubject = subject;
 
   stream.markdown(`## 🔍 Investigation: ${subject}\n\n`);
   stream.markdown(`${result.summary}\n\n`);
@@ -124,7 +137,8 @@ async function handleInvestigate(
 async function handleInnovate(
   subject: string,
   stream: vscode.ChatResponseStream,
-  token: vscode.CancellationToken
+  token: vscode.CancellationToken,
+  ctx: ChatContext
 ): Promise<vscode.ChatResult> {
   stream.progress("Generating innovation ideas...");
 
@@ -132,12 +146,12 @@ async function handleInnovate(
   token.onCancellationRequested(() => abortController.abort());
 
   // Use cached investigation if same subject, otherwise run new one
-  let inv = sessionContext.lastInvestigation;
-  if (!inv || sessionContext.lastSubject !== subject) {
+  let inv = ctx.lastInvestigation;
+  if (!inv || ctx.lastSubject !== subject) {
     stream.progress("Investigating subject first...");
     inv = await investigate(subject, undefined, abortController.signal);
-    sessionContext.lastInvestigation = inv;
-    sessionContext.lastSubject = subject;
+    ctx.lastInvestigation = inv;
+    ctx.lastSubject = subject;
   }
 
   // Generate for top 3 angles for quick response
@@ -158,7 +172,7 @@ async function handleInnovate(
     allIdeas.push(...result.ideas);
   }
 
-  sessionContext.lastIdeas = allIdeas;
+  ctx.lastIdeas = allIdeas;
 
   stream.markdown(`## 💡 Innovation Ideas: ${subject}\n\n`);
   stream.markdown(`*Generated from ${selectedAngles.length} creativity angles*\n\n`);
@@ -183,9 +197,10 @@ async function handleInnovate(
 async function handleScore(
   _prompt: string,
   stream: vscode.ChatResponseStream,
-  _token: vscode.CancellationToken
+  _token: vscode.CancellationToken,
+  ctx: ChatContext
 ): Promise<vscode.ChatResult> {
-  const ideas = sessionContext.lastIdeas;
+  const ideas = ctx.lastIdeas;
   if (!ideas || ideas.length === 0) {
     stream.markdown(
       "No ideas to score yet. Run `@innovator /innovate <subject>` first to generate ideas.\n"
@@ -198,8 +213,10 @@ async function handleScore(
   stream.markdown(`|---|------|-------------|--------|-------|\n`);
 
   const scored = ideas.map((idea) => {
-    const feasibility = idea.implementationHint.length > 100 ? 3 : idea.implementationHint.length > 30 ? 2 : 1;
-    const impactScore = idea.potentialImpact.length > 100 ? 3 : idea.potentialImpact.length > 50 ? 2 : 1;
+    const feasibility =
+      idea.implementationHint.length > 100 ? 3 : idea.implementationHint.length > 30 ? 2 : 1;
+    const impactScore =
+      idea.potentialImpact.length > 100 ? 3 : idea.potentialImpact.length > 50 ? 2 : 1;
     const total = feasibility + impactScore;
     return { idea, feasibility, impactScore, total };
   });
@@ -221,7 +238,8 @@ async function handleScore(
 async function handleDefault(
   prompt: string,
   stream: vscode.ChatResponseStream,
-  token: vscode.CancellationToken
+  _token: vscode.CancellationToken,
+  _ctx: ChatContext
 ): Promise<vscode.ChatResult> {
   stream.markdown(`### Innovator — AI Innovation Engine\n\n`);
   stream.markdown(`Available commands:\n\n`);
