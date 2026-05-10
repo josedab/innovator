@@ -194,4 +194,185 @@ describe("API /api/billing", () => {
       expect(res.status).toBe(400);
     });
   });
+
+  // ---- Security boundary tests ----
+
+  describe("cross-tenant access prevention", () => {
+    it("cannot read another tenant's data with wrong tenantId", async () => {
+      vi.mocked(getTenant).mockReturnValue(null as never);
+      const res = await GET(makeGet({ tenantId: "other-tenant-id" }));
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.error).toBe("Tenant not found");
+    });
+
+    it("usage endpoint returns 404 for non-existent tenant", async () => {
+      vi.mocked(getTenant).mockReturnValue(null as never);
+      const res = await POST(makePost({ action: "usage", tenantId: "stranger-tenant" }));
+      expect(res.status).toBe(404);
+    });
+
+    it("subscribe returns 404 for non-existent tenant", async () => {
+      vi.mocked(updateTenantPlan).mockReturnValue(null as never);
+      const res = await POST(
+        makePost({ action: "subscribe", tenantId: "stranger", planId: "pro" })
+      );
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe("plan validation", () => {
+    it("rejects subscribe with invalid plan", async () => {
+      const res = await POST(makePost({ action: "subscribe", tenantId: "t1", planId: "platinum" }));
+      expect(res.status).toBe(400);
+    });
+
+    it("accepts all valid plan IDs", async () => {
+      for (const planId of ["free", "pro", "team", "enterprise"]) {
+        vi.mocked(updateTenantPlan).mockReturnValue({ id: "t1", plan: planId } as never);
+        const res = await POST(makePost({ action: "subscribe", tenantId: "t1", planId }));
+        expect(res.status).toBe(200);
+      }
+    });
+  });
+
+  describe("concurrent plan update", () => {
+    it("handles rapid sequential plan updates", async () => {
+      vi.mocked(updateTenantPlan)
+        .mockReturnValueOnce({ id: "t1", plan: "pro" } as never)
+        .mockReturnValueOnce({ id: "t1", plan: "enterprise" } as never);
+
+      const res1 = await POST(makePost({ action: "subscribe", tenantId: "t1", planId: "pro" }));
+      const res2 = await POST(
+        makePost({ action: "subscribe", tenantId: "t1", planId: "enterprise" })
+      );
+      expect(res1.status).toBe(200);
+      expect(res2.status).toBe(200);
+      const body2 = await res2.json();
+      expect(body2.message).toBe("Plan updated to enterprise");
+    });
+  });
+
+  describe("tenant slug injection", () => {
+    it("rejects slugs with special characters", async () => {
+      const res = await POST(
+        makePost({
+          action: "create_tenant",
+          name: "Test",
+          slug: "test; DROP TABLE",
+          ownerId: "u1",
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects slugs with SQL-like patterns", async () => {
+      const res = await POST(
+        makePost({
+          action: "create_tenant",
+          name: "Test",
+          slug: "test' OR '1'='1",
+          ownerId: "u1",
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects slugs with uppercase", async () => {
+      const res = await POST(
+        makePost({
+          action: "create_tenant",
+          name: "Test",
+          slug: "TestSlug",
+          ownerId: "u1",
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("accepts valid kebab-case slug", async () => {
+      vi.mocked(createTenant).mockReturnValue({ id: "t1", slug: "my-company-123" } as never);
+      const res = await POST(
+        makePost({
+          action: "create_tenant",
+          name: "My Company",
+          slug: "my-company-123",
+          ownerId: "u1",
+        })
+      );
+      expect(res.status).toBe(201);
+    });
+  });
+
+  describe("duplicate slug handling", () => {
+    it("returns 400 when createTenant throws on duplicate slug", async () => {
+      vi.mocked(createTenant).mockImplementation(() => {
+        throw new Error("Tenant with slug already exists");
+      });
+      const res = await POST(
+        makePost({
+          action: "create_tenant",
+          name: "Acme",
+          slug: "acme",
+          ownerId: "u1",
+        })
+      );
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toContain("already exists");
+    });
+  });
+
+  describe("create_tenant edge cases", () => {
+    it("rejects empty slug", async () => {
+      const res = await POST(
+        makePost({
+          action: "create_tenant",
+          name: "Test",
+          slug: "",
+          ownerId: "u1",
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects very long slug (> 100 chars)", async () => {
+      const res = await POST(
+        makePost({
+          action: "create_tenant",
+          name: "Test",
+          slug: "a".repeat(101),
+          ownerId: "u1",
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects invalid billing email", async () => {
+      const res = await POST(
+        makePost({
+          action: "create_tenant",
+          name: "Test",
+          slug: "valid",
+          ownerId: "u1",
+          billingEmail: "not-an-email",
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("accepts valid billing email", async () => {
+      vi.mocked(createTenant).mockReturnValue({ id: "t1" } as never);
+      const res = await POST(
+        makePost({
+          action: "create_tenant",
+          name: "Test",
+          slug: "valid",
+          ownerId: "u1",
+          billingEmail: "billing@example.com",
+        })
+      );
+      expect(res.status).toBe(201);
+    });
+  });
 });
