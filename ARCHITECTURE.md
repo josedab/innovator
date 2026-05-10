@@ -4,20 +4,77 @@ Innovator is a monorepo with four workspaces and a documentation site.
 
 ## Workspace Dependency Graph
 
-```
-packages/core ← apps/web            (Next.js web application)
-packages/core ← apps/cli            (Command-line interface)
-packages/core ← packages/mcp-server (MCP server for AI tool integration)
-packages/core ← packages/bot        (Chat platform bot)
-website                              (Docusaurus documentation, standalone)
+```mermaid
+graph BT
+  core["@innovator/core<br/><i>Shared innovation engine</i>"]
+
+  web["apps/web<br/><i>Next.js web application</i>"]
+  cli["apps/cli<br/><i>Command-line interface</i>"]
+  mcp["packages/mcp-server<br/><i>MCP server</i>"]
+  bot["packages/bot<br/><i>Chat bot</i>"]
+  vscode["packages/vscode-extension<br/><i>VS Code extension</i>"]
+  create["packages/create-innovator<br/><i>Project scaffolder</i>"]
+  action["action/<br/><i>GitHub Action</i>"]
+  website["website/<br/><i>Docusaurus docs</i>"]
+
+  web --> core
+  cli --> core
+  mcp --> core
+  bot --> core
+  vscode --> core
+  action -.->|uses CLI| cli
+
+  style core fill:#4f46e5,color:#fff,stroke:#4338ca
+  style website fill:#6b7280,color:#fff,stroke:#4b5563
+  style create fill:#6b7280,color:#fff,stroke:#4b5563
 ```
 
 `@innovator/core` is the shared engine: types, prompt templates, LLM provider abstraction, and the innovation pipeline. All consumers (`web`, `cli`, `mcp-server`, `bot`) depend on it — none contain business logic directly.
 
 ## Request Flow (Web)
 
-```
-Browser UI → Next.js API route → @innovator/core → LLM Provider → LLM
+```mermaid
+sequenceDiagram
+    participant B as Browser UI
+    participant M as Middleware
+    participant A as API Route
+    participant C as @innovator/core
+    participant P as LLM Provider
+    participant L as LLM
+
+    B->>M: POST /api/auto {subject}
+    M->>M: Rate limit, auth, body size
+    M->>A: Validated request
+    A->>A: Zod schema validation
+    A->>C: runAutoPipeline(subject)
+
+    rect rgb(240, 240, 255)
+        Note over C,L: Stage 1 — Investigation
+        C->>P: generateText(investigationPrompt)
+        P->>L: LLM request
+        L-->>P: Response
+        P-->>C: Investigation JSON
+    end
+
+    rect rgb(240, 255, 240)
+        Note over C,L: Stage 2 — Generation (2 angles in parallel)
+        C->>P: generateText(angle1Prompt)
+        C->>P: generateText(angle2Prompt)
+        P->>L: LLM requests
+        L-->>P: Responses
+        P-->>C: AngleResult[]
+    end
+
+    rect rgb(255, 240, 240)
+        Note over C,L: Stage 3 — Synthesis
+        C->>P: generateText(synthesisPrompt)
+        P->>L: LLM request
+        L-->>P: Response
+        P-->>C: Synthesis JSON
+    end
+
+    C-->>A: PipelineProgress (SSE events)
+    A-->>B: text/event-stream
 ```
 
 1. **UI** (`apps/web/src/app/page.tsx`) — collects subject, drives stage transitions
@@ -28,6 +85,32 @@ Browser UI → Next.js API route → @innovator/core → LLM Provider → LLM
 ## LLM Provider Abstraction
 
 Innovator supports multiple LLM providers through a unified `LLMProvider` interface (`packages/core/src/providers/`). Each provider implements `generateText()`, `generateStream()`, and `listModels()`.
+
+```mermaid
+graph LR
+    Core["@innovator/core<br/>Pipeline"]
+
+    subgraph Providers["LLM Providers"]
+        direction TB
+        Copilot["CopilotProvider<br/><i>gh CLI auth</i>"]
+        OpenAI["OpenAIProvider<br/><i>OPENAI_API_KEY</i>"]
+        Anthropic["AnthropicProvider<br/><i>ANTHROPIC_API_KEY</i>"]
+        Ollama["OllamaProvider<br/><i>OLLAMA_BASE_URL</i>"]
+    end
+
+    Core -->|LLMProvider interface| Copilot
+    Core -->|LLMProvider interface| OpenAI
+    Core -->|LLMProvider interface| Anthropic
+    Core -->|LLMProvider interface| Ollama
+
+    Copilot -->|"@github/copilot-sdk"| GH["GitHub Copilot"]
+    OpenAI --> OAI["OpenAI API"]
+    Anthropic --> ANT["Anthropic API"]
+    Ollama --> LOC["Local Ollama"]
+
+    style Core fill:#4f46e5,color:#fff,stroke:#4338ca
+    style Copilot fill:#22c55e,color:#fff,stroke:#16a34a
+```
 
 | Provider      | Env Variable        | Default                  | Notes                           |
 | ------------- | ------------------- | ------------------------ | ------------------------------- |
@@ -42,10 +125,32 @@ The Copilot provider is the default and requires no API keys — it uses the aut
 
 The MCP (Model Context Protocol) server (`packages/mcp-server/`) exposes Innovator as tools for AI clients.
 
-```
-AI Client (Claude Desktop / Cursor / VS Code)
-  ↕ stdio or SSE
-MCP Server → @innovator/core → LLM Provider → LLM
+```mermaid
+graph LR
+    subgraph Clients["MCP Clients"]
+        CD["Claude Desktop"]
+        CU["Cursor"]
+        VS["VS Code"]
+    end
+
+    subgraph MCP["MCP Server"]
+        direction TB
+        T1["investigate"]
+        T2["innovate"]
+        T3["auto"]
+        T4["innovate-from-code"]
+        T5["innovate-file"]
+        T6["innovate-architecture"]
+    end
+
+    CD <-->|"stdio / SSE"| MCP
+    CU <-->|"stdio / SSE"| MCP
+    VS <-->|"stdio / SSE"| MCP
+    MCP --> Core["@innovator/core"]
+    Core --> LLM["LLM Provider → LLM"]
+
+    style MCP fill:#f59e0b,color:#000,stroke:#d97706
+    style Core fill:#4f46e5,color:#fff,stroke:#4338ca
 ```
 
 **Architecture:**
@@ -105,8 +210,29 @@ This design balances throughput against LLM provider rate limits. Investigation 
 
 Long-running endpoints (`/api/auto`, `/api/pipeline`) use Server-Sent Events (SSE) for real-time progress:
 
-```
-Client (EventSource) ←── SSE stream ←── ReadableStream ←── Pipeline callbacks
+```mermaid
+sequenceDiagram
+    participant C as Client (EventSource)
+    participant A as API Route
+    participant R as ReadableStream
+    participant P as Pipeline Callbacks
+
+    C->>A: GET /api/auto?subject=...
+    A->>R: Create ReadableStream
+    A-->>C: Response: text/event-stream
+
+    loop Pipeline Execution
+        P->>R: data: {"stage":"investigating"}
+        R-->>C: SSE event
+        P->>R: data: {"stage":"generating","currentAngle":"scamper"}
+        R-->>C: SSE event
+    end
+
+    Note over A,C: 15s heartbeat comments prevent proxy timeouts
+
+    P->>R: data: {"stage":"complete","synthesis":{...}}
+    R-->>C: Final SSE event
+    R->>R: Close stream
 ```
 
 - API routes create a `ReadableStream` and return it as a `text/event-stream` response
@@ -116,6 +242,33 @@ Client (EventSource) ←── SSE stream ←── ReadableStream ←── Pip
 - The `currentAngle` field identifies which angle is actively generating
 
 SSE was chosen over WebSockets (see ADR-0007) for unidirectional updates, serverless compatibility, and native browser `EventSource` support.
+
+## Pipeline State Machine
+
+The auto-mode pipeline progresses through these states:
+
+```mermaid
+stateDiagram-v2
+    [*] --> investigating
+
+    investigating --> generating: Investigation complete
+    investigating --> error: LLM failure / abort
+
+    generating --> synthesizing: All angles complete
+    generating --> error: All angles failed / abort
+
+    synthesizing --> complete: Synthesis complete
+    synthesizing --> error: LLM failure / abort
+
+    complete --> [*]
+    error --> [*]
+
+    note right of generating
+        Up to 2 angles run in parallel.
+        Individual angle failures are
+        captured without aborting.
+    end note
+```
 
 ## Request Validation
 

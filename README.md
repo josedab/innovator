@@ -247,3 +247,15 @@ To report a vulnerability, please follow the instructions in [SECURITY.md](.gith
 ## Architecture Decision Records
 
 Significant architectural decisions are documented as ADRs in [`docs/adr/`](docs/adr/). See the [ADR index](docs/adr/README.md) for a summary of all decisions.
+
+## Documentation
+
+| Document                                   | Description                                   |
+| ------------------------------------------ | --------------------------------------------- |
+| [API Reference](docs/API.md)               | Comprehensive `@innovator/core` API reference |
+| [Developer Guide](docs/DEVELOPER_GUIDE.md) | Recipes, patterns, and how-to guides          |
+| [Architecture](ARCHITECTURE.md)            | System architecture with Mermaid diagrams     |
+| [Contributing](CONTRIBUTING.md)            | Setup, coding standards, and PR guidelines    |
+| [Migration Guide](MIGRATION.md)            | Upgrade paths and breaking changes            |
+| [Changelog](CHANGELOG.md)                  | Version history                               |
+| [ADR Index](docs/adr/README.md)            | Architecture Decision Records                 |
