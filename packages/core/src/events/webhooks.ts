@@ -19,7 +19,21 @@ export class WebhookManager {
   private webhooks = new Map<string, WebhookConfig>();
   private deliveryLog: WebhookDelivery[] = [];
   private deadLetters: DeadLetterEntry[] = [];
-  private unsubscribes: (() => void)[] = [];
+  private unsubscribesByWebhook = new Map<string, (() => void)[]>();
+
+  /** Max entries to retain in delivery log and dead letter queue. */
+  private static readonly MAX_DELIVERY_LOG = 10_000;
+  private static readonly MAX_DEAD_LETTERS = 1_000;
+
+  /** Trim collections to their maximum size, removing oldest entries first. */
+  private trimCollections(): void {
+    if (this.deliveryLog.length > WebhookManager.MAX_DELIVERY_LOG) {
+      this.deliveryLog = this.deliveryLog.slice(-WebhookManager.MAX_DELIVERY_LOG);
+    }
+    if (this.deadLetters.length > WebhookManager.MAX_DEAD_LETTERS) {
+      this.deadLetters = this.deadLetters.slice(-WebhookManager.MAX_DEAD_LETTERS);
+    }
+  }
 
   /** Register a new webhook endpoint. */
   registerWebhook(config: Omit<WebhookConfig, "id" | "createdAt">): WebhookConfig {
@@ -31,20 +45,27 @@ export class WebhookManager {
     };
     this.webhooks.set(webhook.id, webhook);
 
-    // Subscribe to relevant events
+    // Subscribe to relevant events and track unsubscribes per webhook
     const bus = getEventBus();
+    const unsubs: (() => void)[] = [];
     for (const eventType of webhook.events) {
       const unsub = bus.on(eventType, (event) => {
         this.deliverEvent(webhook.id, event).catch(() => {});
       });
-      this.unsubscribes.push(unsub);
+      unsubs.push(unsub);
     }
+    this.unsubscribesByWebhook.set(webhook.id, unsubs);
 
     return webhook;
   }
 
-  /** Unregister a webhook. */
+  /** Unregister a webhook and remove its event listeners. */
   unregisterWebhook(id: string): boolean {
+    const unsubs = this.unsubscribesByWebhook.get(id);
+    if (unsubs) {
+      for (const unsub of unsubs) unsub();
+      this.unsubscribesByWebhook.delete(id);
+    }
     return this.webhooks.delete(id);
   }
 
@@ -143,6 +164,7 @@ export class WebhookManager {
       lastError: lastDelivery?.error ?? "Unknown error",
     });
 
+    this.trimCollections();
     return lastDelivery!;
   }
 
@@ -166,10 +188,10 @@ export class WebhookManager {
 
   /** Cleanup all subscriptions. */
   destroy(): void {
-    for (const unsub of this.unsubscribes) {
-      unsub();
+    for (const unsubs of this.unsubscribesByWebhook.values()) {
+      for (const unsub of unsubs) unsub();
     }
-    this.unsubscribes = [];
+    this.unsubscribesByWebhook.clear();
     this.webhooks.clear();
   }
 }
