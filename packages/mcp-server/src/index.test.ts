@@ -81,8 +81,8 @@ describe("MCP Server (index.ts)", () => {
     });
   });
 
-  it("registers 6 tools: investigate, innovate, auto, innovate-from-code, innovate-file, innovate-architecture", () => {
-    expect(toolRegistrations).toHaveLength(6);
+  it("registers 10 tools: investigate, innovate, auto, innovate-from-code, innovate-file, innovate-architecture, nl-innovate, memory-search, org-dna, persona-eval", () => {
+    expect(toolRegistrations).toHaveLength(10);
     const toolNames = toolRegistrations.map((t) => t.name);
     expect(toolNames).toContain("investigate");
     expect(toolNames).toContain("innovate");
@@ -90,6 +90,10 @@ describe("MCP Server (index.ts)", () => {
     expect(toolNames).toContain("innovate-from-code");
     expect(toolNames).toContain("innovate-file");
     expect(toolNames).toContain("innovate-architecture");
+    expect(toolNames).toContain("nl-innovate");
+    expect(toolNames).toContain("memory-search");
+    expect(toolNames).toContain("org-dna");
+    expect(toolNames).toContain("persona-eval");
   });
 
   it("connects to stdio transport (default)", () => {

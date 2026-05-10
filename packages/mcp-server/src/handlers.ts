@@ -205,3 +205,80 @@ export async function handleInnovateArchitecture(args: unknown): Promise<string>
 }
 
 import { z } from "zod";
+
+// ---- New Feature Handlers ----
+
+import {
+  generateNLExecutionPlan,
+  retrieveRelatedMemories,
+  generateOrgDNA,
+  orgDNAToMarkdown,
+  generateStakeholderAssessment,
+  assessmentToMarkdown,
+} from "@innovator/core";
+
+/**
+ * Handle an MCP `nl-innovate` tool call.
+ * Parses a natural-language prompt into an execution plan.
+ */
+export async function handleNLInnovate(args: unknown): Promise<string> {
+  const input = z
+    .object({
+      prompt: z.string().min(1).max(5000),
+      model: z.string().optional(),
+    })
+    .parse(args);
+  const result = await generateNLExecutionPlan(input.prompt, input.model);
+  return JSON.stringify(result, null, 2);
+}
+
+/**
+ * Handle an MCP `memory-search` tool call.
+ * Queries the innovation memory graph for related past ideas.
+ */
+export async function handleMemorySearch(args: unknown): Promise<string> {
+  const input = z
+    .object({
+      query: z.string().min(1).max(2000),
+      threshold: z.number().min(0).max(1).optional(),
+      limit: z.number().min(1).max(50).optional(),
+    })
+    .parse(args);
+  const { nodes, scores } = retrieveRelatedMemories(input.query, {
+    threshold: input.threshold,
+    limit: input.limit,
+  });
+  const results = nodes.map((n) => ({ ...n, score: scores.get(n.id) ?? 0 }));
+  return JSON.stringify(results, null, 2);
+}
+
+/**
+ * Handle an MCP `org-dna` tool call.
+ * Generates an organizational innovation DNA report.
+ */
+export async function handleOrgDNA(args: unknown): Promise<string> {
+  const input = z
+    .object({ format: z.enum(["json", "markdown"]).optional() })
+    .parse(args);
+  const report = generateOrgDNA();
+  if (input.format === "markdown") return orgDNAToMarkdown(report);
+  return JSON.stringify(report, null, 2);
+}
+
+/**
+ * Handle an MCP `persona-eval` tool call.
+ * Evaluates an idea through multiple stakeholder personas.
+ */
+export async function handlePersonaEval(args: unknown): Promise<string> {
+  const input = z
+    .object({
+      idea: z.string().min(1).max(5000),
+      personaIds: z.array(z.string()).min(1).max(12),
+      model: z.string().optional(),
+    })
+    .parse(args);
+  const assessment = await generateStakeholderAssessment(input.idea, input.personaIds, {
+    model: input.model,
+  });
+  return assessmentToMarkdown(assessment);
+}

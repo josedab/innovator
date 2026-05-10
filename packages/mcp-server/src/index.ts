@@ -11,6 +11,10 @@ import {
   handleInnovateFromCode,
   handleInnovateFile,
   handleInnovateArchitecture,
+  handleNLInnovate,
+  handleMemorySearch,
+  handleOrgDNA,
+  handlePersonaEval,
 } from "./handlers.js";
 import {
   InvestigateInputSchema as _InvestigateInputSchema,
@@ -159,6 +163,85 @@ function createServer(): McpServer {
           content: [{ type: "text" as const, text: `Error: ${message}` }],
           isError: true,
         };
+      }
+    }
+  );
+
+  // ---- New Feature Tools ----
+
+  server.tool(
+    "nl-innovate",
+    "Run the innovation pipeline from a natural language prompt (e.g., 'Generate SCAMPER ideas for checkout flow, debate top 2, create PRD for winner')",
+    {
+      prompt: z.string().min(1).max(5000).describe("Natural language description of the innovation task"),
+      model: z.string().optional().describe("Optional LLM model override"),
+    },
+    async ({ prompt, model }) => {
+      try {
+        const result = await handleNLInnovate({ prompt, model });
+        return { content: [{ type: "text" as const, text: result }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text" as const, text: `Error: ${message}` }], isError: true };
+      }
+    }
+  );
+
+  server.tool(
+    "memory-search",
+    "Search the innovation memory graph for related past ideas, investigations, and insights across all sessions",
+    {
+      query: z.string().min(1).max(2000).describe("Search query for finding related past ideas"),
+      threshold: z.number().min(0).max(1).optional().describe("Similarity threshold (0-1, default 0.3)"),
+      limit: z.number().min(1).max(50).optional().describe("Maximum results to return (default 10)"),
+    },
+    async ({ query, threshold, limit }) => {
+      try {
+        const result = await handleMemorySearch({ query, threshold, limit });
+        return { content: [{ type: "text" as const, text: result }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text" as const, text: `Error: ${message}` }], isError: true };
+      }
+    }
+  );
+
+  server.tool(
+    "org-dna",
+    "Generate an organizational innovation DNA report showing theme clusters, blind spots, convergence patterns, and idea lineage",
+    {
+      format: z.enum(["json", "markdown"]).optional().describe("Output format (default: json)"),
+    },
+    async ({ format }) => {
+      try {
+        const result = await handleOrgDNA({ format });
+        return { content: [{ type: "text" as const, text: result }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text" as const, text: `Error: ${message}` }], isError: true };
+      }
+    }
+  );
+
+  server.tool(
+    "persona-eval",
+    "Evaluate an idea through multiple stakeholder personas (CTO, end-user, investor, regulator) with independent scoring and conflict analysis",
+    {
+      idea: z.string().min(1).max(5000).describe("The idea to evaluate"),
+      personaIds: z
+        .array(z.string())
+        .min(1)
+        .max(12)
+        .describe("Persona IDs to evaluate with (e.g., cto, end-user, investor, regulator)"),
+      model: z.string().optional().describe("Optional LLM model override"),
+    },
+    async ({ idea, personaIds, model }) => {
+      try {
+        const result = await handlePersonaEval({ idea, personaIds, model });
+        return { content: [{ type: "text" as const, text: result }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text" as const, text: `Error: ${message}` }], isError: true };
       }
     }
   );
