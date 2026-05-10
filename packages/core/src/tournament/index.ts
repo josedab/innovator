@@ -436,3 +436,19 @@ export function getBracketData(tournamentId: string):
 export function clearTournaments(): void {
   tournaments.clear();
 }
+
+// ---- LLM Judge & Evolutionary Tournament ----
+
+export {
+  type JudgingCriterion,
+  type MatchJudgment,
+  type JudgeConfig,
+  type AutoJudgeProgress,
+  type EvolutionaryTournamentConfig,
+  type EvolutionaryTournamentResult,
+  DEFAULT_JUDGING_CRITERIA,
+  judgeMatch,
+  autoJudgeTournament,
+  runEvolutionaryTournament,
+  evolutionaryTournamentToMarkdown,
+} from "./llm-judge.js";
