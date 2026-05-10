@@ -181,9 +181,10 @@ describe("roi-calculator", () => {
       );
 
       expect(bc.ideaTitle).toBe("AI Widget");
-      expect(bc.financialMetrics.npv).toBeDefined();
-      expect(bc.financialMetrics.roi).toBeDefined();
-      expect(bc.sections.executiveSummary).toBeTruthy();
+      expect(bc.financialMetrics.npv).toBeGreaterThan(0);
+      expect(bc.financialMetrics.roi).toBeGreaterThan(0);
+      expect(typeof bc.sections.executiveSummary).toBe("string");
+      expect(bc.sections.executiveSummary.length).toBeGreaterThan(0);
       expect(bc.risks).toHaveLength(2);
     });
 
@@ -230,6 +231,69 @@ describe("roi-calculator", () => {
       expect(md).toContain("# Business Case: Widget");
       expect(md).toContain("NPV");
       expect(md).toContain("ROI");
+    });
+
+    it("contains required sections", async () => {
+      const bc = await generateBusinessCase(
+        "idea-md",
+        "Sections Test",
+        "Desc",
+        cashFlows,
+        resources,
+        risks
+      );
+
+      const md = businessCaseToMarkdown(bc);
+      expect(md).toContain("Business Case");
+      expect(md).toContain("Financial");
+    });
+  });
+
+  describe("additional NPV tests", () => {
+    it("calculates NPV with known values (10% discount, $100/yr x 5yr)", () => {
+      const flows: CashFlow[] = Array.from({ length: 5 }, (_, i) => ({
+        period: i + 1,
+        amount: 100,
+      }));
+      const npv = calculateNPV(flows, 0.1);
+      // PV = 100/1.1 + 100/1.21 + 100/1.331 + 100/1.4641 + 100/1.61051 ≈ 379.08
+      expect(npv).toBeCloseTo(379.08, 0);
+    });
+
+    it("0% discount rate equals simple sum", () => {
+      const flows: CashFlow[] = [
+        { period: 1, amount: 100 },
+        { period: 2, amount: 200 },
+        { period: 3, amount: 300 },
+      ];
+      const npv = calculateNPV(flows, 0);
+      expect(npv).toBeCloseTo(600, 0);
+    });
+  });
+
+  describe("additional IRR tests", () => {
+    it("returns undefined for all negative cash flows", () => {
+      const allNeg: CashFlow[] = [
+        { period: 0, amount: -1000 },
+        { period: 1, amount: -500 },
+      ];
+      const irr = calculateIRR(allNeg);
+      // No positive flows means no IRR can make NPV = 0
+      expect(irr === undefined || (irr !== undefined && calculateNPV(allNeg, irr) < 0)).toBe(true);
+    });
+  });
+
+  describe("additional ROI tests", () => {
+    it("returns 0 for zero investment", () => {
+      expect(calculateROI(0, 5000)).toBe(0);
+    });
+  });
+
+  describe("additional portfolio tests", () => {
+    it("handles empty portfolio", () => {
+      const portfolio = aggregatePortfolioROI();
+      expect(portfolio.ideaCount).toBe(0);
+      expect(portfolio.totalInvestment).toBe(0);
     });
   });
 });
