@@ -108,7 +108,7 @@ import { decisionPacketToMarkdown } from "@innovator/core";
 
 const md = decisionPacketToMarkdown(packet, {
   companyName: "Acme Corp",
-  logo: "https://example.com/logo.png",
+  logo: "/images/company-logo.png",
 });
 ```
 

@@ -4,10 +4,8 @@ title: Contributing
 sidebar_position: 8
 ---
 
-{/_ NOTE: This is a summary of the contributing guide. The full, authoritative version
-is the root CONTRIBUTING.md file at the repository root. If you find discrepancies,
-the root version is the source of truth.
-See: https://github.com/josedab/innovator/blob/main/CONTRIBUTING.md _/}
+{/_ This is a summary of the contributing guide. The full version is at the repository root:
+https://github.com/josedab/innovator/blob/main/CONTRIBUTING.md _/}
 
 # Contributing
 
