@@ -5,6 +5,9 @@ import {
   getWorkflowTemplate,
   validateDAG,
   DAGWorkflowSchema,
+  listBuiltinDSLs,
+  getBuiltinDSL,
+  dslToDAG,
 } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "../../../lib/api-headers";
 
@@ -37,8 +40,11 @@ export async function GET(request: Request) {
       ? templates.filter((t) => t.category === query.category)
       : templates;
 
+    // Include built-in DSL templates
+    const dslTemplates = listBuiltinDSLs();
+
     return NextResponse.json(
-      { templates: filtered, total: filtered.length },
+      { templates: filtered, dslTemplates, total: filtered.length },
       { headers: API_RESPONSE_HEADERS }
     );
   } catch {
@@ -62,7 +68,17 @@ const ExecuteBodySchema = z.object({
   dryRun: z.boolean().default(true),
 });
 
-const PostBodySchema = z.discriminatedUnion("action", [ValidateBodySchema, ExecuteBodySchema]);
+const ConvertDSLBodySchema = z.object({
+  action: z.literal("convert"),
+  dslTemplateId: z.string().max(100).optional(),
+  dsl: z.unknown().optional(),
+});
+
+const PostBodySchema = z.discriminatedUnion("action", [
+  ValidateBodySchema,
+  ExecuteBodySchema,
+  ConvertDSLBodySchema,
+]);
 
 export async function POST(request: Request) {
   try {
@@ -107,6 +123,22 @@ export async function POST(request: Request) {
         },
         { headers: API_RESPONSE_HEADERS }
       );
+    }
+
+    if (parsed.action === "convert") {
+      const dslData = parsed.dslTemplateId ? getBuiltinDSL(parsed.dslTemplateId) : parsed.dsl;
+
+      if (!dslData) {
+        return NextResponse.json(
+          { error: "Provide dslTemplateId or dsl object" },
+          { status: 400, headers: API_RESPONSE_HEADERS }
+        );
+      }
+
+      const dag = dslToDAG(dslData as Parameters<typeof dslToDAG>[0]);
+      const validation = validateDAG(dag);
+
+      return NextResponse.json({ workflow: dag, validation }, { headers: API_RESPONSE_HEADERS });
     }
 
     return NextResponse.json(
