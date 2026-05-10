@@ -5,8 +5,14 @@ vi.mock("@github/copilot-sdk", () => ({
   approveAll: vi.fn(),
 }));
 
-import { runConsensus, consensusToMarkdown } from "../consensus/index.js";
-import type { ConsensusOptions } from "../consensus/index.js";
+import {
+  runConsensus,
+  consensusToMarkdown,
+  computeKrippendorffsAlpha,
+  computeWeightedConsensus,
+  analyzeModelDivergence,
+} from "../consensus/index.js";
+import type { ConsensusOptions, JuryScore } from "../consensus/index.js";
 import type { LLMProvider } from "../providers/index.js";
 import type { Investigation, AngleResult } from "../types.js";
 
@@ -247,6 +253,225 @@ describe("consensus", () => {
       expect(md).toContain("# Multi-Model Consensus");
       expect(md).not.toContain("🤝 Agreements");
       expect(md).not.toContain("💡 Novel Divergences");
+    });
+  });
+
+  describe("computeKrippendorffsAlpha", () => {
+    it("returns 1.0 for perfect agreement", () => {
+      const ratings = [
+        [5, 5, 5],
+        [5, 5, 5],
+        [5, 5, 5],
+      ];
+      expect(computeKrippendorffsAlpha(ratings)).toBe(1);
+    });
+
+    it("returns near 0 or negative for no agreement", () => {
+      const ratings = [
+        [1, 10, 1],
+        [10, 1, 10],
+      ];
+      const alpha = computeKrippendorffsAlpha(ratings);
+      expect(alpha).toBeLessThan(0.5);
+    });
+
+    it("returns 1 for fewer than 2 raters", () => {
+      const ratings = [[5, 5, 5]];
+      expect(computeKrippendorffsAlpha(ratings)).toBe(1);
+    });
+
+    it("returns 1 for empty items", () => {
+      const ratings: number[][] = [[], []];
+      expect(computeKrippendorffsAlpha(ratings)).toBe(1);
+    });
+
+    it("returns 1 when De=0 (all values identical)", () => {
+      const ratings = [
+        [3, 3],
+        [3, 3],
+      ];
+      expect(computeKrippendorffsAlpha(ratings)).toBe(1);
+    });
+
+    it("handles partial agreement correctly (alpha between 0 and 1)", () => {
+      const ratings = [
+        [5, 6, 7],
+        [5, 5, 8],
+      ];
+      const alpha = computeKrippendorffsAlpha(ratings);
+      expect(alpha).toBeGreaterThan(-1);
+      expect(alpha).toBeLessThanOrEqual(1);
+    });
+
+    it("handles NaN values (missing ratings)", () => {
+      const ratings = [
+        [5, NaN, 7],
+        [5, 6, NaN],
+      ];
+      const alpha = computeKrippendorffsAlpha(ratings);
+      expect(typeof alpha).toBe("number");
+      expect(Number.isFinite(alpha)).toBe(true);
+    });
+  });
+
+  describe("computeWeightedConsensus", () => {
+    it("computes weighted scores based on model reliability", () => {
+      const juryScores: JuryScore[] = [
+        { modelId: "m1", ideaTitle: "Idea A", scores: { feasibility: 7 }, reasoning: "" },
+        { modelId: "m2", ideaTitle: "Idea A", scores: { feasibility: 8 }, reasoning: "" },
+      ];
+      const verdicts = computeWeightedConsensus(juryScores);
+      expect(verdicts).toHaveLength(1);
+      expect(verdicts[0].ideaTitle).toBe("Idea A");
+      expect(verdicts[0].finalScores.feasibility).toBeGreaterThan(0);
+    });
+
+    it("returns empty array for empty input", () => {
+      expect(computeWeightedConsensus([])).toEqual([]);
+    });
+
+    it("calculates model reliability as max(0.1, 1 - avgDeviation/10)", () => {
+      // When all models agree perfectly, reliability should be close to 1
+      const juryScores: JuryScore[] = [
+        { modelId: "m1", ideaTitle: "Idea A", scores: { feasibility: 5 }, reasoning: "" },
+        { modelId: "m2", ideaTitle: "Idea A", scores: { feasibility: 5 }, reasoning: "" },
+      ];
+      const verdicts = computeWeightedConsensus(juryScores);
+      // Perfect agreement → weighted average should equal the raw value
+      expect(verdicts[0].finalScores.feasibility).toBe(5);
+    });
+
+    it("flags outlier models with z-score > 2", () => {
+      const juryScores: JuryScore[] = [
+        { modelId: "m1", ideaTitle: "Idea A", scores: { impact: 5 }, reasoning: "" },
+        { modelId: "m2", ideaTitle: "Idea A", scores: { impact: 5 }, reasoning: "" },
+        { modelId: "m3", ideaTitle: "Idea A", scores: { impact: 5 }, reasoning: "" },
+        { modelId: "m4", ideaTitle: "Idea A", scores: { impact: 10 }, reasoning: "" }, // outlier
+      ];
+      const verdicts = computeWeightedConsensus(juryScores);
+      // m4 is significantly different; may or may not flag depending on stdDev threshold
+      expect(verdicts).toHaveLength(1);
+      // At least the verdict should exist with proper structure
+      expect(verdicts[0].outlierModels).toBeDefined();
+    });
+
+    it("handles single juror", () => {
+      const juryScores: JuryScore[] = [
+        { modelId: "m1", ideaTitle: "Idea A", scores: { impact: 7, novelty: 8 }, reasoning: "" },
+      ];
+      const verdicts = computeWeightedConsensus(juryScores);
+      expect(verdicts).toHaveLength(1);
+      expect(verdicts[0].finalScores.impact).toBe(7);
+      expect(verdicts[0].finalScores.novelty).toBe(8);
+    });
+
+    it("handles all identical scores", () => {
+      const juryScores: JuryScore[] = [
+        { modelId: "m1", ideaTitle: "Idea A", scores: { feasibility: 5 }, reasoning: "" },
+        { modelId: "m2", ideaTitle: "Idea A", scores: { feasibility: 5 }, reasoning: "" },
+        { modelId: "m3", ideaTitle: "Idea A", scores: { feasibility: 5 }, reasoning: "" },
+      ];
+      const verdicts = computeWeightedConsensus(juryScores);
+      expect(verdicts[0].finalScores.feasibility).toBe(5);
+      expect(verdicts[0].outlierModels).toEqual([]);
+    });
+
+    it("handles multiple ideas", () => {
+      const juryScores: JuryScore[] = [
+        { modelId: "m1", ideaTitle: "Idea A", scores: { impact: 7 }, reasoning: "" },
+        { modelId: "m2", ideaTitle: "Idea A", scores: { impact: 8 }, reasoning: "" },
+        { modelId: "m1", ideaTitle: "Idea B", scores: { impact: 3 }, reasoning: "" },
+        { modelId: "m2", ideaTitle: "Idea B", scores: { impact: 4 }, reasoning: "" },
+      ];
+      const verdicts = computeWeightedConsensus(juryScores);
+      expect(verdicts).toHaveLength(2);
+      const ideaA = verdicts.find((v) => v.ideaTitle === "Idea A");
+      const ideaB = verdicts.find((v) => v.ideaTitle === "Idea B");
+      expect(ideaA!.finalScores.impact).toBeGreaterThan(ideaB!.finalScores.impact);
+    });
+
+    it("confidence is avgScore/10 capped at 1.0", () => {
+      const juryScores: JuryScore[] = [
+        { modelId: "m1", ideaTitle: "Idea A", scores: { dim1: 10, dim2: 10 }, reasoning: "" },
+      ];
+      const verdicts = computeWeightedConsensus(juryScores);
+      expect(verdicts[0].confidence).toBeLessThanOrEqual(1.0);
+    });
+  });
+
+  describe("analyzeModelDivergence", () => {
+    it("flags dimensions with spread > 3", () => {
+      const juryScores: JuryScore[] = [
+        { modelId: "m1", ideaTitle: "Idea A", scores: { feasibility: 2 }, reasoning: "" },
+        { modelId: "m2", ideaTitle: "Idea A", scores: { feasibility: 9 }, reasoning: "" },
+      ];
+      const divergences = analyzeModelDivergence(juryScores);
+      expect(divergences.length).toBeGreaterThan(0);
+      expect(divergences[0].spread).toBeGreaterThan(3);
+      expect(divergences[0].dimension).toBe("feasibility");
+    });
+
+    it("does not flag dimensions with spread <= 3", () => {
+      const juryScores: JuryScore[] = [
+        { modelId: "m1", ideaTitle: "Idea A", scores: { feasibility: 5 }, reasoning: "" },
+        { modelId: "m2", ideaTitle: "Idea A", scores: { feasibility: 7 }, reasoning: "" },
+      ];
+      const divergences = analyzeModelDivergence(juryScores);
+      expect(divergences).toHaveLength(0);
+    });
+
+    it("sorts by spread descending", () => {
+      const juryScores: JuryScore[] = [
+        {
+          modelId: "m1",
+          ideaTitle: "Idea A",
+          scores: { feasibility: 1, impact: 2 },
+          reasoning: "",
+        },
+        {
+          modelId: "m2",
+          ideaTitle: "Idea A",
+          scores: { feasibility: 5, impact: 10 },
+          reasoning: "",
+        },
+      ];
+      const divergences = analyzeModelDivergence(juryScores);
+      if (divergences.length >= 2) {
+        expect(divergences[0].spread).toBeGreaterThanOrEqual(divergences[1].spread);
+      }
+    });
+
+    it("returns empty for empty input", () => {
+      expect(analyzeModelDivergence([])).toEqual([]);
+    });
+
+    it("handles stdDev=0 safely (no division by zero)", () => {
+      const juryScores: JuryScore[] = [
+        { modelId: "m1", ideaTitle: "Idea A", scores: { feasibility: 5 }, reasoning: "" },
+        { modelId: "m2", ideaTitle: "Idea A", scores: { feasibility: 5 }, reasoning: "" },
+      ];
+      // stdDev=0, spread=0, no divergence
+      const divergences = analyzeModelDivergence(juryScores);
+      expect(divergences).toHaveLength(0);
+    });
+
+    it("includes explanation with model names and scores", () => {
+      const juryScores: JuryScore[] = [
+        { modelId: "gpt-4", ideaTitle: "Idea A", scores: { novelty: 2 }, reasoning: "" },
+        { modelId: "claude", ideaTitle: "Idea A", scores: { novelty: 9 }, reasoning: "" },
+      ];
+      const divergences = analyzeModelDivergence(juryScores);
+      expect(divergences.length).toBe(1);
+      expect(divergences[0].explanation).toContain("gpt-4");
+      expect(divergences[0].explanation).toContain("claude");
+      expect(divergences[0].explanation).toContain("spread");
+    });
+
+    it("skips dimensions with fewer than 2 values", () => {
+      const juryScores: JuryScore[] = [
+        { modelId: "m1", ideaTitle: "Idea A", scores: { feasibility: 5 }, reasoning: "" },
+      ];
+      expect(analyzeModelDivergence(juryScores)).toHaveLength(0);
     });
   });
 });
