@@ -52,9 +52,9 @@ function generateConfig(config: ScaffoldConfig): string {
         ollama: { enabled: false, baseUrl: "http://localhost:11434" },
       },
       modelPreferences: {
-        investigation: undefined,
-        generation: undefined,
-        synthesis: undefined,
+        investigation: null,
+        generation: null,
+        synthesis: null,
       },
     },
     null,
