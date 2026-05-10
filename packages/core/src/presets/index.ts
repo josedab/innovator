@@ -107,3 +107,22 @@ export function getPresetsByCategory(category: string): Preset[] {
 export function getPresetsByTag(tag: string): Preset[] {
   return BUILT_IN_PRESETS.filter((p) => p.tags?.includes(tag.toLowerCase()));
 }
+
+// ---- Domain-Specific Innovation Packs ----
+
+export {
+  type InnovationPack,
+  type EvaluationRubric,
+  HEALTHTECH_PACK,
+  CLEANTECH_PACK,
+  FINTECH_PACK,
+  EDTECH_PACK,
+  DEVTOOLS_PACK,
+  registerPack,
+  getPack,
+  listPacks,
+  getPacksByCategory,
+  searchPacks,
+  unregisterPack,
+  clearPacks,
+} from "./domain-packs.js";
