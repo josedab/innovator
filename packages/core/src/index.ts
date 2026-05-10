@@ -412,6 +412,37 @@ export type {
   BranchDiffView,
 } from "./replay/index.js";
 
+/** Replay Decisions — decision-point recording, branching, and session tree visualization. */
+export {
+  recordDecisionPoint,
+  getDecisionPoints,
+  getDecisionPoint,
+  branchFromDecision,
+  getSessionTree,
+  adoptBranch,
+  compareBranches,
+  branchComparisonToMarkdown,
+  buildTimelineView,
+  timelineViewToMarkdown,
+  persistDecisionPoint,
+  persistDecisionBranch,
+  loadPersistedDecisionPoints,
+  loadPersistedDecisionBranches,
+  clearDecisionData,
+  DecisionPointSchema as ReplayDecisionPointSchema,
+  DecisionBranchSchema,
+  BranchComparisonSchema,
+  SessionTreeSchema,
+  TimelineViewSchema,
+} from "./replay-decisions/index.js";
+export type {
+  DecisionPoint as ReplayDecisionPoint,
+  DecisionBranch,
+  BranchComparison,
+  SessionTree,
+  TimelineView,
+} from "./replay-decisions/index.js";
+
 /** Audience-adaptive output — transform results for executive, technical, pitch, or research audiences. */
 export {
   transformForAudience,
@@ -1310,6 +1341,37 @@ export type {
   TunedParameters,
 } from "./memory/index.js";
 
+/** Innovation Memory Graph — persistent semantic memory connecting ideas across sessions, teams, and time. */
+export {
+  autoIndexSession,
+  retrieveRelatedMemories,
+  detectConvergence,
+  generateOrgDNA,
+  getIdeaLineage,
+  orgDNAToMarkdown,
+  getMemoryGraph,
+  clearMemoryGraph,
+  MemoryNodeSchema,
+  MemoryEdgeSchema,
+  ThemeClusterSchema,
+  BlindSpotSchema as MemoryBlindSpotSchema,
+  ConvergencePatternSchema,
+  IdeaLineageSchema,
+  OrgDNAReportSchema,
+  MemoryGraphSchema,
+} from "./memory-graph/index.js";
+export type {
+  MemoryNode,
+  MemoryEdge,
+  MemoryGraph,
+  ThemeCluster,
+  BlindSpot as MemoryBlindSpot,
+  ConvergencePattern,
+  IdeaLineage,
+  OrgDNAReport,
+  RetrievalOptions,
+} from "./memory-graph/index.js";
+
 /** Hypothesis-driven innovation — parse, analyze, and track structured hypotheses with experiment cards. */
 export {
   parseHypothesis,
@@ -1553,6 +1615,29 @@ export {
   DiffItemSchema,
 } from "./diff/index.js";
 export type { DiffResult, DiffItem } from "./diff/index.js";
+
+/** Innovation Diff & Merge — semantic session comparison and merge operations. */
+export {
+  runSemanticDiff,
+  autoMerge,
+  resolveConflict,
+  diffReportToMarkdown,
+  mergeResultToMarkdown,
+  SemanticDiffItemSchema,
+  SemanticDiffReportSchema,
+  MergeConflictSchema,
+  MergedIdeaSchema,
+  MergeResultSchema as DiffMergeMergeResultSchema,
+  SessionSnapshotSchema,
+} from "./diff-merge/index.js";
+export type {
+  SemanticDiffItem,
+  SemanticDiffReport,
+  MergeConflict,
+  MergedIdea,
+  MergeResult as DiffMergeMergeResult,
+  SessionSnapshot,
+} from "./diff-merge/index.js";
 
 /** Idea provenance — trace idea origins through prompt chains with content hashes. */
 export {
@@ -1881,6 +1966,41 @@ export type {
   DomainAffinity,
   EffectivenessReport,
 } from "./angle-learning/index.js";
+
+/** Adaptive Innovation Methodology — ML-driven learning of optimal angles, prompts, and configs per domain. */
+export {
+  recordEffectiveness,
+  getEffectivenessHistory,
+  getAngleRecommendations,
+  getPipelineRecommendation,
+  explainRecommendation,
+  recordFeedback,
+  recalculateProfiles,
+  createMethodologyExperiment,
+  getExperimentResults,
+  generateMethodologyInsights,
+  insightsToMarkdown,
+  clearAdaptiveMethodology,
+  MethodologyProfileSchema,
+  AngleRecommendationSchema as AdaptiveAngleRecommendationSchema,
+  PipelineRecommendationSchema,
+  EffectivenessRecordSchema,
+  ABTestConfigSchema as AdaptiveABTestConfigSchema,
+  MethodologyInsightSchema,
+  FeedbackRecordSchema,
+  ExperimentResultsSchema,
+  OptimalConfigSchema,
+} from "./adaptive-methodology/index.js";
+export type {
+  MethodologyProfile,
+  AngleRecommendation as AdaptiveAngleRecommendation,
+  PipelineRecommendation,
+  EffectivenessRecord,
+  ABTestConfig as AdaptiveABTestConfig,
+  MethodologyInsight,
+  FeedbackRecord,
+  ExperimentResults,
+} from "./adaptive-methodology/index.js";
 
 /** Prompt observatory — record, timeline, diff, and A/B-compare all LLM prompt calls. */
 export {
@@ -2638,6 +2758,44 @@ export type {
   RefinedIdea,
 } from "./innovation-pr/index.js";
 
+/** Innovation Impact Tracker — connect ideas to real-world outcomes with composite scoring. */
+export {
+  trackIdea as trackImpactIdea,
+  updateIdeaStatus,
+  linkPR,
+  linkIssue,
+  getTrackedIdea as getImpactTrackedIdea,
+  listTrackedIdeas,
+  recordOutcome as recordImpactOutcome,
+  getOutcomes as getImpactOutcomes,
+  autoDetectOutcomes,
+  calculateImpactScore,
+  rankByImpact,
+  getInnovationFunnel,
+  getTeamComparisons,
+  generateImpactDashboard,
+  dashboardToMarkdown,
+  clearImpactTrackerData,
+  TrackedIdeaSchema as ImpactTrackedIdeaSchema,
+  OutcomeRecordSchema as ImpactOutcomeRecordSchema,
+  ImpactScoreSchema,
+  InnovationFunnelSchema,
+  ImpactDashboardSchema as ImpactTrackerDashboardSchema,
+  TeamComparisonSchema,
+  TrendRecordSchema,
+  IdeaStatusSchema as ImpactIdeaStatusSchema,
+} from "./impact-tracker/index.js";
+export type {
+  TrackedIdea as ImpactTrackedIdea,
+  OutcomeRecord as ImpactOutcomeRecord,
+  ImpactScore,
+  InnovationFunnel,
+  ImpactDashboard as ImpactTrackerDashboard,
+  TeamComparison,
+  TrendRecord,
+  IdeaStatus as ImpactIdeaStatus,
+} from "./impact-tracker/index.js";
+
 /** Angle Studio — visual pipeline editor for angle composition. */
 export {
   createPipeline as createStudioPipeline,
@@ -3066,6 +3224,40 @@ export type {
   AutonomousProgress,
   AutonomousAgentConfig,
 } from "./autonomous-agent/index.js";
+
+/** Innovation Monitor — long-running domain monitoring with opportunity detection and digest generation. */
+export {
+  addMonitorSource,
+  removeMonitorSource,
+  listMonitorSources,
+  updateMonitorSource,
+  detectOpportunities,
+  scoreSignal,
+  getRecentSignals,
+  generateDigest as generateMonitorDigest,
+  digestToMarkdown as monitorDigestToMarkdown,
+  digestToHtml,
+  startMonitor,
+  stopMonitor,
+  getMonitorState,
+  clearMonitorData,
+  MonitorSourceSchema,
+  OpportunitySignalSchema,
+  ScoredOpportunitySchema,
+  DigestStatsSchema,
+  InnovationDigestSchema as MonitorInnovationDigestSchema,
+  MonitorConfigSchema as InnovationMonitorConfigSchema,
+  MonitorStateSchema,
+} from "./innovation-monitor/index.js";
+export type {
+  MonitorSource,
+  OpportunitySignal,
+  ScoredOpportunity,
+  DigestStats,
+  InnovationDigest as MonitorInnovationDigest,
+  MonitorConfig as InnovationMonitorConfig,
+  MonitorState,
+} from "./innovation-monitor/index.js";
 
 /** Patent Scanner — prior art detection and freedom-to-operate assessment. */
 export {
@@ -3900,6 +4092,30 @@ export type {
   ConversationTurn,
 } from "./nl-pipeline/index.js";
 
+/** Natural Language Innovation API — conversational pipeline orchestration with streaming execution. */
+export {
+  parseInnovationIntent,
+  generateExecutionPlan as generateNLExecutionPlan,
+  executeWithStreaming,
+  applyCorrection,
+  ConversationSession,
+  conversationToMarkdown,
+  ConversationMessageSchema as NLApiConversationMessageSchema,
+  ExecutionStepSchema,
+  ExecutionPlanSchema,
+  StreamEventSchema,
+  ConversationSessionSchema,
+  PlanGenerationResultSchema,
+} from "./nl-innovation-api/index.js";
+export type {
+  ConversationMessage as NLApiConversationMessage,
+  ExecutionStep,
+  ExecutionPlan,
+  StreamEvent,
+  ConversationSessionState,
+  PlanGenerationResult,
+} from "./nl-innovation-api/index.js";
+
 /** Peer Review Network — expertise profiles, review matching, reputation scoring, and leaderboards. */
 export {
   upsertExpertiseProfile,
@@ -4141,6 +4357,38 @@ export type {
   LandscapeEntry,
   TimelineEntry as CompetitiveTimelineEntry,
 } from "./competitive-autopilot/index.js";
+
+/** Competitive Intelligence Radar — competitor profiling, gap analysis, and radar visualization. */
+export {
+  addCompetitor,
+  updateCompetitor,
+  getCompetitor,
+  listCompetitors,
+  runGapAnalysis,
+  runMultiCompetitorGapAnalysis,
+  gapReportToMarkdown,
+  generateRadarDashboard,
+  checkForAlerts,
+  radarDashboardToMarkdown,
+  getCompetitiveContext,
+  CompetitorProfileSchema as RadarCompetitorProfileSchema,
+  GapAnalysisItemSchema,
+  GapAnalysisReportSchema,
+  RadarQuadrantSchema as CompetitiveRadarQuadrantSchema,
+  RadarDashboardSchema,
+  CompetitiveAlertSchema,
+  RadarEntrySchema,
+  clearCompetitorData,
+} from "./competitive-radar/index.js";
+export type {
+  CompetitorProfile as RadarCompetitorProfile,
+  GapAnalysisItem,
+  GapAnalysisReport,
+  RadarQuadrant as CompetitiveRadarQuadrant,
+  RadarDashboard,
+  CompetitiveAlert,
+  RadarEntry,
+} from "./competitive-radar/index.js";
 
 /** ROI Calculator & Business Case Generator — NPV/IRR, resource allocation, and executive documents. */
 export {
@@ -4708,6 +4956,34 @@ export type {
   StakeholderSimConfig,
   StakeholderSimProgress,
 } from "./stakeholder-sim/index.js";
+
+/** Persona Evaluation — configurable persona templates, multi-persona scoring, and conflict mediation. */
+export {
+  createPersona,
+  getPersona,
+  listPersonas,
+  evaluateWithPersona,
+  evaluateWithMultiplePersonas,
+  buildAlignmentMatrix,
+  detectConflicts as detectPersonaConflicts,
+  suggestMediation,
+  generateStakeholderAssessment,
+  assessmentToMarkdown,
+  BUILT_IN_PERSONAS,
+  PersonaTemplateSchema,
+  PersonaScorecardSchema,
+  AlignmentMatrixSchema,
+  MediationSuggestionSchema,
+  StakeholderAssessmentSchema,
+  clearCustomPersonas,
+} from "./persona-evaluation/index.js";
+export type {
+  PersonaTemplate,
+  PersonaScorecard,
+  AlignmentMatrix,
+  MediationSuggestion,
+  StakeholderAssessment,
+} from "./persona-evaluation/index.js";
 
 /** Innovation Context Mesh — ambient context ingestion and proactive suggestion engine. */
 export {
