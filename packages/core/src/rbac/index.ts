@@ -293,3 +293,48 @@ export {
   getOrgStats,
   clearEnterpriseData,
 } from "./enterprise.js";
+
+// ---- Enhanced Audit Trail ----
+
+export {
+  type AuditCategory,
+  type AuditSeverity,
+  type AuditEntry,
+  type AuditQuery,
+  type AuditExport,
+  type AuditStats,
+  recordAuditEvent,
+  queryAuditTrail,
+  verifyAuditChainIntegrity,
+  exportAuditTrail,
+  getAuditStats,
+  onAuditEvent,
+  auditAuth,
+  auditAdmin,
+  auditDataAccess,
+  clearAuditTrail,
+} from "./audit-trail.js";
+
+// ---- Team Management & Admin Dashboard ----
+
+export {
+  type Team,
+  type TeamHierarchy,
+  type UsageQuota,
+  type AdminDashboardData,
+  TeamSchema,
+  createTeam as createRBACTeam,
+  getTeam as getRBACTeam,
+  getTeamBySlug as getRBACTeamBySlug,
+  updateTeam as updateRBACTeam,
+  addTeamMember,
+  removeTeamMember,
+  deleteTeam as deleteRBACTeam,
+  getTeamHierarchy,
+  listTeams as listRBACTeams,
+  getQuota,
+  setQuotaLimits,
+  incrementQuota,
+  getAdminDashboard,
+  clearTeamData,
+} from "./team-management.js";
