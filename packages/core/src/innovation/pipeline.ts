@@ -157,6 +157,10 @@ export async function runAutoPipeline(
     return progress;
   }
 
+  // Track completed angles for progress reporting; each task closure captures
+  // its own angleId so concurrent .then() callbacks don't race on shared state.
+  const completedSet = new Set<string>();
+
   const tasks = selectedAngles.map(
     (angleId) => () =>
       generateForAngle(
@@ -166,9 +170,9 @@ export async function runAutoPipeline(
         modelRouting?.generation ?? model,
         signal
       ).then((result) => {
-        progress.angleResults.push(result);
-        progress.completedAngles.push(angleId);
+        completedSet.add(angleId);
         progress.currentAngle = angleId;
+        progress.completedAngles = [...completedSet];
         safeProgress(progress);
         return result;
       })
