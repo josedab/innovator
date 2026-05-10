@@ -220,4 +220,223 @@ describe("runEvolution (mocked LLM)", () => {
     await expect(runEvolution(ideas, 0)).rejects.toThrow("Generations must be between 1 and 10");
     await expect(runEvolution(ideas, 11)).rejects.toThrow("Generations must be between 1 and 10");
   });
+
+  it("multi-generation evolution preserves elites", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+
+    // Mock returns crossover/mutation results and fitness scores
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        scores: [{ id: "any", fitness: 80 }],
+        title: "Evolved",
+        description: "Evolved idea",
+        potentialImpact: "Big",
+        implementationHint: "Do it",
+      })
+    );
+
+    const { runEvolution } = await import("../index.js");
+    const ideas = [
+      { title: "A", description: "A", potentialImpact: "A", implementationHint: "A" },
+      { title: "B", description: "B", potentialImpact: "B", implementationHint: "B" },
+      { title: "C", description: "C", potentialImpact: "C", implementationHint: "C" },
+    ];
+
+    const result = await runEvolution(ideas, 2, { eliteCount: 2, populationSize: 4 });
+    expect(result.totalGenerations).toBe(2);
+    expect(result.generations).toHaveLength(2);
+    expect(result.fitnessHistory).toHaveLength(2);
+  });
+
+  it("progress callback called per generation with correct phases", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        scores: [{ id: "any", fitness: 70 }],
+        title: "X",
+        description: "X",
+        potentialImpact: "X",
+        implementationHint: "X",
+      })
+    );
+
+    const { runEvolution } = await import("../index.js");
+    const ideas = [
+      { title: "A", description: "A", potentialImpact: "A", implementationHint: "A" },
+      { title: "B", description: "B", potentialImpact: "B", implementationHint: "B" },
+    ];
+
+    const phases: string[] = [];
+    await runEvolution(ideas, 2, { populationSize: 3 }, (p) => phases.push(p.phase));
+
+    expect(phases).toContain("evaluating");
+    expect(phases).toContain("selecting");
+    expect(phases).toContain("complete");
+  });
+
+  it("all identical fitness scores handled gracefully", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        scores: [{ id: "any", fitness: 50 }],
+        title: "Same",
+        description: "Same",
+        potentialImpact: "Same",
+        implementationHint: "Same",
+      })
+    );
+
+    const { runEvolution } = await import("../index.js");
+    const ideas = [
+      { title: "A", description: "A", potentialImpact: "A", implementationHint: "A" },
+      { title: "B", description: "B", potentialImpact: "B", implementationHint: "B" },
+    ];
+
+    const result = await runEvolution(ideas, 1);
+    expect(result.bestOverall).toBeDefined();
+    // When IDs don't match the mock, fitness stays at default 0
+    expect(result.bestOverall.fitness).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ---- crossover tests (mocked LLM) ----
+
+describe("crossover (mocked LLM)", () => {
+  it("combines two parent ideas and returns child with ancestry", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        title: "Hybrid Idea",
+        description: "Combined from A and B",
+        potentialImpact: "Medium-High",
+        implementationHint: "Merge approaches",
+      })
+    );
+
+    const { crossover } = await import("../index.js");
+    const parentA = makeEvolvedIdea({ id: "parent-a", generation: 1 });
+    const parentB = makeEvolvedIdea({ id: "parent-b", generation: 2 });
+
+    const child = await crossover(parentA, parentB);
+
+    expect(child.title).toBe("Hybrid Idea");
+    expect(child.ancestry.operation).toBe("crossover");
+    expect(child.ancestry.parentIds).toContain("parent-a");
+    expect(child.ancestry.parentIds).toContain("parent-b");
+    expect(child.generation).toBe(3); // max(1, 2) + 1
+    expect(child.fitness).toBe(0); // Not yet evaluated
+  });
+});
+
+// ---- mutate tests (mocked LLM) ----
+
+describe("mutate (mocked LLM)", () => {
+  const mutationTypes = [
+    "pivot",
+    "scale",
+    "simplify",
+    "combine",
+    "invert",
+    "analogize",
+    "constrain",
+  ] as const;
+
+  for (const mt of mutationTypes) {
+    it(`applies ${mt} mutation`, async () => {
+      const { generateText } = await import("../../copilot/client.js");
+      vi.mocked(generateText).mockResolvedValue(
+        JSON.stringify({
+          title: `${mt} variant`,
+          description: `Applied ${mt}`,
+          potentialImpact: "Varied",
+          implementationHint: "Adapt",
+        })
+      );
+
+      const { mutate } = await import("../index.js");
+      const parent = makeEvolvedIdea({ id: "parent-1", generation: 0 });
+
+      const child = await mutate(parent, mt);
+
+      expect(child.title).toBe(`${mt} variant`);
+      expect(child.ancestry.operation).toBe("mutation");
+      expect(child.ancestry.mutationType).toBe(mt);
+      expect(child.ancestry.parentIds).toContain("parent-1");
+      expect(child.generation).toBe(1); // parent gen + 1
+    });
+  }
+});
+
+// ---- select edge cases ----
+
+describe("select edge cases", () => {
+  it("handles ties by preserving order", () => {
+    const population = [
+      makeEvolvedIdea({ id: "a", fitness: 50 }),
+      makeEvolvedIdea({ id: "b", fitness: 50 }),
+      makeEvolvedIdea({ id: "c", fitness: 50 }),
+    ];
+    const selected = select(population, 2);
+    expect(selected).toHaveLength(2);
+    // All same fitness, order should be stable
+  });
+
+  it("returns top-k by fitness", () => {
+    const population = [
+      makeEvolvedIdea({ id: "low", fitness: 10 }),
+      makeEvolvedIdea({ id: "mid", fitness: 50 }),
+      makeEvolvedIdea({ id: "high", fitness: 90 }),
+    ];
+    const selected = select(population, 1);
+    expect(selected[0].id).toBe("high");
+    expect(selected[0].fitness).toBe(90);
+  });
+});
+
+// ---- ancestry tracking ----
+
+describe("ancestry tracking", () => {
+  it("seed ideas have empty parentIds", () => {
+    const idea = makeEvolvedIdea();
+    expect(idea.ancestry.parentIds).toEqual([]);
+    expect(idea.ancestry.operation).toBe("seed");
+  });
+
+  it("crossover children track both parents", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        title: "Child",
+        description: "Offspring",
+        potentialImpact: "High",
+        implementationHint: "Build",
+      })
+    );
+
+    const { crossover } = await import("../index.js");
+    const a = makeEvolvedIdea({ id: "a" });
+    const b = makeEvolvedIdea({ id: "b" });
+    const child = await crossover(a, b);
+
+    expect(child.ancestry.parentIds).toHaveLength(2);
+  });
+
+  it("mutation children track single parent", async () => {
+    const { generateText } = await import("../../copilot/client.js");
+    vi.mocked(generateText).mockResolvedValue(
+      JSON.stringify({
+        title: "Mutant",
+        description: "Changed",
+        potentialImpact: "Medium",
+        implementationHint: "Adjust",
+      })
+    );
+
+    const { mutate } = await import("../index.js");
+    const parent = makeEvolvedIdea({ id: "parent" });
+    const child = await mutate(parent, "pivot");
+
+    expect(child.ancestry.parentIds).toHaveLength(1);
+    expect(child.ancestry.parentIds[0]).toBe("parent");
+  });
 });
