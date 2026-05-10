@@ -1,4 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("@github/copilot-sdk", () => ({
+  CopilotClient: vi.fn(),
+  approveAll: vi.fn(),
+}));
+
 import type { Synthesis, InnovationIdea } from "../types.js";
 import {
   selectTopIdea,

@@ -1,4 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
+
+vi.mock("@github/copilot-sdk", () => ({
+  CopilotClient: vi.fn(),
+  approveAll: vi.fn(),
+}));
+
 import { runConsensus, consensusToMarkdown } from "../consensus/index.js";
 import type { ConsensusOptions } from "../consensus/index.js";
 import type { LLMProvider } from "../providers/index.js";

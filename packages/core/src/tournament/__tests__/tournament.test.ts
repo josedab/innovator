@@ -1,4 +1,10 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("@github/copilot-sdk", () => ({
+  CopilotClient: vi.fn(),
+  approveAll: vi.fn(),
+}));
+
 import {
   updateElo,
   createTournament,
