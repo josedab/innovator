@@ -124,6 +124,76 @@ describe("UrlExtractor", () => {
 
     vi.unstubAllGlobals();
   });
+
+  it("handles empty response body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("", {
+          status: 200,
+          headers: { "Content-Type": "text/plain" },
+        })
+      )
+    );
+
+    const result = await extractor.extract("https://example.com/empty");
+    expect(result.content).toBe("");
+    expect(result.metadata.charCount).toBe(0);
+
+    vi.unstubAllGlobals();
+  });
+
+  it("uses 30s timeout signal", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response("ok", { status: 200, headers: { "Content-Type": "text/plain" } })
+      );
+    vi.stubGlobal("fetch", mockFetch);
+
+    await extractor.extract("https://example.com");
+
+    const callArgs = mockFetch.mock.calls[0];
+    expect(callArgs[1].signal).toBeDefined();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("handles maxChars: 0 by truncating immediately", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("some content", {
+          status: 200,
+          headers: { "Content-Type": "text/plain" },
+        })
+      )
+    );
+
+    const result = await extractor.extract("https://example.com", { maxChars: 0 });
+    expect(result.content).toContain("[Content truncated");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("extracts plain text content type", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("plain text here", {
+          status: 200,
+          headers: { "Content-Type": "text/plain" },
+        })
+      )
+    );
+
+    const result = await extractor.extract("https://example.com/readme.txt");
+    expect(result.content).toBe("plain text here");
+    expect(result.title).toBe("readme.txt");
+    expect(result.metadata.mimeType).toBe("text/plain");
+
+    vi.unstubAllGlobals();
+  });
 });
 
 // ---- FileExtractor ----
@@ -198,6 +268,50 @@ describe("FileExtractor", () => {
     const result = await extractor.extract(filePath);
     expect(result.content).toContain("Hello");
     expect(result.content).not.toContain("<p>");
+  });
+
+  it("handles empty file", async () => {
+    const filePath = join(tmpDir, "empty.txt");
+    writeFileSync(filePath, "");
+
+    const result = await extractor.extract(filePath);
+    expect(result.content).toBe("");
+    expect(result.metadata.charCount).toBe(0);
+  });
+
+  it("handles maxChars: 0", async () => {
+    const filePath = join(tmpDir, "data.txt");
+    writeFileSync(filePath, "some content");
+
+    const result = await extractor.extract(filePath, { maxChars: 0 });
+    expect(result.content).toContain("[Content truncated");
+  });
+
+  it("extracts PDF with no readable text", async () => {
+    const filePath = join(tmpDir, "binary.pdf");
+    // Write binary content with no text fragments
+    writeFileSync(filePath, Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00, 0x01, 0x02]));
+
+    const result = await extractor.extract(filePath);
+    expect(result.metadata.mimeType).toBe("application/pdf");
+    expect(result.content).toContain("[PDF content could not be extracted");
+  });
+
+  it("handles .csv file as text/plain", async () => {
+    const filePath = join(tmpDir, "data.csv");
+    writeFileSync(filePath, "a,b,c\n1,2,3");
+
+    const result = await extractor.extract(filePath);
+    expect(result.metadata.mimeType).toBe("text/plain");
+    expect(result.content).toContain("a,b,c");
+  });
+
+  it("handles unknown extension as text/plain", async () => {
+    const filePath = join(tmpDir, "config.yaml");
+    writeFileSync(filePath, "key: value");
+
+    const result = await extractor.extract(filePath);
+    expect(result.metadata.mimeType).toBe("text/plain");
   });
 });
 
@@ -278,6 +392,32 @@ describe("CodeRepoExtractor", () => {
     expect(result.content).not.toContain("module code");
     expect(result.content).not.toContain("git config");
     expect(result.content).toContain("app");
+  });
+
+  it("walks 2 levels deep", async () => {
+    mkdirSync(join(tmpDir, "src", "utils"), { recursive: true });
+    writeFileSync(join(tmpDir, "src", "index.ts"), "export const a = 1;");
+    writeFileSync(join(tmpDir, "src", "utils", "helper.ts"), "export const b = 2;");
+
+    const result = await extractor.extract(tmpDir);
+    expect(result.content).toContain("index.ts");
+    expect(result.content).toContain("helper.ts");
+    expect(result.metadata.fileCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it("handles empty directory", async () => {
+    const result = await extractor.extract(tmpDir);
+    expect(result.metadata.fileCount).toBe(0);
+    expect(result.metadata.language).toBe("unknown");
+  });
+
+  it("detects primary language correctly", async () => {
+    writeFileSync(join(tmpDir, "app.py"), "print('hello')");
+    writeFileSync(join(tmpDir, "util.py"), "def util(): pass");
+    writeFileSync(join(tmpDir, "config.js"), "module.exports = {}");
+
+    const result = await extractor.extract(tmpDir);
+    expect(result.metadata.language).toBe("Python");
   });
 });
 
