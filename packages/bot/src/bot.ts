@@ -123,6 +123,9 @@ function formatStage(progress: PipelineProgress): string {
   }
 }
 
+// Platform message length limits (conservative to account for formatting overhead)
+const MAX_MESSAGE_LENGTH = 3500; // Slack: 4000, Discord: 2000, Teams: 28KB — use conservative limit
+
 function formatResults(subject: string, result: PipelineProgress): string {
   const lines: string[] = [`✅ *Innovation Results for: ${subject}*`, ""];
 
@@ -149,5 +152,9 @@ function formatResults(subject: string, result: PipelineProgress): string {
     `_${result.angleResults.length} angles processed, ${result.angleResults.reduce((sum, r) => sum + r.ideas.length, 0)} total ideas generated_`
   );
 
-  return lines.join("\n");
+  const text = lines.join("\n");
+  if (text.length > MAX_MESSAGE_LENGTH) {
+    return text.slice(0, MAX_MESSAGE_LENGTH - 20) + "\n\n_[truncated]_";
+  }
+  return text;
 }
