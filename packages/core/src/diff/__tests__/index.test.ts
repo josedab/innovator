@@ -184,5 +184,39 @@ describe("diff", () => {
       );
       expect(result.success).toBe(true);
     });
+
+    it("validates significance enum values", () => {
+      const validResult = DiffResultSchema.safeParse(
+        makeDiffResult({
+          changed: [{ title: "T", description: "D", significance: "low" }],
+        })
+      );
+      expect(validResult.success).toBe(true);
+
+      const invalidResult = DiffResultSchema.safeParse(
+        makeDiffResult({
+          changed: [{ title: "T", description: "D", significance: "extreme" }],
+        })
+      );
+      expect(invalidResult.success).toBe(false);
+    });
+
+    it("enforces summary max length of 3000 chars", () => {
+      const result = DiffResultSchema.safeParse(makeDiffResult({ summary: "x".repeat(3001) }));
+      expect(result.success).toBe(false);
+
+      const okResult = DiffResultSchema.safeParse(makeDiffResult({ summary: "x".repeat(3000) }));
+      expect(okResult.success).toBe(true);
+    });
+
+    it("enforces max 20 items per category", () => {
+      const tooMany = Array.from({ length: 21 }, (_, i) => ({
+        title: `Item ${i}`,
+        description: "Desc",
+        significance: "low" as const,
+      }));
+      const result = DiffResultSchema.safeParse(makeDiffResult({ changed: tooMany }));
+      expect(result.success).toBe(false);
+    });
   });
 });
