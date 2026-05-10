@@ -4,6 +4,9 @@
  * Plugin Marketplace & Registry: discover, install, publish, and manage
  * community plugins (angles, vertical packs, export formats, validators).
  * Leverages the existing plugin system in plugins/index.ts.
+ *
+ * Sub-modules:
+ * - monetization.ts — pricing, licensing, creator earnings, security scanning
  */
 
 import {
@@ -1020,3 +1023,22 @@ export function importBundle(bundleJson: string): TemplatePackage[] {
   saveTemplateRegistry(registry);
   return imported;
 }
+
+// ---- Monetization & Security ----
+
+export {
+  type PluginPricing,
+  type CreatorEarnings,
+  type PluginLicense,
+  type SecurityScanResult,
+  PluginPricingSchema,
+  setPluginPricing,
+  getPluginPricing,
+  grantLicense,
+  checkLicense,
+  getCreatorEarnings,
+  recordPurchase,
+  scanPlugin,
+  getScanResult,
+  clearMonetizationData,
+} from "./monetization.js";
