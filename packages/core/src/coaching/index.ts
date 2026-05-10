@@ -325,3 +325,37 @@ export {
   getSessionHistory as getCoachingHistory,
   clearCoachingProfiles,
 } from "./innovation-profile.js";
+
+export {
+  type TeamInnovationProfile,
+  type CoachingInsight,
+  buildTeamProfile,
+  getTeamProfile,
+  getPreSessionCoaching,
+  generateCoachingInsights,
+  clearTeamProfiles,
+} from "./proactive-agent.js";
+
+// ---- Guided Coaching Flows ----
+
+export {
+  type FlowStepType,
+  type FlowStep,
+  type GuidedFlow,
+  type FlowSession,
+  PRODUCT_LAUNCH_FLOW,
+  PROCESS_IMPROVEMENT_FLOW,
+  MARKET_ENTRY_FLOW,
+  registerFlow,
+  getFlow,
+  listFlows,
+  getFlowsByCategory,
+  searchFlows,
+  unregisterFlow,
+  clearFlows,
+  startFlowSession,
+  getCurrentStep,
+  submitStepResponse,
+  getFlowSession,
+  clearFlowSessions,
+} from "./guided-flows.js";
