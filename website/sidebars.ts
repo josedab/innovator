@@ -49,6 +49,7 @@ const sidebars: SidebarsConfig = {
     "troubleshooting",
     "contributing",
     "security",
+    "changelog",
   ],
 };
 

@@ -43,7 +43,7 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: "img/innovator-social-card.png",
+    image: "img/innovator-social-card.svg",
     colorMode: {
       defaultMode: "light",
       respectPrefersColorScheme: true,
