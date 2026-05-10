@@ -128,8 +128,8 @@ describe("API /api/playground", () => {
       const res = await POST(makePost({ action: "usage", userId: "u1" }));
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.usage).toBeDefined();
-      expect(body.limit).toBeDefined();
+      expect(body.usage).toEqual({ total: 5 });
+      expect(body.limit).toMatchObject({ allowed: true, remaining: 5, limit: 10 });
     });
   });
 
@@ -191,8 +191,8 @@ describe("API /api/playground", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.sessions).toHaveLength(1);
-      expect(body.usage).toBeDefined();
-      expect(body.limit).toBeDefined();
+      expect(body.usage).toEqual({ total: 3 });
+      expect(body.limit).toMatchObject({ allowed: true, remaining: 7, limit: 10 });
     });
 
     it("returns 400 when no params provided", async () => {
