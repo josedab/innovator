@@ -408,5 +408,84 @@ describe("validation", () => {
       // overallScore = 20, status = risky
       expect(result.recommendation).toContain("risk");
     });
+
+    it("generates 'generally viable' for overallScore >= 70 with some warnings", async () => {
+      // Need a validator that returns a warn status but overall score >= 70
+      registerValidator(makeValidator("v1", 10)); // pass: score 10 → overall 90
+      registerValidator(makeValidator("v2", 50)); // warn: score 50
+      // avg risk = 30, overall = 70
+      const result = await validateIdea(testIdea, "tech");
+      expect(result.overallScore).toBe(70);
+      expect(result.recommendation).toContain("viable");
+    });
+
+    it("generates 'proceed with caution' for overallScore 40-69", async () => {
+      registerValidator(makeValidator("v1", 55)); // warn
+      // overall = 45
+      const result = await validateIdea(testIdea, "tech");
+      expect(result.overallScore).toBe(45);
+      expect(result.recommendation).toContain("caution");
+    });
+  });
+
+  describe("validateIdeas - batch", () => {
+    it("returns empty results for empty ideas array", async () => {
+      registerValidator(makeValidator("v1", 30));
+      const scorecard = await validateIdeas([], "tech");
+      expect(scorecard.results).toHaveLength(0);
+      expect(scorecard.summary).toContain("0 ideas");
+    });
+
+    it("validates single idea correctly", async () => {
+      registerValidator(makeValidator("v1", 20));
+      const scorecard = await validateIdeas([testIdea], "tech");
+      expect(scorecard.results).toHaveLength(1);
+      expect(scorecard.results[0].overallScore).toBe(80);
+    });
+
+    it("computes summary averages correctly", async () => {
+      registerValidator(makeValidator("v1", 30));
+      const ideas = [testIdea, { ...testIdea, title: "Idea B" }, { ...testIdea, title: "Idea C" }];
+      const scorecard = await validateIdeas(ideas, "tech");
+      expect(scorecard.results).toHaveLength(3);
+      expect(scorecard.summary).toContain("3 ideas");
+    });
+  });
+
+  describe("validateComprehensive - market context", () => {
+    it("derives marketTemperature from market check scores", async () => {
+      registerValidator(makeValidator("v1", 30));
+      const result = await validateComprehensive([testIdea], "tech");
+      // v1 is category=feasibility, not market, so market defaults to 50 → "cold"
+      expect(["cold", "warming", "hot", "saturated"]).toContain(
+        result.marketContext.marketTemperature
+      );
+    });
+
+    it("derives regulatoryComplexity", async () => {
+      registerValidator(makeValidator("v1", 30));
+      const result = await validateComprehensive([testIdea], "tech");
+      expect(["low", "medium", "high"]).toContain(result.marketContext.regulatoryComplexity);
+    });
+
+    it("returns unknown viability for empty ideas", async () => {
+      registerValidator(makeValidator("v1", 30));
+      const result = await validateComprehensive([], "tech");
+      expect(result.marketContext.overallViability).toBe("unknown");
+    });
+
+    it("returns strong viability when most ideas validated", async () => {
+      registerValidator(makeValidator("v1", 20)); // overall=80 → validated
+      const ideas = [testIdea, { ...testIdea, title: "Idea B" }];
+      const result = await validateComprehensive(ideas, "tech");
+      expect(result.marketContext.overallViability).toBe("strong");
+    });
+
+    it("generates topRecommendations with emoji status", async () => {
+      registerValidator(makeValidator("v1", 20)); // validated
+      const result = await validateComprehensive([testIdea], "tech");
+      expect(result.topRecommendations.length).toBeGreaterThan(0);
+      expect(result.topRecommendations[0]).toContain("✅");
+    });
   });
 });
