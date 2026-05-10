@@ -58,8 +58,11 @@ Add to `.vscode/mcp.json`:
 
 ## Tools
 
-| Tool          | Description                                                              |
-| ------------- | ------------------------------------------------------------------------ |
-| `investigate` | Analyze a subject to identify key aspects, challenges, and opportunities |
-| `innovate`    | Generate ideas using a specific creativity angle                         |
-| `auto`        | Run the full pipeline: investigate → generate → synthesize               |
+| Tool                    | Description                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| `investigate`           | Analyze a subject to identify key aspects, challenges, and opportunities              |
+| `innovate`              | Generate ideas using a specific creativity angle                                      |
+| `auto`                  | Run the full pipeline: investigate → generate → synthesize                            |
+| `innovate-from-code`    | Analyze a codebase for architectural debt, feature gaps, and innovation opportunities |
+| `innovate-file`         | Analyze a specific file for complexity, patterns, and innovation opportunities        |
+| `innovate-architecture` | Analyze repository architecture and generate Innovation PRs with implementation plans |
