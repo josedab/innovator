@@ -164,6 +164,116 @@ describe("output-contracts", () => {
     });
   });
 
+  describe("transformToContract — additional coverage", () => {
+    it("applies first transform", () => {
+      registerContract("first-t", "First", z.object({ val: z.string() }));
+      const result = transformToContract("first-t", { items: ["alpha", "beta"] }, [
+        { sourcePath: "items", targetPath: "val", transform: "first" as const },
+      ]);
+      expect(result.valid).toBe(true);
+      expect((result.transformedData as Record<string, unknown>).val).toBe("alpha");
+    });
+
+    it("applies truncate transform", () => {
+      registerContract("trunc-t", "Trunc", z.object({ val: z.string() }));
+      const long = "x".repeat(300);
+      const result = transformToContract("trunc-t", { text: long }, [
+        { sourcePath: "text", targetPath: "val", transform: "truncate" as const },
+      ]);
+      expect(result.valid).toBe(true);
+      expect((result.transformedData as Record<string, unknown>).val).toHaveLength(200);
+    });
+
+    it("applies uppercase transform", () => {
+      registerContract("upper-t", "Upper", z.object({ val: z.string() }));
+      const result = transformToContract("upper-t", { name: "hello" }, [
+        { sourcePath: "name", targetPath: "val", transform: "uppercase" as const },
+      ]);
+      expect(result.valid).toBe(true);
+      expect((result.transformedData as Record<string, unknown>).val).toBe("HELLO");
+    });
+
+    it("applies lowercase transform", () => {
+      registerContract("lower-t", "Lower", z.object({ val: z.string() }));
+      const result = transformToContract("lower-t", { name: "HELLO" }, [
+        { sourcePath: "name", targetPath: "val", transform: "lowercase" as const },
+      ]);
+      expect(result.valid).toBe(true);
+      expect((result.transformedData as Record<string, unknown>).val).toBe("hello");
+    });
+
+    it("navigates nested dot-path source", () => {
+      registerContract("nested-t", "Nested", z.object({ val: z.string() }));
+      const result = transformToContract("nested-t", { a: { b: { c: "deep" } } }, [
+        { sourcePath: "a.b.c", targetPath: "val" },
+      ]);
+      expect(result.valid).toBe(true);
+      expect((result.transformedData as Record<string, unknown>).val).toBe("deep");
+    });
+
+    it("handles null in nested path chain gracefully", () => {
+      registerContract("null-path", "NullPath", z.object({ val: z.string() }));
+      const result = transformToContract("null-path", { a: { b: null } }, [
+        { sourcePath: "a.b.c", targetPath: "val", defaultValue: "fallback" },
+      ]);
+      expect(result.valid).toBe(true);
+      expect((result.transformedData as Record<string, unknown>).val).toBe("fallback");
+    });
+
+    it("sets deeply nested target path", () => {
+      registerContract("deep-target", "DeepTarget", z.object({
+        outer: z.object({ inner: z.object({ val: z.string() }) }),
+      }));
+      const result = transformToContract("deep-target", { name: "test" }, [
+        { sourcePath: "name", targetPath: "outer.inner.val" },
+      ]);
+      expect(result.valid).toBe(true);
+    });
+
+    it("returns error for non-existent contract", () => {
+      const result = transformToContract("nope", {});
+      expect(result.valid).toBe(false);
+      expect(result.errors[0].message).toContain("not found");
+    });
+
+    it("handles empty mappings array", () => {
+      registerContract("empty-map", "EmptyMap", z.object({}).passthrough());
+      const result = transformToContract("empty-map", { data: "val" }, []);
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe("validateAgainstContract — error paths", () => {
+    it("reports field-level error paths", () => {
+      registerContract("err-path", "ErrPath", z.object({
+        name: z.string(),
+        nested: z.object({ count: z.number() }),
+      }));
+      const result = validateAgainstContract("err-path", { name: 123, nested: { count: "bad" } });
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.path === "name")).toBe(true);
+      expect(result.errors.some((e) => e.path === "nested.count")).toBe(true);
+    });
+  });
+
+  describe("CRUD lifecycle", () => {
+    it("register → get → list → clear", () => {
+      registerContract("lifecycle", "Lifecycle", z.object({ x: z.string() }));
+      expect(getContract("lifecycle")).toBeDefined();
+      expect(listContracts().some((c) => c.id === "lifecycle")).toBe(true);
+      clearContracts();
+      expect(getContract("lifecycle")).toBeUndefined();
+      expect(listContracts()).toHaveLength(0);
+    });
+  });
+
+  describe("registerBuiltInContracts — exact count", () => {
+    it("registers exactly 4 contracts", () => {
+      registerBuiltInContracts();
+      expect(listContracts()).toHaveLength(4);
+    });
+  });
+
   describe("createContractFromBuilder", () => {
     it("creates a contract from builder function", () => {
       const contract = createContractFromBuilder("custom", "Custom Output", (zod) =>
