@@ -871,6 +871,22 @@ export type {
   AnalyticsInsight,
 } from "./analytics/index.js";
 
+/** Advanced Analytics — time-series, heatmaps, leaderboards, reports. */
+export {
+  getTimeSeries,
+  getActivityHeatmap,
+  getLeaderboard as getAnalyticsLeaderboard,
+  generateReport as generateAnalyticsReport,
+  reportToMarkdown as analyticsReportToMarkdown,
+} from "./analytics/index.js";
+export type {
+  TimeSeriesDataPoint,
+  TimeSeriesResult,
+  HeatmapCell as AnalyticsHeatmapCell,
+  LeaderboardEntry as AnalyticsLeaderboardEntry,
+  AnalyticsReport,
+} from "./analytics/index.js";
+
 /** Coaching — AI coach that asks clarifying questions, detects assumptions, and recommends pivots. */
 export {
   generateClarificationQuestions,
@@ -906,6 +922,16 @@ export type {
   CoachingSessionRecord,
   ProactiveCoachingSuggestion,
 } from "./coaching/index.js";
+
+/** Team Innovation Profile & Proactive Agent — team pattern learning and coaching insights. */
+export {
+  buildTeamProfile,
+  getTeamProfile,
+  getPreSessionCoaching,
+  generateCoachingInsights,
+  clearTeamProfiles,
+} from "./coaching/index.js";
+export type { TeamInnovationProfile, CoachingInsight } from "./coaching/index.js";
 
 /** Smart angle recommendation — classify subjects and recommend optimal angle sets. */
 export {
@@ -2595,6 +2621,23 @@ export {
 } from "./innovation-pr/index.js";
 export type { PRConfig, GitCommand, PRWorkflowPlan, PRResult } from "./innovation-pr/index.js";
 
+/** Implementation Plan & Feedback Loop — idea → plan → PR → review → refine. */
+export {
+  generateImplementationPlan,
+  refineIdeaFromFeedback,
+  planToGitHubIssues,
+  ImplementationStepSchema,
+  ImplementationPlanSchema,
+  FeedbackItemSchema,
+  RefinedIdeaSchema,
+} from "./innovation-pr/index.js";
+export type {
+  ImplementationStep,
+  ImplementationPlan,
+  FeedbackItem,
+  RefinedIdea,
+} from "./innovation-pr/index.js";
+
 /** Angle Studio — visual pipeline editor for angle composition. */
 export {
   createPipeline as createStudioPipeline,
@@ -3384,6 +3427,24 @@ export type {
   DAGGateHandler,
   DAGNodeExecutor,
   WorkflowTemplate,
+  WorkflowDSL,
+  WorkflowStepDSL,
+} from "./orchestration/index.js";
+
+/** Workflow DSL — simplified YAML/JSON format and built-in templates. */
+export {
+  WorkflowDSLSchema,
+  WorkflowStepDSLSchema,
+  dslToDAG,
+  dagToDSL,
+  BUILTIN_WORKFLOW_DSLS,
+  getBuiltinDSL,
+  listBuiltinDSLs,
+  QUICK_EXPLORE_DSL,
+  DEEP_DIVE_DSL,
+  COMPETITIVE_ANALYSIS_DSL,
+  PRODUCT_LAUNCH_DSL,
+  PATENT_SCAN_DSL,
 } from "./orchestration/index.js";
 
 /** Hosted Playground / SaaS — session management, usage limits, shareable URLs. */
@@ -4821,7 +4882,10 @@ export {
   createGraphDriver,
   GraphDatabaseConfigSchema,
 } from "./knowledge-graph/graph-database.js";
-export type { GraphDatabaseConfig, GraphDatabaseConfigInput } from "./knowledge-graph/graph-database.js";
+export type {
+  GraphDatabaseConfig,
+  GraphDatabaseConfigInput,
+} from "./knowledge-graph/graph-database.js";
 
 /** Fine-tuning pipeline — self-improving innovation models from ideation data. */
 export {
@@ -5130,3 +5194,218 @@ export type {
   ProvenanceQuery,
   FlowMetrics,
 } from "./provenance-visualization/index.js";
+
+// ---- Next-Gen Feature Modules ----
+
+/** SaaS tier — multi-tenancy, plans, usage metering, billing integration, API key management. */
+export {
+  type PlanId,
+  type PlanDefinition,
+  type PlanLimits,
+  type Tenant as SaasTenant,
+  type UsageRecord as SaasUsageRecord,
+  type SaasApiKey,
+  type LimitCheckResult,
+  type BillingProvider,
+  type Invoice,
+  type BillingEvent,
+  PLANS,
+  createTenant as createSaasTenant,
+  getTenant as getSaasTenant,
+  getTenantBySlug,
+  updateTenantPlan,
+  suspendTenant as suspendSaasTenant,
+  getUsage,
+  incrementUsage,
+  checkLimit,
+  createApiKey as createSaasApiKey,
+  validateApiKey as validateSaasApiKey,
+  revokeApiKey as revokeSaasApiKey,
+  listTenantApiKeys,
+  clearSaasData,
+  getPlan,
+  listPlans,
+} from "./saas/index.js";
+
+/** SaaS Auth — GitHub OAuth, session tokens, Stripe billing, storage adapters. */
+export {
+  type GitHubUser,
+  type OAuthState,
+  type OAuthConfig,
+  type StorageAdapter,
+  type PostgresConfig,
+  getAuthorizationUrl,
+  validateState,
+  exchangeCodeForUser,
+  createSessionToken,
+  validateSessionToken,
+  revokeSessionToken,
+  getAuthenticatedUser,
+  clearAuthData,
+  StripeBillingProvider,
+  getStripeBilling,
+  InMemoryStorageAdapter,
+  PostgresStorageAdapter,
+  getStorage as getSaasStorage,
+  setStorage as setSaasStorage,
+  POSTGRES_MIGRATION,
+} from "./saas/index.js";
+
+/** Knowledge Graph NL Query — natural language queries, suggestions, and visualization data. */
+export {
+  type NLQueryResult,
+  type GraphSuggestion,
+  type SubjectContext,
+  type GraphVisualizationData,
+  parseNLQuery,
+  executeNLQuery,
+  generateSuggestions,
+  buildSubjectContext,
+  toVisualizationData,
+} from "./knowledge-graph/index.js";
+
+/** Canvas Workshop Mode — timed rounds, facilitator controls, and session replay. */
+export {
+  type WorkshopPhase,
+  type WorkshopConfig,
+  type WorkshopParticipant,
+  type WorkshopTimer,
+  type WorkshopEvent,
+  type WorkshopSession,
+  type WorkshopSummary,
+  DEFAULT_WORKSHOP_CONFIG,
+  createWorkshop,
+  getWorkshop as getWorkshopSession,
+  joinWorkshop,
+  leaveWorkshop,
+  advanceWorkshopPhase,
+  pauseTimer,
+  resumeTimer,
+  extendTimer,
+  submitWorkshopIdea,
+  castWorkshopVote,
+  generateWorkshopSummary,
+  getWorkshopReplay,
+  deleteWorkshop,
+  clearWorkshops,
+  listWorkshops,
+} from "./canvas/index.js";
+
+/** Metrics Dashboard — funnel tracking, angle effectiveness, ROI calculator, team leaderboards. */
+export {
+  type FunnelStage,
+  type FunnelMetrics,
+  type AngleEffectivenessData,
+  type TeamMetrics,
+  type ROICalculation,
+  type ProjectTrackerIntegration,
+  type SyncResult as MetricsSyncResult,
+  type DashboardData,
+  FUNNEL_STAGES,
+  trackIdea as trackMetricIdea,
+  advanceIdea,
+  setIdeaROI as setMetricIdeaROI,
+  getTrackedIdea as getMetricTrackedIdea,
+  listTrackedIdeas as listMetricTrackedIdeas,
+  computeFunnelMetrics,
+  computeAngleEffectiveness as computeMetricAngleEffectiveness,
+  computeTeamLeaderboard,
+  calculateROI as calculateMetricROI,
+  registerIntegration,
+  listIntegrations,
+  removeIntegration,
+  buildDashboard as buildMetricsDashboard,
+  clearMetricsDashboard,
+} from "./metrics-dashboard/index.js";
+
+/** Multi-Modal Batch Processing — parallel attachment processing, voice transcription pipeline. */
+export {
+  type BatchStatus,
+  type BatchItem,
+  type BatchProgress,
+  type BatchResult,
+  type BatchConfig,
+  type TranscriptionResult,
+  type TranscriptionSegment,
+  processBatch,
+  createVoiceAttachment,
+  createDocumentAttachment,
+  createURLAttachment,
+  buildInvestigationInput as buildMultiModalInput,
+} from "./multi-modal/index.js";
+
+/** Domain-Specific Innovation Packs — curated preset packs for industry verticals. */
+export {
+  type InnovationPack,
+  type EvaluationRubric,
+  HEALTHTECH_PACK as HEALTHTECH_INNOVATION_PACK,
+  CLEANTECH_PACK as CLEANTECH_INNOVATION_PACK,
+  FINTECH_PACK as FINTECH_INNOVATION_PACK,
+  EDTECH_PACK as EDTECH_INNOVATION_PACK,
+  DEVTOOLS_PACK as DEVTOOLS_INNOVATION_PACK,
+  registerPack,
+  getPack,
+  listPacks,
+  getPacksByCategory,
+  searchPacks,
+  unregisterPack,
+  clearPacks,
+} from "./presets/index.js";
+
+/** Guided Coaching Flows — structured coaching scripts for common innovation scenarios. */
+export {
+  type FlowStepType,
+  type FlowStep,
+  type GuidedFlow,
+  type FlowSession,
+  PRODUCT_LAUNCH_FLOW,
+  PROCESS_IMPROVEMENT_FLOW,
+  MARKET_ENTRY_FLOW,
+  registerFlow,
+  getFlow,
+  listFlows,
+  getFlowsByCategory,
+  searchFlows,
+  unregisterFlow,
+  clearFlows,
+  startFlowSession,
+  getCurrentStep,
+  submitStepResponse,
+  getFlowSession,
+  clearFlowSessions,
+} from "./coaching/index.js";
+
+/** Tournament LLM Judge & Evolutionary Tournament — AI-judged matches with cross-round evolution. */
+export {
+  type JudgingCriterion,
+  type MatchJudgment,
+  type JudgeConfig,
+  type AutoJudgeProgress,
+  type EvolutionaryTournamentConfig,
+  type EvolutionaryTournamentResult,
+  DEFAULT_JUDGING_CRITERIA,
+  judgeMatch,
+  autoJudgeTournament,
+  runEvolutionaryTournament,
+  evolutionaryTournamentToMarkdown,
+} from "./tournament/index.js";
+
+/** Enhanced Audit Trail — immutable hash-chained audit log with search, export, and real-time streaming. */
+export {
+  type AuditCategory,
+  type AuditSeverity,
+  type AuditEntry as EnhancedAuditEntry,
+  type AuditQuery,
+  type AuditExport,
+  type AuditStats,
+  recordAuditEvent,
+  queryAuditTrail,
+  verifyAuditChainIntegrity,
+  exportAuditTrail,
+  getAuditStats,
+  onAuditEvent,
+  auditAuth,
+  auditAdmin,
+  auditDataAccess,
+  clearAuditTrail,
+} from "./rbac/index.js";
