@@ -76,7 +76,7 @@ describe("memory-graph", () => {
       expect(graph.nodes).toHaveLength(0);
       expect(graph.edges).toHaveLength(0);
       expect(graph.sessions).toHaveLength(0);
-      expect(graph.lastUpdated).toBeDefined();
+      expect(graph.lastUpdated).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     it("clears all data after indexing", () => {
@@ -314,8 +314,8 @@ describe("memory-graph", () => {
       const patterns = detectConvergence();
       // Patterns spanning multiple sessions should have valid structure
       for (const p of patterns) {
-        expect(p.id).toBeDefined();
-        expect(p.description).toBeDefined();
+        expect(typeof p.id).toBe("string");
+        expect(typeof p.description).toBe("string");
         expect(p.sessionIds.length).toBeGreaterThanOrEqual(2);
         expect(p.nodeIds.length).toBeGreaterThan(0);
         expect(p.similarityScore).toBeGreaterThanOrEqual(0);
@@ -347,7 +347,7 @@ describe("memory-graph", () => {
   describe("generateOrgDNA", () => {
     it("handles empty graph", () => {
       const report = generateOrgDNA();
-      expect(report.generatedAt).toBeDefined();
+      expect(report.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(report.totalSessions).toBe(0);
       expect(report.totalNodes).toBe(0);
       expect(report.totalEdges).toBe(0);
@@ -364,11 +364,11 @@ describe("memory-graph", () => {
       expect(report.totalEdges).toBeGreaterThan(0);
       expect(report.themeClusters.length).toBeGreaterThan(0);
       for (const cluster of report.themeClusters) {
-        expect(cluster.id).toBeDefined();
-        expect(cluster.label).toBeDefined();
+        expect(typeof cluster.id).toBe("string");
+        expect(typeof cluster.label).toBe("string");
         expect(cluster.centroidTerms.length).toBeGreaterThan(0);
-        expect(cluster.firstSeen).toBeDefined();
-        expect(cluster.lastSeen).toBeDefined();
+        expect(cluster.firstSeen).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+        expect(cluster.lastSeen).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       }
     });
 
@@ -377,8 +377,8 @@ describe("memory-graph", () => {
       const report = generateOrgDNA();
       // Blind spots depend on graph topology; just validate structure
       for (const spot of report.blindSpots) {
-        expect(spot.id).toBeDefined();
-        expect(spot.description).toBeDefined();
+        expect(typeof spot.id).toBe("string");
+        expect(typeof spot.description).toBe("string");
         expect(spot.relatedThemes.length).toBeGreaterThan(0);
         expect(spot.suggestedExplorations.length).toBeGreaterThan(0);
       }
@@ -406,8 +406,8 @@ describe("memory-graph", () => {
       const report = generateOrgDNA();
       // Lineages are generated for idea nodes
       for (const lineage of report.ideaLineages) {
-        expect(lineage.ideaId).toBeDefined();
-        expect(lineage.title).toBeDefined();
+        expect(typeof lineage.ideaId).toBe("string");
+        expect(typeof lineage.title).toBe("string");
         expect(Array.isArray(lineage.ancestors)).toBe(true);
         expect(Array.isArray(lineage.descendants)).toBe(true);
       }
@@ -434,7 +434,11 @@ describe("memory-graph", () => {
     it("traces ancestors of an idea", () => {
       const graph = autoIndexSession("s1", makeInvestigation(), [makeAngleResult()]);
       const ideaNode = graph.nodes.find((n) => n.type === "idea");
-      expect(ideaNode).toBeDefined();
+      expect(ideaNode).toMatchObject({
+        id: expect.any(String),
+        type: "idea",
+        sessionId: "s1",
+      });
 
       const lineage = getIdeaLineage(ideaNode!.id);
       expect(lineage.ideaId).toBe(ideaNode!.id);
@@ -453,7 +457,11 @@ describe("memory-graph", () => {
         makeSynthesis()
       );
       const invNode = graph.nodes.find((n) => n.type === "investigation");
-      expect(invNode).toBeDefined();
+      expect(invNode).toMatchObject({
+        id: expect.any(String),
+        type: "investigation",
+        sessionId: "s1",
+      });
 
       const lineage = getIdeaLineage(invNode!.id);
       // Investigation has descendants via part_of and evolves_into edges
@@ -593,6 +601,66 @@ describe("memory-graph", () => {
       const graph = getMemoryGraph();
       const ids = graph.edges.map((e) => e.id);
       expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it("graph traversal with disconnected components", () => {
+      // Two separate sessions with very different content create disconnected components
+      autoIndexSession("s1", makeInvestigation({ summary: "Quantum computing qubits" }), [
+        makeAngleResult({ angleId: "q1", reasoning: "Quantum optimization" }),
+      ]);
+      autoIndexSession("s2", makeInvestigation({ summary: "Marine biology coral reefs" }), [
+        makeAngleResult({ angleId: "b1", reasoning: "Coral reef preservation" }),
+      ]);
+      const graph = getMemoryGraph();
+      // Both sessions indexed
+      expect(graph.sessions).toContain("s1");
+      expect(graph.sessions).toContain("s2");
+      // Nodes from each session exist
+      expect(graph.nodes.filter((n) => n.sessionId === "s1").length).toBeGreaterThan(0);
+      expect(graph.nodes.filter((n) => n.sessionId === "s2").length).toBeGreaterThan(0);
+    });
+
+    it("relationship metadata preserved on query", () => {
+      autoIndexSession("s1", makeInvestigation(), [makeAngleResult()]);
+      const result = retrieveRelatedMemories("healthcare AI diagnosis");
+      for (const node of result.nodes) {
+        expect(node).toMatchObject({
+          id: expect.any(String),
+          type: expect.any(String),
+          sessionId: expect.any(String),
+          title: expect.any(String),
+          createdAt: expect.stringMatching(/^\d{4}/),
+        });
+      }
+    });
+
+    it("handles large number of angle results", () => {
+      const manyAngles = [];
+      for (let i = 0; i < 20; i++) {
+        manyAngles.push(
+          makeAngleResult({
+            angleId: `angle-${i}`,
+            angleName: `Angle ${i}`,
+            reasoning: `Reasoning for angle ${i} in domain`,
+          })
+        );
+      }
+      const graph = autoIndexSession("s-large", makeInvestigation(), manyAngles);
+      const arNodes = graph.nodes.filter((n) => n.type === "angle-result");
+      expect(arNodes).toHaveLength(20);
+      // All node IDs unique
+      const ids = graph.nodes.map((n) => n.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it("edge source and target reference existing nodes", () => {
+      autoIndexSession("s1", makeInvestigation(), [makeAngleResult()], makeSynthesis());
+      const graph = getMemoryGraph();
+      const nodeIds = new Set(graph.nodes.map((n) => n.id));
+      for (const edge of graph.edges) {
+        expect(nodeIds.has(edge.source)).toBe(true);
+        expect(nodeIds.has(edge.target)).toBe(true);
+      }
     });
   });
 });
