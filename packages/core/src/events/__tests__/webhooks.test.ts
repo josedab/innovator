@@ -255,4 +255,85 @@ describe("WebhookManager", () => {
       expect(manager.listWebhooks()).toHaveLength(0);
     });
   });
+
+  describe("signPayload edge cases", () => {
+    it("handles empty payload string", () => {
+      const sig = manager.signPayload("", "my-secret-key-1234");
+      expect(sig).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it("is deterministic for same inputs", () => {
+      const sig1 = manager.signPayload("test", "secret1234567890");
+      const sig2 = manager.signPayload("test", "secret1234567890");
+      expect(sig1).toBe(sig2);
+    });
+  });
+
+  describe("clearDeadLetters", () => {
+    it("empties the dead letter queue", async () => {
+      const webhook = manager.registerWebhook({
+        url: "https://example.com/hook",
+        events: ["pipeline.started"],
+        active: true,
+        secret: "secret1234567890ab",
+      });
+
+      const mockFetch = vi.fn().mockRejectedValue(new Error("fail"));
+      vi.stubGlobal("fetch", mockFetch);
+
+      await manager.deliverEvent(webhook.id, makeEvent());
+      expect(manager.getDeadLetters()).toHaveLength(1);
+
+      manager.clearDeadLetters();
+      expect(manager.getDeadLetters()).toHaveLength(0);
+
+      vi.unstubAllGlobals();
+    });
+  });
+
+  describe("delivery with successful retry", () => {
+    it("succeeds on second attempt after first failure", async () => {
+      const webhook = manager.registerWebhook({
+        url: "https://example.com/hook",
+        events: ["pipeline.started"],
+        active: true,
+        secret: "secret1234567890ab",
+      });
+
+      const mockFetch = vi
+        .fn()
+        .mockRejectedValueOnce(new Error("Network error"))
+        .mockResolvedValueOnce({ ok: true, status: 200 });
+      vi.stubGlobal("fetch", mockFetch);
+
+      const delivery = await manager.deliverEvent(webhook.id, makeEvent());
+
+      expect(delivery.status).toBe("success");
+      expect(delivery.attempt).toBe(2);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(manager.getDeadLetters()).toHaveLength(0);
+
+      vi.unstubAllGlobals();
+    });
+  });
+
+  describe("delivery logging with HTTP error", () => {
+    it("logs non-OK HTTP status as failed", async () => {
+      const webhook = manager.registerWebhook({
+        url: "https://example.com/hook",
+        events: ["pipeline.started"],
+        active: true,
+        secret: "secret1234567890ab",
+      });
+
+      const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+      vi.stubGlobal("fetch", mockFetch);
+
+      const delivery = await manager.deliverEvent(webhook.id, makeEvent());
+      expect(delivery.status).toBe("failed");
+      expect(delivery.statusCode).toBe(500);
+
+      vi.unstubAllGlobals();
+    });
+  });
 });
