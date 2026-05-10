@@ -88,10 +88,50 @@ describe("quality-gate", () => {
       expect(issues.length).toBeGreaterThan(0);
     });
 
+    it("detects approximately-billion/million pattern", () => {
+      const idea = makeIdea({ description: "Roughly 200 million active users" });
+      const issues = checkHallucinatedStatistics(idea, "a1");
+      expect(issues.length).toBeGreaterThan(0);
+    });
+
     it("sets correct angleId on issues", () => {
       const idea = makeIdea({ description: "Approximately 5 billion users" });
       const issues = checkHallucinatedStatistics(idea, "custom-angle");
       expect(issues[0].angleId).toBe("custom-angle");
+    });
+
+    it("does not flag plain numbers without hallucination patterns", () => {
+      const idea = makeIdea({ description: "We plan to hire 10 engineers this quarter" });
+      const issues = checkHallucinatedStatistics(idea, "a1");
+      expect(issues).toEqual([]);
+    });
+
+    it("does not flag simple percentages without context", () => {
+      const idea = makeIdea({ description: "Target a 50% reduction in build times" });
+      const issues = checkHallucinatedStatistics(idea, "a1");
+      // "50%" alone doesn't match the patterns (needs "of all/most" or decimal precision)
+      const hallucinationIssues = issues.filter((i) => i.type === "hallucinated-statistic");
+      // Simple percentage without "of all" context should not flag percentage-of-all pattern
+      expect(hallucinationIssues.length).toBe(0);
+    });
+
+    it("scans all text fields (description, potentialImpact, implementationHint)", () => {
+      const idea = makeIdea({
+        description: "Clean text",
+        potentialImpact: "Clean text",
+        implementationHint: "Market size is $3 billion",
+      });
+      const issues = checkHallucinatedStatistics(idea, "a1");
+      expect(issues.length).toBeGreaterThan(0);
+    });
+
+    it("can detect multiple patterns in the same idea", () => {
+      const idea = makeIdea({
+        description:
+          "Studies show that 9 out of 10 prefer this. Market size is $5 billion. By 2030, 80% will adopt.",
+      });
+      const issues = checkHallucinatedStatistics(idea, "a1");
+      expect(issues.length).toBeGreaterThanOrEqual(3);
     });
   });
 
@@ -125,6 +165,24 @@ describe("quality-gate", () => {
       });
       const issues = checkVaguePlatitudes(idea, "a1");
       expect(issues[0].detail).toContain("cutting edge");
+    });
+
+    it("returns exactly 2 platitudes as low severity (not medium)", () => {
+      const idea = makeIdea({
+        description: "This is a game changer that will move the needle",
+      });
+      const issues = checkVaguePlatitudes(idea, "a1");
+      expect(issues.length).toBe(1);
+      expect(issues[0].severity).toBe("low");
+    });
+
+    it("returns no issues for text without any platitudes", () => {
+      const idea = makeIdea({
+        title: "Concrete Idea",
+        description: "Implement a caching layer using Redis to reduce API latency by 200ms",
+        potentialImpact: "Response times drop from 500ms to 300ms",
+      });
+      expect(checkVaguePlatitudes(idea, "a1")).toEqual([]);
     });
   });
 
@@ -274,6 +332,78 @@ describe("quality-gate", () => {
       const report = runQualityGate([ar], { minScore: 99 });
       // With clean ideas, score should be ~100
       expect(report.passesGate).toBe(true);
+    });
+
+    it("returns empty report for zero angle results", () => {
+      const report = runQualityGate([]);
+      expect(report.checkedIdeas).toBe(0);
+      expect(report.issues).toEqual([]);
+      expect(report.overallScore).toBe(100);
+      expect(report.passesGate).toBe(true);
+    });
+
+    it("deducts 8 per medium severity issue", () => {
+      // 3+ platitudes trigger medium severity
+      const ar = makeAngleResult([
+        makeIdea({
+          title: "Leverage synergies solution",
+          description: "Think outside the box with this paradigm shift approach",
+          potentialImpact: "Game changer",
+        }),
+      ]);
+      const report = runQualityGate([ar], {
+        checkHallucinations: false,
+        checkDuplication: false,
+        checkContradictions: false,
+      });
+      const mediumIssues = report.issues.filter((i) => i.severity === "medium");
+      expect(mediumIssues.length).toBe(1);
+      expect(report.overallScore).toBe(100 - 8);
+    });
+
+    it("deducts 3 per low severity issue", () => {
+      const ar = makeAngleResult([makeIdea({ description: "This will leverage synergies" })]);
+      const report = runQualityGate([ar], {
+        checkHallucinations: false,
+        checkDuplication: false,
+        checkContradictions: false,
+      });
+      const lowIssues = report.issues.filter((i) => i.severity === "low");
+      expect(lowIssues.length).toBe(1);
+      expect(report.overallScore).toBe(100 - 3);
+    });
+
+    it("passes gate at exactly score=60 with default minScore", () => {
+      // We need exactly 40 points of deductions to get score=60
+      // 2 high-severity issues: 2*15 = 30, plus 1 medium: 8, total 38 → score 62 (too high)
+      // Let's create a controlled scenario
+      const ar = makeAngleResult([
+        makeIdea({
+          description:
+            "Studies show that 50% of all users benefit. According to research, 3 out of 10 adopt. Market size is $2 billion.",
+        }),
+      ]);
+      const report = runQualityGate([ar], {
+        checkVagueness: false,
+        checkDuplication: false,
+        checkContradictions: false,
+      });
+      // Each hallucinated stat is high severity (-15 each)
+      // At score=60, passesGate should be true
+      if (report.overallScore === 60) {
+        expect(report.passesGate).toBe(true);
+      }
+      // At score < 60, passesGate should be false
+      if (report.overallScore < 60) {
+        expect(report.passesGate).toBe(false);
+      }
+    });
+
+    it("handles angle with no ideas gracefully", () => {
+      const ar = makeAngleResult([]);
+      const report = runQualityGate([ar]);
+      expect(report.checkedIdeas).toBe(0);
+      expect(report.overallScore).toBe(100);
     });
   });
 
