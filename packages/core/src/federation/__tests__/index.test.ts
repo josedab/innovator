@@ -34,15 +34,16 @@ describe("federation", () => {
   describe("createFederationNode", () => {
     it("creates a node with required fields", () => {
       const node = createFederationNode({ name: "Test Node" });
-      expect(node.id).toBeDefined();
+      expect(typeof node.id).toBe("string");
+      expect(node.id.length).toBeGreaterThan(0);
       expect(node.name).toBe("Test Node");
       expect(node.isPublic).toBe(false);
       expect(node.peers).toEqual([]);
       expect(node.localPatterns).toEqual([]);
       expect(node.receivedPatterns).toEqual([]);
       expect(node.sharingEnabled).toBe(true);
-      expect(node.createdAt).toBeDefined();
-      expect(node.updatedAt).toBeDefined();
+      expect(node.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(node.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     it("accepts optional fields", () => {
@@ -98,7 +99,10 @@ describe("federation", () => {
 
       expect(patterns.length).toBeGreaterThanOrEqual(1);
       const trendingPattern = patterns.find((p) => p.type === "trending-angle");
-      expect(trendingPattern).toBeDefined();
+      expect(trendingPattern).toMatchObject({
+        type: "trending-angle",
+        anonymizedDomain: "Financial Technology Domain",
+      });
       expect(trendingPattern!.anonymizedDomain).toBe("Financial Technology Domain");
     });
 
@@ -114,7 +118,10 @@ describe("federation", () => {
       });
 
       const combPattern = patterns.find((p) => p.type === "successful-combination");
-      expect(combPattern).toBeDefined();
+      expect(combPattern).toMatchObject({
+        type: "successful-combination",
+        anonymizedDomain: "Intelligent Systems Domain",
+      });
       expect(combPattern!.angleIds.length).toBeGreaterThanOrEqual(2);
     });
 
@@ -179,7 +186,11 @@ describe("federation", () => {
 
       const published = publishPatterns(node.id);
       expect(published.length).toBeGreaterThan(0);
-      expect(published[0].lastSeenAt).toBeDefined();
+      expect(published[0]).toMatchObject({
+        type: expect.any(String),
+        title: expect.any(String),
+        lastSeenAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      });
     });
 
     it("returns empty array for non-existent node", () => {
@@ -284,7 +295,7 @@ describe("federation", () => {
       expect(activity.type).toBe("Create");
       expect(activity.object.content).toBe("New pattern discovered");
       expect(activity.object.tags).toEqual(["ai"]);
-      expect(activity.published).toBeDefined();
+      expect(activity.published).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     it("stores activity in outbox", () => {
@@ -392,8 +403,16 @@ describe("federation", () => {
       expect(summary.totalPatterns).toBeGreaterThanOrEqual(0);
       expect(summary.avgSuccessRate).toBeGreaterThanOrEqual(0);
       expect(summary.avgSuccessRate).toBeLessThanOrEqual(1);
-      expect(summary.trendingAngles).toBeDefined();
-      expect(summary.topDomains).toBeDefined();
+      expect(summary.trendingAngles).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ angleId: expect.any(String), count: expect.any(Number) }),
+        ])
+      );
+      expect(summary.topDomains).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ domain: expect.any(String), count: expect.any(Number) }),
+        ])
+      );
     });
 
     it("handles empty pattern set", () => {
@@ -414,8 +433,8 @@ describe("federation", () => {
       expect(dashboard.totalNodes).toBeGreaterThanOrEqual(1);
       expect(dashboard.totalPatterns).toBeGreaterThanOrEqual(0);
       expect(dashboard.networkHealth).toBe("healthy");
-      expect(dashboard.trendingAngles).toBeDefined();
-      expect(dashboard.topPatterns).toBeDefined();
+      expect(Array.isArray(dashboard.trendingAngles)).toBe(true);
+      expect(Array.isArray(dashboard.topPatterns)).toBe(true);
     });
 
     it("reports offline when no nodes", () => {
@@ -429,7 +448,7 @@ describe("federation", () => {
   describe("getInnovationPulse", () => {
     it("returns pulse structure", () => {
       const pulse = getInnovationPulse();
-      expect(pulse.timestamp).toBeDefined();
+      expect(pulse.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(pulse.healthScore).toBeGreaterThanOrEqual(0);
       expect(pulse.healthScore).toBeLessThanOrEqual(100);
       expect(pulse.geographicSpread).toEqual([]);
@@ -481,6 +500,222 @@ describe("federation", () => {
         lastSeenAt: new Date().toISOString(),
       });
       expect(result.success).toBe(false);
+    });
+  });
+
+  // ---- Additional: privatizeCount Laplace noise bounds ----
+
+  describe("privatizeCount — noise bounds", () => {
+    it("output is always >= 0 even for zero input", () => {
+      for (let i = 0; i < 100; i++) {
+        expect(privatizeCount(0)).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it("with high epsilon (low noise), output clusters near input", () => {
+      const results: number[] = [];
+      for (let i = 0; i < 100; i++) {
+        results.push(privatizeCount(5, { epsilon: 100, clippingBound: 10 }));
+      }
+      const avg = results.reduce((a, b) => a + b, 0) / results.length;
+      expect(avg).toBeGreaterThan(3);
+      expect(avg).toBeLessThan(7);
+    });
+  });
+
+  // ---- Additional: extractPatterns return shape ----
+
+  describe("extractPatterns — return shape", () => {
+    it("returns patterns with all required fields populated", () => {
+      const node = createFederationNode({ name: "Test" });
+      const patterns = extractPatterns({
+        nodeId: node.id,
+        domain: "healthcare",
+        angleResults: [
+          { angleId: "a1", angleName: "First Principles", ideasCount: 5, successRate: 0.7 },
+        ],
+      });
+      for (const p of patterns) {
+        expect(p).toMatchObject({
+          id: expect.any(String),
+          type: expect.any(String),
+          title: expect.any(String),
+          description: expect.any(String),
+          anonymizedDomain: expect.any(String),
+          angleIds: expect.any(Array),
+          frequency: expect.any(Number),
+          successRate: expect.any(Number),
+          firstSeenAt: expect.stringMatching(/^\d{4}/),
+          lastSeenAt: expect.stringMatching(/^\d{4}/),
+          sourceNodeId: node.id,
+        });
+      }
+    });
+  });
+
+  // ---- Additional: publishPatterns anonymization ----
+
+  describe("publishPatterns — anonymization", () => {
+    it("published patterns use anonymized domain names", () => {
+      const node = createFederationNode({ name: "Test" });
+      extractPatterns({
+        nodeId: node.id,
+        domain: "fintech startup",
+        angleResults: [{ angleId: "a1", angleName: "A", ideasCount: 3, successRate: 0.8 }],
+      });
+      const published = publishPatterns(node.id);
+      for (const p of published) {
+        expect(p.anonymizedDomain).not.toContain("fintech startup");
+        expect(p.anonymizedDomain).toBe("Financial Technology Domain");
+      }
+    });
+  });
+
+  // ---- Additional: mergePatterns deduplication/conflict ----
+
+  describe("mergePatterns — deduplication and conflict", () => {
+    it("merging same-titled pattern 3 times yields frequency 3", () => {
+      const node = createFederationNode({ name: "Test" });
+      const pattern: FederationPattern = {
+        id: "p1",
+        type: "trending-angle",
+        title: "Repeated Pattern",
+        description: "Desc",
+        anonymizedDomain: "Domain",
+        angleIds: ["a1"],
+        frequency: 1,
+        successRate: 0.5,
+        firstSeenAt: new Date().toISOString(),
+        lastSeenAt: new Date().toISOString(),
+      };
+      mergePatterns(node.id, [pattern]);
+      mergePatterns(node.id, [{ ...pattern, id: "p2" }]);
+      mergePatterns(node.id, [{ ...pattern, id: "p3" }]);
+
+      const received = getNode(node.id)!.receivedPatterns;
+      expect(received).toHaveLength(1);
+      expect(received[0].frequency).toBe(3);
+    });
+
+    it("merges patterns with different titles as separate entries", () => {
+      const node = createFederationNode({ name: "Test" });
+      mergePatterns(node.id, [
+        {
+          id: "p1",
+          type: "trending-angle",
+          title: "A",
+          description: "D",
+          anonymizedDomain: "D",
+          angleIds: ["a1"],
+          frequency: 1,
+          successRate: 0.5,
+          firstSeenAt: new Date().toISOString(),
+          lastSeenAt: new Date().toISOString(),
+        },
+        {
+          id: "p2",
+          type: "trending-angle",
+          title: "B",
+          description: "D",
+          anonymizedDomain: "D",
+          angleIds: ["a2"],
+          frequency: 1,
+          successRate: 0.6,
+          firstSeenAt: new Date().toISOString(),
+          lastSeenAt: new Date().toISOString(),
+        },
+      ]);
+      expect(getNode(node.id)!.receivedPatterns).toHaveLength(2);
+    });
+  });
+
+  // ---- Additional: getNetworkDashboard aggregation ----
+
+  describe("getNetworkDashboard — aggregation", () => {
+    it("totalPatterns reflects both local and received", () => {
+      const node = createFederationNode({ name: "Test" });
+      extractPatterns({
+        nodeId: node.id,
+        domain: "ai",
+        angleResults: [{ angleId: "a1", angleName: "Angle", ideasCount: 3 }],
+      });
+      mergePatterns(node.id, [
+        {
+          id: "r1",
+          type: "domain-insight",
+          title: "Remote",
+          description: "D",
+          anonymizedDomain: "D",
+          angleIds: ["a2"],
+          frequency: 1,
+          successRate: 0.7,
+          firstSeenAt: new Date().toISOString(),
+          lastSeenAt: new Date().toISOString(),
+        },
+      ]);
+      const dashboard = getNetworkDashboard(node.id);
+      expect(dashboard.totalPatterns).toBeGreaterThanOrEqual(2);
+    });
+
+    it("trending angles are sorted by frequency desc", () => {
+      const node = createFederationNode({ name: "Test" });
+      extractPatterns({
+        nodeId: node.id,
+        domain: "ai",
+        angleResults: [
+          { angleId: "popular", angleName: "Popular", ideasCount: 10, successRate: 0.9 },
+          { angleId: "rare", angleName: "Rare", ideasCount: 1, successRate: 0.3 },
+        ],
+      });
+      const dashboard = getNetworkDashboard(node.id);
+      if (dashboard.trendingAngles.length >= 2) {
+        expect(dashboard.trendingAngles[0].frequency).toBeGreaterThanOrEqual(
+          dashboard.trendingAngles[1].frequency
+        );
+      }
+    });
+  });
+
+  // ---- Additional: getInnovationPulse with zero/single/many nodes ----
+
+  describe("getInnovationPulse — node counts", () => {
+    it("zero nodes: health score is bounded", () => {
+      const pulse = getInnovationPulse();
+      expect(pulse.healthScore).toBeGreaterThanOrEqual(0);
+      expect(pulse.healthScore).toBeLessThanOrEqual(100);
+    });
+
+    it("single node: health score > 0", () => {
+      createFederationNode({ name: "Single" });
+      const pulse = getInnovationPulse();
+      expect(pulse.healthScore).toBeGreaterThan(0);
+    });
+
+    it("many nodes with patterns: high health score", () => {
+      for (let i = 0; i < 5; i++) {
+        const node = createFederationNode({ name: `Node-${i}` });
+        extractPatterns({
+          nodeId: node.id,
+          domain: "ai",
+          angleResults: [{ angleId: `a${i}`, angleName: `Angle${i}`, ideasCount: 3 }],
+        });
+      }
+      const pulse = getInnovationPulse();
+      expect(pulse.healthScore).toBeGreaterThanOrEqual(60);
+    });
+
+    it("pulse structure includes required fields", () => {
+      const pulse = getInnovationPulse();
+      expect(pulse).toMatchObject({
+        timestamp: expect.stringMatching(/^\d{4}/),
+        networkSize: expect.any(Number),
+        totalActivities: expect.any(Number),
+        patternsSharedLast24h: expect.any(Number),
+        trendingTopics: expect.any(Array),
+        methodologyEffectiveness: expect.any(Array),
+        geographicSpread: [],
+        healthScore: expect.any(Number),
+      });
     });
   });
 });
