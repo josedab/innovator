@@ -107,6 +107,125 @@ describe("export", () => {
       const result = exportToMarkdown(data);
       expect(result.content).toContain("# Innovation Report: Test");
     });
+
+    it("exports with no investigation", () => {
+      const data: ExportData = {
+        subject: "No Investigation",
+        angleResults: [
+          {
+            angleId: "a1",
+            angleName: "Angle 1",
+            ideas: [
+              {
+                title: "Idea",
+                description: "Desc",
+                potentialImpact: "Impact",
+                implementationHint: "Hint",
+              },
+            ],
+            reasoning: "Reasoning",
+          },
+        ],
+      };
+      const result = exportToMarkdown(data);
+      expect(result.content).toContain("## Innovation Ideas by Angle");
+      expect(result.content).not.toContain("## Investigation");
+    });
+  });
+
+  describe("exportToJson - round trip fidelity", () => {
+    it("JSON round-trip preserves all data fields", () => {
+      const result = exportToJson(sampleData);
+      const parsed = JSON.parse(result.content) as ExportData;
+      expect(parsed.subject).toBe(sampleData.subject);
+      expect(parsed.investigation?.summary).toBe(sampleData.investigation?.summary);
+      expect(parsed.angleResults).toHaveLength(sampleData.angleResults.length);
+      expect(parsed.synthesis?.topIdeas).toHaveLength(sampleData.synthesis?.topIdeas.length ?? 0);
+      expect(parsed.synthesis?.themes).toEqual(sampleData.synthesis?.themes);
+      expect(parsed.synthesis?.recommendation).toBe(sampleData.synthesis?.recommendation);
+    });
+
+    it("JSON round-trip preserves nested idea details", () => {
+      const result = exportToJson(sampleData);
+      const parsed = JSON.parse(result.content) as ExportData;
+      const idea = parsed.angleResults[0].ideas[0];
+      expect(idea.title).toBe("Solar Paint");
+      expect(idea.description).toBe("Paint that generates electricity");
+      expect(idea.potentialImpact).toBe("Revolutionary building integration");
+      expect(idea.implementationHint).toBe("Partner with paint manufacturers");
+    });
+  });
+
+  describe("special characters handling", () => {
+    it("handles special characters in subject for slug generation", () => {
+      const data: ExportData = {
+        subject: 'Test & Special <Characters> "Quotes"',
+        angleResults: [],
+      };
+      const result = exportToMarkdown(data);
+      expect(result.filename).not.toContain("&");
+      expect(result.filename).not.toContain("<");
+      expect(result.filename).toMatch(/^innovation-[a-z0-9-]+\.md$/);
+    });
+
+    it("handles very long subject (slug truncated to 50 chars)", () => {
+      const longSubject = "A".repeat(100);
+      const data: ExportData = { subject: longSubject, angleResults: [] };
+      const result = exportToMarkdown(data);
+      // slug is max 50 chars + prefix "innovation-" + ".md"
+      expect(result.filename.length).toBeLessThanOrEqual("innovation-".length + 50 + ".md".length);
+    });
+
+    it("handles markdown injection in content", () => {
+      const data: ExportData = {
+        subject: "# Injected Heading",
+        angleResults: [
+          {
+            angleId: "a1",
+            angleName: "Angle **bold**",
+            ideas: [
+              {
+                title: "Idea with [link](http://evil.com)",
+                description: "Description with `code` and *emphasis*",
+                potentialImpact: "Impact",
+                implementationHint: "Hint",
+              },
+            ],
+            reasoning: "Reasoning",
+          },
+        ],
+      };
+      const result = exportToMarkdown(data);
+      // Should still produce valid output without crashing
+      expect(result.content).toBeDefined();
+      expect(result.content.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("exportToClipboard edge cases", () => {
+    it("uses angleResults when no synthesis", () => {
+      const data: ExportData = {
+        subject: "Test",
+        angleResults: [
+          {
+            angleId: "a1",
+            angleName: "Angle 1",
+            ideas: [
+              {
+                title: "Idea1",
+                description: "Desc1",
+                potentialImpact: "Impact",
+                implementationHint: "Hint",
+              },
+            ],
+            reasoning: "R",
+          },
+        ],
+      };
+      const text = exportToClipboard(data);
+      expect(text).toContain("Angle 1:");
+      expect(text).toContain("Idea1");
+    });
   });
 
   describe("exportToPowerPoint", () => {
