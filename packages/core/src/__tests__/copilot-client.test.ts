@@ -229,5 +229,50 @@ describe("copilot/client", () => {
       const raw = '```\n{"data": 1}\n```';
       expect(extractJson(raw)).toBe('{"data": 1}');
     });
+
+    it("throws for empty string", () => {
+      expect(() => extractJson("")).toThrow("No JSON object found");
+    });
+
+    it("extracts first valid JSON when fenced block has non-JSON content", () => {
+      const raw = '```\nsome text\n```\n{"fallback": true}';
+      expect(extractJson(raw)).toBe('{"fallback": true}');
+    });
+
+    it("handles deeply nested objects", () => {
+      const deep = '{"a":{"b":{"c":{"d":{"e":"val"}}}}}';
+      expect(extractJson(deep)).toBe(deep);
+    });
+  });
+
+  describe("generateText edge cases", () => {
+    it("times out when sendAndWait takes too long", async () => {
+      mockSendAndWait.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 10_000))
+      );
+      await expect(generateText({ prompt: "test", timeoutMs: 50 })).rejects.toThrow("timed out");
+    });
+
+    it("disconnects session on abort signal during request", async () => {
+      const controller = new AbortController();
+      // The abort handler calls safeDisconnect, which triggers the mock.
+      // Use a short timeout so the race resolves via timeout after abort.
+      mockSendAndWait.mockImplementation(
+        () => new Promise(() => {}) // never resolves
+      );
+      const promise = generateText({ prompt: "test", signal: controller.signal, timeoutMs: 200 });
+      setTimeout(() => controller.abort(), 30);
+      await expect(promise).rejects.toThrow();
+      expect(mockDisconnect).toHaveBeenCalled();
+    });
+
+    it("suppresses expected disconnect errors (ECONNRESET)", async () => {
+      mockSendAndWait.mockResolvedValue({ data: { content: "ok" } });
+      const econnErr = new Error("connection reset");
+      (econnErr as NodeJS.ErrnoException).code = "ECONNRESET";
+      mockDisconnect.mockRejectedValueOnce(econnErr);
+      const result = await generateText({ prompt: "test", timeoutMs: 5000 });
+      expect(result).toBe("ok");
+    });
   });
 });
