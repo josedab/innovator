@@ -234,6 +234,27 @@ describe("API /api/portal", () => {
       const body = await res.json();
       expect(body.demoKey).toBe("demo_key_xyz");
       expect(body.message).toContain("Demo key");
+      expect(body.message).toContain("1 hour");
+      expect(body.message).toContain("5 calls/day");
+    });
+  });
+
+  // --- POST: missing required fields ---
+
+  describe("missing required fields", () => {
+    it("rejects get-portal with missing tenantId", async () => {
+      const res = await POST(makePost({ action: "get-portal" }));
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects add-key with missing keyName", async () => {
+      const res = await POST(makePost({ action: "add-key", tenantId: "t1" }));
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects upgrade-tier with missing tier", async () => {
+      const res = await POST(makePost({ action: "upgrade-tier", tenantId: "t1" }));
+      expect(res.status).toBe(400);
     });
   });
 
@@ -243,6 +264,16 @@ describe("API /api/portal", () => {
     it("returns 400 for invalid action", async () => {
       const res = await POST(makePost({ action: "invalid-action" }));
       expect(res.status).toBe(400);
+    });
+
+    it("returns 500 for invalid JSON body", async () => {
+      const req = new Request("http://localhost/api/portal", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "not json{",
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(500);
     });
 
     it("returns content-type error", async () => {
