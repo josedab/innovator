@@ -181,4 +181,30 @@ describe("withRetry", () => {
     ).rejects.toThrow("ECONNRESET");
     expect(fn).toHaveBeenCalledTimes(1);
   });
+
+  it("maxAttempts=0 never calls fn (throws last error as undefined)", async () => {
+    const fn = vi.fn().mockResolvedValue("ok");
+    // maxAttempts=0 means the loop body never executes → throws undefined
+    await expect(withRetry(fn, { maxAttempts: 0 })).rejects.toBeUndefined();
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it("fn throws non-Error primitive string is not retryable by default", async () => {
+    const fn = vi.fn().mockRejectedValue("string error");
+    await expect(withRetry(fn, { initialDelayMs: 1, maxAttempts: 3 })).rejects.toBe("string error");
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("fn throws non-Error primitive number is not retryable by default", async () => {
+    const fn = vi.fn().mockRejectedValue(0);
+    await expect(withRetry(fn, { initialDelayMs: 1 })).rejects.toBe(0);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses default options when none provided", async () => {
+    const fn = vi.fn().mockResolvedValue("default");
+    const result = await withRetry(fn);
+    expect(result).toBe("default");
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
 });
