@@ -695,3 +695,167 @@ export function conversationToMarkdown(session: ConversationSession): string {
 
   return lines.join("\n");
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Smart Defaults — subject classification → pipeline config                 */
+/* -------------------------------------------------------------------------- */
+
+export interface SmartDefaults {
+  suggestedAngles: string[];
+  depth: "quick" | "standard" | "deep";
+  suggestedArtifacts: string[];
+  estimatedSteps: number;
+  classification: string;
+}
+
+const DOMAIN_DEFAULTS: Record<string, Partial<SmartDefaults>> = {
+  technology: {
+    suggestedAngles: ["first-principles", "cross-domain", "trend-collision"],
+    suggestedArtifacts: ["tech-spec", "prd"],
+  },
+  business: {
+    suggestedAngles: ["scamper", "constraints", "perspectives"],
+    suggestedArtifacts: ["prd", "pitch-outline", "okr"],
+  },
+  creative: {
+    suggestedAngles: ["what-if", "inversion", "cross-domain"],
+    suggestedArtifacts: ["pitch-outline"],
+  },
+  science: {
+    suggestedAngles: ["first-principles", "constraints", "inversion"],
+    suggestedArtifacts: ["tech-spec"],
+  },
+  social: {
+    suggestedAngles: ["perspectives", "what-if", "trend-collision"],
+    suggestedArtifacts: ["prd", "user-story"],
+  },
+};
+
+/**
+ * Classify a subject and generate smart pipeline defaults.
+ */
+export function getSmartDefaults(subject: string): SmartDefaults {
+  const lower = subject.toLowerCase();
+
+  const techKeywords = ["software", "api", "algorithm", "code", "platform", "app", "system", "database"];
+  const businessKeywords = ["market", "revenue", "customer", "strategy", "growth", "product", "startup"];
+  const creativeKeywords = ["design", "art", "brand", "story", "content", "media", "creative"];
+  const scienceKeywords = ["research", "experiment", "data", "analysis", "hypothesis", "model"];
+  const socialKeywords = ["community", "education", "health", "sustainability", "social", "impact"];
+
+  const scores: Record<string, number> = {
+    technology: techKeywords.filter((k) => lower.includes(k)).length,
+    business: businessKeywords.filter((k) => lower.includes(k)).length,
+    creative: creativeKeywords.filter((k) => lower.includes(k)).length,
+    science: scienceKeywords.filter((k) => lower.includes(k)).length,
+    social: socialKeywords.filter((k) => lower.includes(k)).length,
+  };
+
+  const classification = Object.entries(scores).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "technology";
+  const defaults = DOMAIN_DEFAULTS[classification] ?? DOMAIN_DEFAULTS.technology!;
+
+  const wordCount = subject.split(/\s+/).length;
+  const depth: SmartDefaults["depth"] =
+    wordCount < 10 ? "quick" : wordCount < 50 ? "standard" : "deep";
+
+  const angleCount = depth === "quick" ? 2 : depth === "standard" ? 3 : 5;
+
+  return {
+    suggestedAngles: defaults.suggestedAngles ?? ["scamper", "first-principles"],
+    depth,
+    suggestedArtifacts: defaults.suggestedArtifacts ?? ["prd"],
+    estimatedSteps: angleCount + 2, // investigate + generate*N + synthesize
+    classification,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Follow-up Suggestions                                                     */
+/* -------------------------------------------------------------------------- */
+
+export interface FollowUpSuggestion {
+  prompt: string;
+  description: string;
+  type: "deepen" | "pivot" | "refine" | "artifact" | "compare";
+}
+
+/**
+ * Generate contextual follow-up suggestions based on conversation state.
+ */
+export function generateFollowUps(session: ConversationSession): FollowUpSuggestion[] {
+  const state = session.toState();
+  const suggestions: FollowUpSuggestion[] = [];
+
+  if (!state.currentPlan || state.currentPlan.status !== "completed") {
+    return suggestions;
+  }
+
+  const hasInvestigation = state.currentPlan.steps.some(
+    (s) => s.type === "investigate" && s.status === "completed"
+  );
+  const hasGeneration = state.currentPlan.steps.some(
+    (s) => s.type === "generate" && s.status === "completed"
+  );
+  const hasArtifact = state.currentPlan.steps.some(
+    (s) => s.type === "artifact" && s.status === "completed"
+  );
+
+  if (hasGeneration && !hasArtifact) {
+    suggestions.push({
+      prompt: "Create a PRD from the best idea",
+      description: "Generate a Product Requirements Document",
+      type: "artifact",
+    });
+    suggestions.push({
+      prompt: "Create a technical specification for the top idea",
+      description: "Generate a detailed tech spec",
+      type: "artifact",
+    });
+  }
+
+  if (hasInvestigation && hasGeneration) {
+    suggestions.push({
+      prompt: "Debate the top 3 ideas with pros and cons",
+      description: "Run a structured debate on the strongest ideas",
+      type: "deepen",
+    });
+    suggestions.push({
+      prompt: "Explore this from a completely different angle using inversion thinking",
+      description: "Re-approach with inverse assumptions",
+      type: "pivot",
+    });
+  }
+
+  if (state.subject) {
+    suggestions.push({
+      prompt: `What if we combined the top ideas into a single concept?`,
+      description: "Synthesize ideas into a unified approach",
+      type: "refine",
+    });
+  }
+
+  return suggestions.slice(0, 4);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Session Store                                                              */
+/* -------------------------------------------------------------------------- */
+
+const sessionStore = new Map<string, ConversationSession>();
+
+/** Create and store a conversation session. */
+export function createConversationSession(model?: string): ConversationSession {
+  const session = new ConversationSession(model);
+  sessionStore.set(session.id, session);
+  return session;
+}
+
+/** Retrieve a stored conversation session. */
+export function getConversationSession(id: string): ConversationSession | undefined {
+  return sessionStore.get(id);
+}
+
+/** Clear all stored sessions (for testing). */
+export function clearConversationSessions(): void {
+  sessionStore.clear();
+}
