@@ -110,9 +110,11 @@ innovator/
 │   └── cli/          # Command-line interface
 ├── packages/
 │   ├── core/         # Shared innovation engine
-│   │   ├── copilot/  # GitHub Copilot SDK client wrapper
-│   │   ├── innovation/ # Investigation, generation, pipeline
-│   │   └── prompts/  # Prompt templates for each angle
+│   │   └── src/
+│   │       ├── copilot/    # GitHub Copilot SDK client wrapper
+│   │       ├── innovation/ # Investigation, generation, pipeline
+│   │       └── prompts/    # Prompt templates for each angle
+│   ├── sdk/          # Framework-agnostic SDK client (@innovator/sdk)
 │   ├── bot/          # Chat bot integration
 │   ├── copilot-extension/ # GitHub Copilot Extension (@innovator in Copilot Chat)
 │   ├── create-innovator/  # Project scaffolder (npx create-innovator)
@@ -196,10 +198,36 @@ Supported models include `gpt-4.1`, `gpt-5`, `claude-sonnet-4.5`, and others ava
 | `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for LLM requests in milliseconds                            | `90000`                  | No       |
 | `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs                        | _unset_                  | No       |
 | `INNOVATOR_EMBED_ORIGINS`  | Comma-separated CORS origins for `/api/embed` widget endpoint       | `*`                      | No       |
+| `INNOVATOR_EMBED_API_KEY`  | API key to protect the `/api/embed` widget endpoint (`X-Embed-Key`) | _unset_                  | No       |
+| `GH_TOKEN`                 | GitHub token for Copilot SDK auth in CI/Docker (when `gh` CLI is unavailable) | _unset_      | No*      |
 | `OPENAI_API_KEY`           | OpenAI API key for direct OpenAI provider (non-Copilot usage)       | _unset_                  | No       |
 | `ANTHROPIC_API_KEY`        | Anthropic API key for direct Anthropic provider (non-Copilot usage) | _unset_                  | No       |
 | `OLLAMA_BASE_URL`          | Base URL for local Ollama instance                                  | `http://localhost:11434` | No       |
 | `PORT`                     | Dev server port                                                     | `3000`                   | No       |
+
+## Docker
+
+The project includes a multi-service Docker Compose setup for containerized development and deployment:
+
+| Service        | Description                         | Port  |
+| -------------- | ----------------------------------- | ----- |
+| `innovator`    | Next.js app (multi-stage Dockerfile)| 3000  |
+| `postgres`     | PostgreSQL 16 database              | 5432  |
+| `pgadmin`      | pgAdmin 4 web UI                    | 5050  |
+
+```bash
+# Start all services (set GH_TOKEN for Copilot auth in Docker)
+export GH_TOKEN=$(gh auth token)
+docker-compose up
+
+# Or run in background
+docker-compose up -d
+
+# Open the app at http://localhost:3000
+# Open pgAdmin at http://localhost:5050 (admin@innovator.dev / admin)
+```
+
+> **Note:** The `innovator` service requires `GH_TOKEN` for Copilot SDK authentication since `gh auth login` is not available inside the container. See [Environment Variables](#environment-variables).
 
 ## Dev Container / Codespaces
 
@@ -222,7 +250,7 @@ To get started, click **"Code → Codespaces → New codespace"** on GitHub, or 
 | **Build failures after upgrade**     | Run `npm run clean:all && rm -rf node_modules && npm install && npm run build` for a clean rebuild.                                                                      |
 | **LLM request timeouts**             | Increase `INNOVATOR_LLM_TIMEOUT_MS` (default: 90000). Complex subjects or slower models may need 120000+.                                                                |
 
-For the full troubleshooting guide, see the [documentation site](https://josedab.github.io/innovator/docs/guides/troubleshooting).
+For the full troubleshooting guide, see the [documentation site](https://josedab.github.io/innovator/docs/troubleshooting).
 
 ## Contributing
 
