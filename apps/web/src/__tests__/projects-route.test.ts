@@ -158,6 +158,57 @@ describe("POST /api/projects", () => {
     expect(res.status).toBe(400);
   });
 
+  it("creates project with special characters in name", async () => {
+    mockCreateProject.mockResolvedValue({
+      id: "p-special",
+      name: "Project: Alpha & Beta (v2.0) — Test!",
+      ownerId: "user-1",
+    } as never);
+
+    const res = await POST(
+      makePostRequest({
+        name: "Project: Alpha & Beta (v2.0) — Test!",
+        ownerId: "user-1",
+      })
+    );
+    expect(res.status).toBe(201);
+    const data = await res.json();
+    expect(data.name).toBe("Project: Alpha & Beta (v2.0) — Test!");
+  });
+
+  it("creates project with optional settings", async () => {
+    mockCreateProject.mockResolvedValue({
+      id: "p-settings",
+      name: "Configured",
+      ownerId: "user-1",
+    } as never);
+
+    const res = await POST(
+      makePostRequest({
+        name: "Configured",
+        ownerId: "user-1",
+        settings: {
+          defaultModel: "gpt-4",
+          defaultAngles: ["scamper"],
+          autoScore: true,
+          autoValidate: false,
+        },
+      })
+    );
+    expect(res.status).toBe(201);
+    expect(mockCreateProject).toHaveBeenCalledWith(
+      "Configured", "", "user-1",
+      expect.objectContaining({ defaultModel: "gpt-4", autoScore: true })
+    );
+  });
+
+  it("returns 400 for missing ownerId", async () => {
+    const res = await POST(
+      makePostRequest({ name: "No Owner" })
+    );
+    expect(res.status).toBe(400);
+  });
+
   it("returns error for non-JSON content type", async () => {
     vi.mocked(validateJsonContentType).mockReturnValue(
       new Response(JSON.stringify({ error: "Unsupported Media Type" }), { status: 415 })
