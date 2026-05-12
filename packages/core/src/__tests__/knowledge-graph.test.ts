@@ -193,6 +193,24 @@ describe("knowledge-graph", () => {
       expect(stats.edgeCount).toBe(0);
       expect(stats.sessionCount).toBe(0);
     });
+
+    it("entity type distribution includes domain type", () => {
+      ingestInvestigation("s1", "Solar Energy", sampleInvestigation, sampleAngleResults);
+      const graph = getKnowledgeGraph();
+      const types = new Set(graph.nodes.map((n) => n.type));
+      expect(types.has("domain")).toBe(true);
+    });
+
+    it("top entities are sorted by occurrence count", () => {
+      ingestInvestigation("s1", "Solar Energy", sampleInvestigation, sampleAngleResults);
+      ingestInvestigation("s2", "Solar Energy", sampleInvestigation, sampleAngleResults);
+      const stats = getGraphStats();
+      for (let i = 1; i < stats.topEntities.length; i++) {
+        expect(stats.topEntities[i].occurrences).toBeLessThanOrEqual(
+          stats.topEntities[i - 1].occurrences
+        );
+      }
+    });
   });
 
   describe("filterGraphNodes", () => {
@@ -214,6 +232,20 @@ describe("knowledge-graph", () => {
       const result = filterGraphNodes({ type: "person" });
       expect(result).toHaveLength(0);
     });
+
+    it("filters by combined type and minOccurrences", () => {
+      ingestInvestigation("s1", "Solar Energy", sampleInvestigation, sampleAngleResults);
+      ingestInvestigation("s2", "Solar Energy", sampleInvestigation, sampleAngleResults);
+      const results = filterGraphNodes({ type: "domain", minOccurrences: 2 });
+      expect(results.every((n) => n.type === "domain" && n.occurrenceCount >= 2)).toBe(true);
+    });
+
+    it("returns all nodes when no filters applied", () => {
+      ingestInvestigation("s1", "Solar Energy", sampleInvestigation, sampleAngleResults);
+      const graph = getKnowledgeGraph();
+      const all = filterGraphNodes({});
+      expect(all.length).toBe(graph.nodes.length);
+    });
   });
 
   describe("clearKnowledgeGraph", () => {
@@ -223,6 +255,30 @@ describe("knowledge-graph", () => {
       const graph = getKnowledgeGraph();
       expect(graph.nodes).toHaveLength(0);
       expect(graph.edges).toHaveLength(0);
+    });
+
+    it("resets session count", () => {
+      ingestInvestigation("s1", "Solar Energy", sampleInvestigation, sampleAngleResults);
+      clearKnowledgeGraph();
+      const stats = getGraphStats();
+      expect(stats.sessionCount).toBe(0);
+    });
+  });
+
+  describe("queryRelatedSubjects edge cases", () => {
+    it("handles self-referencing query (subject querying itself)", () => {
+      ingestInvestigation("s1", "Solar Energy", sampleInvestigation, sampleAngleResults);
+      const result = queryRelatedSubjects("Solar Energy", 2, 100);
+      expect(result.nodes.length).toBeGreaterThan(0);
+      const solarNode = result.nodes.find((n) => n.label === "Solar Energy");
+      expect(solarNode).toBeDefined();
+    });
+
+    it("returns connected nodes within hop distance", () => {
+      ingestInvestigation("s1", "Solar Energy", sampleInvestigation, sampleAngleResults);
+      const depth1 = queryRelatedSubjects("Solar", 1, 100);
+      const depth2 = queryRelatedSubjects("Solar", 2, 100);
+      expect(depth2.nodes.length).toBeGreaterThanOrEqual(depth1.nodes.length);
     });
   });
 });
