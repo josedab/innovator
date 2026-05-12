@@ -10,8 +10,19 @@ import {
   listSTTProviders,
   listTTSProviders,
   clearVoiceProviders,
+  createVoiceSession,
+  getVoiceSession,
+  transitionVoiceSession,
+  addVoiceTranscript,
+  queueNarration,
+  dequeueNarration,
+  structureThinkingAloud,
+  endVoiceSession,
+  listVoiceSessions,
+  clearVoiceSessions,
   VOICE_COMMANDS,
   type VoiceTranscript,
+  type NarrationSegment,
   type SpeechRecognitionProvider,
   type TextToSpeechProvider,
 } from "../voice/index.js";
@@ -28,6 +39,7 @@ function makeTranscript(text: string, confidence = 0.95): VoiceTranscript {
 describe("voice", () => {
   beforeEach(() => {
     clearVoiceProviders();
+    clearVoiceSessions();
   });
 
   // ---- parseVoiceCommand ----
@@ -333,6 +345,294 @@ describe("voice", () => {
       registerSTTProvider(updated);
       expect(getSTTProvider("test-stt")!.name).toBe("Updated STT");
       expect(listSTTProviders()).toHaveLength(1);
+    });
+  });
+
+  // ---- Voice Session Management ----
+
+  describe("createVoiceSession", () => {
+    it("creates a session with default config", () => {
+      const session = createVoiceSession();
+      expect(session.id).toMatch(/^vsess_/);
+      expect(session.state).toBe("idle");
+      expect(session.config.engine).toBe("none");
+      expect(session.config.locale).toBe("en-US");
+      expect(session.transcripts).toEqual([]);
+      expect(session.commands).toEqual([]);
+      expect(session.narrationQueue).toEqual([]);
+      expect(session.thinkingAloudBuffer).toEqual([]);
+      expect(session.startedAt).toBeTruthy();
+      expect(session.lastActivityAt).toBeTruthy();
+    });
+
+    it("creates a session with custom config", () => {
+      const session = createVoiceSession({
+        engine: "whisper",
+        locale: "fr-FR",
+        narrationEnabled: true,
+        speechRate: 1.5,
+      });
+      expect(session.config.engine).toBe("whisper");
+      expect(session.config.locale).toBe("fr-FR");
+      expect(session.config.narrationEnabled).toBe(true);
+      expect(session.config.speechRate).toBe(1.5);
+    });
+
+    it("generates unique session ids", () => {
+      const s1 = createVoiceSession();
+      const s2 = createVoiceSession();
+      expect(s1.id).not.toBe(s2.id);
+    });
+
+    it("stores session retrievable by getVoiceSession", () => {
+      const session = createVoiceSession();
+      const retrieved = getVoiceSession(session.id);
+      expect(retrieved).toBeDefined();
+      expect(retrieved!.id).toBe(session.id);
+    });
+  });
+
+  describe("getVoiceSession", () => {
+    it("returns undefined for non-existent session", () => {
+      expect(getVoiceSession("nonexistent")).toBeUndefined();
+    });
+  });
+
+  describe("transitionVoiceSession", () => {
+    it("transitions from idle to listening", () => {
+      const session = createVoiceSession();
+      const result = transitionVoiceSession(session.id, "listening");
+      expect(result).toBe(true);
+      expect(getVoiceSession(session.id)!.state).toBe("listening");
+    });
+
+    it("rejects invalid transition from idle to speaking", () => {
+      const session = createVoiceSession();
+      const result = transitionVoiceSession(session.id, "speaking");
+      expect(result).toBe(false);
+      expect(getVoiceSession(session.id)!.state).toBe("idle");
+    });
+
+    it("returns false for non-existent session", () => {
+      expect(transitionVoiceSession("nonexistent", "listening")).toBe(false);
+    });
+
+    it("cannot transition from ended state", () => {
+      const session = createVoiceSession();
+      transitionVoiceSession(session.id, "ended");
+      expect(transitionVoiceSession(session.id, "idle")).toBe(false);
+    });
+
+    it("updates lastActivityAt on valid transition", () => {
+      const session = createVoiceSession();
+      const before = session.lastActivityAt;
+      transitionVoiceSession(session.id, "listening");
+      const after = getVoiceSession(session.id)!.lastActivityAt;
+      expect(after).toBeTruthy();
+      expect(new Date(after).getTime()).toBeGreaterThanOrEqual(new Date(before).getTime());
+    });
+
+    it("supports rapid state transitions through valid path", () => {
+      const session = createVoiceSession();
+      expect(transitionVoiceSession(session.id, "listening")).toBe(true);
+      expect(transitionVoiceSession(session.id, "processing")).toBe(true);
+      expect(transitionVoiceSession(session.id, "speaking")).toBe(true);
+      expect(transitionVoiceSession(session.id, "listening")).toBe(true);
+      expect(getVoiceSession(session.id)!.state).toBe("listening");
+    });
+
+    it("transitions from error back to listening", () => {
+      const session = createVoiceSession();
+      transitionVoiceSession(session.id, "listening");
+      transitionVoiceSession(session.id, "error");
+      expect(transitionVoiceSession(session.id, "listening")).toBe(true);
+    });
+
+    it("transitions from paused to listening", () => {
+      const session = createVoiceSession();
+      transitionVoiceSession(session.id, "listening");
+      transitionVoiceSession(session.id, "paused");
+      expect(transitionVoiceSession(session.id, "listening")).toBe(true);
+    });
+  });
+
+  describe("addVoiceTranscript", () => {
+    it("adds transcript and parses command", () => {
+      const session = createVoiceSession();
+      transitionVoiceSession(session.id, "listening");
+      const cmd = addVoiceTranscript(session.id, makeTranscript("investigate AI"));
+      expect(cmd).toBeDefined();
+      expect(cmd!.command).toBe("investigate");
+      expect(getVoiceSession(session.id)!.transcripts).toHaveLength(1);
+      expect(getVoiceSession(session.id)!.commands).toHaveLength(1);
+    });
+
+    it("returns undefined for non-command transcript", () => {
+      const session = createVoiceSession();
+      const cmd = addVoiceTranscript(session.id, makeTranscript("hello world"));
+      expect(cmd).toBeUndefined();
+      expect(getVoiceSession(session.id)!.transcripts).toHaveLength(1);
+      expect(getVoiceSession(session.id)!.commands).toHaveLength(0);
+    });
+
+    it("returns undefined for non-existent session", () => {
+      expect(addVoiceTranscript("nonexistent", makeTranscript("help"))).toBeUndefined();
+    });
+
+    it("buffers text in thinking-aloud mode instead of parsing command", () => {
+      const session = createVoiceSession();
+      transitionVoiceSession(session.id, "listening");
+      transitionVoiceSession(session.id, "thinking-aloud");
+      const cmd = addVoiceTranscript(session.id, makeTranscript("investigate AI"));
+      expect(cmd).toBeUndefined();
+      expect(getVoiceSession(session.id)!.thinkingAloudBuffer).toHaveLength(1);
+      expect(getVoiceSession(session.id)!.thinkingAloudBuffer[0].text).toBe("investigate AI");
+    });
+
+    it("updates lastActivityAt", () => {
+      const session = createVoiceSession();
+      const before = session.lastActivityAt;
+      addVoiceTranscript(session.id, makeTranscript("test"));
+      expect(
+        new Date(getVoiceSession(session.id)!.lastActivityAt).getTime()
+      ).toBeGreaterThanOrEqual(new Date(before).getTime());
+    });
+  });
+
+  describe("queueNarration / dequeueNarration", () => {
+    it("queues and dequeues narration segments in order", () => {
+      const session = createVoiceSession();
+      const segments: NarrationSegment[] = [
+        { text: "First", type: "heading", pauseAfterMs: 500 },
+        { text: "Second", type: "body", pauseAfterMs: 300 },
+      ];
+      expect(queueNarration(session.id, segments)).toBe(true);
+      expect(dequeueNarration(session.id)!.text).toBe("First");
+      expect(dequeueNarration(session.id)!.text).toBe("Second");
+      expect(dequeueNarration(session.id)).toBeUndefined();
+    });
+
+    it("returns false for non-existent session on queue", () => {
+      expect(queueNarration("nonexistent", [])).toBe(false);
+    });
+
+    it("returns undefined for non-existent session on dequeue", () => {
+      expect(dequeueNarration("nonexistent")).toBeUndefined();
+    });
+
+    it("handles empty segments array", () => {
+      const session = createVoiceSession();
+      expect(queueNarration(session.id, [])).toBe(true);
+      expect(dequeueNarration(session.id)).toBeUndefined();
+    });
+  });
+
+  describe("structureThinkingAloud", () => {
+    it("returns empty array for empty buffer", () => {
+      const session = createVoiceSession();
+      expect(structureThinkingAloud(session.id)).toEqual([]);
+    });
+
+    it("returns empty array for non-existent session", () => {
+      expect(structureThinkingAloud("nonexistent")).toEqual([]);
+    });
+
+    it("structures buffer into themes by keywords", () => {
+      const session = createVoiceSession();
+      transitionVoiceSession(session.id, "listening");
+      transitionVoiceSession(session.id, "thinking-aloud");
+      addVoiceTranscript(session.id, makeTranscript("I think we could build a better engine."));
+      addVoiceTranscript(
+        session.id,
+        makeTranscript("What if we used solar power. Maybe try wind too.")
+      );
+
+      const themes = structureThinkingAloud(session.id);
+      expect(themes.length).toBeGreaterThan(0);
+      const allThemeNames = themes.map((t) => t.theme);
+      expect(
+        allThemeNames.some((t) => ["could", "think", "what if", "maybe", "general"].includes(t))
+      ).toBe(true);
+    });
+
+    it("marks buffer entries as structured", () => {
+      const session = createVoiceSession();
+      transitionVoiceSession(session.id, "listening");
+      transitionVoiceSession(session.id, "thinking-aloud");
+      addVoiceTranscript(session.id, makeTranscript("I think this idea is good."));
+
+      structureThinkingAloud(session.id);
+      const buf = getVoiceSession(session.id)!.thinkingAloudBuffer;
+      expect(buf.every((b) => b.structured === true)).toBe(true);
+    });
+
+    it("groups general sentences without keywords under general theme", () => {
+      const session = createVoiceSession();
+      transitionVoiceSession(session.id, "listening");
+      transitionVoiceSession(session.id, "thinking-aloud");
+      addVoiceTranscript(session.id, makeTranscript("The sky is blue."));
+
+      const themes = structureThinkingAloud(session.id);
+      expect(themes.some((t) => t.theme === "general")).toBe(true);
+    });
+  });
+
+  describe("endVoiceSession", () => {
+    it("ends a session and sets state to ended", () => {
+      const session = createVoiceSession();
+      const ended = endVoiceSession(session.id);
+      expect(ended).toBeDefined();
+      expect(ended!.state).toBe("ended");
+    });
+
+    it("returns undefined for non-existent session", () => {
+      expect(endVoiceSession("nonexistent")).toBeUndefined();
+    });
+
+    it("updates lastActivityAt", () => {
+      const session = createVoiceSession();
+      const ended = endVoiceSession(session.id);
+      expect(new Date(ended!.lastActivityAt).getTime()).toBeGreaterThanOrEqual(
+        new Date(session.startedAt).getTime()
+      );
+    });
+
+    it("cannot transition after end", () => {
+      const session = createVoiceSession();
+      endVoiceSession(session.id);
+      expect(transitionVoiceSession(session.id, "listening")).toBe(false);
+    });
+  });
+
+  describe("listVoiceSessions / clearVoiceSessions", () => {
+    it("lists only active (non-ended) sessions", () => {
+      const s1 = createVoiceSession();
+      const s2 = createVoiceSession();
+      endVoiceSession(s1.id);
+      const active = listVoiceSessions();
+      expect(active).toHaveLength(1);
+      expect(active[0].id).toBe(s2.id);
+    });
+
+    it("returns empty when no sessions exist", () => {
+      expect(listVoiceSessions()).toHaveLength(0);
+    });
+
+    it("clearVoiceSessions removes all sessions", () => {
+      createVoiceSession();
+      createVoiceSession();
+      clearVoiceSessions();
+      expect(listVoiceSessions()).toHaveLength(0);
+    });
+
+    it("handles concurrent sessions independently", () => {
+      const s1 = createVoiceSession();
+      const s2 = createVoiceSession();
+      transitionVoiceSession(s1.id, "listening");
+      transitionVoiceSession(s2.id, "listening");
+      transitionVoiceSession(s1.id, "processing");
+      expect(getVoiceSession(s1.id)!.state).toBe("processing");
+      expect(getVoiceSession(s2.id)!.state).toBe("listening");
     });
   });
 });
