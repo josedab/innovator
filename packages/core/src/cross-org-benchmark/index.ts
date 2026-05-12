@@ -301,6 +301,68 @@ export function clearBenchmarkData(): void {
   metricsStore.length = 0;
 }
 
+// ---- Differential Privacy ----
+
+export interface DifferentialPrivacyConfig {
+  epsilon: number;
+  enabled: boolean;
+}
+
+let dpConfig: DifferentialPrivacyConfig = { epsilon: 1.0, enabled: true };
+
+/** Configure differential privacy parameters. */
+export function setDifferentialPrivacy(config: Partial<DifferentialPrivacyConfig>): void {
+  dpConfig = { ...dpConfig, ...config };
+}
+
+/** Get current differential privacy configuration. */
+export function getDifferentialPrivacy(): DifferentialPrivacyConfig {
+  return { ...dpConfig };
+}
+
+/**
+ * Submit metrics with differential privacy noise injection.
+ * Uses the Laplace mechanism to add calibrated noise to numeric fields,
+ * preserving aggregate accuracy while protecting individual org data.
+ */
+export function submitMetricsWithPrivacy(
+  orgId: string,
+  metrics: Omit<OrgMetrics, "orgId" | "submittedAt">
+): OrgMetrics {
+  if (!dpConfig.enabled) {
+    return submitMetrics(orgId, metrics);
+  }
+
+  // Apply Laplace noise to numeric fields
+  const noisyMetrics = {
+    ...metrics,
+    sessionCount: Math.max(0, Math.round(metrics.sessionCount + laplace(1 / dpConfig.epsilon))),
+    ideaCount: Math.max(0, Math.round(metrics.ideaCount + laplace(1 / dpConfig.epsilon))),
+    averageIdeaScore: Math.max(0, Math.min(10,
+      Math.round((metrics.averageIdeaScore + laplace(0.5 / dpConfig.epsilon)) * 10) / 10)),
+    uniqueSubjects: Math.max(0, Math.round(metrics.uniqueSubjects + laplace(1 / dpConfig.epsilon))),
+    ideaVelocity: Math.max(0,
+      Math.round((metrics.ideaVelocity + laplace(0.5 / dpConfig.epsilon)) * 10) / 10),
+    qualityDistribution: {
+      low: Math.max(0, Math.round(metrics.qualityDistribution.low + laplace(1 / dpConfig.epsilon))),
+      medium: Math.max(0, Math.round(metrics.qualityDistribution.medium + laplace(1 / dpConfig.epsilon))),
+      high: Math.max(0, Math.round(metrics.qualityDistribution.high + laplace(1 / dpConfig.epsilon))),
+    },
+  };
+
+  return submitMetrics(orgId, noisyMetrics);
+}
+
+/**
+ * Generate Laplace noise for differential privacy.
+ * Uses the inverse CDF method: X = μ - b * sign(U) * ln(1 - 2|U|)
+ * where U is uniform on (-0.5, 0.5).
+ */
+function laplace(scale: number): number {
+  const u = Math.random() - 0.5;
+  return -scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+}
+
 // ---- Helpers ----
 
 function anonymizeOrgId(orgId: string): string {
