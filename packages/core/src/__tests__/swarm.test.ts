@@ -22,7 +22,7 @@ describe("swarm", () => {
 
   describe("PERSONALITY_DESCRIPTIONS", () => {
     it("should define descriptions for all personalities", () => {
-      expect(Object.keys(PERSONALITY_DESCRIPTIONS)).toHaveLength(8);
+      expect(Object.keys(PERSONALITY_DESCRIPTIONS)).toHaveLength(11);
       expect(PERSONALITY_DESCRIPTIONS["risk-taker"]).toBeTruthy();
       expect(PERSONALITY_DESCRIPTIONS["pragmatist"]).toBeTruthy();
     });

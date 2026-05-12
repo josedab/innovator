@@ -11,6 +11,9 @@ export const AgentPersonalitySchema = z.enum([
   "integrator",
   "optimizer",
   "provocateur",
+  "researcher",
+  "critic",
+  "synthesizer",
 ]);
 
 export type AgentPersonality = z.infer<typeof AgentPersonalitySchema>;
@@ -24,6 +27,11 @@ export const PERSONALITY_DESCRIPTIONS: Record<AgentPersonality, string> = {
   integrator: "Finds connections between disparate ideas and synthesizes hybrid concepts.",
   optimizer: "Seeks efficiency gains, cost reduction, and process improvements.",
   provocateur: "Deliberately provokes unconventional thinking and questions status quo.",
+  researcher:
+    "Gathers evidence, cites prior art, and grounds ideas in existing knowledge and data.",
+  critic: "Rigorously evaluates ideas for weaknesses, risks, logical gaps, and hidden assumptions.",
+  synthesizer:
+    "Merges complementary ideas into cohesive strategies, finds common themes and synergies.",
 };
 
 // ---- Agent Status ----
