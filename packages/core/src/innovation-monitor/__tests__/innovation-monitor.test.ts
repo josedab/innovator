@@ -624,7 +624,11 @@ describe("innovation-monitor", () => {
       const scored = await scoreSignal(makeSignal());
       expect(scored.innovationScore).toBe(8.5);
       expect(scored.rationale).toBe("Highly innovative");
-      expect(scored.signal).toBeDefined();
+      expect(scored.signal).toMatchObject({
+        id: expect.any(String),
+        sourceId: expect.any(String),
+        type: expect.any(String),
+      });
     });
 
     it("clamps score to 0-10 range", async () => {
@@ -676,9 +680,11 @@ describe("innovation-monitor", () => {
 
       const digest = await generateDigest("daily");
       expect(digest.period).toBe("daily");
-      expect(digest.id).toBeDefined();
-      expect(digest.generatedAt).toBeDefined();
-      expect(digest.stats).toBeDefined();
+      expect(digest.id).toMatch(/.+/);
+      expect(digest.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(digest.stats).toMatchObject({
+        totalSignals: expect.any(Number),
+      });
     });
 
     it("handles empty signals period", async () => {
@@ -749,6 +755,56 @@ describe("innovation-monitor", () => {
       for (let i = 1; i < signals.length; i++) {
         expect(signals[i - 1].detectedAt >= signals[i].detectedAt).toBe(true);
       }
+    });
+
+    it("signal timestamps are in ISO 8601 format", async () => {
+      const { generateText } = await import("../../copilot/client.js");
+      (generateText as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        JSON.stringify({
+          opportunities: [
+            { type: "pattern", title: "TS Test", description: "D", confidence: 0.9, urgency: "low" },
+          ],
+        })
+      );
+
+      addMonitorSource(makeSource({ id: "src-1" }));
+      await detectOpportunities("src-1");
+
+      const signals = getRecentSignals();
+      for (const signal of signals) {
+        expect(signal.detectedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+      }
+    });
+
+    it("scoreSignal returns signal with all expected fields", async () => {
+      const { generateText } = await import("../../copilot/client.js");
+      (generateText as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        JSON.stringify({ innovationScore: 7.0, rationale: "Good fit" })
+      );
+
+      const scored = await scoreSignal(makeSignal({ title: "Test Signal", type: "trend" }));
+      expect(scored).toEqual(
+        expect.objectContaining({
+          innovationScore: expect.any(Number),
+          rationale: expect.any(String),
+          signal: expect.objectContaining({
+            title: "Test Signal",
+            type: "trend",
+          }),
+        })
+      );
+    });
+
+    it("digest stats aggregation has correct structure", async () => {
+      const digest = await generateDigest("daily");
+      expect(digest.stats).toEqual(
+        expect.objectContaining({
+          totalSignals: expect.any(Number),
+          byType: expect.any(Object),
+          byUrgency: expect.any(Object),
+          avgConfidence: expect.any(Number),
+        })
+      );
     });
   });
 });
