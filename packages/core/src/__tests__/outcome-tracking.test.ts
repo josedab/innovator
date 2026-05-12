@@ -24,7 +24,15 @@ describe("outcome-tracking", () => {
 
   describe("schemas", () => {
     it("validates OutcomeStage enum", () => {
-      const stages = ["idea", "validated", "planned", "in-development", "shipped", "measured", "abandoned"];
+      const stages = [
+        "idea",
+        "validated",
+        "planned",
+        "in-development",
+        "shipped",
+        "measured",
+        "abandoned",
+      ];
       for (const s of stages) {
         expect(OutcomeStageSchema.parse(s)).toBe(s);
       }
@@ -154,6 +162,26 @@ describe("outcome-tracking", () => {
       expect(getOutcome(o.id)!.shippedAt).toBe(firstShippedAt);
     });
 
+    it("records rapid successive transitions", () => {
+      const o = createOutcome({ ideaTitle: "Rapid Test" });
+      transitionOutcome(o.id, "validated");
+      transitionOutcome(o.id, "planned");
+      transitionOutcome(o.id, "in-development");
+      transitionOutcome(o.id, "shipped");
+      transitionOutcome(o.id, "measured");
+
+      const updated = getOutcome(o.id)!;
+      expect(updated.stage).toBe("measured");
+      expect(updated.stageHistory).toHaveLength(5);
+      expect(updated.stageHistory.map((h) => h.to)).toEqual([
+        "validated",
+        "planned",
+        "in-development",
+        "shipped",
+        "measured",
+      ]);
+    });
+
     it("returns undefined for non-existent outcome", () => {
       expect(transitionOutcome("nonexistent", "validated")).toBeUndefined();
     });
@@ -198,6 +226,17 @@ describe("outcome-tracking", () => {
       expect(updated!.revenueMetrics[0].value).toBe(5000);
     });
 
+    it("adds multiple revenue metrics", () => {
+      const o = createOutcome({ ideaTitle: "Multi Revenue" });
+      addRevenueMetric(o.id, { name: "MRR", value: 5000, unit: "USD" });
+      addRevenueMetric(o.id, { name: "ARR", value: 60000, unit: "USD" });
+      addRevenueMetric(o.id, { name: "LTV", value: 1200, unit: "USD" });
+
+      const updated = getOutcome(o.id)!;
+      expect(updated.revenueMetrics).toHaveLength(3);
+      expect(updated.revenueMetrics.map((m) => m.name)).toEqual(["MRR", "ARR", "LTV"]);
+    });
+
     it("returns undefined for non-existent outcome", () => {
       expect(addRevenueMetric("nonexistent", { name: "X", value: 0, unit: "USD" })).toBeUndefined();
     });
@@ -226,7 +265,9 @@ describe("outcome-tracking", () => {
       expect(dashboard.overallShipRate).toBe(0);
       expect(dashboard.averageTimeToValueDays).toBeNull();
       expect(dashboard.totalRevenueImpact).toBe(0);
-      expect(dashboard.insights).toContain("No outcomes tracked yet. Create outcomes to start measuring ROI.");
+      expect(dashboard.insights).toContain(
+        "No outcomes tracked yet. Create outcomes to start measuring ROI."
+      );
     });
 
     it("aggregates by stage", () => {
@@ -303,6 +344,17 @@ describe("outcome-tracking", () => {
       const testAngle = dashboard.byAngle.find((g) => g.groupKey === "test");
       expect(testAngle).toBeDefined();
       expect(testAngle!.totalRevenueImpact).toBe(10000);
+    });
+
+    it("sums multiple revenue metrics across outcomes", () => {
+      const o1 = createOutcome({ ideaTitle: "A" });
+      const o2 = createOutcome({ ideaTitle: "B" });
+      addRevenueMetric(o1.id, { name: "MRR", value: 5000, unit: "USD" });
+      addRevenueMetric(o1.id, { name: "ARR", value: 10000, unit: "USD" });
+      addRevenueMetric(o2.id, { name: "MRR", value: 3000, unit: "USD" });
+
+      const dashboard = buildROIDashboard();
+      expect(dashboard.totalRevenueImpact).toBe(18000);
     });
 
     it("filters out outcomes with missing groupKey", () => {
