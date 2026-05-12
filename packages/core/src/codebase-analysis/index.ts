@@ -439,7 +439,13 @@ export function detectPatterns(
 // ---- Dependency Analysis ----
 
 /**
- * Analyze dependencies from package.json or equivalent manifest.
+ * Analyze project dependencies from manifest files (package.json, requirements.txt).
+ *
+ * Parses dependency manifests at `rootPath` and categorizes each dependency
+ * by type (production/development/peer) and category (testing, framework, etc.).
+ *
+ * @param rootPath - Absolute path to the project root containing manifest files.
+ * @returns An array of {@link DependencyAnalysis} objects for each discovered dependency.
  */
 export function analyzeDependencies(rootPath: string): DependencyAnalysis[] {
   const deps: DependencyAnalysis[] = [];
@@ -510,7 +516,15 @@ export function analyzeDependencies(rootPath: string): DependencyAnalysis[] {
 // ---- Architectural Layer Discovery ----
 
 /**
- * Discover architectural layers from directory structure.
+ * Discover architectural layers from the directory structure of discovered files.
+ *
+ * Groups files by top-level directory, infers responsibilities from known
+ * directory name conventions, and detects inter-layer dependencies by
+ * scanning import statements.
+ *
+ * @param rootPath - Absolute path to the project root.
+ * @param files - Array of discovered file paths to analyze.
+ * @returns An array of {@link ArchitecturalLayer} objects sorted by file count (descending).
  */
 export function discoverLayers(rootPath: string, files: string[]): ArchitecturalLayer[] {
   const layers: ArchitecturalLayer[] = [];
@@ -579,7 +593,16 @@ export function discoverLayers(rootPath: string, files: string[]): Architectural
 // ---- Subject Generation ----
 
 /**
- * Generate innovation subjects from codebase analysis using LLM.
+ * Generate innovation subjects from codebase analysis using an LLM.
+ *
+ * Summarizes detected patterns, dependencies, layers, and complexity hotspots,
+ * then prompts the LLM to identify high-impact innovation opportunities
+ * grounded in the actual code context.
+ *
+ * @param analysis - Aggregated codebase analysis data.
+ * @param model - Optional LLM model override.
+ * @param signal - Optional AbortSignal for cancellation.
+ * @returns An array of up to 10 {@link CodebaseSubject} objects.
  */
 export async function generateSubjects(
   analysis: {
@@ -671,7 +694,14 @@ You MUST respond with valid JSON only:
 }
 
 /**
- * Generate subjects using heuristics (no LLM required).
+ * Generate innovation subjects using heuristics without requiring an LLM.
+ *
+ * Scans detected patterns, dependency counts, and complexity hotspots to
+ * produce actionable innovation subjects. Used by {@link analyzeCodebaseSync}
+ * for fast, offline-capable analysis.
+ *
+ * @param analysis - Partial analysis data containing patterns, dependencies, layers, and complexity hotspots.
+ * @returns An array of up to 10 {@link CodebaseSubject} objects ranked by innovation potential.
  */
 function generateHeuristicSubjects(analysis: {
   patterns: CodePattern[];
@@ -833,7 +863,16 @@ export async function analyzeCodebase(options: CodebaseAnalysisOptions): Promise
 }
 
 /**
- * Quick analysis without LLM — returns heuristic subjects only.
+ * Quick synchronous analysis without LLM — returns heuristic subjects only.
+ *
+ * Suitable for fast, offline-capable codebase analysis where LLM access
+ * is unavailable or not needed. Uses {@link generateHeuristicSubjects} instead
+ * of the LLM-powered {@link generateSubjects}.
+ *
+ * @param rootPath - Absolute path to the project root to analyze.
+ * @param options - Optional analysis configuration (exclude patterns, file limits, etc.).
+ * @returns A complete {@link CodebaseAnalysis} report with heuristic-generated subjects.
+ * @throws {Error} If `rootPath` does not exist.
  */
 export function analyzeCodebaseSync(
   rootPath: string,
@@ -893,7 +932,13 @@ export function analyzeCodebaseSync(
 }
 
 /**
- * Export codebase analysis as Markdown report.
+ * Export a codebase analysis report as a Markdown document.
+ *
+ * Renders subjects, detected patterns, and complexity hotspots in a
+ * human-readable format suitable for documentation or PR descriptions.
+ *
+ * @param analysis - The codebase analysis to render.
+ * @returns A Markdown-formatted string.
  */
 export function analysisToMarkdown(analysis: CodebaseAnalysis): string {
   const lines: string[] = [
@@ -1145,6 +1190,13 @@ export interface DeepCodeAnalysis {
 /**
  * Perform deep analysis of a codebase to find architectural debt,
  * feature gaps, performance bottlenecks, and innovation opportunities.
+ *
+ * Builds on a base {@link CodebaseAnalysis} by applying deeper heuristics:
+ * circular dependency detection, thin-layer gap analysis, and complexity-
+ * based bottleneck identification.
+ *
+ * @param analysis - A previously computed {@link CodebaseAnalysis} report.
+ * @returns A {@link DeepCodeAnalysis} with categorized findings.
  */
 export function deepAnalyze(analysis: CodebaseAnalysis): DeepCodeAnalysis {
   const architecturalDebt: DeepCodeAnalysis["architecturalDebt"] = [];
