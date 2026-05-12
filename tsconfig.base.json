@@ -1,16 +1,28 @@
 {
   "compilerOptions": {
+    // Target ES2022 for native top-level await, private class fields, and Array.at()
     "target": "ES2022",
+    // ESNext module syntax — allows bundlers to tree-shake effectively
     "module": "ESNext",
+    // "bundler" resolution aligns with how modern bundlers (Vite, esbuild, webpack) resolve imports
     "moduleResolution": "bundler",
+    // Enable default-import interop for CommonJS modules (e.g., chalk, ora)
     "esModuleInterop": true,
+    // Enable all strict type-checking options for maximum type safety
     "strict": true,
+    // Skip type-checking node_modules — speeds up builds and avoids third-party type errors
     "skipLibCheck": true,
+    // Generate .d.ts declaration files so packages can be consumed with type information
     "declaration": true,
+    // Generate .d.ts.map files linking declarations back to source for IDE navigation
     "declarationMap": true,
+    // Generate .js.map source maps for debugging compiled output
     "sourceMap": true,
+    // Allow importing .json files as modules (e.g., package.json for version info)
     "resolveJsonModule": true,
+    // Ensure each file can be transpiled independently (required by esbuild, SWC, and similar tools)
     "isolatedModules": true,
+    // Enforce consistent casing in file imports to prevent errors on case-sensitive file systems
     "forceConsistentCasingInFileNames": true
   }
 }
