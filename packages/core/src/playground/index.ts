@@ -273,4 +273,78 @@ export function clearPlaygroundData(): void {
   sessions.clear();
   shareIndex.clear();
   userUsageStore.clear();
+  workspaces.clear();
+}
+
+// ---- Workspace Management ----
+
+export interface Workspace {
+  id: string;
+  name: string;
+  ownerId: string;
+  memberIds: string[];
+  tier: PlaygroundSession["tier"];
+  createdAt: string;
+  sessionIds: string[];
+  settings: {
+    defaultModel?: string;
+    allowPublicSharing: boolean;
+  };
+}
+
+const workspaces = new Map<string, Workspace>();
+
+/** Create a team workspace. */
+export function createWorkspace(
+  name: string,
+  ownerId: string,
+  tier: PlaygroundSession["tier"] = "team"
+): Workspace {
+  const workspace: Workspace = {
+    id: randomUUID(),
+    name,
+    ownerId,
+    memberIds: [ownerId],
+    tier,
+    createdAt: new Date().toISOString(),
+    sessionIds: [],
+    settings: { allowPublicSharing: true },
+  };
+  workspaces.set(workspace.id, workspace);
+  return workspace;
+}
+
+/** Get workspace by ID. */
+export function getWorkspace(workspaceId: string): Workspace | undefined {
+  return workspaces.get(workspaceId);
+}
+
+/** Add a member to a workspace. */
+export function addWorkspaceMember(workspaceId: string, userId: string): boolean {
+  const workspace = workspaces.get(workspaceId);
+  if (!workspace) return false;
+  const limits = TIER_LIMITS[workspace.tier] ?? TIER_LIMITS.free;
+  const maxMembers = workspace.tier === "enterprise" ? Infinity : limits.maxSessionsPerDay;
+  if (workspace.memberIds.length >= maxMembers) return false;
+  if (!workspace.memberIds.includes(userId)) {
+    workspace.memberIds.push(userId);
+  }
+  return true;
+}
+
+/** List workspaces for a user. */
+export function listUserWorkspaces(userId: string): Workspace[] {
+  return Array.from(workspaces.values()).filter(
+    (w) => w.ownerId === userId || w.memberIds.includes(userId)
+  );
+}
+
+/** Add a session to a workspace. */
+export function addSessionToWorkspace(workspaceId: string, sessionId: string): boolean {
+  const workspace = workspaces.get(workspaceId);
+  if (!workspace) return false;
+  if (!workspace.sessionIds.includes(sessionId)) {
+    workspace.sessionIds.push(sessionId);
+  }
+  return true;
 }
