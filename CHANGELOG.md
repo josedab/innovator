@@ -13,7 +13,11 @@ _No unreleased changes._
 
 ### Added
 
-#### Packages & Integrations
+> **Note:** This release includes both shipped features and infrastructure for future capabilities.
+> Items marked with ✅ are fully implemented and usable. Items marked with 🔧 are scaffolded
+> with APIs/schemas in place but may require additional configuration or LLM access to function fully.
+
+#### Packages & Integrations ✅
 
 - **MCP Server** — Model Context Protocol server (`packages/mcp-server/`) exposing `investigate`, `innovate`, and `auto` tools via stdio and SSE transports for Claude Desktop, Cursor, VS Code, and other MCP clients
 - **Chat Bot** — Chat platform bot (`packages/bot/`) with Slack, Discord, and Teams adapters
@@ -21,7 +25,7 @@ _No unreleased changes._
 - **Create Innovator** — `npx create-innovator` scaffolding package for quick project setup
 - **GitHub Action** — Automated innovation action for CI/CD workflows
 
-#### LLM & Providers
+#### LLM & Providers ✅
 
 - **Alternative LLM Providers** — Direct OpenAI, Anthropic, and Ollama provider support (non-Copilot usage)
 - **Cost Tracking** — Budget management and LLM cost tracking
@@ -31,7 +35,7 @@ _No unreleased changes._
 - **Investigation Confidence Scoring** — Confidence metrics for investigation results
 - **Observatory** — API keys management and prompt observatory endpoints
 
-#### Innovation Engine
+#### Innovation Engine ✅
 
 - **Comparative Analysis Pipeline** — Side-by-side comparison of multiple subjects
 - **Structured Debate Engine** — Multi-perspective debate on innovation ideas
@@ -49,7 +53,7 @@ _No unreleased changes._
 - **Stakeholder & Scenario Simulation** — Simulate stakeholder reactions and scenarios
 - **Impact Simulator** — Simulate potential impact of ideas
 
-#### Data & Knowledge
+#### Data & Knowledge 🔧
 
 - **RAG Knowledge Grounding** — Retrieval-augmented generation for grounded responses
 - **Knowledge Graph** — Persistent graph of concepts and relationships
@@ -58,7 +62,7 @@ _No unreleased changes._
 - **Market Signal Integration** — Live market data integration
 - **Competitive Intelligence** — Analyze competitive landscape
 
-#### Collaboration & Management
+#### Collaboration & Management 🔧
 
 - **Collaborative Sessions** — `/api/collaborate` endpoint with room codes, voting, commenting, and idea merging
 - **Portfolio Lifecycle Management** — Track and manage idea portfolios
@@ -69,7 +73,7 @@ _No unreleased changes._
 - **Idea Fitness Tracker** — Track and score idea fitness over time
 - **Shareable Investigation Links** — Share investigations via URL
 
-#### Output & Export
+#### Output & Export ✅
 
 - **Artifact Generation** — `/api/artifacts` endpoint for generating PRDs, user stories, tech specs from ideas
 - **Executive Decision Packets** — Generate decision-ready documents from innovations
@@ -77,7 +81,7 @@ _No unreleased changes._
 - **Audience-Adaptive Output** — Transform outputs for different audiences
 - **Multi-Language Support** — i18n for multiple languages
 
-#### Platform & UX
+#### Platform & UX 🔧
 
 - **PWA Support** — Service worker and offline indicator for the web app
 - **Embeddable Widget** — Widget SDK and `/api/widget` endpoint for embedding Innovator in external sites
