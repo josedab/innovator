@@ -2,7 +2,11 @@
 
 [![CI](https://github.com/josedab/innovator/actions/workflows/ci.yml/badge.svg)](https://github.com/josedab/innovator/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Coverage](https://img.shields.io/badge/coverage-v8-brightgreen)](https://github.com/josedab/innovator/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-v8-informational)](https://github.com/josedab/innovator/actions/workflows/ci.yml)
+
+<!-- TODO: Replace with actual coverage service badge once Codecov or Coveralls is configured.
+     Example: [![codecov](https://codecov.io/gh/josedab/innovator/graph/badge.svg)](https://codecov.io/gh/josedab/innovator) -->
+
 [![npm](https://img.shields.io/npm/v/create-innovator)](https://www.npmjs.com/package/create-innovator)
 
 Explore any subject from multiple innovation angles using AI. Built with Next.js, the GitHub Copilot SDK, and TypeScript.
