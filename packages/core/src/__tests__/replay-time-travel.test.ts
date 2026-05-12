@@ -77,9 +77,17 @@ describe("replay time-travel", () => {
   });
 
   describe("buildTimeline", () => {
-    it("creates snapshots for each prompt in a run", () => {
+    it("creates snapshots for each prompt in a run with correct structure", () => {
       const timeline = buildTimeline(runId);
       expect(timeline).toHaveLength(4);
+      expect(timeline).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ stage: "investigation" }),
+          expect.objectContaining({ stage: "synthesis" }),
+        ])
+      );
+      expect(timeline[0]).toHaveProperty("id");
+      expect(timeline[0]).toHaveProperty("timestamp");
       expect(timeline[0].stage).toBe("investigation");
       expect(timeline[1].stage).toBe("generation");
       expect(timeline[1].angleId).toBe("scamper");
@@ -98,12 +106,15 @@ describe("replay time-travel", () => {
   });
 
   describe("getSnapshot", () => {
-    it("retrieves a specific snapshot by ID", () => {
+    it("retrieves a specific snapshot by ID with correct structure", () => {
       buildTimeline(runId);
       const snap = getSnapshot(`snap-${runId}-1`);
-      expect(snap).toBeDefined();
-      expect(snap!.stage).toBe("generation");
-      expect(snap!.angleId).toBe("scamper");
+      expect(snap).toMatchObject({
+        stage: "generation",
+        angleId: "scamper",
+      });
+      expect(snap).toHaveProperty("id");
+      expect(snap).toHaveProperty("timestamp");
     });
 
     it("returns undefined for unknown snapshot", () => {
@@ -112,13 +123,15 @@ describe("replay time-travel", () => {
   });
 
   describe("createBranchFromSnapshot", () => {
-    it("creates a branch from a timeline point", () => {
+    it("creates a branch from a timeline point with correct structure", () => {
       const timeline = buildTimeline(runId);
       const branch = createBranchFromSnapshot(runId, timeline[1].id, "alt-scamper");
-      expect(branch).toBeDefined();
-      expect(branch!.parentRunId).toBe(runId);
-      expect(branch!.label).toBe("alt-scamper");
-      expect(branch!.branchedAt).toBeTruthy();
+      expect(branch).toMatchObject({
+        parentRunId: runId,
+        label: "alt-scamper",
+      });
+      expect(branch).toHaveProperty("id");
+      expect(branch!.branchedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     it("returns undefined for unknown snapshot", () => {
@@ -128,14 +141,15 @@ describe("replay time-travel", () => {
   });
 
   describe("forkRun", () => {
-    it("forks from investigation stage", () => {
+    it("forks from investigation stage with correct structure", () => {
       const forked = forkRun(runId, "investigation");
-      expect(forked).toBeDefined();
+      expect(forked).toMatchObject({
+        subject: "test subject",
+        metadata: expect.objectContaining({ forkedFrom: runId }),
+      });
       expect(forked!.id).not.toBe(runId);
-      expect(forked!.subject).toBe("test subject");
       expect(forked!.investigation).toBeDefined();
       expect(forked!.angleResults).toBeUndefined();
-      expect(forked!.metadata).toHaveProperty("forkedFrom", runId);
     });
 
     it("forks from generation stage", () => {
@@ -177,32 +191,41 @@ describe("replay time-travel", () => {
   });
 
   describe("getExplorationTree", () => {
-    it("returns root run with branches", () => {
+    it("returns root run with branches and correct structure", () => {
       forkRun(runId, "investigation", { subject: "fork-1" });
       forkRun(runId, "generation");
 
       const tree = getExplorationTree(runId);
-      expect(tree).toBeDefined();
-      expect(tree!.root.id).toBe(runId);
-      expect(tree!.branches.length).toBe(2);
-      expect(tree!.branches[0].childRun).toBeDefined();
+      expect(tree).toMatchObject({
+        root: expect.objectContaining({ id: runId }),
+      });
+      expect(tree!.branches).toHaveLength(2);
+      expect(tree!.branches[0]).toHaveProperty("childRun");
+      expect(tree!.branches[0].childRun).toHaveProperty("id");
+      expect(tree!.branches[0].childRun).toHaveProperty("subject");
+    });
+
+    it("returns undefined for unknown run", () => {
+      expect(getExplorationTree("nonexistent")).toBeUndefined();
     });
   });
 
   describe("timeTravel", () => {
-    it("returns state at investigation point", () => {
+    it("returns state at investigation point with correct structure", () => {
       const state = timeTravel(runId, 0);
-      expect(state).toBeDefined();
-      expect(state!.stage).toBe("investigation");
+      expect(state).toMatchObject({
+        stage: "investigation",
+      });
       expect(state!.completedPrompts).toHaveLength(1);
       expect(state!.remainingPrompts).toHaveLength(3);
     });
 
     it("returns state at generation point with accumulated results", () => {
       const state = timeTravel(runId, 2);
-      expect(state).toBeDefined();
-      expect(state!.stage).toBe("generation");
-      expect(state!.angleId).toBe("inversion");
+      expect(state).toMatchObject({
+        stage: "generation",
+        angleId: "inversion",
+      });
       expect(state!.investigation).toBeDefined();
       expect(state!.completedPrompts).toHaveLength(3);
     });
@@ -214,6 +237,67 @@ describe("replay time-travel", () => {
 
     it("returns undefined for unknown run", () => {
       expect(timeTravel("nonexistent", 0)).toBeUndefined();
+    });
+
+    it("returns state at first snapshot (boundary)", () => {
+      const state = timeTravel(runId, 0);
+      expect(state).toMatchObject({ stage: "investigation" });
+      expect(state!.completedPrompts).toHaveLength(1);
+    });
+
+    it("returns state at last snapshot (boundary)", () => {
+      const state = timeTravel(runId, 3);
+      expect(state).toMatchObject({ stage: "synthesis" });
+      expect(state!.completedPrompts).toHaveLength(4);
+      expect(state!.remainingPrompts).toHaveLength(0);
+    });
+  });
+
+  describe("boundary and negative tests", () => {
+    it("single-entry timeline from minimal run", () => {
+      clearRunRecords();
+      clearTimeline();
+      const minId = startRunRecord("minimal", "gpt-4", []);
+      recordPrompt(minId, "only prompt", "investigation", "gpt-4");
+      completeRunRecord(minId, {
+        investigation: {
+          summary: "s",
+          keyAspects: [],
+          currentState: "ok",
+          challenges: [],
+          opportunities: [],
+        },
+        angleResults: [],
+        synthesis: { topIdeas: [], themes: [], recommendation: "" },
+      });
+      const timeline = buildTimeline(minId);
+      expect(timeline).toHaveLength(1);
+      expect(timeline[0].stage).toBe("investigation");
+    });
+
+    it("first snapshot branch creates valid branch", () => {
+      const timeline = buildTimeline(runId);
+      const branch = createBranchFromSnapshot(runId, timeline[0].id, "first-branch");
+      expect(branch).toMatchObject({
+        parentRunId: runId,
+        label: "first-branch",
+      });
+    });
+
+    it("branchless tree has empty branches array", () => {
+      const tree = getExplorationTree(runId);
+      expect(tree).toMatchObject({
+        root: expect.objectContaining({ id: runId }),
+      });
+      expect(tree!.branches).toHaveLength(0);
+    });
+
+    it("non-existent runId returns undefined from forkRun", () => {
+      expect(forkRun("does-not-exist", "investigation")).toBeUndefined();
+    });
+
+    it("timeTravel with non-existent runId returns undefined", () => {
+      expect(timeTravel("does-not-exist", 0)).toBeUndefined();
     });
   });
 });
