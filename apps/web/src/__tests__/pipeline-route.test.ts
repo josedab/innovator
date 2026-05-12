@@ -125,4 +125,23 @@ describe("POST /api/pipeline", () => {
     const res = await POST(makeRequest({ description: "test" }));
     expect(res.headers.get("Content-Type")).toBe("text/event-stream");
   });
+
+  it("handles very long description within limit", async () => {
+    const longDesc = "A".repeat(5000);
+    const res = await POST(makeRequest({ description: longDesc }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("text/event-stream");
+  });
+
+  it("rejects description exceeding max length", async () => {
+    const tooLong = "A".repeat(5001);
+    const res = await POST(makeRequest({ description: tooLong }));
+    expect(res.status).toBe(400);
+  });
+
+  it("includes model param in pipeline request", async () => {
+    const res = await POST(makeRequest({ description: "Test", model: "gpt-4" }));
+    expect(res.status).toBe(200);
+    expect(parsePipelineRequest).toHaveBeenCalledWith("Test", "gpt-4");
+  });
 });
