@@ -243,12 +243,22 @@ describe("flow-state", () => {
         };
         const intervention = selectIntervention(state);
         expect(intervention).toBeDefined();
-        expect(intervention.title).toBeTruthy();
-        expect(intervention.description).toBeTruthy();
+        expect(intervention.title.length).toBeGreaterThan(0);
+        expect(intervention.description.length).toBeGreaterThan(0);
+        expect([
+          "perspective-shift",
+          "break-suggestion",
+          "palate-cleanser",
+          "angle-switch",
+          "constraint-challenge",
+          "encouragement",
+          "synthesis-prompt",
+          "wild-card",
+        ]).toContain(intervention.type);
       }
     });
 
-    it("intervention has required fields", () => {
+    it("intervention has required fields with correct types", () => {
       const state: FlowState = {
         state: "productive",
         cognitiveLoad: 0.4,
@@ -258,10 +268,19 @@ describe("flow-state", () => {
         confidence: 0.7,
       };
       const intervention = selectIntervention(state);
-      expect(intervention.type).toBeTruthy();
-      expect(intervention.title).toBeTruthy();
-      expect(intervention.description).toBeTruthy();
-      expect(typeof intervention.urgency).toBe("string");
+      expect([
+        "perspective-shift",
+        "break-suggestion",
+        "palate-cleanser",
+        "angle-switch",
+        "constraint-challenge",
+        "encouragement",
+        "synthesis-prompt",
+        "wild-card",
+      ]).toContain(intervention.type);
+      expect(intervention.title.length).toBeGreaterThan(0);
+      expect(intervention.description.length).toBeGreaterThan(0);
+      expect(["low", "medium", "high"]).toContain(intervention.urgency);
       expect(intervention.estimatedDurationMinutes).toBeGreaterThan(0);
     });
   });
@@ -277,7 +296,7 @@ describe("flow-state", () => {
       expect(timeline[0].state).toBe("flow");
       expect(timeline[0].cognitiveLoad).toBe(0.3);
       expect(timeline[0].event).toBe("Started well");
-      expect(timeline[0].timestamp).toBeTruthy();
+      expect(timeline[0].timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     it("records entries with interventions", () => {
@@ -324,9 +343,9 @@ describe("flow-state", () => {
 
     it("all interventions have required fields", () => {
       for (const i of getInterventionLibrary()) {
-        expect(i.type).toBeTruthy();
-        expect(i.title).toBeTruthy();
-        expect(i.description).toBeTruthy();
+        expect(i.type.length).toBeGreaterThan(0);
+        expect(i.title.length).toBeGreaterThan(0);
+        expect(i.description.length).toBeGreaterThan(0);
         expect(["low", "medium", "high"]).toContain(i.urgency);
         expect(i.estimatedDurationMinutes).toBeGreaterThan(0);
       }
@@ -361,6 +380,97 @@ describe("flow-state", () => {
       const intervention = await generateCustomIntervention("AI tools", state, ["idea1"]);
       expect(intervention.type).toBe("perspective-shift");
       expect(intervention.title).toBe("Custom Intervention");
+    });
+  });
+
+  // ---- Edge cases ----
+  describe("edge cases", () => {
+    it("assessFlowState at exact 120 min fatigue boundary", () => {
+      const state = assessFlowState(
+        makeIndicators({
+          sessionDurationMinutes: 120,
+          timeSinceLastIdeaMinutes: 14,
+          repetitionRate: 0.8,
+        })
+      );
+      // At boundary, should detect fatigue
+      expect(state.cognitiveLoad).toBeGreaterThan(0.5);
+    });
+
+    it("assessFlowState at exact 0.5 repetitionRate boundary for blocked", () => {
+      const state = assessFlowState(
+        makeIndicators({
+          sessionDurationMinutes: 30,
+          ideasGenerated: 5,
+          timeSinceLastIdeaMinutes: 3,
+          ideaQualityTrend: "declining",
+          repetitionRate: 0.5,
+          userInteractionFrequency: "normal",
+        })
+      );
+      // At boundary, should be blocked or productive
+      expect(["blocked", "productive"]).toContain(state.state);
+    });
+
+    it("assessFlowState with zero-duration session", () => {
+      const state = assessFlowState(
+        makeIndicators({
+          sessionDurationMinutes: 0,
+          ideasGenerated: 0,
+          anglesExplored: 0,
+          timeSinceLastIdeaMinutes: 0,
+          repetitionRate: 0,
+        })
+      );
+      expect(state.state).toBe("warm-up");
+      expect(state.cognitiveLoad).toBeGreaterThanOrEqual(0);
+      expect(state.cognitiveLoad).toBeLessThanOrEqual(1);
+    });
+
+    it("recommendation contains meaningful text for each state", () => {
+      const states: FlowState["state"][] = [
+        "warm-up",
+        "flow",
+        "productive",
+        "fatigued",
+        "blocked",
+        "disengaged",
+      ];
+      for (const s of states) {
+        const indicators =
+          s === "warm-up"
+            ? makeIndicators({ sessionDurationMinutes: 2 })
+            : s === "fatigued"
+              ? makeIndicators({
+                  sessionDurationMinutes: 120,
+                  timeSinceLastIdeaMinutes: 14,
+                  repetitionRate: 0.8,
+                })
+              : s === "disengaged"
+                ? makeIndicators({
+                    sessionDurationMinutes: 30,
+                    timeSinceLastIdeaMinutes: 12,
+                    userInteractionFrequency: "idle",
+                  })
+                : s === "blocked"
+                  ? makeIndicators({
+                      sessionDurationMinutes: 30,
+                      ideaQualityTrend: "declining",
+                      repetitionRate: 0.6,
+                    })
+                  : s === "flow"
+                    ? makeIndicators({
+                        sessionDurationMinutes: 20,
+                        ideasGenerated: 10,
+                        timeSinceLastIdeaMinutes: 1,
+                        ideaQualityTrend: "improving",
+                        repetitionRate: 0.05,
+                        userInteractionFrequency: "high",
+                      })
+                    : makeIndicators({ sessionDurationMinutes: 30 });
+        const state = assessFlowState(indicators);
+        expect(state.recommendation.length).toBeGreaterThan(5);
+      }
     });
   });
 });
