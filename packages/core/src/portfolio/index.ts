@@ -479,3 +479,193 @@ export function buildDashboardData(
     generatedAt: new Date().toISOString(),
   };
 }
+
+// ---- Theme Clustering ----
+
+export interface ThemeCluster {
+  id: string;
+  theme: string;
+  keywords: string[];
+  sessionCount: number;
+  ideaCount: number;
+  conversionRate: number;
+  sessions: Array<{ id: string; subject: string; createdAt: string }>;
+}
+
+/**
+ * Cluster sessions into themes using keyword extraction.
+ */
+export function clusterSessionThemes(
+  sessions: Array<{
+    id: string;
+    subject: string;
+    createdAt: string;
+    angleResults: Array<{ angleId: string; angleName: string; ideas: Array<unknown> }>;
+  }>
+): ThemeCluster[] {
+  const items = listPortfolioItems();
+
+  // Extract keywords from subjects
+  const stopWords = new Set([
+    "the",
+    "a",
+    "an",
+    "is",
+    "it",
+    "to",
+    "in",
+    "for",
+    "of",
+    "and",
+    "or",
+    "with",
+    "how",
+    "can",
+    "we",
+    "what",
+  ]);
+  const keywordMap = new Map<
+    string,
+    {
+      count: number;
+      sessions: Array<{ id: string; subject: string; createdAt: string }>;
+      ideaCount: number;
+      shipped: number;
+    }
+  >();
+
+  for (const s of sessions) {
+    const words = s.subject
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .split(/\s+/)
+      .filter((w) => w.length > 3 && !stopWords.has(w));
+
+    const totalIdeas = s.angleResults.reduce((a, ar) => a + ar.ideas.length, 0);
+
+    for (const word of new Set(words)) {
+      const entry = keywordMap.get(word) ?? { count: 0, sessions: [], ideaCount: 0, shipped: 0 };
+      entry.count++;
+      entry.sessions.push({ id: s.id, subject: s.subject, createdAt: s.createdAt });
+      entry.ideaCount += totalIdeas;
+      keywordMap.set(word, entry);
+    }
+  }
+
+  // Count shipped items per keyword
+  for (const item of items.filter((i) => i.stage === "shipped")) {
+    const words = item.title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .split(/\s+/)
+      .filter((w) => w.length > 3 && !stopWords.has(w));
+    for (const word of new Set(words)) {
+      const entry = keywordMap.get(word);
+      if (entry) entry.shipped++;
+    }
+  }
+
+  return Array.from(keywordMap.entries())
+    .filter(([, v]) => v.count >= 2)
+    .map(([keyword, v]) => ({
+      id: keyword,
+      theme: keyword.charAt(0).toUpperCase() + keyword.slice(1),
+      keywords: [keyword],
+      sessionCount: v.count,
+      ideaCount: v.ideaCount,
+      conversionRate: v.ideaCount > 0 ? v.shipped / v.ideaCount : 0,
+      sessions: v.sessions.slice(0, 10),
+    }))
+    .sort((a, b) => b.sessionCount - a.sessionCount)
+    .slice(0, 20);
+}
+
+// ---- Conversion Tracking ----
+
+export interface ConversionMetrics {
+  totalIdeas: number;
+  evaluatedIdeas: number;
+  prototypedIdeas: number;
+  shippedIdeas: number;
+  abandonedIdeas: number;
+  ideaToEvalRate: number;
+  evalToPrototypeRate: number;
+  prototypeToShipRate: number;
+  overallConversionRate: number;
+  avgTimeToShip: number | null;
+  trends: Array<{
+    period: string;
+    ideas: number;
+    shipped: number;
+    rate: number;
+  }>;
+}
+
+/**
+ * Calculate idea-to-implementation conversion metrics.
+ */
+export function getConversionMetrics(): ConversionMetrics {
+  const items = listPortfolioItems();
+
+  const total = items.length;
+  const evaluated = items.filter(
+    (i) => i.transitions.some((t) => t.to === "evaluation") || i.stage !== "ideation"
+  ).length;
+  const prototyped = items.filter(
+    (i) =>
+      i.transitions.some((t) => t.to === "prototyping") ||
+      ["prototyping", "shipped"].includes(i.stage)
+  ).length;
+  const shipped = items.filter((i) => i.stage === "shipped").length;
+  const abandoned = items.filter((i) => i.stage === "abandoned").length;
+
+  // Time to ship
+  const shippedItems = items.filter((i) => i.stage === "shipped");
+  let avgTimeToShip: number | null = null;
+  if (shippedItems.length > 0) {
+    const shipTimes = shippedItems
+      .map((item) => {
+        const shipTransition = item.transitions.find((t) => t.to === "shipped");
+        if (!shipTransition) return null;
+        return new Date(shipTransition.timestamp).getTime() - new Date(item.createdAt).getTime();
+      })
+      .filter((t): t is number => t !== null);
+    if (shipTimes.length > 0) {
+      avgTimeToShip =
+        shipTimes.reduce((a, b) => a + b, 0) / shipTimes.length / (1000 * 60 * 60 * 24);
+    }
+  }
+
+  // Monthly trends
+  const monthMap = new Map<string, { ideas: number; shipped: number }>();
+  for (const item of items) {
+    const month = item.createdAt.slice(0, 7);
+    const entry = monthMap.get(month) ?? { ideas: 0, shipped: 0 };
+    entry.ideas++;
+    if (item.stage === "shipped") entry.shipped++;
+    monthMap.set(month, entry);
+  }
+  const trends = Array.from(monthMap.entries())
+    .map(([period, d]) => ({
+      period,
+      ideas: d.ideas,
+      shipped: d.shipped,
+      rate: d.ideas > 0 ? d.shipped / d.ideas : 0,
+    }))
+    .sort((a, b) => a.period.localeCompare(b.period))
+    .slice(-12);
+
+  return {
+    totalIdeas: total,
+    evaluatedIdeas: evaluated,
+    prototypedIdeas: prototyped,
+    shippedIdeas: shipped,
+    abandonedIdeas: abandoned,
+    ideaToEvalRate: total > 0 ? evaluated / total : 0,
+    evalToPrototypeRate: evaluated > 0 ? prototyped / evaluated : 0,
+    prototypeToShipRate: prototyped > 0 ? shipped / prototyped : 0,
+    overallConversionRate: total > 0 ? shipped / total : 0,
+    avgTimeToShip,
+    trends,
+  };
+}
