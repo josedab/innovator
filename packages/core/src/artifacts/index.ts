@@ -14,13 +14,7 @@ import type { InnovationIdea, Investigation } from "../types.js";
 
 // ---- Types ----
 
-export const ARTIFACT_TYPES = [
-  "prd",
-  "user-story",
-  "tech-spec",
-  "pitch-outline",
-  "okr",
-] as const;
+export const ARTIFACT_TYPES = ["prd", "user-story", "tech-spec", "pitch-outline", "okr"] as const;
 
 export type ArtifactType = (typeof ARTIFACT_TYPES)[number];
 
@@ -56,8 +50,14 @@ export interface ArtifactContext {
 
 // ---- Prompt Templates ----
 
-const ARTIFACT_PROMPTS: Record<ArtifactType, (idea: InnovationIdea, ctx: ArtifactContext) => string> = {
-  prd: (idea, ctx) => `You are a senior product manager. Create a comprehensive Product Requirements Document (PRD) for the following innovation idea.
+const ARTIFACT_PROMPTS: Record<
+  ArtifactType,
+  (idea: InnovationIdea, ctx: ArtifactContext) => string
+> = {
+  prd: (
+    idea,
+    ctx
+  ) => `You are a senior product manager. Create a comprehensive Product Requirements Document (PRD) for the following innovation idea.
 
 ${wrapUserInput("SUBJECT", ctx.subject)}
 ${wrapUserInput("IDEA TITLE", idea.title)}
@@ -79,7 +79,10 @@ Create a PRD with these sections:
 
 ${jsonResponseInstruction("prd")}`,
 
-  "user-story": (idea, ctx) => `You are an agile coach. Create a set of user stories for the following innovation idea.
+  "user-story": (
+    idea,
+    ctx
+  ) => `You are an agile coach. Create a set of user stories for the following innovation idea.
 
 ${wrapUserInput("SUBJECT", ctx.subject)}
 ${wrapUserInput("IDEA TITLE", idea.title)}
@@ -96,7 +99,10 @@ Create user stories with these sections:
 
 ${jsonResponseInstruction("user-story")}`,
 
-  "tech-spec": (idea, ctx) => `You are a senior engineer. Create a technical specification for implementing the following innovation idea.
+  "tech-spec": (
+    idea,
+    ctx
+  ) => `You are a senior engineer. Create a technical specification for implementing the following innovation idea.
 
 ${wrapUserInput("SUBJECT", ctx.subject)}
 ${wrapUserInput("IDEA TITLE", idea.title)}
@@ -118,7 +124,10 @@ Create a tech spec with these sections:
 
 ${jsonResponseInstruction("tech-spec")}`,
 
-  "pitch-outline": (idea, ctx) => `You are a startup pitch coach. Create a compelling pitch outline for the following innovation idea.
+  "pitch-outline": (
+    idea,
+    ctx
+  ) => `You are a startup pitch coach. Create a compelling pitch outline for the following innovation idea.
 
 ${wrapUserInput("SUBJECT", ctx.subject)}
 ${wrapUserInput("IDEA TITLE", idea.title)}
@@ -140,7 +149,10 @@ Create a pitch outline with these sections:
 
 ${jsonResponseInstruction("pitch-outline")}`,
 
-  okr: (idea, ctx) => `You are a strategic planning expert. Create OKRs (Objectives and Key Results) for implementing the following innovation idea.
+  okr: (
+    idea,
+    ctx
+  ) => `You are a strategic planning expert. Create OKRs (Objectives and Key Results) for implementing the following innovation idea.
 
 ${wrapUserInput("SUBJECT", ctx.subject)}
 ${wrapUserInput("IDEA TITLE", idea.title)}
@@ -247,10 +259,7 @@ export async function generateArtifactStream(
 
   const prompt = buildPrompt(idea, context);
 
-  const raw = await generateTextStream(
-    { prompt, model, serverMode: true, signal },
-    onChunk
-  );
+  const raw = await generateTextStream({ prompt, model, serverMode: true, signal }, onChunk);
 
   const jsonStr = extractJson(raw);
   let parsedJson: unknown;
@@ -277,7 +286,9 @@ export function artifactToMarkdown(artifact: Artifact): string {
   const lines: string[] = [];
   lines.push(`# ${artifact.title}`);
   lines.push("");
-  lines.push(`*Type: ${artifact.type} | Generated: ${artifact.metadata?.generatedAt ?? "unknown"}*`);
+  lines.push(
+    `*Type: ${artifact.type} | Generated: ${artifact.metadata?.generatedAt ?? "unknown"}*`
+  );
   lines.push("");
 
   for (const section of artifact.sections) {
@@ -323,4 +334,187 @@ export function getArtifactTypeLabel(type: ArtifactType): string {
     okr: "OKRs (Objectives & Key Results)",
   };
   return labels[type] ?? type;
+}
+
+// ---- Traceability ----
+
+export interface TraceableArtifact extends Artifact {
+  traceability: {
+    sessionId: string;
+    ideaId?: string;
+    angleId?: string;
+    subject: string;
+    createdAt: string;
+    lineage: string[];
+  };
+}
+
+/**
+ * Generate a traceable artifact with lineage metadata linking back to the originating session.
+ */
+export async function generateTraceableArtifact(
+  idea: InnovationIdea,
+  artifactType: ArtifactType,
+  context: ArtifactContext & {
+    sessionId: string;
+    ideaId?: string;
+    angleId?: string;
+  },
+  model?: string,
+  signal?: AbortSignal
+): Promise<TraceableArtifact> {
+  const artifact = await generateArtifact(idea, artifactType, context, model, signal);
+  return {
+    ...artifact,
+    traceability: {
+      sessionId: context.sessionId,
+      ideaId: context.ideaId,
+      angleId: context.angleId,
+      subject: context.subject,
+      createdAt: new Date().toISOString(),
+      lineage: [
+        `session:${context.sessionId}`,
+        context.angleId ? `angle:${context.angleId}` : "",
+        context.ideaId ? `idea:${context.ideaId}` : "",
+        `artifact:${artifactType}`,
+      ].filter(Boolean),
+    },
+  };
+}
+
+// ---- GitHub Project Board Generation ----
+
+export interface ProjectBoardColumn {
+  name: string;
+  issues: Array<{
+    title: string;
+    body: string;
+    labels: string[];
+    priority: "p0" | "p1" | "p2" | "p3";
+    acceptance_criteria: string[];
+  }>;
+}
+
+export interface ProjectBoard {
+  title: string;
+  description: string;
+  columns: ProjectBoardColumn[];
+  metadata: {
+    sessionId?: string;
+    subject: string;
+    generatedAt: string;
+    ideaCount: number;
+  };
+}
+
+/**
+ * Generate a GitHub Project board from innovation ideas with prioritized backlog.
+ */
+export function generateProjectBoard(
+  subject: string,
+  ideas: InnovationIdea[],
+  options?: {
+    sessionId?: string;
+    maxIssuesPerColumn?: number;
+  }
+): ProjectBoard {
+  const maxPerCol = options?.maxIssuesPerColumn ?? 10;
+
+  // Sort by impact (length of description as rough proxy)
+  const sorted = [...ideas].sort((a, b) => b.potentialImpact.length - a.potentialImpact.length);
+
+  const toIssue = (
+    idea: InnovationIdea,
+    priority: ProjectBoardColumn["issues"][number]["priority"]
+  ) => ({
+    title: `💡 ${idea.title}`,
+    body: [
+      `## Description`,
+      idea.description,
+      ``,
+      `## Potential Impact`,
+      idea.potentialImpact,
+      ``,
+      `## Implementation Notes`,
+      idea.implementationHint,
+      ``,
+      `---`,
+      `*Generated by Innovator from subject: "${subject}"*`,
+    ].join("\n"),
+    labels: ["innovation", `priority:${priority}`],
+    priority,
+    acceptance_criteria: [
+      `Implementation matches the described approach`,
+      `Impact metrics are measurable and tracked`,
+      `Technical design reviewed and approved`,
+    ],
+  });
+
+  // Distribute to backlog columns
+  const high = sorted.slice(0, Math.ceil(sorted.length * 0.2)).slice(0, maxPerCol);
+  const medium = sorted
+    .slice(Math.ceil(sorted.length * 0.2), Math.ceil(sorted.length * 0.6))
+    .slice(0, maxPerCol);
+  const low = sorted.slice(Math.ceil(sorted.length * 0.6)).slice(0, maxPerCol);
+
+  return {
+    title: `Innovation Backlog: ${subject}`,
+    description: `Prioritized implementation backlog generated from ${ideas.length} innovation ideas.`,
+    columns: [
+      {
+        name: "🔴 High Priority",
+        issues: high.map((i) => toIssue(i, "p0")),
+      },
+      {
+        name: "🟡 Medium Priority",
+        issues: medium.map((i) => toIssue(i, "p1")),
+      },
+      {
+        name: "🟢 Low Priority / Explore",
+        issues: low.map((i) => toIssue(i, "p2")),
+      },
+      {
+        name: "📋 Backlog",
+        issues: [],
+      },
+    ],
+    metadata: {
+      sessionId: options?.sessionId,
+      subject,
+      generatedAt: new Date().toISOString(),
+      ideaCount: ideas.length,
+    },
+  };
+}
+
+/**
+ * Export a project board as Markdown for display or copy-paste.
+ */
+export function projectBoardToMarkdown(board: ProjectBoard): string {
+  const lines: string[] = [];
+  lines.push(`# ${board.title}`);
+  lines.push("");
+  lines.push(board.description);
+  lines.push("");
+
+  for (const column of board.columns) {
+    lines.push(`## ${column.name}`);
+    lines.push("");
+    if (column.issues.length === 0) {
+      lines.push("*No items*");
+    }
+    for (const issue of column.issues) {
+      lines.push(`### ${issue.title}`);
+      lines.push("");
+      lines.push(issue.body);
+      lines.push("");
+      lines.push("**Acceptance Criteria:**");
+      for (const ac of issue.acceptance_criteria) {
+        lines.push(`- [ ] ${ac}`);
+      }
+      lines.push("");
+    }
+  }
+
+  return lines.join("\n");
 }
