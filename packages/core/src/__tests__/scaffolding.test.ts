@@ -1,10 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import {
-  generateScaffold,
-  scaffoldToFileMap,
-  scaffoldToMarkdown,
-} from "../scaffolding/index.js";
+import { generateScaffold, scaffoldToFileMap, scaffoldToMarkdown } from "../scaffolding/index.js";
 import type { ScaffoldOptions, IdeaScaffold } from "../scaffolding/index.js";
 import type { InnovationIdea } from "../types.js";
 
@@ -131,6 +127,24 @@ describe("scaffolding", () => {
       const scaffold = generateScaffold({ idea: mockIdea, projectName: "custom-name" });
       expect(scaffold.repoName).toBe("custom-name");
     });
+
+    it("handles empty idea title", () => {
+      const scaffold = generateScaffold({ idea: { ...mockIdea, title: "" } });
+      expect(scaffold.repoName).toBe("");
+    });
+
+    it("handles very long title (>100 chars)", () => {
+      const longTitle =
+        "This is a very long innovation idea title that exceeds one hundred characters and should be properly truncated";
+      const scaffold = generateScaffold({ idea: { ...mockIdea, title: longTitle } });
+      expect(scaffold.repoName.length).toBeLessThanOrEqual(50);
+      expect(scaffold.repoName).not.toContain(" ");
+    });
+
+    it("handles title with only special characters", () => {
+      const scaffold = generateScaffold({ idea: { ...mockIdea, title: "!!@@##$$" } });
+      expect(scaffold.repoName).toBe("");
+    });
   });
 
   // ---- scaffoldToFileMap ----
@@ -204,6 +218,137 @@ describe("scaffolding", () => {
       const ci = scaffold.files.find((f) => f.path === ".github/workflows/ci.yml")!;
       expect(ci.content).toContain("pip install");
       expect(ci.content).toContain("pytest");
+    });
+
+    it("generates default CI for Go stack (falls through to Node.js)", () => {
+      const scaffold = generateScaffold({ idea: mockIdea, stack: "go" });
+      const ci = scaffold.files.find((f) => f.path === ".github/workflows/ci.yml")!;
+      expect(ci.content).toContain("npm ci");
+    });
+
+    it("generates default CI for Rust stack (falls through to Node.js)", () => {
+      const scaffold = generateScaffold({ idea: mockIdea, stack: "rust" });
+      const ci = scaffold.files.find((f) => f.path === ".github/workflows/ci.yml")!;
+      expect(ci.content).toContain("npm ci");
+    });
+  });
+
+  // ---- .gitignore per stack ----
+
+  describe("gitignore", () => {
+    it("includes Python-specific ignores", () => {
+      const scaffold = generateScaffold({ idea: mockIdea, stack: "python" });
+      const gitignore = scaffold.files.find((f) => f.path === ".gitignore")!;
+      expect(gitignore.content).toContain("__pycache__/");
+      expect(gitignore.content).toContain(".venv/");
+    });
+
+    it("includes Go-specific ignores", () => {
+      const scaffold = generateScaffold({ idea: mockIdea, stack: "go" });
+      const gitignore = scaffold.files.find((f) => f.path === ".gitignore")!;
+      expect(gitignore.content).toContain("vendor/");
+      expect(gitignore.content).toContain("*.exe");
+    });
+
+    it("includes Rust-specific ignores", () => {
+      const scaffold = generateScaffold({ idea: mockIdea, stack: "rust" });
+      const gitignore = scaffold.files.find((f) => f.path === ".gitignore")!;
+      expect(gitignore.content).toContain("target/");
+      expect(gitignore.content).toContain("Cargo.lock");
+    });
+
+    it("includes TypeScript-specific ignores", () => {
+      const scaffold = generateScaffold({ idea: mockIdea, stack: "typescript" });
+      const gitignore = scaffold.files.find((f) => f.path === ".gitignore")!;
+      expect(gitignore.content).toContain("*.tsbuildinfo");
+      expect(gitignore.content).toContain("coverage/");
+    });
+
+    it("always includes common ignores", () => {
+      for (const stack of ["typescript", "python", "go", "rust"] as const) {
+        const scaffold = generateScaffold({ idea: mockIdea, stack });
+        const gitignore = scaffold.files.find((f) => f.path === ".gitignore")!;
+        expect(gitignore.content).toContain("node_modules/");
+        expect(gitignore.content).toContain(".env");
+        expect(gitignore.content).toContain(".DS_Store");
+      }
+    });
+  });
+
+  // ---- Source files per stack ----
+
+  describe("source files", () => {
+    it("generates Python source files", () => {
+      const scaffold = generateScaffold({ idea: mockIdea, stack: "python" });
+      const paths = scaffold.files.map((f) => f.path);
+      expect(paths).toContain("src/__init__.py");
+      expect(paths).toContain("src/main.py");
+      expect(paths).toContain("requirements.txt");
+      expect(paths).toContain("tests/__init__.py");
+      expect(paths).toContain("tests/test_main.py");
+    });
+
+    it("generates TypeScript source files with package.json", () => {
+      const scaffold = generateScaffold({ idea: mockIdea, stack: "typescript" });
+      const paths = scaffold.files.map((f) => f.path);
+      expect(paths).toContain("src/index.ts");
+      expect(paths).toContain("src/routes/index.ts");
+      expect(paths).toContain("package.json");
+      expect(paths).toContain("tsconfig.json");
+
+      const pkg = scaffold.files.find((f) => f.path === "package.json")!;
+      const parsed = JSON.parse(pkg.content);
+      expect(parsed.name).toBe("ai-powered-dashboard");
+      expect(parsed.scripts.test).toBe("vitest run");
+    });
+
+    it("Python main.py references repo name", () => {
+      const scaffold = generateScaffold({ idea: mockIdea, stack: "python", projectName: "my-api" });
+      const main = scaffold.files.find((f) => f.path === "src/main.py")!;
+      expect(main.content).toContain("my-api");
+    });
+  });
+
+  // ---- Dependencies per stack ----
+
+  describe("dependencies", () => {
+    it("returns TypeScript dependencies by default", () => {
+      const scaffold = generateScaffold({ idea: mockIdea });
+      const names = scaffold.dependencies.map((d) => d.name);
+      expect(names).toContain("express");
+      expect(names).toContain("zod");
+      expect(names).toContain("prisma");
+    });
+
+    it("returns Python dependencies", () => {
+      const scaffold = generateScaffold({ idea: mockIdea, stack: "python" });
+      const names = scaffold.dependencies.map((d) => d.name);
+      expect(names).toContain("fastapi");
+      expect(names).toContain("pytest");
+    });
+
+    it("returns Go dependencies", () => {
+      const scaffold = generateScaffold({ idea: mockIdea, stack: "go" });
+      const names = scaffold.dependencies.map((d) => d.name);
+      expect(names.some((n) => n.includes("gin"))).toBe(true);
+      expect(names.some((n) => n.includes("gorm"))).toBe(true);
+    });
+  });
+
+  // ---- Edge case: idea with no description ----
+
+  describe("edge cases", () => {
+    it("handles idea with empty description", () => {
+      const idea: InnovationIdea = {
+        title: "Minimal Idea",
+        description: "",
+        potentialImpact: "",
+        implementationHint: "",
+      };
+      const scaffold = generateScaffold({ idea });
+      expect(scaffold.idea.title).toBe("Minimal Idea");
+      expect(scaffold.files.length).toBeGreaterThan(0);
+      expect(scaffold.issues.length).toBeGreaterThan(0);
     });
   });
 
