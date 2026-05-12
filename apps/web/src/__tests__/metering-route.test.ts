@@ -132,6 +132,61 @@ describe("API /api/metering", () => {
     });
   });
 
+  // ---- POST: set-alert ----
+
+  describe("POST set-alert", () => {
+    it("sets an alert with valid threshold", async () => {
+      const res = await POST(
+        makePost({ action: "set-alert", keyId: "k1", thresholdPercent: 80, enabled: true })
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.alert.thresholdPercent).toBe(80);
+      expect(mockMeter.setAlert).toHaveBeenCalled();
+    });
+
+    it("rejects threshold below 1", async () => {
+      const res = await POST(
+        makePost({ action: "set-alert", keyId: "k1", thresholdPercent: 0, enabled: true })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects threshold above 100", async () => {
+      const res = await POST(
+        makePost({ action: "set-alert", keyId: "k1", thresholdPercent: 101, enabled: true })
+      );
+      expect(res.status).toBe(400);
+    });
+  });
+
+  // ---- POST: check-alerts ----
+
+  describe("POST check-alerts", () => {
+    it("checks alerts for a key", async () => {
+      mockMeter.checkAlerts.mockReturnValue({ triggered: false });
+      const res = await POST(makePost({ action: "check-alerts", keyId: "k1" }));
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.alert).toEqual({ triggered: false });
+    });
+  });
+
+  // ---- POST: internal error ----
+
+  describe("POST internal error", () => {
+    it("returns 500 on unexpected error", async () => {
+      mockMeter.getUsageSummary.mockImplementation(() => {
+        throw new Error("DB failure");
+      });
+      const res = await POST(makePost({ action: "usage", keyId: "k1" }));
+      expect(res.status).toBe(500);
+      const body = await res.json();
+      expect(body.error).toContain("Internal server error");
+    });
+  });
+
   // ---- POST: validation errors ----
 
   describe("POST validation errors", () => {
