@@ -156,9 +156,7 @@ describe("API /api/admin", () => {
     it("adds member and returns updated team", async () => {
       vi.mocked(addTeamMember).mockReturnValue(undefined as never);
       vi.mocked(getRBACTeam).mockReturnValue({ id: "t1", members: ["u1"] } as never);
-      const res = await POST(
-        makePost({ action: "add-member", teamId: "t1", userId: "u1" })
-      );
+      const res = await POST(makePost({ action: "add-member", teamId: "t1", userId: "u1" }));
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.message).toBe("Member added");
@@ -178,9 +176,7 @@ describe("API /api/admin", () => {
     it("removes member and returns updated team", async () => {
       vi.mocked(removeTeamMember).mockReturnValue(undefined as never);
       vi.mocked(getRBACTeam).mockReturnValue({ id: "t1", members: [] } as never);
-      const res = await POST(
-        makePost({ action: "remove-member", teamId: "t1", userId: "u1" })
-      );
+      const res = await POST(makePost({ action: "remove-member", teamId: "t1", userId: "u1" }));
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.message).toBe("Member removed");
@@ -203,9 +199,7 @@ describe("API /api/admin", () => {
     });
 
     it("rejects non-integer quota values", async () => {
-      const res = await POST(
-        makePost({ action: "set-quota", teamId: "t1", sessionsLimit: 1.5 })
-      );
+      const res = await POST(makePost({ action: "set-quota", teamId: "t1", sessionsLimit: 1.5 }));
       expect(res.status).toBe(400);
     });
   });
@@ -225,6 +219,57 @@ describe("API /api/admin", () => {
         body: "not json{",
       });
       const res = await POST(req);
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects name exceeding 200 chars", async () => {
+      const res = await POST(
+        makePost({
+          action: "create-team",
+          name: "A".repeat(201),
+          slug: "valid-slug",
+          ownerId: "u1",
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects slug with uppercase letters", async () => {
+      const res = await POST(
+        makePost({
+          action: "create-team",
+          name: "Test Team",
+          slug: "InvalidSlug",
+          ownerId: "u1",
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects slug with spaces", async () => {
+      const res = await POST(
+        makePost({
+          action: "create-team",
+          name: "Test Team",
+          slug: "has spaces",
+          ownerId: "u1",
+        })
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects missing userId for add-member", async () => {
+      const res = await POST(makePost({ action: "add-member", teamId: "t1" }));
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects missing teamId for remove-member", async () => {
+      const res = await POST(makePost({ action: "remove-member", userId: "u1" }));
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects missing teamId for set-quota", async () => {
+      const res = await POST(makePost({ action: "set-quota", sessionsLimit: 10 }));
       expect(res.status).toBe(400);
     });
   });
