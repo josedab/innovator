@@ -4,6 +4,7 @@ import tsParser from "@typescript-eslint/parser";
 import prettier from "eslint-config-prettier";
 
 const eslintConfig = defineConfig([
+  // Exclude build artifacts, generated output, and the Docusaurus website
   globalIgnores([
     "**/node_modules/**",
     "**/dist/**",
@@ -27,12 +28,14 @@ const eslintConfig = defineConfig([
     },
     rules: {
       ...tseslint.configs.recommended.rules,
+      // Allow unused vars when prefixed with _ (common pattern for intentionally unused params)
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
     },
   },
+  // Disables rules that conflict with Prettier formatting
   prettier,
 ]);
 
