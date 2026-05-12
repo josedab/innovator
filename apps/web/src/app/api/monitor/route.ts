@@ -33,6 +33,13 @@ const ActionSchema = z.object({
   model: z.string().optional(),
 });
 
+/**
+ * Manage innovation monitor sources and generate digests.
+ *
+ * @route POST /api/monitor
+ * @param request - JSON body: `{ action: "add-source"|"remove-source"|"start"|"stop"|"generate-digest", ... }`
+ * @returns JSON result on success (200), or `{ error: string }` on failure (400/500).
+ */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   try {
@@ -101,6 +108,7 @@ export async function POST(request: Request) {
   }
 }
 
+/** GET /api/monitor — retrieve monitor state, sources, or recent signals. */
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);

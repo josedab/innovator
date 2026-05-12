@@ -4,6 +4,7 @@ import { generateCostReport } from "@innovator/core";
 import { logger } from "@/lib/logger";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
+/** GET /api/cost-report — generate an LLM cost and usage report. */
 export async function GET(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   const startTime = Date.now();

@@ -28,6 +28,7 @@ const RequestSchema = z.object({
   format: z.enum(["json", "markdown"]).optional(),
 });
 
+/** POST /api/adaptive-methodology — adapt innovation methodology based on context and history. */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   try {

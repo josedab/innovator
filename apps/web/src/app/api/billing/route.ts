@@ -30,6 +30,7 @@ const BillingActionSchema = z.discriminatedUnion("action", [
   }),
 ]);
 
+/** GET /api/billing — retrieve tenant info or list available plans. */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -57,6 +58,7 @@ export async function GET(request: Request) {
   }
 }
 
+/** POST /api/billing — subscribe to a plan, create a tenant, or query usage. */
 export async function POST(request: Request) {
   try {
     const body = await request.json();

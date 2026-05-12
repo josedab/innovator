@@ -46,6 +46,14 @@ const DiffRequestSchema = z.object({
   format: z.enum(["json", "markdown"]).optional(),
 });
 
+/**
+ * Diff, merge, or resolve innovation sessions.
+ *
+ * @route POST /api/diff-merge
+ * @param request - JSON body: `{ action: "diff"|"merge"|"resolve", sessionA?, sessionB?, conflict?, resolution?, model?, format? }`
+ * @returns JSON diff report, merge result, or conflict resolution on success (200),
+ *          or `{ error: string }` on failure (400/500).
+ */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   try {

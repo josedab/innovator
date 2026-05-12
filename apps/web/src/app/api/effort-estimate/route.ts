@@ -24,6 +24,13 @@ const EstimateSchema = z.object({
     .optional(),
 });
 
+/**
+ * Estimate implementation effort for innovation ideas.
+ *
+ * @route POST /api/effort-estimate
+ * @param request - JSON body: `{ ideas: Array<{title, description}>, model?, config?: {teamSize, existingStack, complexityBias, includeMaintenanceCost} }`
+ * @returns JSON effort estimates on success (200), or `{ error: string }` on failure (400/500).
+ */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   const startTime = Date.now();

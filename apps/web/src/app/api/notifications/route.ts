@@ -27,6 +27,7 @@ const SendNotificationSchema = z.object({
   channelIds: z.array(z.string()).optional(),
 });
 
+/** GET /api/notifications — list registered notification channels. */
 export async function GET() {
   try {
     const channels = getChannels();
@@ -43,6 +44,7 @@ export async function GET() {
   }
 }
 
+/** POST /api/notifications — send a notification or register a channel. */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   const startTime = Date.now();

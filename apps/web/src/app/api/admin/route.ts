@@ -48,6 +48,7 @@ const PostBodySchema = z.discriminatedUnion("action", [
   SetQuotaSchema,
 ]);
 
+/** GET /api/admin — retrieve team hierarchy, dashboard, or quota info. */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -99,6 +100,7 @@ export async function GET(request: Request) {
   }
 }
 
+/** POST /api/admin — create teams, manage members, or set quotas. */
 export async function POST(request: Request) {
   try {
     const body = await request.json();

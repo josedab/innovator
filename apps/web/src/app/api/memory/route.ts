@@ -12,6 +12,13 @@ import { logger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-request";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
+/**
+ * Learning memory API — record outcomes and query model performance.
+ *
+ * @route POST /api/memory
+ * @actions record | query | model-stats | compare-models | auto-tune
+ */
+
 const RecordOutcomeSchema = z.object({
   action: z.literal("record"),
   sessionId: z.string().min(1).max(100),

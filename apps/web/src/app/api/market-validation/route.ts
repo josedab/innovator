@@ -29,6 +29,7 @@ const ValidateSchema = z.object({
     .optional(),
 });
 
+/** POST /api/market-validation — validate ideas with TAM/SAM/SOM analysis and market sizing. */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   const startTime = Date.now();

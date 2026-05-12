@@ -44,6 +44,7 @@ const CreateTestSchema = z.object({
     .optional(),
 });
 
+/** GET /api/ab-testing — list or retrieve A/B prompt experiments. */
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -81,6 +82,7 @@ export async function GET(request: Request) {
   }
 }
 
+/** POST /api/ab-testing — create, run, or conclude A/B prompt experiments. */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   const startTime = Date.now();

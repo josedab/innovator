@@ -46,6 +46,7 @@ const ActionSchema = z.object({
   format: z.enum(["json", "markdown"]).optional(),
 });
 
+/** POST /api/impact-tracker — record idea metrics, milestones, or run ROI analysis. */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
   try {
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
   }
 }
 
+/** GET /api/impact-tracker — retrieve tracked ideas, impact scores, or milestone history. */
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);

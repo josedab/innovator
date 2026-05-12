@@ -56,6 +56,7 @@ const PostBodySchema = z.discriminatedUnion("action", [
   InsightsSchema,
 ]);
 
+/** GET /api/coaching — retrieve coaching insights, user profiles, or team analytics. */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -95,6 +96,7 @@ export async function GET(request: Request) {
   }
 }
 
+/** POST /api/coaching — record sessions, build user profiles, or generate team insights. */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
