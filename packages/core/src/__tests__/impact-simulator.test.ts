@@ -400,6 +400,58 @@ describe("impact-simulator", () => {
       expect(result.roiDistribution.mean).toBeLessThan(0);
     });
 
+    it("handles adoption rate at 0 bound", () => {
+      const input: MonteCarloInput = {
+        ...baseInput,
+        adoptionRateMin: 0,
+        adoptionRateMax: 0,
+      };
+      const result = runMonteCarloSimulation("Zero Adoption", input, 100);
+      // With 0 adoption, revenue=0, so ROI should be -100% (lose entire cost)
+      expect(result.roiDistribution.mean).toBeCloseTo(-100, 0);
+    });
+
+    it("handles adoption rate at 1 bound", () => {
+      const input: MonteCarloInput = {
+        ...baseInput,
+        adoptionRateMin: 1,
+        adoptionRateMax: 1,
+      };
+      const result = runMonteCarloSimulation("Full Adoption", input, 100);
+      expect(result.iterations).toBe(100);
+      expect(result.roiDistribution).toBeDefined();
+    });
+
+    it("handles single scenario with zero probability", () => {
+      const scenarios: ScenarioSimulation[] = [
+        {
+          type: "baseline",
+          probability: 0,
+          assumptions: [],
+          monthlyData: [],
+          totalInvestment: 100000,
+          projectedROI: 3.0,
+          riskFactors: [],
+        },
+      ];
+      expect(calculateExpectedROI(scenarios)).toBe(0);
+    });
+
+    it("handles single scenario ROI calculation", () => {
+      const scenarios: ScenarioSimulation[] = [
+        {
+          type: "baseline",
+          probability: 1.0,
+          assumptions: [],
+          monthlyData: [],
+          totalInvestment: 100000,
+          projectedROI: 4.5,
+          riskFactors: [],
+        },
+      ];
+      expect(calculateExpectedROI(scenarios)).toBeCloseTo(4.5, 2);
+    });
+
     it("works without optional revenuePerUser fields", () => {
       const input: MonteCarloInput = {
         marketSizeMin: 10000,
