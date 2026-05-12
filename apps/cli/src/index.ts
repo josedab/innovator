@@ -231,6 +231,9 @@ program
   });
 
 // ---- investigate command ----
+// Performs AI-powered investigation on a subject, identifying key aspects,
+// challenges, opportunities, and current state. Supports depth tiers,
+// multilingual output, and context enrichment from files or URLs.
 program
   .command("investigate")
   .description("Investigate a subject to identify key aspects, challenges, and opportunities")
@@ -359,6 +362,9 @@ program
   );
 
 // ---- innovate command ----
+// Generates innovation ideas for a subject by applying selected creativity
+// angles (e.g., SCAMPER, First Principles). Requires a prior investigation
+// step (run automatically). Supports file/URL context and optional scoring.
 program
   .command("innovate")
   .description("Generate innovations for a subject using selected angles")
@@ -461,6 +467,9 @@ program
   );
 
 // ---- auto command ----
+// Runs the full innovation pipeline end-to-end: investigate → generate ideas
+// across all (or selected) angles → synthesize results. Supports optional
+// debate, stress testing, stakeholder simulation, and decision packet generation.
 program
   .command("auto")
   .description("Run full innovation pipeline automatically (all angles + synthesis)")
@@ -1082,6 +1091,8 @@ program
   );
 
 // ---- evolve command ----
+// Evolves ideas through genetic-algorithm-inspired selection, crossover,
+// and mutation over multiple generations to discover high-fitness innovations.
 program
   .command("evolve")
   .description("Evolve ideas through genetic-algorithm-inspired mutation and crossover")
@@ -1142,6 +1153,8 @@ program
   );
 
 // ---- diff command ----
+// Compares two temporal snapshots of a subject to identify what changed,
+// new opportunities, obsoleted aspects, and emerging gaps.
 program
   .command("diff")
   .description("Compare two snapshots of a subject and generate an innovation diff")
@@ -1206,6 +1219,8 @@ program
   });
 
 // ---- run (natural language pipeline) command ----
+// Accepts a plain-English description of an innovation pipeline, parses it
+// into a structured execution plan, and runs the resolved pipeline steps.
 program
   .command("run")
   .description("Run a pipeline described in natural language")
@@ -1290,6 +1305,8 @@ program
   });
 
 // ---- chain command ----
+// Runs pre-defined angle chains that compose multiple angles sequentially,
+// passing output from one angle as input to the next.
 const chainCmd = program
   .command("chain")
   .description("Run pre-defined angle chains for composed innovation");
@@ -1389,6 +1406,8 @@ chainCmd
   });
 
 // ---- feedback command ----
+// Collects and displays user quality feedback on generated ideas,
+// used to compute per-angle quality scores and improve future output.
 const feedbackCmd = program
   .command("feedback")
   .description("View and manage idea quality feedback");
@@ -1458,6 +1477,8 @@ feedbackCmd
   );
 
 // ---- angles command (utility) ----
+// Manages innovation angles: list built-in + custom angles, create/remove
+// custom angles, and export/import angle packs.
 const anglesCmd = program.command("angles").description("List and manage innovation angles");
 
 anglesCmd
@@ -1576,6 +1597,8 @@ anglesCmd
   });
 
 // ---- export command ----
+// Exports a saved session to Markdown, JSON, or GitHub Issue body format.
+// Supports writing to a file or stdout.
 program
   .command("export <sessionId>")
   .description("Export a session to Markdown, JSON, or GitHub Issue format")
@@ -1636,6 +1659,7 @@ program
   });
 
 // ---- history command ----
+// Browse, search, tag, and delete past innovation session history.
 const historyCmd = program
   .command("history")
   .description("Browse and manage innovation session history");
@@ -1746,6 +1770,8 @@ historyCmd
   });
 
 // ---- presets command ----
+// Browse and execute domain-specific presets that pre-configure subjects,
+// angles, and pipeline settings for common innovation scenarios.
 const presetsCmd = program.command("presets").description("Browse and use domain presets");
 
 presetsCmd
@@ -1870,6 +1896,8 @@ presetsCmd
   );
 
 // ---- plugin command ----
+// Manages innovator plugins: list registered plugins, load from local path
+// or npm, and scaffold new plugin projects.
 const pluginCmd = program.command("plugin").description("Manage innovator plugins");
 
 pluginCmd
@@ -1997,6 +2025,8 @@ export default plugin;
   });
 
 // ---- benchmark command ----
+// Compares innovation output quality across multiple LLM models by running
+// the same subject through each model and evaluating the results.
 program
   .command("benchmark")
   .description("Compare innovation quality across models")
@@ -2065,6 +2095,9 @@ program
   );
 
 // ---- config command ----
+// Manages LLM provider configuration: show current settings, set active
+// provider, configure model assignments per pipeline stage, and set up
+// offline mode with Ollama.
 const configCmd = program.command("config").description("Manage LLM provider configuration");
 
 configCmd
@@ -2205,6 +2238,8 @@ configCmd
   });
 
 // ---- refine command (interactive REPL) ----
+// Starts a conversational refinement session where users iteratively
+// improve and explore innovation ideas through multi-turn dialogue.
 program
   .command("refine")
   .description("Start an interactive refinement session on a completed auto pipeline")
@@ -2325,6 +2360,8 @@ program
   });
 
 // ---- connections command ----
+// Discovers serendipitous connections between past innovation sessions,
+// surfacing unexpected links and cross-pollination opportunities.
 program
   .command("connections")
   .description("Find serendipitous connections across past investigations")
@@ -2392,6 +2429,8 @@ program
   });
 
 // ── migrate ───────────────────────────────────────────────────────────
+// Migrates file-based data from ~/.innovator/ into a SQLite database
+// for improved query performance and data integrity.
 program
   .command("migrate")
   .description("Migrate file-based data (~/.innovator/) into a SQLite database")
@@ -2428,6 +2467,8 @@ program
   });
 
 // ── marketplace ──────────────────────────────────────────────────────
+// ---- marketplace command ----
+// Plugin marketplace: search, install, and publish innovator plugins.
 const marketplace = program.command("marketplace").description("Plugin marketplace commands");
 
 marketplace
@@ -2496,6 +2537,8 @@ marketplace
   );
 
 // ── radar ────────────────────────────────────────────────────────────
+// Innovation Radar: watch subjects for landscape changes and receive
+// alerts when new developments or disruptions are detected.
 const radar = program
   .command("radar")
   .description("Innovation Radar — watch subjects for landscape changes");
@@ -2537,6 +2580,8 @@ radar
   });
 
 // ── scaffold ─────────────────────────────────────────────────────────
+// Generates implementation scaffolding (project structure, boilerplate)
+// from an idea, supporting TypeScript, Python, Go, and Rust stacks.
 program
   .command("scaffold")
   .description("Generate implementation scaffolding from an idea")
@@ -2569,6 +2614,8 @@ program
   );
 
 // ── telemetry ────────────────────────────────────────────────────────
+// Displays innovation pipeline telemetry: span counts, latency metrics,
+// quality trends, and cost summaries.
 program
   .command("telemetry")
   .description("View innovation pipeline telemetry and metrics")
@@ -2639,6 +2686,8 @@ program
   });
 
 // ── context (RAG) ───────────────────────────────────────────────────
+// Manages knowledge sources for retrieval-augmented generation (RAG):
+// add connectors (GitHub, Confluence, Notion, local files), list, and sync.
 const contextCmd = program
   .command("context")
   .description("Manage knowledge sources for RAG context grounding");
@@ -2734,6 +2783,8 @@ contextCmd
   });
 
 // ── webhooks ────────────────────────────────────────────────────────
+// Manages webhook registrations for innovation events: list templates,
+// register endpoints, and configure event delivery.
 const webhooksCmd = program
   .command("webhooks")
   .description("Manage webhook registrations for innovation events");
@@ -2772,6 +2823,9 @@ webhooksCmd
   });
 
 // ── monitor ─────────────────────────────────────────────────────────
+// ---- monitor command ----
+// Competitive intelligence monitoring: create monitors, track signals,
+// and generate periodic digests on competitors and market trends.
 const monitorCmd = program.command("monitor").description("Competitive intelligence monitoring");
 
 monitorCmd
@@ -2870,6 +2924,8 @@ monitorCmd
   });
 
 // ── provenance ──────────────────────────────────────────────────────
+// Shows provenance and citation chains for ideas, tracking the full
+// lineage from investigation through generation and refinement.
 program
   .command("provenance")
   .description("View provenance and citation chain for ideas")
@@ -2913,6 +2969,8 @@ program
   });
 
 // ---- Wargaming Command ----
+// Runs competitive wargaming simulation: models competitor responses,
+// market reactions, and strategic counter-moves for an innovation idea.
 program
   .command("wargame")
   .description("Run competitive wargaming simulation on an idea")
@@ -2964,6 +3022,9 @@ program
   );
 
 // ---- Rubric Commands ----
+// ---- rubric command ----
+// Manages custom scoring rubrics for evaluating innovation ideas
+// with user-defined criteria and weightings.
 const rubricCmd = program.command("rubric").description("Manage custom scoring rubrics");
 
 rubricCmd
@@ -3001,6 +3062,8 @@ rubricCmd
   });
 
 // ---- Cost Report Command ----
+// Generates an LLM cost-performance report showing token usage,
+// cost breakdowns, and efficiency metrics across pipeline runs.
 program
   .command("cost-report")
   .description("Generate LLM cost-performance report")
@@ -3027,6 +3090,8 @@ program
   });
 
 // ---- Supply Chain Command ----
+// Maps the innovation supply chain for an idea: identifies required
+// resources, dependencies, suppliers, and delivery milestones.
 program
   .command("supply-chain")
   .description("Map innovation supply chain for an idea")
@@ -3067,6 +3132,7 @@ program
   );
 
 // ---- Timing Command ----
+// Analyzes and displays timing metrics for innovation pipeline operations.
 program
   .command("timing")
   .description("Analyze optimal execution timing for ideas")
@@ -3118,6 +3184,9 @@ program
   });
 
 // ---- Idea Version Control Commands ----
+// ---- idea command ----
+// Idea version control (IdeaGit): track idea lineage, branch ideas,
+// and diff versions over time.
 const ideaCmd = program.command("idea").description("Idea version control (IdeaGit)");
 
 ideaCmd
@@ -3196,6 +3265,8 @@ ideaCmd
   });
 
 // ---- Inverse Innovation Decoder ----
+// Reverse-engineers a product description to extract the innovation
+// frameworks and creative strategies that likely produced it.
 program
   .command("decode <productDescription>")
   .description("Analyze a product and reverse-engineer its innovation recipe")
@@ -3233,6 +3304,8 @@ program
   });
 
 // ---- Diffusion Simulator ----
+// Simulates idea adoption and diffusion across user segments using
+// innovation diffusion theory (innovators → early adopters → majority).
 program
   .command("diffusion <ideaTitle>")
   .description("Simulate idea diffusion and adoption using Bass model")
@@ -3286,6 +3359,8 @@ program
   );
 
 // ---- Adaptive Scaling ----
+// Classifies subjects by innovation complexity tier to determine
+// optimal pipeline configuration and resource allocation.
 program
   .command("classify <subject>")
   .description("Classify subject complexity and generate adaptive execution plan")
@@ -3330,6 +3405,8 @@ program
   });
 
 // ---- Market Test ----
+// Simulates market testing for an idea: generates test hypotheses,
+// success metrics, and go/no-go recommendations.
 program
   .command("market-test <ideaTitle>")
   .description("Run synthetic market test with AI consumer personas")
@@ -3385,6 +3462,8 @@ program
   );
 
 // ---- Flow State ----
+// Checks innovation pipeline health and bottleneck status to ensure
+// smooth progression through investigation and generation stages.
 program
   .command("flow-check")
   .description("Check cognitive flow state for current session")
@@ -3420,6 +3499,8 @@ program
   });
 
 // ---- Regulatory Simulator ----
+// Simulates regulatory assessment of an idea across multiple jurisdictions
+// and compliance frameworks (GDPR, FDA, SEC, etc.).
 program
   .command("regulatory <ideaTitle>")
   .description("Simulate regulatory compliance across jurisdictions")
@@ -3501,7 +3582,11 @@ innovMonitorCmd
       return;
     }
     for (const s of sources) {
-      console.log(chalk.cyan(`  [${s.type}]`), chalk.bold(s.name), s.enabled ? chalk.green("✓") : chalk.red("✗"));
+      console.log(
+        chalk.cyan(`  [${s.type}]`),
+        chalk.bold(s.name),
+        s.enabled ? chalk.green("✓") : chalk.red("✗")
+      );
     }
   });
 
@@ -3534,13 +3619,16 @@ innovMonitorCmd
       return;
     }
     for (const s of signals) {
-      const urgencyColor = s.urgency === "critical" ? chalk.red : s.urgency === "high" ? chalk.yellow : chalk.dim;
+      const urgencyColor =
+        s.urgency === "critical" ? chalk.red : s.urgency === "high" ? chalk.yellow : chalk.dim;
       console.log(urgencyColor(`  [${s.urgency}]`), chalk.bold(s.title));
       console.log(chalk.dim(`    ${s.description.slice(0, 120)}...`));
     }
   });
 
 // ---- NL Innovation API Commands ----
+// Natural-language innovation commands: parse prompts into execution plans,
+// search innovation memory, generate org DNA, and track idea lineage.
 
 program
   .command("nl-innovate <prompt>")
@@ -3557,17 +3645,21 @@ program
       }
 
       const execSpinner = ora("Executing plan...").start();
-      await executeWithStreaming(plan, (event) => {
-        if (event.type === "step_started") {
-          execSpinner.text = `Step: ${event.description}`;
-        } else if (event.type === "step_completed") {
-          execSpinner.succeed(`Step ${event.stepId} complete`);
-          execSpinner.start("Next step...");
-        } else if (event.type === "execution_completed") {
-          execSpinner.succeed("All steps completed");
-          console.log(chalk.green("\n✓ Innovation pipeline finished"));
-        }
-      }, { model: opts.model });
+      await executeWithStreaming(
+        plan,
+        (event) => {
+          if (event.type === "step_started") {
+            execSpinner.text = `Step: ${event.description}`;
+          } else if (event.type === "step_completed") {
+            execSpinner.succeed(`Step ${event.stepId} complete`);
+            execSpinner.start("Next step...");
+          } else if (event.type === "execution_completed") {
+            execSpinner.succeed("All steps completed");
+            console.log(chalk.green("\n✓ Innovation pipeline finished"));
+          }
+        },
+        { model: opts.model }
+      );
     } catch (err) {
       spinner.fail("NL innovation failed");
       console.error(chalk.red(err instanceof Error ? err.message : String(err)));
@@ -3710,9 +3802,7 @@ impactCmd
 
 // ---- Competitive Radar Commands ----
 
-const compRadarCmd = program
-  .command("comp-radar")
-  .description("Competitive intelligence radar");
+const compRadarCmd = program.command("comp-radar").description("Competitive intelligence radar");
 
 compRadarCmd
   .command("competitors")
@@ -3724,7 +3814,12 @@ compRadarCmd
       return;
     }
     for (const c of competitors) {
-      const threatColor = c.threatLevel === "critical" ? chalk.red : c.threatLevel === "high" ? chalk.yellow : chalk.dim;
+      const threatColor =
+        c.threatLevel === "critical"
+          ? chalk.red
+          : c.threatLevel === "high"
+            ? chalk.yellow
+            : chalk.dim;
       console.log(threatColor(`  [${c.threatLevel}]`), chalk.bold(c.name));
     }
   });
@@ -3766,6 +3861,8 @@ compRadarCmd
   });
 
 // ---- Adaptive Methodology Commands ----
+// Provides data-driven pipeline recommendations: suggests optimal angles,
+// depth, and configuration based on subject analysis and past results.
 
 program
   .command("recommend <subject>")
@@ -3775,12 +3872,17 @@ program
   .action(async (subject: string, opts: { domain?: string; team?: string }) => {
     const spinner = ora("Generating recommendation...").start();
     try {
-      const recommendation = getPipelineRecommendation(subject, { domain: opts.domain, teamId: opts.team });
+      const recommendation = getPipelineRecommendation(subject, {
+        domain: opts.domain,
+        teamId: opts.team,
+      });
       spinner.succeed("Recommendation generated");
       console.log(chalk.bold("\nRecommended Pipeline:"));
       console.log(chalk.cyan(`  Angles: ${recommendation.recommendedAngles.join(", ")}`));
       console.log(chalk.cyan(`  Depth: ${recommendation.suggestedDepth}`));
-      console.log(chalk.cyan(`  Quality estimate: ${(recommendation.estimatedQuality * 100).toFixed(0)}%`));
+      console.log(
+        chalk.cyan(`  Quality estimate: ${(recommendation.estimatedQuality * 100).toFixed(0)}%`)
+      );
       console.log(chalk.dim(`\n  ${recommendation.explanation}`));
     } catch (err) {
       spinner.fail("Recommendation failed");
@@ -3790,21 +3892,25 @@ program
   });
 
 // ---- Persona Evaluation Commands ----
+// Evaluates ideas through multiple stakeholder personas (CTO, end-user,
+// investor, regulator) with independent scoring and conflict analysis.
 
 program
   .command("persona-eval <ideaTitle>")
   .description("Evaluate an idea through multiple stakeholder personas")
-  .option("-p, --personas <ids>", "Persona IDs (comma-separated)", "cto,end-user,investor,regulator")
+  .option(
+    "-p, --personas <ids>",
+    "Persona IDs (comma-separated)",
+    "cto,end-user,investor,regulator"
+  )
   .option("-m, --model <model>", "LLM model to use")
   .action(async (ideaTitle: string, opts: { personas: string; model?: string }) => {
     const spinner = ora("Running persona evaluation...").start();
     try {
       const personaIds = opts.personas.split(",").map((p) => p.trim());
-      const assessment = await generateStakeholderAssessment(
-        ideaTitle,
-        personaIds,
-        { model: opts.model }
-      );
+      const assessment = await generateStakeholderAssessment(ideaTitle, personaIds, {
+        model: opts.model,
+      });
       spinner.succeed("Assessment complete");
       console.log(assessmentToMarkdown(assessment));
     } catch (err) {
