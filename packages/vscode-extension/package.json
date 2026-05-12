@@ -31,8 +31,24 @@
           {
             "name": "score",
             "description": "Score and rank innovation ideas by feasibility, impact, and novelty"
+          },
+          {
+            "name": "pr",
+            "description": "Create a PR from generated innovation ideas"
           }
         ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "innovator.innovateSelection",
+        "title": "Innovator: Innovate on Selection",
+        "category": "Innovator"
+      },
+      {
+        "command": "innovator.createInnovationPR",
+        "title": "Innovator: Create Innovation PR",
+        "category": "Innovator"
       }
     ]
   },

@@ -1,8 +1,9 @@
 /**
  * Innovator VS Code Extension — @innovator chat participant for GitHub Copilot Chat.
  *
- * Registers /investigate, /innovate, and /score slash commands that wrap
+ * Registers /investigate, /innovate, /score, and /pr slash commands that wrap
  * @innovator/core functions and render rich responses with collapsible sections.
+ * Also provides CodeLens annotations for contextual innovation suggestions.
  */
 
 import * as vscode from "vscode";
@@ -26,11 +27,17 @@ interface ChatContext {
 // Per-conversation context; keyed by request thread so different chat
 // sessions don't leak state into each other.
 const sessionContexts = new Map<string, ChatContext>();
+const MAX_SESSIONS = 50;
 
 function getSessionContext(request: vscode.ChatRequest): ChatContext {
   // Use the request's thread ID when available to scope context per conversation
   const key = (request as unknown as { threadId?: string }).threadId ?? "default";
   if (!sessionContexts.has(key)) {
+    // Evict oldest sessions if we hit the limit
+    if (sessionContexts.size >= MAX_SESSIONS) {
+      const firstKey = sessionContexts.keys().next().value;
+      if (firstKey !== undefined) sessionContexts.delete(firstKey);
+    }
     sessionContexts.set(key, {});
   }
   return sessionContexts.get(key)!;
@@ -40,10 +47,178 @@ export function activate(context: vscode.ExtensionContext) {
   const participant = vscode.chat.createChatParticipant(PARTICIPANT_ID, chatHandler);
   participant.iconPath = new vscode.ThemeIcon("lightbulb");
   context.subscriptions.push(participant);
+
+  // Code Lens provider for TODO/FIXME/HACK comments
+  const codeLensProvider = new InnovatorCodeLensProvider();
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      { pattern: "**/*.{ts,tsx,js,jsx,py,go,rs,java}" },
+      codeLensProvider
+    )
+  );
+
+  // Command: Innovate on selected code
+  context.subscriptions.push(
+    vscode.commands.registerCommand("innovator.innovateSelection", async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) return;
+      const selection = editor.document.getText(editor.selection);
+      if (!selection.trim()) {
+        vscode.window.showWarningMessage("Select code to innovate on.");
+        return;
+      }
+      const subject = `Improve this code:\n${selection.slice(0, 2000)}`;
+      await vscode.commands.executeCommand("workbench.action.chat.open", {
+        query: `@innovator /innovate ${subject}`,
+      });
+    })
+  );
+
+  // Command: Generate Innovation PR
+  context.subscriptions.push(
+    vscode.commands.registerCommand("innovator.createInnovationPR", async () => {
+      const ideas = getLastSessionIdeas();
+      if (!ideas || ideas.length === 0) {
+        vscode.window.showWarningMessage(
+          "No innovation ideas available. Run @innovator /innovate first."
+        );
+        return;
+      }
+      await createInnovationPR(ideas);
+    })
+  );
+
+  // Command: Innovate on code lens target
+  context.subscriptions.push(
+    vscode.commands.registerCommand("innovator.innovateComment", async (subject: string) => {
+      await vscode.commands.executeCommand("workbench.action.chat.open", {
+        query: `@innovator /innovate ${subject}`,
+      });
+    })
+  );
+
+  // Status bar item
+  const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  statusBar.text = "$(lightbulb) Innovator";
+  statusBar.tooltip = "AI Innovation Engine — select code and innovate";
+  statusBar.command = "innovator.innovateSelection";
+  statusBar.show();
+  context.subscriptions.push(statusBar);
 }
 
 export function deactivate() {
   // Cleanup handled by VS Code disposables
+}
+
+// ---- CodeLens Provider ----
+
+const INNOVATION_PATTERNS = [
+  { pattern: /\/\/\s*TODO:?\s*(.+)/gi, prefix: "Innovate on TODO" },
+  { pattern: /\/\/\s*FIXME:?\s*(.+)/gi, prefix: "Innovate on fix" },
+  { pattern: /\/\/\s*HACK:?\s*(.+)/gi, prefix: "Innovate on improvement" },
+  { pattern: /\/\/\s*OPTIMIZE:?\s*(.+)/gi, prefix: "Innovate on optimization" },
+  { pattern: /#\s*TODO:?\s*(.+)/gi, prefix: "Innovate on TODO" },
+];
+
+class InnovatorCodeLensProvider implements vscode.CodeLensProvider {
+  provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
+    const lenses: vscode.CodeLens[] = [];
+
+    for (let line = 0; line < document.lineCount && line < 500; line++) {
+      const text = document.lineAt(line).text;
+      for (const { pattern, prefix } of INNOVATION_PATTERNS) {
+        pattern.lastIndex = 0;
+        const match = pattern.exec(text);
+        if (match) {
+          const range = new vscode.Range(line, 0, line, text.length);
+          const subject = `${prefix}: ${match[1].trim()} (from ${document.fileName.split("/").pop()})`;
+          lenses.push(
+            new vscode.CodeLens(range, {
+              title: "💡 Innovate",
+              command: "innovator.innovateComment",
+              arguments: [subject],
+            })
+          );
+        }
+      }
+    }
+
+    return lenses;
+  }
+}
+
+// ---- Innovation PR Generation ----
+
+function getLastSessionIdeas(): InnovationIdea[] | undefined {
+  for (const ctx of sessionContexts.values()) {
+    if (ctx.lastIdeas && ctx.lastIdeas.length > 0) return ctx.lastIdeas;
+  }
+  return undefined;
+}
+
+async function createInnovationPR(ideas: InnovationIdea[]): Promise<void> {
+  const topIdeas = ideas.slice(0, 5);
+
+  const prTitle = `💡 Innovation Ideas: ${topIdeas[0].title}`;
+  const prBody = [
+    "## 💡 Innovation Proposal",
+    "",
+    "Generated by **Innovator AI** — ideas from multiple creativity frameworks.",
+    "",
+    "### Top Ideas",
+    "",
+    ...topIdeas.map((idea, i) => [
+      `#### ${i + 1}. ${idea.title}`,
+      "",
+      idea.description,
+      "",
+      `**Potential Impact:** ${idea.potentialImpact}`,
+      idea.implementationHint ? `**Implementation:** ${idea.implementationHint}` : "",
+      "",
+    ]).flat(),
+    "---",
+    "*Generated by [Innovator](https://github.com/josedab/innovator)*",
+  ].join("\n");
+
+  // Create a new file with the innovation proposal
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    vscode.window.showErrorMessage("No workspace folder open.");
+    return;
+  }
+
+  const dirPath = vscode.Uri.joinPath(
+    workspaceFolders[0].uri,
+    ".github",
+    "innovations"
+  );
+  const filePath = vscode.Uri.joinPath(dirPath, `innovation-${Date.now()}.md`);
+
+  try {
+    await vscode.workspace.fs.createDirectory(dirPath);
+  } catch {
+    // Directory may already exist
+  }
+  await vscode.workspace.fs.writeFile(filePath, Buffer.from(prBody, "utf-8"));
+
+  const doc = await vscode.workspace.openTextDocument(filePath);
+  await vscode.window.showTextDocument(doc);
+
+  const createPR = await vscode.window.showInformationMessage(
+    `Innovation proposal saved to ${filePath.fsPath}`,
+    "Create Branch & PR",
+    "Just Keep File"
+  );
+
+  if (createPR === "Create Branch & PR") {
+    const terminal = vscode.window.createTerminal("Innovator PR");
+    const branchName = `innovation/${Date.now()}`;
+    terminal.show();
+    terminal.sendText(`git checkout -b ${branchName}`);
+    terminal.sendText(`git add "${filePath.fsPath}"`);
+    terminal.sendText(`git commit -m "${prTitle}"`);
+    terminal.sendText(`gh pr create --title "${prTitle}" --body "See innovation proposal file" --fill`);
+  }
 }
 
 async function chatHandler(
@@ -56,12 +231,13 @@ async function chatHandler(
   const prompt = request.prompt.trim();
   const ctx = getSessionContext(request);
 
-  if (!prompt && command !== "score") {
+  if (!prompt && command !== "score" && command !== "pr") {
     stream.markdown("Please provide a subject to investigate or innovate on.\n\n");
     stream.markdown("**Examples:**\n");
     stream.markdown("- `@innovator /investigate quantum computing in healthcare`\n");
     stream.markdown("- `@innovator /innovate sustainable packaging`\n");
     stream.markdown("- `@innovator /score` (uses results from last session)\n");
+    stream.markdown("- `@innovator /pr` (create a PR from generated ideas)\n");
     return {};
   }
 
@@ -73,6 +249,8 @@ async function chatHandler(
         return await handleInnovate(prompt, stream, token, ctx);
       case "score":
         return await handleScore(prompt, stream, token, ctx);
+      case "pr":
+        return await handlePR(stream, ctx);
       default:
         return await handleDefault(prompt, stream, token, ctx);
     }
@@ -235,6 +413,35 @@ async function handleScore(
   return {};
 }
 
+async function handlePR(
+  stream: vscode.ChatResponseStream,
+  ctx: ChatContext
+): Promise<vscode.ChatResult> {
+  const ideas = ctx.lastIdeas;
+  if (!ideas || ideas.length === 0) {
+    stream.markdown(
+      "No ideas to create a PR from. Run `@innovator /innovate <subject>` first.\n"
+    );
+    return {};
+  }
+
+  stream.markdown("## 🚀 Innovation PR\n\n");
+  stream.markdown("Creating an innovation proposal from your generated ideas...\n\n");
+
+  // Trigger the PR creation command
+  await vscode.commands.executeCommand("innovator.createInnovationPR");
+
+  stream.markdown(
+    `✅ Innovation proposal with ${ideas.length} ideas has been created.\n\n`
+  );
+  stream.markdown("The proposal file has been opened. You can:\n");
+  stream.markdown("- Edit the proposal before committing\n");
+  stream.markdown("- Create a branch and PR directly\n");
+  stream.markdown("- Share with your team for review\n");
+
+  return {};
+}
+
 async function handleDefault(
   prompt: string,
   stream: vscode.ChatResponseStream,
@@ -245,7 +452,9 @@ async function handleDefault(
   stream.markdown(`Available commands:\n\n`);
   stream.markdown(`- \`/investigate\` — Analyze a subject for innovation potential\n`);
   stream.markdown(`- \`/innovate\` — Generate ideas using creativity frameworks\n`);
-  stream.markdown(`- \`/score\` — Rank and score generated ideas\n\n`);
+  stream.markdown(`- \`/score\` — Rank and score generated ideas\n`);
+  stream.markdown(`- \`/pr\` — Create a PR from generated innovation ideas\n\n`);
   stream.markdown(`**Quick start:** \`@innovator /investigate ${prompt || "your subject"}\`\n`);
+  stream.markdown(`\n💡 *Tip: Select code and use the "💡 Innovate" CodeLens on TODO/FIXME comments!*\n`);
   return {};
 }
