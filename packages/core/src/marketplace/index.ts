@@ -1047,3 +1047,269 @@ export {
   getScanResult,
   clearMonetizationData,
 } from "./monetization.js";
+
+// ---- First-Party Seed Packages ----
+
+export interface SeedPackage {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  version: string;
+  tags: string[];
+  content: Record<string, unknown>;
+}
+
+/**
+ * Get built-in first-party marketplace packages for seeding a fresh installation.
+ * Returns 20+ curated angle packs, templates, and presets.
+ */
+export function getSeedPackages(): SeedPackage[] {
+  return [
+    // Angle Packs
+    {
+      id: "angles-design-thinking",
+      name: "Design Thinking Angles",
+      description:
+        "Empathize, Define, Ideate, Prototype, Test — innovation angles inspired by design thinking methodology",
+      category: "angle",
+      version: "1.0.0",
+      tags: ["design", "ux", "product"],
+      content: { angles: ["empathize", "define", "ideate", "prototype", "test"] },
+    },
+    {
+      id: "angles-lean-startup",
+      name: "Lean Startup Angles",
+      description: "Build-Measure-Learn cycle angles for startup innovation",
+      category: "angle",
+      version: "1.0.0",
+      tags: ["startup", "lean", "mvp"],
+      content: { angles: ["build", "measure", "learn", "pivot", "scale"] },
+    },
+    {
+      id: "angles-blue-ocean",
+      name: "Blue Ocean Strategy",
+      description: "Eliminate-Reduce-Raise-Create framework for uncontested market space",
+      category: "angle",
+      version: "1.0.0",
+      tags: ["strategy", "market", "competition"],
+      content: { angles: ["eliminate", "reduce", "raise", "create"] },
+    },
+    {
+      id: "angles-six-hats",
+      name: "Six Thinking Hats",
+      description: "De Bono's six hats framework for parallel thinking",
+      category: "angle",
+      version: "1.0.0",
+      tags: ["thinking", "decision", "team"],
+      content: { angles: ["white", "red", "black", "yellow", "green", "blue"] },
+    },
+    {
+      id: "angles-triz",
+      name: "TRIZ Innovation",
+      description: "Theory of Inventive Problem Solving — systematic innovation patterns",
+      category: "angle",
+      version: "1.0.0",
+      tags: ["engineering", "systematic", "patents"],
+      content: { angles: ["contradictions", "ideality", "resources", "patterns"] },
+    },
+    // Domain Packs
+    {
+      id: "domain-healthcare",
+      name: "Healthcare Innovation Pack",
+      description: "Specialized angles and presets for healthcare and medtech innovation",
+      category: "vertical-pack",
+      version: "1.0.0",
+      tags: ["healthcare", "medtech", "clinical"],
+      content: { domain: "healthcare", presets: 5 },
+    },
+    {
+      id: "domain-fintech",
+      name: "Fintech Innovation Pack",
+      description: "Financial technology innovation angles with regulatory awareness",
+      category: "vertical-pack",
+      version: "1.0.0",
+      tags: ["fintech", "banking", "payments"],
+      content: { domain: "fintech", presets: 4 },
+    },
+    {
+      id: "domain-edtech",
+      name: "EdTech Innovation Pack",
+      description: "Education technology innovation with pedagogy-aware angles",
+      category: "vertical-pack",
+      version: "1.0.0",
+      tags: ["education", "learning", "edtech"],
+      content: { domain: "edtech", presets: 4 },
+    },
+    {
+      id: "domain-sustainability",
+      name: "Sustainability Innovation Pack",
+      description: "Green innovation angles focused on environmental impact and circular economy",
+      category: "vertical-pack",
+      version: "1.0.0",
+      tags: ["sustainability", "green", "circular"],
+      content: { domain: "sustainability", presets: 5 },
+    },
+    {
+      id: "domain-ai-ml",
+      name: "AI/ML Innovation Pack",
+      description: "AI and machine learning product innovation angles",
+      category: "vertical-pack",
+      version: "1.0.0",
+      tags: ["ai", "ml", "deep-learning"],
+      content: { domain: "ai-ml", presets: 4 },
+    },
+    // Pipeline Templates
+    {
+      id: "template-rapid-prototype",
+      name: "Rapid Prototyping Pipeline",
+      description: "Quick investigation → 2 angles → artifact generation in under 60 seconds",
+      category: "validator",
+      version: "1.0.0",
+      tags: ["fast", "prototype", "mvp"],
+      content: { steps: 3, duration: "60s" },
+    },
+    {
+      id: "template-deep-research",
+      name: "Deep Research Pipeline",
+      description: "Thorough investigation with 8 angles, scoring, debate, and synthesis",
+      category: "validator",
+      version: "1.0.0",
+      tags: ["research", "thorough", "academic"],
+      content: { steps: 12, duration: "5min" },
+    },
+    {
+      id: "template-competitive-analysis",
+      name: "Competitive Analysis",
+      description: "Multi-subject comparative pipeline for market positioning",
+      category: "validator",
+      version: "1.0.0",
+      tags: ["competition", "market", "analysis"],
+      content: { steps: 6, duration: "3min" },
+    },
+    {
+      id: "template-hackathon",
+      name: "Hackathon Sprint",
+      description: "Time-boxed innovation sprint with voting and artifact generation",
+      category: "validator",
+      version: "1.0.0",
+      tags: ["hackathon", "sprint", "team"],
+      content: { steps: 5, duration: "2min" },
+    },
+    {
+      id: "template-patent-mining",
+      name: "Patent Opportunity Mining",
+      description: "Identify patentable innovation opportunities in a domain",
+      category: "validator",
+      version: "1.0.0",
+      tags: ["patents", "ip", "legal"],
+      content: { steps: 7, duration: "4min" },
+    },
+    // Prompt Packs
+    {
+      id: "prompts-creative-writing",
+      name: "Creative Writing Prompts",
+      description: "Innovation prompts tuned for creative and narrative contexts",
+      category: "exporter",
+      version: "1.0.0",
+      tags: ["creative", "writing", "narrative"],
+      content: { promptCount: 12 },
+    },
+    {
+      id: "prompts-technical-innovation",
+      name: "Technical Innovation Prompts",
+      description: "Engineering-focused prompt templates for technical problem solving",
+      category: "exporter",
+      version: "1.0.0",
+      tags: ["engineering", "technical", "architecture"],
+      content: { promptCount: 15 },
+    },
+    {
+      id: "prompts-business-model",
+      name: "Business Model Prompts",
+      description: "Prompts for business model innovation and revenue strategy",
+      category: "exporter",
+      version: "1.0.0",
+      tags: ["business", "revenue", "model"],
+      content: { promptCount: 10 },
+    },
+    // Integrations
+    {
+      id: "integration-jira",
+      name: "Jira Integration",
+      description: "Export innovation artifacts directly to Jira issues and epics",
+      category: "integration",
+      version: "1.0.0",
+      tags: ["jira", "agile", "project-management"],
+      content: { type: "integration" },
+    },
+    {
+      id: "integration-notion",
+      name: "Notion Integration",
+      description: "Sync innovation sessions and artifacts to Notion databases",
+      category: "integration",
+      version: "1.0.0",
+      tags: ["notion", "documentation", "wiki"],
+      content: { type: "integration" },
+    },
+    {
+      id: "integration-slack",
+      name: "Slack Notifications",
+      description: "Post innovation highlights and session summaries to Slack channels",
+      category: "integration",
+      version: "1.0.0",
+      tags: ["slack", "notifications", "team"],
+      content: { type: "integration" },
+    },
+    // Visualizers
+    {
+      id: "viz-mindmap",
+      name: "Mind Map Visualizer",
+      description: "Export innovation results as interactive mind maps",
+      category: "visualizer",
+      version: "1.0.0",
+      tags: ["mindmap", "visualization", "export"],
+      content: { type: "visualizer" },
+    },
+    {
+      id: "viz-timeline",
+      name: "Timeline Visualizer",
+      description: "Chronological visualization of innovation session progression",
+      category: "visualizer",
+      version: "1.0.0",
+      tags: ["timeline", "chronological", "history"],
+      content: { type: "visualizer" },
+    },
+  ];
+}
+
+/**
+ * Seed the marketplace with first-party packages.
+ * Only adds packages that don't already exist.
+ */
+export function seedMarketplace(): number {
+  const packages = getSeedPackages();
+  let seeded = 0;
+
+  for (const pkg of packages) {
+    const existing = searchPlugins({ query: pkg.name }).find((p) => p.name === pkg.name);
+    if (existing) continue;
+
+    try {
+      publishPlugin({
+        name: pkg.name,
+        description: pkg.description,
+        category: pkg.category as PluginCategory,
+        version: pkg.version,
+        tags: pkg.tags,
+        author: { name: "Innovator Team" },
+        source: JSON.stringify(pkg.content),
+      });
+      seeded++;
+    } catch {
+      // Skip failures (e.g., if publish validation differs)
+    }
+  }
+
+  return seeded;
+}
