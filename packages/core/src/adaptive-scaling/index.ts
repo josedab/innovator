@@ -337,3 +337,90 @@ export function getExecutionStats(): {
 export function clearExecutionHistory(): void {
   executionHistory.length = 0;
 }
+
+// ---- Mode Presets ----
+
+export type InnovationMode = "quick" | "standard" | "deep" | "auto";
+
+export interface ModeConfig {
+  mode: InnovationMode;
+  depth: "shallow" | "standard" | "deep";
+  angleCount: number;
+  suggestedAngles: string[];
+  modelTier: "economy" | "standard" | "premium";
+  estimatedTimeSeconds: number;
+  description: string;
+}
+
+const MODE_PRESETS: Record<Exclude<InnovationMode, "auto">, Omit<ModeConfig, "mode">> = {
+  quick: {
+    depth: "shallow",
+    angleCount: 2,
+    suggestedAngles: ["scamper", "first-principles"],
+    modelTier: "economy",
+    estimatedTimeSeconds: 30,
+    description: "Fast exploration with 2 angles — ideal for brainstorming warm-ups",
+  },
+  standard: {
+    depth: "standard",
+    angleCount: 4,
+    suggestedAngles: ["scamper", "first-principles", "cross-domain", "what-if"],
+    modelTier: "standard",
+    estimatedTimeSeconds: 120,
+    description: "Balanced investigation with 4 angles — good for most subjects",
+  },
+  deep: {
+    depth: "deep",
+    angleCount: 8,
+    suggestedAngles: [
+      "scamper",
+      "first-principles",
+      "cross-domain",
+      "constraints",
+      "inversion",
+      "perspectives",
+      "what-if",
+      "trend-collision",
+    ],
+    modelTier: "premium",
+    estimatedTimeSeconds: 300,
+    description: "Comprehensive analysis with all 8 angles — for strategic decisions",
+  },
+};
+
+/**
+ * Get a mode configuration by name, or auto-detect from subject complexity.
+ */
+export function getModeConfig(
+  mode: InnovationMode,
+  subject?: string
+): ModeConfig {
+  if (mode !== "auto") {
+    return { mode, ...MODE_PRESETS[mode] };
+  }
+
+  // Auto-detect from subject
+  if (!subject) {
+    return { mode: "standard", ...MODE_PRESETS.standard };
+  }
+
+  const complexity = classifyComplexityHeuristic(subject);
+  const resolvedMode: Exclude<InnovationMode, "auto"> =
+    complexity.level === "trivial" || complexity.level === "simple"
+      ? "quick"
+      : complexity.level === "moderate"
+        ? "standard"
+        : "deep";
+
+  return { mode: resolvedMode, ...MODE_PRESETS[resolvedMode] };
+}
+
+/**
+ * List all available mode presets.
+ */
+export function listModes(): ModeConfig[] {
+  return (["quick", "standard", "deep"] as const).map((mode) => ({
+    mode,
+    ...MODE_PRESETS[mode],
+  }));
+}
