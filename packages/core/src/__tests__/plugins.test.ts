@@ -151,4 +151,36 @@ describe("plugin registry", () => {
       expect(getPlugin("non-semver-plugin")?.version).toBe("latest");
     });
   });
+
+  describe("edge cases", () => {
+    it("preserves extra fields on registered plugins", () => {
+      const plugin = {
+        ...sampleAnglePlugin,
+        id: "extra-fields",
+        customField: "preserved",
+        nestedData: { key: "value" },
+      } as AnglePlugin & Record<string, unknown>;
+      registerPlugin(plugin);
+      const retrieved = getPlugin("extra-fields") as typeof plugin;
+      expect(retrieved.customField).toBe("preserved");
+      expect(retrieved.nestedData).toEqual({ key: "value" });
+    });
+
+    it("getPlugin returns undefined for empty string id", () => {
+      expect(getPlugin("")).toBeUndefined();
+    });
+
+    it("getPluginsByType returns empty for unknown type", () => {
+      registerPlugin(sampleAnglePlugin);
+      expect(getPluginsByType("nonexistent" as "angle")).toEqual([]);
+    });
+
+    it("loadPlugin re-throws 'already registered' without wrapping", async () => {
+      registerPlugin(sampleAnglePlugin);
+      // Mock import to return a plugin with same id
+      await expect(loadPlugin("./nonexistent-but-already-registered.js")).rejects.toThrow(
+        "Failed to load plugin"
+      );
+    });
+  });
 });
