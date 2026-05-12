@@ -167,7 +167,6 @@ describe("mining", () => {
 
   describe("statistical edge cases", () => {
     it("pearsonCorrelation with zero-variance data returns 0", () => {
-      // All same scores in all domains → correlation should be 0 (zero variance)
       const data: MiningDataPoint[] = [
         { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 5, timestamp: Date.now() },
         { subjectDomain: "tech", angleId: "what-if", ideaQualityScore: 5, timestamp: Date.now() },
@@ -186,7 +185,6 @@ describe("mining", () => {
         { subjectDomain: "health", angleId: "what-if", ideaQualityScore: 6, timestamp: Date.now() },
       ];
       const correlations = computeCorrelationMatrix(data);
-      // No shared angles → no correlation entries
       expect(correlations).toHaveLength(0);
     });
 
@@ -222,6 +220,44 @@ describe("mining", () => {
       const effectiveness = computeAngleEffectiveness(data);
       const entry = effectiveness.find((e) => e.angleId === "scamper");
       expect(entry?.stdDev).toBe(0);
+    });
+
+    it("single data point has stdDev of 0", () => {
+      const data: MiningDataPoint[] = [
+        { subjectDomain: "tech", angleId: "scamper", ideaQualityScore: 7, timestamp: Date.now() },
+      ];
+      const effectiveness = computeAngleEffectiveness(data);
+      const entry = effectiveness.find((e) => e.angleId === "scamper");
+      expect(entry).toBeDefined();
+      expect(entry?.sampleSize).toBe(1);
+      expect(entry?.meanQuality).toBe(7);
+      expect(entry?.stdDev).toBe(0);
+    });
+
+    it("known perfectly correlated data returns r ≈ 1.0", () => {
+      // Two domains with same pattern across shared angles → r ≈ 1.0
+      const data: MiningDataPoint[] = [
+        { subjectDomain: "A", angleId: "a1", ideaQualityScore: 2, timestamp: Date.now() },
+        { subjectDomain: "A", angleId: "a2", ideaQualityScore: 4, timestamp: Date.now() },
+        { subjectDomain: "A", angleId: "a3", ideaQualityScore: 6, timestamp: Date.now() },
+        { subjectDomain: "B", angleId: "a1", ideaQualityScore: 3, timestamp: Date.now() },
+        { subjectDomain: "B", angleId: "a2", ideaQualityScore: 5, timestamp: Date.now() },
+        { subjectDomain: "B", angleId: "a3", ideaQualityScore: 7, timestamp: Date.now() },
+      ];
+      const correlations = computeCorrelationMatrix(data);
+      const abCorr = correlations.find(
+        (c) => (c.domainA === "A" && c.domainB === "B") || (c.domainA === "B" && c.domainB === "A")
+      );
+      expect(abCorr).toBeDefined();
+      expect(abCorr!.correlation).toBeCloseTo(1.0, 1);
+    });
+
+    it("heatmap has correct dimensions", () => {
+      const data = makeDataPoints();
+      const heatmap = buildHeatmap(data);
+      // Should have one cell per unique (domain, angleId) pair
+      const uniquePairs = new Set(data.map((d) => `${d.subjectDomain}:${d.angleId}`));
+      expect(heatmap.length).toBe(uniquePairs.size);
     });
   });
 });
