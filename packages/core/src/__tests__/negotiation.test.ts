@@ -42,7 +42,14 @@ describe("negotiation", () => {
 
   describe("schemas", () => {
     it("validates NegotiationPhase enum", () => {
-      const phases = ["opening", "interest-exploration", "option-generation", "criteria-evaluation", "agreement", "completed"];
+      const phases = [
+        "opening",
+        "interest-exploration",
+        "option-generation",
+        "criteria-evaluation",
+        "agreement",
+        "completed",
+      ];
       for (const p of phases) {
         expect(NegotiationPhaseSchema.parse(p)).toBe(p);
       }
@@ -56,7 +63,10 @@ describe("negotiation", () => {
     it("creates session with opening phase and LLM message", async () => {
       mockGenerateText.mockResolvedValue("json");
       mockExtractJson.mockReturnValue(
-        JSON.stringify({ message: "Let's discuss this idea!", challengeAreas: ["feasibility", "market", "tech"] })
+        JSON.stringify({
+          message: "Let's discuss this idea!",
+          challengeAreas: ["feasibility", "market", "tech"],
+        })
       );
 
       const session = await startNegotiation(mockIdea);
@@ -117,7 +127,11 @@ describe("negotiation", () => {
       const session = await startNegotiation(mockIdea);
 
       mockExtractJson.mockReturnValue(
-        JSON.stringify({ message: "Good point!", challengeType: "feasibility", convergenceEstimate: 0.3 })
+        JSON.stringify({
+          message: "Good point!",
+          challengeType: "feasibility",
+          convergenceEstimate: 0.3,
+        })
       );
       const updated = await negotiateStep(session.id, "I think we should focus on feasibility");
 
@@ -180,7 +194,11 @@ describe("negotiation", () => {
         JSON.stringify({
           message: "Updated title",
           suggestedChanges: [
-            { field: "title", newValue: "Enhanced AI Code Reviewer", rationale: "More descriptive" },
+            {
+              field: "title",
+              newValue: "Enhanced AI Code Reviewer",
+              rationale: "More descriptive",
+            },
           ],
           convergenceEstimate: 0.5,
         })
@@ -200,7 +218,9 @@ describe("negotiation", () => {
       mockExtractJson.mockReturnValue(JSON.stringify({ message: "Opening" }));
       const session = await startNegotiation(mockIdea);
 
-      mockExtractJson.mockImplementation(() => { throw new Error("parse error"); });
+      mockExtractJson.mockImplementation(() => {
+        throw new Error("parse error");
+      });
       await negotiateStep(session.id, "Some question");
 
       const updated = getNegotiation(session.id)!;
@@ -217,7 +237,9 @@ describe("negotiation", () => {
       // Fast-forward through phases: opening→interest-exploration→option-generation→criteria-evaluation→agreement
       const phases = ["next", "next", "next", "next"];
       for (const msg of phases) {
-        mockExtractJson.mockReturnValue(JSON.stringify({ message: "Advancing", convergenceEstimate: 0.85 }));
+        mockExtractJson.mockReturnValue(
+          JSON.stringify({ message: "Advancing", convergenceEstimate: 0.85 })
+        );
         await negotiateStep(session.id, msg);
       }
 
@@ -257,8 +279,18 @@ describe("negotiation", () => {
       const session: NegotiationSession = {
         id: "test",
         ideaTitle: "Test",
-        currentIdea: { title: "T", description: "D", potentialImpact: "I", implementationHint: "H" },
-        originalIdea: { title: "T", description: "D", potentialImpact: "I", implementationHint: "H" },
+        currentIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        originalIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
         phase: "opening",
         messages: [],
         deltas: [],
@@ -273,8 +305,18 @@ describe("negotiation", () => {
       const session: NegotiationSession = {
         id: "test",
         ideaTitle: "Test",
-        currentIdea: { title: "New Title", description: "D", potentialImpact: "I", implementationHint: "H" },
-        originalIdea: { title: "Old Title", description: "D", potentialImpact: "I", implementationHint: "H" },
+        currentIdea: {
+          title: "New Title",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        originalIdea: {
+          title: "Old Title",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
         phase: "completed",
         messages: [],
         deltas: [
@@ -293,12 +335,27 @@ describe("negotiation", () => {
       const session: NegotiationSession = {
         id: "test",
         ideaTitle: "Test",
-        currentIdea: { title: "T", description: "D", potentialImpact: "I", implementationHint: "H" },
-        originalIdea: { title: "T", description: "D", potentialImpact: "I", implementationHint: "H" },
+        currentIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        originalIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
         phase: "completed",
         messages: [],
         deltas: [
-          { field: "title", before: "alpha beta gamma", after: "delta epsilon zeta", rationale: "complete change" },
+          {
+            field: "title",
+            before: "alpha beta gamma",
+            after: "delta epsilon zeta",
+            rationale: "complete change",
+          },
         ],
         convergenceScore: 0,
         createdAt: new Date().toISOString(),
@@ -306,6 +363,158 @@ describe("negotiation", () => {
       };
       const score = computeIdeaDeltaScore(session);
       expect(score).toBe(1); // No overlap → similarity=0 → change=1
+    });
+
+    it("returns 0 for identical before/after text (similarity = 1.0)", () => {
+      const session: NegotiationSession = {
+        id: "test",
+        ideaTitle: "Test",
+        currentIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        originalIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        phase: "completed",
+        messages: [],
+        deltas: [
+          {
+            field: "title",
+            before: "same text here",
+            after: "same text here",
+            rationale: "no change",
+          },
+        ],
+        convergenceScore: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const score = computeIdeaDeltaScore(session);
+      expect(score).toBe(0);
+    });
+
+    it("handles empty strings in before/after", () => {
+      const session: NegotiationSession = {
+        id: "test",
+        ideaTitle: "Test",
+        currentIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        originalIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        phase: "completed",
+        messages: [],
+        deltas: [{ field: "title", before: "", after: "", rationale: "empty" }],
+        convergenceScore: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const score = computeIdeaDeltaScore(session);
+      expect(score).toBe(0);
+    });
+
+    it("handles single-word before and after", () => {
+      const session: NegotiationSession = {
+        id: "test",
+        ideaTitle: "Test",
+        currentIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        originalIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        phase: "completed",
+        messages: [],
+        deltas: [{ field: "title", before: "apple", after: "banana", rationale: "changed" }],
+        convergenceScore: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const score = computeIdeaDeltaScore(session);
+      expect(score).toBe(1);
+    });
+
+    it("is case-insensitive", () => {
+      const session: NegotiationSession = {
+        id: "test",
+        ideaTitle: "Test",
+        currentIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        originalIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        phase: "completed",
+        messages: [],
+        deltas: [
+          { field: "title", before: "Hello World", after: "hello world", rationale: "case change" },
+        ],
+        convergenceScore: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const score = computeIdeaDeltaScore(session);
+      expect(score).toBe(0);
+    });
+
+    it("averages change across multiple deltas", () => {
+      const session: NegotiationSession = {
+        id: "test",
+        ideaTitle: "Test",
+        currentIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        originalIdea: {
+          title: "T",
+          description: "D",
+          potentialImpact: "I",
+          implementationHint: "H",
+        },
+        phase: "completed",
+        messages: [],
+        deltas: [
+          { field: "title", before: "same text", after: "same text", rationale: "no change" },
+          {
+            field: "description",
+            before: "alpha beta",
+            after: "gamma delta",
+            rationale: "total change",
+          },
+        ],
+        convergenceScore: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const score = computeIdeaDeltaScore(session);
+      expect(score).toBeCloseTo(0.5, 1);
     });
   });
 
