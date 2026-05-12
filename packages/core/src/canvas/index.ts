@@ -367,6 +367,9 @@ export {
   type CanvasVote,
   type CursorState,
   type CollaborativeCanvasState,
+  type CanvasRoom,
+  type HeatMapCell,
+  type VotingHeatMap,
   createCollaborativeCanvas,
   applyOperation,
   mergeRemoteOperation,
@@ -376,6 +379,13 @@ export {
   detectConsensus,
   getActiveCursors,
   serializeCollaborativeState,
+  createCanvasRoom,
+  getCanvasRoom,
+  getCanvasRoomBySession,
+  applyRoomOperation,
+  deleteCanvasRoom,
+  clearCanvasRooms,
+  generateVotingHeatMap,
 } from "./collaborative.js";
 
 // ---- Workshop Mode ----

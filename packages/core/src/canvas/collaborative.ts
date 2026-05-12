@@ -421,3 +421,149 @@ export function serializeCollaborativeState(
     operationCount: state.operations.length,
   };
 }
+
+// ---- Multiplayer Canvas Room Manager ----
+
+export interface CanvasRoom {
+  id: string;
+  sessionId: string;
+  state: CollaborativeCanvasState;
+  createdAt: string;
+  maxParticipants: number;
+}
+
+/** In-memory canvas room store. */
+const canvasRooms = new Map<string, CanvasRoom>();
+
+/**
+ * Create a multiplayer canvas room linked to a collaborative session.
+ */
+export function createCanvasRoom(
+  sessionId: string,
+  title: string,
+  creatorId: string,
+  maxParticipants = 8
+): CanvasRoom {
+  const room: CanvasRoom = {
+    id: randomUUID(),
+    sessionId,
+    state: createCollaborativeCanvas(title, creatorId),
+    createdAt: new Date().toISOString(),
+    maxParticipants,
+  };
+  canvasRooms.set(room.id, room);
+  return room;
+}
+
+/**
+ * Get a canvas room by ID.
+ */
+export function getCanvasRoom(roomId: string): CanvasRoom | undefined {
+  return canvasRooms.get(roomId);
+}
+
+/**
+ * Find a canvas room by collaborative session ID.
+ */
+export function getCanvasRoomBySession(sessionId: string): CanvasRoom | undefined {
+  for (const room of canvasRooms.values()) {
+    if (room.sessionId === sessionId) return room;
+  }
+  return undefined;
+}
+
+/**
+ * Apply an operation to a canvas room and return the operation for broadcast.
+ */
+export function applyRoomOperation(
+  roomId: string,
+  type: CanvasOperationType,
+  userId: string,
+  data: Record<string, unknown>
+): CanvasOperation | undefined {
+  const room = canvasRooms.get(roomId);
+  if (!room) return undefined;
+  if (
+    room.state.participants.size >= room.maxParticipants &&
+    !room.state.participants.has(userId)
+  ) {
+    return undefined;
+  }
+  return applyOperation(room.state, type, userId, data);
+}
+
+/**
+ * Delete a canvas room.
+ */
+export function deleteCanvasRoom(roomId: string): boolean {
+  return canvasRooms.delete(roomId);
+}
+
+/**
+ * Clear all canvas rooms (for testing).
+ */
+export function clearCanvasRooms(): void {
+  canvasRooms.clear();
+}
+
+// ---- Voting Heat Map ----
+
+export interface HeatMapCell {
+  x: number;
+  y: number;
+  intensity: number;
+  nodeIds: string[];
+}
+
+export interface VotingHeatMap {
+  cells: HeatMapCell[];
+  gridSize: number;
+  maxIntensity: number;
+  hotspots: Array<{ x: number; y: number; nodeId: string; score: number }>;
+}
+
+/**
+ * Generate a voting heat map from canvas state.
+ * Maps vote density to spatial positions for overlay rendering.
+ */
+export function generateVotingHeatMap(
+  state: CollaborativeCanvasState,
+  gridSize = 200
+): VotingHeatMap {
+  const cellMap = new Map<string, { x: number; y: number; score: number; nodeIds: string[] }>();
+
+  for (const node of state.canvas.nodes) {
+    const votes = getNodeVotes(state, node.id);
+    if (votes.total === 0 && votes.up === 0) continue;
+
+    const cellX = Math.floor(node.position.x / gridSize) * gridSize;
+    const cellY = Math.floor(node.position.y / gridSize) * gridSize;
+    const key = `${cellX}:${cellY}`;
+
+    const cell = cellMap.get(key) ?? { x: cellX, y: cellY, score: 0, nodeIds: [] };
+    cell.score += votes.up;
+    cell.nodeIds.push(node.id);
+    cellMap.set(key, cell);
+  }
+
+  const cells = Array.from(cellMap.values());
+  const maxIntensity = Math.max(1, ...cells.map((c) => c.score));
+
+  const heatMapCells: HeatMapCell[] = cells.map((c) => ({
+    x: c.x,
+    y: c.y,
+    intensity: c.score / maxIntensity,
+    nodeIds: c.nodeIds,
+  }));
+
+  const hotspots = state.canvas.nodes
+    .map((node) => {
+      const votes = getNodeVotes(state, node.id);
+      return { x: node.position.x, y: node.position.y, nodeId: node.id, score: votes.total };
+    })
+    .filter((h) => h.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+
+  return { cells: heatMapCells, gridSize, maxIntensity, hotspots };
+}
