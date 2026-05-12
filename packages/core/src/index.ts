@@ -495,6 +495,30 @@ export type {
   MarketSignalProvider,
 } from "./market-signals/index.js";
 
+/** Web Search Grounding — real-time market validation, prior art detection, and competitor monitoring. */
+export {
+  groundInnovation,
+  detectPriorArt,
+  monitorCompetitors,
+  groundingToMarkdown,
+  registerSearchProvider as registerWebSearchProvider,
+  listSearchProviders,
+  clearSearchProviders,
+  SearchResultSchema as GroundingSearchResultSchema,
+  PriorArtSchema,
+  CompetitorSchema as WebCompetitorSchema,
+  MarketValidationSchema,
+  WebSearchGroundingSchema,
+} from "./web-search/index.js";
+export type {
+  SearchResult as GroundingSearchResult,
+  PriorArt,
+  Competitor as WebCompetitor,
+  MarketValidation,
+  WebSearchGrounding,
+  WebSearchProvider,
+} from "./web-search/index.js";
+
 /** Sprint mode — time-boxed innovation sprints with phased progression and retrospectives. */
 export {
   createSprint,
@@ -917,6 +941,15 @@ export type {
   LeaderboardEntry as AnalyticsLeaderboardEntry,
   AnalyticsReport,
 } from "./analytics/index.js";
+
+/** Innovation ROI — calculate return on innovation investment with configurable cost/value models. */
+export {
+  calculateROI as calculateInnovationROI,
+  roiToMarkdown,
+  ROIConfigSchema,
+  ROIReportSchema,
+} from "./analytics/roi.js";
+export type { ROIConfig, ROIReport } from "./analytics/roi.js";
 
 /** Coaching — AI coach that asks clarifying questions, detects assumptions, and recommends pivots. */
 export {
@@ -1372,6 +1405,31 @@ export type {
   RetrievalOptions,
 } from "./memory-graph/index.js";
 
+/** Innovation Learning Loop — cross-session learning that auto-tunes the pipeline based on historical outcome signals. */
+export {
+  recordOutcome as recordLearningOutcome,
+  recordBatchOutcomes,
+  getRecommendations as getLearningRecommendations,
+  getAnglePerformance as getLearningAnglePerformance,
+  getDomainProfile,
+  listDomainProfiles,
+  getLearningData,
+  learningInsightsToMarkdown,
+  clearLearningData,
+  OutcomeSignalSchema,
+  AnglePerformanceSchema as LearningAnglePerformanceSchema,
+  DomainProfileSchema,
+  LearningRecommendationSchema,
+  LearningDataSchema,
+} from "./learning-loop/index.js";
+export type {
+  OutcomeSignal,
+  AnglePerformance as LearningAnglePerformance,
+  DomainProfile,
+  LearningRecommendation,
+  LearningData,
+} from "./learning-loop/index.js";
+
 /** Hypothesis-driven innovation — parse, analyze, and track structured hypotheses with experiment cards. */
 export {
   parseHypothesis,
@@ -1453,6 +1511,15 @@ export type {
   WorkflowRunResult,
   WorkflowProgressCallback,
 } from "./workflow/index.js";
+
+/** Workflow DAG Templates — 5 starter templates for common innovation workflows. */
+export {
+  listWorkflowTemplates as listWorkflowStarterTemplates,
+  getWorkflowTemplate as getWorkflowStarterTemplate,
+  getTemplatesByCategory as getStarterTemplatesByCategory,
+  WORKFLOW_TEMPLATES,
+} from "./workflow/templates.js";
+export type { WorkflowTemplate as WorkflowStarterTemplate } from "./workflow/templates.js";
 
 /** Competitive intelligence — analyze competitors, identify gaps, and generate positioning strategies. */
 export {
@@ -2218,6 +2285,29 @@ export type {
   UserManagementEntry,
 } from "./rbac/index.js";
 
+/** SCIM Provisioning & Data Residency — SCIM 2.0 user/group lifecycle and data residency controls. */
+export {
+  scimCreateUser,
+  scimGetUser,
+  scimUpdateUser,
+  scimDeleteUser,
+  scimListUsers,
+  scimCreateGroup,
+  scimGetGroup,
+  scimUpdateGroup,
+  scimListGroups,
+  getDataResidency,
+  setDataResidency,
+  checkDataResidency,
+  setScimToken,
+  validateScimToken,
+  clearScimData,
+  ScimUserSchema,
+  ScimGroupSchema,
+  DataResidencyConfigSchema,
+} from "./rbac/scim.js";
+export type { ScimUser, ScimGroup, DataResidencyConfig } from "./rbac/scim.js";
+
 /** Innovation Canvas — spatial idea arrangement with nodes, edges, clusters, and SVG export. */
 export {
   createCanvasFromResults,
@@ -2563,6 +2653,30 @@ export {
   SdkLanguageSchema,
 } from "./api-gateway/api-spec.js";
 export type { ApiEndpoint, SdkLanguage } from "./api-gateway/api-spec.js";
+
+/** External Integrations — export ideas to Jira, Linear, Notion with structured formatting. */
+export {
+  registerIntegration as registerExternalIntegration,
+  getIntegration as getExternalIntegration,
+  listIntegrations as listExternalIntegrations,
+  removeIntegration as removeExternalIntegration,
+  formatJiraIssue,
+  exportToJira as exportIdeaToJira,
+  formatLinearIssue,
+  exportToLinear,
+  formatNotionPage,
+  exportToNotion as exportIdeaToNotion,
+  clearIntegrations as clearExternalIntegrations,
+} from "./integrations/index.js";
+export type {
+  IntegrationConfig as ExternalIntegrationConfig,
+  IntegrationStatus as ExternalIntegrationStatus,
+  ExportResult as IntegrationExportResult,
+  IdeaExportPayload,
+  JiraExportOptions,
+  LinearExportOptions,
+  NotionExportOptions,
+} from "./integrations/index.js";
 
 /** Idea Maturity Lifecycle — formal stage-gate process with evidence requirements. */
 export {
@@ -2916,18 +3030,26 @@ export type {
   LevelDefinition,
 } from "./gamification/skill-trees.js";
 
-/** Cross-Org Benchmarking — anonymous metrics comparison across organizations. */
+/** Cross-Org Benchmarking — anonymous metrics comparison with differential privacy. */
 export {
   submitMetrics,
+  submitMetricsWithPrivacy,
   compareToPeers,
   getNetworkStats,
   benchmarkToMarkdown as crossOrgBenchmarkToMarkdown,
   clearBenchmarkData,
+  setDifferentialPrivacy,
+  getDifferentialPrivacy,
   OrgMetricsSchema,
   BenchmarkComparisonSchema,
   NetworkStatsSchema,
 } from "./cross-org-benchmark/index.js";
-export type { OrgMetrics, BenchmarkComparison, NetworkStats } from "./cross-org-benchmark/index.js";
+export type {
+  OrgMetrics,
+  BenchmarkComparison,
+  NetworkStats,
+  DifferentialPrivacyConfig as BenchmarkPrivacyConfig,
+} from "./cross-org-benchmark/index.js";
 
 /** Cross-Repository Innovation Graph — multi-repo scanning, graph building, and opportunity detection. */
 export {
