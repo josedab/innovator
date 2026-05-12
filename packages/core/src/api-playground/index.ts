@@ -212,8 +212,14 @@ const endpointRegistry: APIEndpoint[] = [
         subject: "Using AI to improve urban farming efficiency",
         investigation: {
           summary: "Urban farming is experiencing rapid growth driven by AI and IoT technologies.",
-          keyAspects: [{ title: "Sensor-Driven Monitoring", description: "IoT sensors track soil moisture and nutrients." }],
-          currentState: "Current urban farming relies on manual monitoring with limited automation.",
+          keyAspects: [
+            {
+              title: "Sensor-Driven Monitoring",
+              description: "IoT sensors track soil moisture and nutrients.",
+            },
+          ],
+          currentState:
+            "Current urban farming relies on manual monitoring with limited automation.",
           challenges: ["High upfront costs for sensor infrastructure"],
           opportunities: ["Open-source AI models for crop optimization"],
         },
@@ -303,9 +309,16 @@ const endpointRegistry: APIEndpoint[] = [
           ],
           totalAngles: 8,
           investigation: {
-            summary: "Decentralized identity verification is an emerging field combining blockchain, biometrics, and zero-knowledge proofs.",
-            keyAspects: [{ title: "Self-Sovereign Identity", description: "Users control their own credentials without central authorities." }],
-            currentState: "Fragmented landscape with competing standards (DID, Verifiable Credentials).",
+            summary:
+              "Decentralized identity verification is an emerging field combining blockchain, biometrics, and zero-knowledge proofs.",
+            keyAspects: [
+              {
+                title: "Self-Sovereign Identity",
+                description: "Users control their own credentials without central authorities.",
+              },
+            ],
+            currentState:
+              "Fragmented landscape with competing standards (DID, Verifiable Credentials).",
             challenges: ["Regulatory uncertainty across jurisdictions"],
             opportunities: ["Remote work boom creates urgent demand for trustless verification"],
           },
@@ -316,12 +329,16 @@ const endpointRegistry: APIEndpoint[] = [
               ideas: [
                 {
                   title: "Reputation Portability Layer",
-                  description: "Substitute centralized background checks with a portable, cryptographic reputation score that workers carry across platforms.",
-                  potentialImpact: "Eliminates redundant verification cycles, saving 2-5 days per hire.",
-                  implementationHint: "Use W3C Verifiable Credentials standard with selective disclosure.",
+                  description:
+                    "Substitute centralized background checks with a portable, cryptographic reputation score that workers carry across platforms.",
+                  potentialImpact:
+                    "Eliminates redundant verification cycles, saving 2-5 days per hire.",
+                  implementationHint:
+                    "Use W3C Verifiable Credentials standard with selective disclosure.",
                 },
               ],
-              reasoning: "Applied SCAMPER's Substitute and Combine techniques to replace centralized trust with portable credentials.",
+              reasoning:
+                "Applied SCAMPER's Substitute and Combine techniques to replace centralized trust with portable credentials.",
             },
           ],
           synthesis: {
@@ -335,7 +352,8 @@ const endpointRegistry: APIEndpoint[] = [
               },
             ],
             themes: ["Decentralized trust", "Credential portability"],
-            recommendation: "Prioritize the Reputation Portability Layer as it leverages existing W3C standards.",
+            recommendation:
+              "Prioritize the Reputation Portability Layer as it leverages existing W3C standards.",
           },
         },
       },
@@ -528,9 +546,27 @@ const endpointRegistry: APIEndpoint[] = [
       "401": { description: "Unauthorized — missing or invalid API key" },
     },
     parameters: [
-      { name: "limit", in: "query", required: false, description: "Max results (default 20)", schema: { type: "integer" } },
-      { name: "offset", in: "query", required: false, description: "Pagination offset", schema: { type: "integer" } },
-      { name: "q", in: "query", required: false, description: "Search query", schema: { type: "string" } },
+      {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Max results (default 20)",
+        schema: { type: "integer" },
+      },
+      {
+        name: "offset",
+        in: "query",
+        required: false,
+        description: "Pagination offset",
+        schema: { type: "integer" },
+      },
+      {
+        name: "q",
+        in: "query",
+        required: false,
+        description: "Search query",
+        schema: { type: "string" },
+      },
     ],
   },
   {
@@ -547,7 +583,17 @@ const endpointRegistry: APIEndpoint[] = [
         properties: {
           format: {
             type: "string",
-            enum: ["markdown", "json", "clipboard", "github-issue", "powerpoint", "jira", "confluence", "notion", "google-slides"],
+            enum: [
+              "markdown",
+              "json",
+              "clipboard",
+              "github-issue",
+              "powerpoint",
+              "jira",
+              "confluence",
+              "notion",
+              "google-slides",
+            ],
           },
           data: {
             type: "object",
@@ -567,7 +613,8 @@ const endpointRegistry: APIEndpoint[] = [
         data: {
           subject: "Using AI to improve urban farming efficiency",
           investigation: {
-            summary: "Urban farming is experiencing rapid growth driven by AI and IoT technologies.",
+            summary:
+              "Urban farming is experiencing rapid growth driven by AI and IoT technologies.",
             keyAspects: [],
             currentState: "Limited automation in current operations.",
             challenges: ["High upfront costs"],
@@ -714,14 +761,55 @@ const endpointRegistry: APIEndpoint[] = [
         description: "List of available angles",
         example: {
           angles: [
-            { id: "scamper", name: "SCAMPER", icon: "🔄", description: "Substitute, Combine, Adapt, Modify, Put to other use, Eliminate, Reverse" },
-            { id: "first-principles", name: "First Principles", icon: "🧱", description: "Break down to fundamental truths and rebuild" },
-            { id: "cross-domain", name: "Cross-Domain Analogy", icon: "🌐", description: "Apply solutions from unrelated fields" },
-            { id: "constraints", name: "Constraint Injection", icon: "🔒", description: "Add artificial constraints to force creative solutions" },
-            { id: "inversion", name: "Problem Inversion", icon: "🔃", description: "Flip the problem on its head" },
-            { id: "perspectives", name: "Role-Based Perspectives", icon: "👥", description: "View through different stakeholder lenses" },
-            { id: "what-if", name: "What-If Scenarios", icon: "💭", description: "Explore hypothetical scenarios" },
-            { id: "trend-collision", name: "Trend Collision", icon: "⚡", description: "Combine emerging trends for novel solutions" },
+            {
+              id: "scamper",
+              name: "SCAMPER",
+              icon: "🔄",
+              description:
+                "Substitute, Combine, Adapt, Modify, Put to other use, Eliminate, Reverse",
+            },
+            {
+              id: "first-principles",
+              name: "First Principles",
+              icon: "🧱",
+              description: "Break down to fundamental truths and rebuild",
+            },
+            {
+              id: "cross-domain",
+              name: "Cross-Domain Analogy",
+              icon: "🌐",
+              description: "Apply solutions from unrelated fields",
+            },
+            {
+              id: "constraints",
+              name: "Constraint Injection",
+              icon: "🔒",
+              description: "Add artificial constraints to force creative solutions",
+            },
+            {
+              id: "inversion",
+              name: "Problem Inversion",
+              icon: "🔃",
+              description: "Flip the problem on its head",
+            },
+            {
+              id: "perspectives",
+              name: "Role-Based Perspectives",
+              icon: "👥",
+              description: "View through different stakeholder lenses",
+            },
+            {
+              id: "what-if",
+              name: "What-If Scenarios",
+              icon: "💭",
+              description: "Explore hypothetical scenarios",
+            },
+            {
+              id: "trend-collision",
+              name: "Trend Collision",
+              icon: "⚡",
+              description: "Combine emerging trends for novel solutions",
+            },
           ],
         },
       },
@@ -740,7 +828,8 @@ const playgroundExamples: PlaygroundExample[] = [
     name: "Investigate urban farming AI",
     description: "Research how AI can improve urban farming efficiency",
     requestBody: { subject: "Using AI to improve urban farming efficiency" },
-    expectedResponse: endpointRegistry.find((e) => e.path === "/api/investigate")?.responses["200"]?.example as Record<string, unknown>,
+    expectedResponse: endpointRegistry.find((e) => e.path === "/api/investigate")?.responses["200"]
+      ?.example as Record<string, unknown>,
     headers: { "Content-Type": "application/json", "X-API-Key": "your-api-key" },
   },
   {
@@ -748,8 +837,10 @@ const playgroundExamples: PlaygroundExample[] = [
     method: "POST",
     name: "Generate ideas with two angles",
     description: "Apply first-principles and cross-domain angles to generate innovations",
-    requestBody: endpointRegistry.find((e) => e.path === "/api/innovate")?.requestBody?.example as Record<string, unknown>,
-    expectedResponse: endpointRegistry.find((e) => e.path === "/api/innovate")?.responses["200"]?.example as Record<string, unknown>,
+    requestBody: endpointRegistry.find((e) => e.path === "/api/innovate")?.requestBody
+      ?.example as Record<string, unknown>,
+    expectedResponse: endpointRegistry.find((e) => e.path === "/api/innovate")?.responses["200"]
+      ?.example as Record<string, unknown>,
     headers: { "Content-Type": "application/json", "X-API-Key": "your-api-key" },
   },
   {
@@ -758,16 +849,23 @@ const playgroundExamples: PlaygroundExample[] = [
     name: "Full auto pipeline",
     description: "Run complete investigation, generation, and synthesis pipeline",
     requestBody: { subject: "Decentralized identity verification for remote workers" },
-    expectedResponse: endpointRegistry.find((e) => e.path === "/api/auto")?.responses["200"]?.example as Record<string, unknown>,
-    headers: { "Content-Type": "application/json", "X-API-Key": "your-api-key", Accept: "text/event-stream" },
+    expectedResponse: endpointRegistry.find((e) => e.path === "/api/auto")?.responses["200"]
+      ?.example as Record<string, unknown>,
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": "your-api-key",
+      Accept: "text/event-stream",
+    },
   },
   {
     endpointPath: "/api/score",
     method: "POST",
     name: "Score innovation ideas",
     description: "Evaluate ideas on feasibility, impact, novelty, and timeline",
-    requestBody: endpointRegistry.find((e) => e.path === "/api/score")?.requestBody?.example as Record<string, unknown>,
-    expectedResponse: endpointRegistry.find((e) => e.path === "/api/score")?.responses["200"]?.example as Record<string, unknown>,
+    requestBody: endpointRegistry.find((e) => e.path === "/api/score")?.requestBody
+      ?.example as Record<string, unknown>,
+    expectedResponse: endpointRegistry.find((e) => e.path === "/api/score")?.responses["200"]
+      ?.example as Record<string, unknown>,
     headers: { "Content-Type": "application/json", "X-API-Key": "your-api-key" },
   },
   {
@@ -775,8 +873,10 @@ const playgroundExamples: PlaygroundExample[] = [
     method: "POST",
     name: "Validate ideas against market data",
     description: "Check ideas against patents, market data, and regulatory constraints",
-    requestBody: endpointRegistry.find((e) => e.path === "/api/validate")?.requestBody?.example as Record<string, unknown>,
-    expectedResponse: endpointRegistry.find((e) => e.path === "/api/validate")?.responses["200"]?.example as Record<string, unknown>,
+    requestBody: endpointRegistry.find((e) => e.path === "/api/validate")?.requestBody
+      ?.example as Record<string, unknown>,
+    expectedResponse: endpointRegistry.find((e) => e.path === "/api/validate")?.responses["200"]
+      ?.example as Record<string, unknown>,
     headers: { "Content-Type": "application/json", "X-API-Key": "your-api-key" },
   },
   {
@@ -784,8 +884,13 @@ const playgroundExamples: PlaygroundExample[] = [
     method: "POST",
     name: "Search past innovations",
     description: "Semantic search across past investigations and ideas",
-    requestBody: { action: "search", query: "energy efficiency in controlled environments", limit: 10 },
-    expectedResponse: endpointRegistry.find((e) => e.path === "/api/search")?.responses["200"]?.example as Record<string, unknown>,
+    requestBody: {
+      action: "search",
+      query: "energy efficiency in controlled environments",
+      limit: 10,
+    },
+    expectedResponse: endpointRegistry.find((e) => e.path === "/api/search")?.responses["200"]
+      ?.example as Record<string, unknown>,
     headers: { "Content-Type": "application/json", "X-API-Key": "your-api-key" },
   },
   {
@@ -793,8 +898,13 @@ const playgroundExamples: PlaygroundExample[] = [
     method: "POST",
     name: "Create collaborative session",
     description: "Start a new collaborative brainstorming session",
-    requestBody: { subject: "Next-generation onboarding experience for developer tools", hostUserId: "user_abc123", hostDisplayName: "Alice" },
-    expectedResponse: endpointRegistry.find((e) => e.path === "/api/collaborate")?.responses["200"]?.example as Record<string, unknown>,
+    requestBody: {
+      subject: "Next-generation onboarding experience for developer tools",
+      hostUserId: "user_abc123",
+      hostDisplayName: "Alice",
+    },
+    expectedResponse: endpointRegistry.find((e) => e.path === "/api/collaborate")?.responses["200"]
+      ?.example as Record<string, unknown>,
     headers: { "Content-Type": "application/json", "X-API-Key": "your-api-key" },
   },
   {
@@ -802,8 +912,10 @@ const playgroundExamples: PlaygroundExample[] = [
     method: "POST",
     name: "Export as Markdown",
     description: "Export innovation results as a Markdown report",
-    requestBody: endpointRegistry.find((e) => e.path === "/api/export")?.requestBody?.example as Record<string, unknown>,
-    expectedResponse: endpointRegistry.find((e) => e.path === "/api/export")?.responses["200"]?.example as Record<string, unknown>,
+    requestBody: endpointRegistry.find((e) => e.path === "/api/export")?.requestBody
+      ?.example as Record<string, unknown>,
+    expectedResponse: endpointRegistry.find((e) => e.path === "/api/export")?.responses["200"]
+      ?.example as Record<string, unknown>,
     headers: { "Content-Type": "application/json", "X-API-Key": "your-api-key" },
   },
   {
@@ -811,7 +923,8 @@ const playgroundExamples: PlaygroundExample[] = [
     method: "GET",
     name: "List past sessions",
     description: "Retrieve history of past innovation sessions",
-    expectedResponse: endpointRegistry.find((e) => e.path === "/api/history")?.responses["200"]?.example as Record<string, unknown>,
+    expectedResponse: endpointRegistry.find((e) => e.path === "/api/history")?.responses["200"]
+      ?.example as Record<string, unknown>,
     headers: { "X-API-Key": "your-api-key" },
   },
   {
@@ -819,7 +932,8 @@ const playgroundExamples: PlaygroundExample[] = [
     method: "GET",
     name: "List available angles",
     description: "Get all available innovation angles with descriptions",
-    expectedResponse: endpointRegistry.find((e) => e.path === "/api/angles")?.responses["200"]?.example as Record<string, unknown>,
+    expectedResponse: endpointRegistry.find((e) => e.path === "/api/angles")?.responses["200"]
+      ?.example as Record<string, unknown>,
     headers: { "X-API-Key": "your-api-key" },
   },
 ];
@@ -829,8 +943,11 @@ const playgroundExamples: PlaygroundExample[] = [
 const ENDPOINT_CATEGORIES: EndpointCategory[] = [
   {
     name: "Innovation",
-    description: "Core innovation endpoints for investigating subjects and generating ideas through creative angles.",
-    endpoints: endpointRegistry.filter((e) => e.tags.includes("innovation") || e.tags.includes("investigation")),
+    description:
+      "Core innovation endpoints for investigating subjects and generating ideas through creative angles.",
+    endpoints: endpointRegistry.filter(
+      (e) => e.tags.includes("innovation") || e.tags.includes("investigation")
+    ),
   },
   {
     name: "Analysis",
@@ -855,13 +972,24 @@ const ENDPOINT_CATEGORIES: EndpointCategory[] = [
   {
     name: "Export & History",
     description: "Export results in multiple formats and browse session history.",
-    endpoints: endpointRegistry.filter((e) => e.tags.includes("export") || e.tags.includes("history")),
+    endpoints: endpointRegistry.filter(
+      (e) => e.tags.includes("export") || e.tags.includes("history")
+    ),
   },
 ];
 
 // ---- Core Functions ----
 
-/** Generate a full OpenAPI 3.0 specification from registered endpoints. */
+/**
+ * Generate a full OpenAPI 3.0 specification from all registered endpoints.
+ *
+ * Merges the provided config overrides with defaults (base URL, title, version)
+ * and iterates over the endpoint registry to produce a standards-compliant spec
+ * including security schemes, tags, request/response bodies, and parameters.
+ *
+ * @param config - Partial playground configuration to override defaults (baseUrl, title, version, servers).
+ * @returns A complete {@link OpenAPISpec} object ready for serialization or Swagger UI rendering.
+ */
 export function generateOpenAPISpec(config?: Partial<PlaygroundConfig>): OpenAPISpec {
   const cfg = { ...DEFAULT_CONFIG, ...config };
   const paths: Record<string, Record<string, unknown>> = {};
@@ -938,12 +1066,24 @@ export function generateOpenAPISpec(config?: Partial<PlaygroundConfig>): OpenAPI
   };
 }
 
-/** Return all registered API endpoints with metadata. */
+/**
+ * Return a shallow copy of all registered API endpoint definitions.
+ *
+ * @returns An array of {@link APIEndpoint} objects describing every registered endpoint.
+ */
 export function getEndpointRegistry(): APIEndpoint[] {
   return [...endpointRegistry];
 }
 
-/** Register a new endpoint definition. */
+/**
+ * Register a new endpoint definition or update an existing one.
+ *
+ * The endpoint is validated against {@link APIEndpointSchema}. If an endpoint
+ * with the same `path` and `method` already exists, it is replaced in-place.
+ *
+ * @param endpoint - The endpoint definition to register (validated via Zod).
+ * @throws {ZodError} If the endpoint fails schema validation.
+ */
 export function registerEndpoint(endpoint: APIEndpoint): void {
   const parsed = APIEndpointSchema.parse(endpoint);
   const existingIndex = endpointRegistry.findIndex(
@@ -956,7 +1096,12 @@ export function registerEndpoint(endpoint: APIEndpoint): void {
   }
 }
 
-/** Get pre-populated example requests, optionally filtered by endpoint path. */
+/**
+ * Get pre-populated playground example requests, optionally filtered by endpoint path.
+ *
+ * @param endpointPath - When provided, only examples matching this path are returned.
+ * @returns An array of {@link PlaygroundExample} objects.
+ */
 export function getPlaygroundExamples(endpointPath?: string): PlaygroundExample[] {
   if (endpointPath) {
     return playgroundExamples.filter((e) => e.endpointPath === endpointPath);
@@ -964,7 +1109,15 @@ export function getPlaygroundExamples(endpointPath?: string): PlaygroundExample[
   return [...playgroundExamples];
 }
 
-/** Generate a realistic example request body for an endpoint. */
+/**
+ * Generate a realistic example request body for an endpoint.
+ *
+ * Returns the endpoint's predefined example if available, otherwise generates
+ * a minimal request body from the schema's required fields using type-based defaults.
+ *
+ * @param endpoint - The API endpoint to generate an example request for.
+ * @returns A request body object, or `undefined` if the endpoint has no request body.
+ */
 export function generateExampleRequest(endpoint: APIEndpoint): Record<string, unknown> | undefined {
   if (!endpoint.requestBody) return undefined;
   if (endpoint.requestBody.example) {
@@ -1002,8 +1155,18 @@ export function generateExampleRequest(endpoint: APIEndpoint): Record<string, un
   return result;
 }
 
-/** Generate a realistic example response for an endpoint. */
-export function generateExampleResponse(endpoint: APIEndpoint): Record<string, unknown> | undefined {
+/**
+ * Generate a realistic example response for an endpoint.
+ *
+ * Returns the predefined example from the `200` response if available,
+ * otherwise falls back to a generic `{ message: "Success" }` object.
+ *
+ * @param endpoint - The API endpoint to generate an example response for.
+ * @returns A response body object, or `undefined` if no `200` response is defined.
+ */
+export function generateExampleResponse(
+  endpoint: APIEndpoint
+): Record<string, unknown> | undefined {
   const successResponse = endpoint.responses["200"];
   if (!successResponse) return undefined;
   if (successResponse.example) {
@@ -1012,28 +1175,50 @@ export function generateExampleResponse(endpoint: APIEndpoint): Record<string, u
   return { message: "Success" };
 }
 
-/** Group endpoints by category. */
+/**
+ * Group all registered endpoints by category.
+ *
+ * @returns An array of {@link EndpointCategory} objects, each containing a name, description, and its endpoints.
+ */
 export function getCategorizedEndpoints(): EndpointCategory[] {
   return ENDPOINT_CATEGORIES.map((cat) => ({ ...cat, endpoints: [...cat.endpoints] }));
 }
 
-/** Export the OpenAPI spec as a JSON string. */
+/**
+ * Export the OpenAPI specification as a formatted JSON string.
+ *
+ * @param config - Optional playground configuration overrides.
+ * @returns A pretty-printed JSON string of the OpenAPI spec.
+ */
 export function exportAsSwaggerJSON(config?: Partial<PlaygroundConfig>): string {
   return JSON.stringify(generateOpenAPISpec(config), null, 2);
 }
 
-/** Export the OpenAPI spec as a YAML string. */
+/**
+ * Export the OpenAPI specification as a YAML string.
+ *
+ * Uses a lightweight internal YAML serializer (no external dependency).
+ *
+ * @param config - Optional playground configuration overrides.
+ * @returns A YAML-formatted string of the OpenAPI spec.
+ */
 export function exportAsSwaggerYAML(config?: Partial<PlaygroundConfig>): string {
   const spec = generateOpenAPISpec(config);
   return toYAML(spec);
 }
 
-/** Generate an HTML page that embeds Swagger UI from CDN. */
+/**
+ * Generate a self-contained HTML page that renders Swagger UI.
+ *
+ * When `specUrl` is provided, Swagger UI fetches the spec from that URL at runtime.
+ * Otherwise, the current spec is embedded inline in the HTML.
+ *
+ * @param specUrl - Optional URL to an externally-hosted OpenAPI spec. When omitted, the spec is inlined.
+ * @returns A complete HTML document string ready to be served or saved.
+ */
 export function getSwaggerUIHTML(specUrl?: string): string {
   const spec = specUrl ? null : generateOpenAPISpec();
-  const specSource = specUrl
-    ? `url: "${specUrl}"`
-    : `spec: ${JSON.stringify(spec)}`;
+  const specSource = specUrl ? `url: "${specUrl}"` : `spec: ${JSON.stringify(spec)}`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1063,7 +1248,17 @@ export function getSwaggerUIHTML(specUrl?: string): string {
 </html>`;
 }
 
-/** Validate a request body against the schema for a given endpoint. */
+/**
+ * Validate a request body against the registered schema for a given endpoint.
+ *
+ * Checks that all required fields are present and that field types match the
+ * schema definition (string length constraints, enum membership, etc.).
+ *
+ * @param endpointPath - The API endpoint path (e.g., `/api/investigate`).
+ * @param method - The HTTP method (e.g., `POST`).
+ * @param body - The request body to validate.
+ * @returns An object with `valid` (boolean) and `errors` (string array describing failures).
+ */
 export function validateRequest(
   endpointPath: string,
   method: string,
@@ -1073,7 +1268,10 @@ export function validateRequest(
     (e) => e.path === endpointPath && e.method === method.toUpperCase()
   );
   if (!endpoint) {
-    return { valid: false, errors: [`Endpoint not found: ${method.toUpperCase()} ${endpointPath}`] };
+    return {
+      valid: false,
+      errors: [`Endpoint not found: ${method.toUpperCase()} ${endpointPath}`],
+    };
   }
   if (!endpoint.requestBody) {
     return body === undefined || body === null
@@ -1137,7 +1335,13 @@ function toYAML(obj: unknown, indent: number = 0): string {
   if (typeof obj === "boolean") return `${pad}${obj}\n`;
   if (typeof obj === "number") return `${pad}${obj}\n`;
   if (typeof obj === "string") {
-    if (obj.includes("\n") || obj.includes(": ") || obj.includes("#") || obj.startsWith("{") || obj.startsWith("[")) {
+    if (
+      obj.includes("\n") ||
+      obj.includes(": ") ||
+      obj.includes("#") ||
+      obj.startsWith("{") ||
+      obj.startsWith("[")
+    ) {
       return `${pad}${JSON.stringify(obj)}\n`;
     }
     return `${pad}${obj}\n`;
@@ -1165,9 +1369,14 @@ function toYAML(obj: unknown, indent: number = 0): string {
       if (typeof value === "object" && value !== null) {
         result += `${pad}${key}:\n${toYAML(value, indent + 1)}`;
       } else if (typeof value === "string") {
-        const valStr = value.includes("\n") || value.includes(": ") || value.includes("#") || value.startsWith("{") || value.startsWith("[")
-          ? JSON.stringify(value)
-          : value;
+        const valStr =
+          value.includes("\n") ||
+          value.includes(": ") ||
+          value.includes("#") ||
+          value.startsWith("{") ||
+          value.startsWith("[")
+            ? JSON.stringify(value)
+            : value;
         result += `${pad}${key}: ${valStr}\n`;
       } else {
         result += `${pad}${key}: ${String(value)}\n`;
