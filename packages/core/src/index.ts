@@ -6143,3 +6143,33 @@ export {
   auditDataAccess,
   clearAuditTrail,
 } from "./rbac/index.js";
+
+/** Analytics — standardized events and dashboard service. */
+export {
+  STANDARD_EVENT_TYPES,
+  EventAggregator,
+  getEventAggregator,
+} from "./analytics/standard-events.js";
+export type {
+  StandardEventType,
+  StandardEvent as StandardAnalyticsEvent,
+  QualityMetrics as StandardQualityMetrics,
+  Granularity,
+  VelocityMetrics,
+} from "./analytics/standard-events.js";
+
+export {
+  DashboardService,
+  getDashboardService,
+} from "./analytics/dashboard-service.js";
+export type {
+  DateRange,
+  DashboardOverview,
+  VelocityChartData,
+  QualityHeatmapData,
+  TeamComparisonData,
+  SessionDrillDown,
+  ROISummaryData,
+  ReportOptions as DashboardReportOptions,
+  ExecutiveSummaryReport,
+} from "./analytics/dashboard-service.js";
