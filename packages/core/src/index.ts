@@ -6294,3 +6294,20 @@ export type {
   SkillAchievement,
   SkillTree as CoachingSkillTree,
 } from "./coaching/skill-tree.js";
+
+/** Orchestration — workflow schema definition. */
+export {
+  WorkflowStepType as WorkflowStepTypeSchema,
+  WorkflowStepSchema,
+  WorkflowConnectionSchema,
+  WorkflowGateSchema,
+  WorkflowDefinitionSchema,
+  WorkflowExecutionSchema,
+} from "./orchestration/workflow-schema.js";
+export type {
+  WorkflowStep as WorkflowSchemaStep,
+  WorkflowConnection,
+  WorkflowGate,
+  WorkflowDefinition as WorkflowSchemaDefinition,
+  WorkflowExecution,
+} from "./orchestration/workflow-schema.js";
