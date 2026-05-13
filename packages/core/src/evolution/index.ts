@@ -14,6 +14,7 @@ import type { InnovationIdea } from "../types.js";
 
 // ---- Schemas ----
 
+/** Zod schema for mutation type identifiers (pivot, scale, simplify, combine, invert, analogize, constrain). */
 export const MutationTypeSchema = z.enum([
   "pivot",
   "scale",
@@ -24,6 +25,7 @@ export const MutationTypeSchema = z.enum([
   "constrain",
 ]);
 
+/** Zod schema for ancestry tracking: links an idea to its parents, generation, and operation type. */
 export const AncestryNodeSchema = z.object({
   id: z.string().max(100),
   parentIds: z.array(z.string().max(100)),
@@ -32,6 +34,7 @@ export const AncestryNodeSchema = z.object({
   mutationType: MutationTypeSchema.optional(),
 });
 
+/** Zod schema for an evolved idea with fitness score, generation number, and ancestry. */
 export const EvolvedIdeaSchema = z.object({
   id: z.string().max(100),
   title: z.string().max(500),
@@ -43,6 +46,7 @@ export const EvolvedIdeaSchema = z.object({
   ancestry: AncestryNodeSchema,
 });
 
+/** Zod schema for one generation's results: population, best/average fitness, and top idea. */
 export const GenerationResultSchema = z.object({
   generation: z.number().min(0),
   population: z.array(EvolvedIdeaSchema).max(50),
@@ -51,6 +55,7 @@ export const GenerationResultSchema = z.object({
   bestIdea: EvolvedIdeaSchema,
 });
 
+/** Zod schema for the complete evolution result spanning all generations. */
 export const EvolutionResultSchema = z.object({
   generations: z.array(GenerationResultSchema).max(20),
   bestOverall: EvolvedIdeaSchema,
@@ -58,10 +63,15 @@ export const EvolutionResultSchema = z.object({
   fitnessHistory: z.array(z.number()).max(20),
 });
 
+/** The type of mutation applied during evolution. */
 export type MutationType = z.infer<typeof MutationTypeSchema>;
+/** An ancestry node tracking lineage of an evolved idea. */
 export type AncestryNode = z.infer<typeof AncestryNodeSchema>;
+/** An idea with fitness score and ancestry metadata from the evolution process. */
 export type EvolvedIdea = z.infer<typeof EvolvedIdeaSchema>;
+/** Results of a single generation in the evolution process. */
 export type GenerationResult = z.infer<typeof GenerationResultSchema>;
+/** Complete results of a multi-generation evolution run. */
 export type EvolutionResult = z.infer<typeof EvolutionResultSchema>;
 
 /** Configuration for the evolutionary idea generation process. */
@@ -201,7 +211,11 @@ const FitnessResponseSchema = z.object({
 // ---- Core Functions ----
 
 /**
- * Crossover two ideas to produce a hybrid offspring.
+ * Crossover two parent ideas to produce a hybrid offspring via LLM.
+ * @param ideaA - First parent idea.
+ * @param ideaB - Second parent idea.
+ * @param config - Optional model and abort signal.
+ * @returns A new {@link EvolvedIdea} combining the strongest elements of both parents.
  */
 export async function crossover(
   ideaA: EvolvedIdea,
@@ -237,7 +251,11 @@ export async function crossover(
 }
 
 /**
- * Mutate an idea using a specified mutation type.
+ * Mutate an idea using a specified mutation strategy (e.g., pivot, simplify, invert).
+ * @param idea - The idea to mutate.
+ * @param mutationType - The mutation strategy to apply.
+ * @param config - Optional model and abort signal.
+ * @returns A new {@link EvolvedIdea} with the mutation applied.
  */
 export async function mutate(
   idea: EvolvedIdea,
@@ -274,8 +292,10 @@ export async function mutate(
 }
 
 /**
- * Select top individuals from a population based on fitness scores.
- * Tournament selection: pick best from random subsets.
+ * Select the top individuals from a population based on fitness scores (elitism).
+ * @param population - The current population of evolved ideas.
+ * @param count - Number of top individuals to select.
+ * @returns Array of the highest-fitness ideas, up to `count` entries.
  */
 export function select(population: EvolvedIdea[], count: number): EvolvedIdea[] {
   const sorted = [...population].sort((a, b) => b.fitness - a.fitness);
@@ -313,6 +333,15 @@ async function evaluateFitness(
 
 /**
  * Run a multi-generation evolutionary process on a population of ideas.
+ *
+ * Each generation: evaluate fitness → select elites → crossover → mutate → repeat.
+ *
+ * @param initialPopulation - Seed ideas (minimum 2 required).
+ * @param generations - Number of generations to run (1-10, default 3).
+ * @param config - Evolution parameters (population size, mutation/crossover rates, model).
+ * @param onProgress - Optional callback invoked at each evolution phase.
+ * @returns An {@link EvolutionResult} with all generations, best overall idea, and fitness history.
+ * @throws If generations is outside 1-10 or fewer than 2 seed ideas are provided.
  */
 export async function runEvolution(
   initialPopulation: InnovationIdea[],
@@ -450,7 +479,9 @@ export async function runEvolution(
 }
 
 /**
- * Format evolution results as markdown.
+ * Format evolution results as markdown with fitness trends and per-generation summaries.
+ * @param result - The evolution result to format.
+ * @returns A markdown string.
  */
 export function evolutionToMarkdown(result: EvolutionResult): string {
   const lines: string[] = [
