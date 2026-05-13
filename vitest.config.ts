@@ -6,6 +6,8 @@ export default defineConfig({
     // Allow `@/` imports in web app tests to resolve to apps/web/src
     alias: {
       "@": resolve(__dirname, "apps/web/src"),
+      // Stub mermaid for tests — it's an optional runtime dependency
+      "mermaid": resolve(__dirname, "apps/web/src/__tests__/__mocks__/mermaid.ts"),
     },
   },
   test: {
