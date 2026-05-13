@@ -6224,3 +6224,19 @@ export type {
   SynthesisInput as VisualSynthesisInput,
   AngleResultInput as VisualAngleResultInput,
 } from "./multi-modal/visual-output.js";
+
+/** API Gateway — OpenAPI spec and webhook registry. */
+export {
+  getOpenAPISpec,
+  getOpenAPISpecJSON,
+  getOpenAPISpecYAML,
+} from "./api-gateway/openapi-spec.js";
+
+export {
+  WebhookRegistry,
+  getWebhookRegistry,
+} from "./api-gateway/webhooks.js";
+export type {
+  WebhookRegistration,
+  WebhookDelivery as WebhookDeliveryRecord,
+} from "./api-gateway/webhooks.js";
