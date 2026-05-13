@@ -414,3 +414,16 @@ export async function exportToNotion(
 export function clearIntegrations(): void {
   integrations.clear();
 }
+
+// ---- Class-based Integration Re-exports ----
+
+export { JiraIntegration } from "./jira.js";
+export type { JiraConfig } from "./jira.js";
+export { LinearIntegration } from "./linear.js";
+export type { LinearConfig } from "./linear.js";
+export { SlackIntegration } from "./slack.js";
+export type { SlackConfig } from "./slack.js";
+export { ConfluenceIntegration } from "./confluence.js";
+export type { ConfluenceConfig } from "./confluence.js";
+export { NotionIntegration } from "./notion.js";
+export type { NotionConfig } from "./notion.js";

@@ -6240,3 +6240,10 @@ export type {
   WebhookRegistration,
   WebhookDelivery as WebhookDeliveryRecord,
 } from "./api-gateway/webhooks.js";
+
+/** Integrations — Jira, Linear, Slack, Confluence, Notion. */
+export { JiraIntegration } from "./integrations/jira.js";
+export { LinearIntegration } from "./integrations/linear.js";
+export { SlackIntegration } from "./integrations/slack.js";
+export { ConfluenceIntegration } from "./integrations/confluence.js";
+export { NotionIntegration } from "./integrations/notion.js";
