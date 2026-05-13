@@ -83,6 +83,37 @@ describe("resilience", () => {
       expect(status.failureCount).toBe(1);
       expect(status.lastFailure).toBeDefined();
     });
+
+    it("prunes old failures outside monitoring window", async () => {
+      const shortWindow = new CircuitBreaker("prune-test", {
+        failureThreshold: 5,
+        resetTimeoutMs: 100,
+        halfOpenMaxAttempts: 2,
+        monitorWindowMs: 50,
+      });
+      shortWindow.recordFailure();
+      shortWindow.recordFailure();
+      await new Promise((r) => setTimeout(r, 100));
+      // Old failures pruned on next recordFailure
+      shortWindow.recordFailure();
+      const status = shortWindow.getStatus();
+      // Only recent failure should remain
+      expect(status.failureCount).toBe(1);
+    });
+
+    it("half-open limits attempts", async () => {
+      for (let i = 0; i < 3; i++) breaker.recordFailure();
+      await new Promise((r) => setTimeout(r, 150));
+      expect(breaker.getState()).toBe("half-open");
+      // halfOpenMaxAttempts = 2, isAllowed should be true until attempts exhausted
+      expect(breaker.isAllowed()).toBe(true);
+    });
+
+    it("getStatus returns null lastFailure when no failures", () => {
+      const status = breaker.getStatus();
+      expect(status.lastFailure).toBeNull();
+      expect(status.failureCount).toBe(0);
+    });
   });
 
   // ---- executeWithFailover ----
@@ -238,6 +269,40 @@ describe("resilience", () => {
       mgr.resetSession();
       expect(mgr.getSpendSummary().sessionSpend).toBe(0);
     });
+
+    it("allows when no budgets configured", () => {
+      const mgr = new CostGuardrailManager({ warningThresholdPct: 80 });
+      const result = mgr.checkBudget(100);
+      expect(result.allowed).toBe(true);
+    });
+
+    it("handles zero cost check", () => {
+      const mgr = new CostGuardrailManager({
+        sessionBudgetUsd: 1.0,
+        warningThresholdPct: 80,
+      });
+      const result = mgr.checkBudget(0);
+      expect(result.allowed).toBe(true);
+    });
+
+    it("accumulates spend across multiple records", () => {
+      const mgr = new CostGuardrailManager({
+        sessionBudgetUsd: 10.0,
+        monthlyBudgetUsd: 100.0,
+        warningThresholdPct: 80,
+      });
+      mgr.recordSpend(1.0);
+      mgr.recordSpend(2.0);
+      mgr.recordSpend(3.0);
+      const summary = mgr.getSpendSummary();
+      expect(summary.sessionSpend).toBe(6.0);
+      expect(summary.monthlySpend).toBe(6.0);
+    });
+
+    it("returns empty warnings array", () => {
+      const mgr = new CostGuardrailManager({ warningThresholdPct: 80 });
+      expect(mgr.getWarnings()).toEqual([]);
+    });
   });
 
   // ---- forecastPipelineCost ----
@@ -269,6 +334,18 @@ describe("resilience", () => {
         outputCostPer1k: 0.03,
       });
       expect(result.estimatedCostUsd).toBeGreaterThanOrEqual(0);
+    });
+
+    it("returns values rounded to 4 decimal places", () => {
+      const result = forecastPipelineCost({
+        angleCount: 1,
+        avgInputTokens: 100,
+        avgOutputTokens: 100,
+        inputCostPer1k: 0.001,
+        outputCostPer1k: 0.001,
+      });
+      const decimals = result.estimatedCostUsd.toString().split(".")[1];
+      expect(!decimals || decimals.length <= 4).toBe(true);
     });
   });
 
