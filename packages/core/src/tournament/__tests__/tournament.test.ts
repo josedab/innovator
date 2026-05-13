@@ -323,4 +323,202 @@ describe("tournament", () => {
       expect(startTournament(t.id)).toBeUndefined();
     });
   });
+
+  // ---- Elo boundary tests ----
+
+  describe("updateElo — boundary values", () => {
+    it("preserves total Elo rating (zero-sum)", () => {
+      const result = updateElo(800, 1600, "participant-a");
+      expect(result.newRatingA + result.newRatingB).toBe(800 + 1600);
+    });
+
+    it("draw with unequal ratings moves them closer", () => {
+      const result = updateElo(1000, 1400, "draw");
+      expect(result.newRatingA).toBeGreaterThan(1000);
+      expect(result.newRatingB).toBeLessThan(1400);
+    });
+
+    it("extremely high rating difference still produces valid results", () => {
+      const result = updateElo(100, 3000, "participant-a");
+      expect(result.newRatingA).toBeGreaterThan(100);
+      expect(result.newRatingB).toBeLessThan(3000);
+      expect(Number.isFinite(result.newRatingA)).toBe(true);
+      expect(Number.isFinite(result.newRatingB)).toBe(true);
+    });
+
+    it("zero ratings produce valid results", () => {
+      const result = updateElo(0, 0, "participant-a");
+      expect(result.newRatingA).toBeGreaterThan(0);
+      expect(result.newRatingB).toBeLessThan(0);
+    });
+
+    it("negative ratings produce valid results", () => {
+      const result = updateElo(-100, -100, "participant-a");
+      expect(result.newRatingA).toBeGreaterThan(-100);
+      expect(result.newRatingB).toBeLessThan(-100);
+    });
+  });
+
+  // ---- Tournament edge cases ----
+
+  describe("createTournament — validation", () => {
+    it("throws for empty ideas array", () => {
+      expect(() =>
+        createTournament({ name: "T", format: "single-elimination", ideas: [] })
+      ).toThrow("at least 2");
+    });
+
+    it("creates tournament with exactly 64 participants", () => {
+      const t = createTournament({
+        name: "Max",
+        format: "round-robin",
+        ideas: makeIdeas(64),
+      });
+      expect(t.participants).toHaveLength(64);
+    });
+
+    it("assigns unique participant IDs", () => {
+      const t = createTournament({
+        name: "T",
+        format: "round-robin",
+        ideas: makeIdeas(8),
+      });
+      const ids = t.participants.map((p) => p.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it("all participants start with elo 1200", () => {
+      const t = createTournament({
+        name: "T",
+        format: "round-robin",
+        ideas: makeIdeas(4),
+      });
+      for (const p of t.participants) {
+        expect(p.elo).toBe(1200);
+        expect(p.wins).toBe(0);
+        expect(p.losses).toBe(0);
+        expect(p.draws).toBe(0);
+        expect(p.eliminated).toBe(false);
+      }
+    });
+  });
+
+  describe("resolveMatch — additional edge cases", () => {
+    it("returns undefined for non-existent tournament", () => {
+      expect(resolveMatch("bad-id", "m1", "participant-a")).toBeUndefined();
+    });
+
+    it("returns undefined for non-existent match", () => {
+      const t = createTournament({
+        name: "T",
+        format: "round-robin",
+        ideas: makeIdeas(3),
+      });
+      startTournament(t.id);
+      expect(resolveMatch(t.id, "bad-match-id", "participant-a")).toBeUndefined();
+    });
+
+    it("handles draw result correctly", () => {
+      const t = createTournament({
+        name: "T",
+        format: "round-robin",
+        ideas: makeIdeas(3),
+      });
+      startTournament(t.id);
+      const match = t.matches[0];
+      const result = resolveMatch(t.id, match.id, "draw");
+      expect(result!.result).toBe("draw");
+
+      const updated = getTournament(t.id)!;
+      const pA = updated.participants.find((p) => p.id === match.participantA);
+      const pB = updated.participants.find((p) => p.id === match.participantB);
+      expect(pA!.draws).toBe(1);
+      expect(pB!.draws).toBe(1);
+    });
+
+    it("stores rationale and judgeType", () => {
+      const t = createTournament({
+        name: "T",
+        format: "round-robin",
+        ideas: makeIdeas(3),
+      });
+      startTournament(t.id);
+      const result = resolveMatch(t.id, t.matches[0].id, "participant-a", "Great idea!", "llm");
+      expect(result!.rationale).toBe("Great idea!");
+      expect(result!.judgeType).toBe("llm");
+    });
+  });
+
+  describe("deleteTournament — edge cases", () => {
+    it("returns false for non-existent tournament", () => {
+      expect(deleteTournament("nonexistent")).toBe(false);
+    });
+
+    it("deleted tournament not in list", () => {
+      const t = createTournament({
+        name: "T",
+        format: "round-robin",
+        ideas: makeIdeas(2),
+      });
+      deleteTournament(t.id);
+      expect(listTournaments().find((x) => x.id === t.id)).toBeUndefined();
+    });
+  });
+
+  describe("getLeaderboard — tie-breaking", () => {
+    it("ties are broken by Elo (higher Elo first)", () => {
+      const t = createTournament({
+        name: "T",
+        format: "round-robin",
+        ideas: makeIdeas(3),
+      });
+      startTournament(t.id);
+      // Resolve only first match to create Elo difference
+      resolveMatch(t.id, t.matches[0].id, "participant-a");
+      const lb = getLeaderboard(t.id)!;
+      // First entry should have highest Elo
+      for (let i = 0; i < lb.length - 1; i++) {
+        expect(lb[i].elo).toBeGreaterThanOrEqual(lb[i + 1].elo);
+      }
+    });
+  });
+
+  describe("getBracketData", () => {
+    it("returns undefined for non-existent tournament", () => {
+      expect(getBracketData("nonexistent")).toBeUndefined();
+    });
+
+    it("returns correct round structure", () => {
+      const t = createTournament({
+        name: "T",
+        format: "single-elimination",
+        ideas: makeIdeas(4),
+      });
+      const data = getBracketData(t.id)!;
+      expect(data.rounds.length).toBeGreaterThan(0);
+      expect(data.participants).toHaveLength(4);
+      // Rounds should be sorted ascending
+      for (let i = 0; i < data.rounds.length - 1; i++) {
+        expect(data.rounds[i].round).toBeLessThan(data.rounds[i + 1].round);
+      }
+    });
+  });
+
+  describe("round-robin completion", () => {
+    it("tournament completes when all matches resolved", () => {
+      const t = createTournament({
+        name: "T",
+        format: "round-robin",
+        ideas: makeIdeas(3),
+      });
+      startTournament(t.id);
+      // 3 participants = 3 matches
+      for (const match of t.matches) {
+        resolveMatch(t.id, match.id, "participant-a");
+      }
+      const updated = getTournament(t.id)!;
+      expect(updated.state).toBe("completed");
+      expect(updated.winnerId).toBeDefined();
+    });
+  });
 });
