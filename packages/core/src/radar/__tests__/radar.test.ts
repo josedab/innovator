@@ -251,5 +251,96 @@ describe("radar", () => {
       // All new items in a diff with previous are "high" significance
       expect(changes.every((c) => c.significance === "high")).toBe(true);
     });
+
+    it("case-insensitive comparison for opportunities", () => {
+      const prev = makeInvestigation({ opportunities: ["Solar Power"] });
+      const curr = makeInvestigation({ opportunities: ["solar power"] });
+      const changes = diffInvestigations(prev, curr);
+      const newOpps = changes.filter((c) => c.type === "new_opportunity");
+      expect(newOpps).toHaveLength(0);
+    });
+
+    it("case-insensitive comparison for challenges", () => {
+      const prev = makeInvestigation({ challenges: ["Scale Issues"] });
+      const curr = makeInvestigation({ challenges: ["scale issues"] });
+      const changes = diffInvestigations(prev, curr);
+      const newChallenges = changes.filter((c) => c.type === "new_challenge");
+      expect(newChallenges).toHaveLength(0);
+    });
+
+    it("diffInvestigations detects modified items via new aspects", () => {
+      const prev = makeInvestigation({
+        keyAspects: [{ title: "Energy", description: "Traditional energy" }],
+      });
+      const curr = makeInvestigation({
+        keyAspects: [
+          { title: "Energy", description: "Traditional energy" },
+          { title: "AI Integration", description: "New AI capabilities" },
+        ],
+      });
+      const changes = diffInvestigations(prev, curr);
+      expect(changes.filter((c) => c.type === "new_aspect")).toHaveLength(1);
+    });
+  });
+
+  // ---- runRadarScan ----
+
+  describe("runRadarScan", () => {
+    it("runs scan and returns result with changes", async () => {
+      const fs = await import("node:fs");
+      const watch: WatchSubject = {
+        id: "scan-test",
+        subject: "AI",
+        frequency: "daily",
+        alertChannels: ["webhook"],
+        alertThreshold: 0.3,
+        enabled: true,
+        createdAt: new Date().toISOString(),
+        nextRunAt: new Date().toISOString(),
+      };
+
+      const investigateFn = vi
+        .fn()
+        .mockResolvedValue(makeInvestigation({ opportunities: ["New AI Opp"] }));
+
+      const result = await runRadarScan(watch, investigateFn);
+      expect(result.watchId).toBe("scan-test");
+      expect(result.investigation).toBeDefined();
+      expect(result.changes.length).toBeGreaterThan(0);
+      expect(investigateFn).toHaveBeenCalledWith("AI");
+    });
+
+    it("computes significance and triggers alert when above threshold", async () => {
+      const watch: WatchSubject = {
+        id: "alert-test",
+        subject: "AI",
+        frequency: "daily",
+        alertChannels: ["webhook"],
+        alertThreshold: 0.1, // low threshold
+        enabled: true,
+        createdAt: new Date().toISOString(),
+        nextRunAt: new Date().toISOString(),
+      };
+
+      const investigateFn = vi.fn().mockResolvedValue(
+        makeInvestigation({
+          opportunities: ["Big Opp"],
+          challenges: ["Big Challenge"],
+        })
+      );
+
+      const result = await runRadarScan(watch, investigateFn);
+      expect(result.significanceScore).toBeGreaterThan(0);
+      expect(result.alertTriggered).toBe(true);
+    });
+  });
+
+  // ---- getDueWatches ----
+
+  describe("getDueWatches", () => {
+    it("returns empty when no watches exist", () => {
+      const due = getDueWatches();
+      expect(due).toHaveLength(0);
+    });
   });
 });
