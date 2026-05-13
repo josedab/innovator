@@ -11,21 +11,21 @@ describe("VS Code Extension Helpers", () => {
     it("builds tree with quick actions", () => {
       const tree = buildSidebarTree();
       const quickActions = tree.find((item) => item.id === "quick-actions");
-      expect(quickActions).toBeDefined();
+      expect(quickActions).not.toBeUndefined();
       expect(quickActions!.children!.length).toBeGreaterThan(0);
     });
 
     it("includes recent sessions when provided", () => {
       const tree = buildSidebarTree([{ subject: "AI testing", ideasCount: 5, date: "2024-01-01" }]);
       const recent = tree.find((item) => item.id === "recent-sessions");
-      expect(recent).toBeDefined();
+      expect(recent).not.toBeUndefined();
       expect(recent!.children).toHaveLength(1);
     });
 
     it("includes templates when provided", () => {
       const tree = buildSidebarTree(undefined, [{ id: "t1", name: "Template 1" }]);
       const templates = tree.find((item) => item.id === "templates");
-      expect(templates).toBeDefined();
+      expect(templates).not.toBeUndefined();
     });
 
     it("includes insights when provided", () => {
@@ -33,7 +33,7 @@ describe("VS Code Extension Helpers", () => {
         { title: "Insight", description: "Test insight" },
       ]);
       const insights = tree.find((item) => item.id === "insights");
-      expect(insights).toBeDefined();
+      expect(insights).not.toBeUndefined();
     });
 
     it("omits sections with empty data", () => {
@@ -144,10 +144,10 @@ describe("VS Code Extension Helpers", () => {
   describe("getExtensionContributions", () => {
     it("returns VS Code contribution points", () => {
       const contributions = getExtensionContributions();
-      expect(contributions.chatParticipants).toBeDefined();
-      expect(contributions.commands).toBeDefined();
-      expect(contributions.viewsContainers).toBeDefined();
-      expect(contributions.views).toBeDefined();
+      expect(Array.isArray(contributions.chatParticipants)).toBe(true);
+      expect(Array.isArray(contributions.commands)).toBe(true);
+      expect(contributions.viewsContainers).toMatchObject(expect.any(Object));
+      expect(contributions.views).toMatchObject(expect.any(Object));
     });
 
     it("includes all required commands", () => {

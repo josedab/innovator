@@ -53,7 +53,7 @@ describe("versioning – enhanced functions", () => {
       const v2 = commitVersion(v1.id, { title: "Updated on main" }, "alice")!;
 
       const picked = cherryPickVersion(v2.id, "feature", "bob", "cherry-pick title change");
-      expect(picked).toBeDefined();
+      expect(picked).not.toBeUndefined();
       expect(picked!.branchName).toBe("feature");
       expect(picked!.title).toBe("Updated on main");
       expect(picked!.author).toBe("bob");
@@ -80,7 +80,7 @@ describe("versioning – enhanced functions", () => {
       const v2 = commitVersion(v1.id, { title: "New title" })!;
 
       const picked = cherryPickVersion(v2.id, "feature");
-      expect(picked).toBeDefined();
+      expect(picked).not.toBeUndefined();
       expect(picked!.message).toContain("Cherry-pick");
       expect(picked!.message).toContain(v2.id);
     });
@@ -124,7 +124,7 @@ describe("versioning – enhanced functions", () => {
       expect(report.conflictingFields.length).toBeGreaterThan(0);
       expect(report.autoResolvable).toBe(false);
       const titleConflict = report.conflictingFields.find((f) => f.field === "title");
-      expect(titleConflict).toBeDefined();
+      expect(titleConflict).not.toBeUndefined();
       expect(titleConflict!.valueA).toBe("Main title");
       expect(titleConflict!.valueB).toBe("Feature title");
     });
@@ -187,7 +187,7 @@ describe("versioning – enhanced functions", () => {
 
       const timeline = buildTimeline("idea-1");
       const mergeEntry = timeline.find((e) => e.isMerge);
-      expect(mergeEntry).toBeDefined();
+      expect(mergeEntry).not.toBeUndefined();
     });
   });
 
@@ -199,7 +199,7 @@ describe("versioning – enhanced functions", () => {
       const v2 = commitVersion(v1.id, { title: "Changed Title" })!;
 
       const result = compareSideBySide(v1.id, v2.id);
-      expect(result).toBeDefined();
+      expect(result).not.toBeUndefined();
       expect(result!.versionIdA).toBe(v1.id);
       expect(result!.versionIdB).toBe(v2.id);
       expect(result!.fields).toHaveLength(4); // title, description, potentialImpact, implementationHint
@@ -248,7 +248,7 @@ describe("versioning – enhanced functions", () => {
       const v2 = commitVersion(v1.id, { title: "V2 Title" }, "alice")!;
 
       const reverted = revertToVersion(v1.id, "bob", "Reverting to original");
-      expect(reverted).toBeDefined();
+      expect(reverted).not.toBeUndefined();
       expect(reverted!.title).toBe(testIdea.title);
       expect(reverted!.description).toBe(testIdea.description);
       expect(reverted!.parentId).toBe(v2.id); // parent is current head
@@ -265,7 +265,7 @@ describe("versioning – enhanced functions", () => {
       commitVersion(v1.id, { title: "Changed" });
 
       const reverted = revertToVersion(v1.id);
-      expect(reverted).toBeDefined();
+      expect(reverted).not.toBeUndefined();
       expect(reverted!.message).toContain("Revert to version");
       expect(reverted!.message).toContain(v1.id);
     });
@@ -337,7 +337,7 @@ describe("versioning – enhanced functions", () => {
       expect(graph.edges.length).toBeGreaterThanOrEqual(1);
 
       const edge = graph.edges.find((e) => e.from === v1.id && e.to === v2.id);
-      expect(edge).toBeDefined();
+      expect(edge).not.toBeUndefined();
     });
 
     it("includes nodes from multiple branches", () => {

@@ -47,14 +47,14 @@ describe("voice", () => {
   describe("parseVoiceCommand", () => {
     it("parses 'investigate' command", () => {
       const result = parseVoiceCommand(makeTranscript("investigate renewable energy"));
-      expect(result).toBeDefined();
+      expect(result).not.toBeNull();
       expect(result!.command).toBe("investigate");
       expect(result!.argument).toBe("renewable energy");
     });
 
     it("parses 'look into' as investigate", () => {
       const result = parseVoiceCommand(makeTranscript("look into AI safety"));
-      expect(result).toBeDefined();
+      expect(result).not.toBeNull();
       expect(result!.command).toBe("investigate");
       expect(result!.argument).toBe("AI safety");
     });
@@ -220,7 +220,7 @@ describe("voice", () => {
         recommendation: "Do this thing",
       });
       const recSeg = segments.find((s) => s.type === "summary");
-      expect(recSeg).toBeDefined();
+      expect(recSeg).not.toBeUndefined();
       expect(recSeg!.text).toContain("Do this thing");
     });
 
@@ -302,14 +302,14 @@ describe("voice", () => {
     it("registers and retrieves STT provider", () => {
       registerSTTProvider(mockSTTProvider);
       const provider = getSTTProvider("test-stt");
-      expect(provider).toBeDefined();
+      expect(provider).not.toBeUndefined();
       expect(provider!.name).toBe("Test STT");
     });
 
     it("registers and retrieves TTS provider", () => {
       registerTTSProvider(mockTTSProvider);
       const provider = getTTSProvider("test-tts");
-      expect(provider).toBeDefined();
+      expect(provider).not.toBeUndefined();
       expect(provider!.name).toBe("Test TTS");
     });
 
@@ -387,7 +387,7 @@ describe("voice", () => {
     it("stores session retrievable by getVoiceSession", () => {
       const session = createVoiceSession();
       const retrieved = getVoiceSession(session.id);
-      expect(retrieved).toBeDefined();
+      expect(retrieved).not.toBeUndefined();
       expect(retrieved!.id).toBe(session.id);
     });
   });
@@ -461,7 +461,7 @@ describe("voice", () => {
       const session = createVoiceSession();
       transitionVoiceSession(session.id, "listening");
       const cmd = addVoiceTranscript(session.id, makeTranscript("investigate AI"));
-      expect(cmd).toBeDefined();
+      expect(cmd).not.toBeNull();
       expect(cmd!.command).toBe("investigate");
       expect(getVoiceSession(session.id)!.transcripts).toHaveLength(1);
       expect(getVoiceSession(session.id)!.commands).toHaveLength(1);
@@ -581,7 +581,7 @@ describe("voice", () => {
     it("ends a session and sets state to ended", () => {
       const session = createVoiceSession();
       const ended = endVoiceSession(session.id);
-      expect(ended).toBeDefined();
+      expect(ended).not.toBeUndefined();
       expect(ended!.state).toBe("ended");
     });
 
