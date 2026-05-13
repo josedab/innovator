@@ -9,6 +9,9 @@ import {
   compareStrategies,
   EcosystemSnapshotSchema,
   StrategySchema,
+  runMonteCarloComparison as runTwinMonteCarloComparison,
+  twinMonteCarloToMarkdown,
+  TwinMonteCarloConfigSchema,
 } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -19,6 +22,12 @@ const SimulateRequestSchema = z.object({
   ecosystem: EcosystemSnapshotSchema,
   strategies: z.array(StrategySchema).min(1).max(10),
   model: z.string().optional(),
+  mode: z.enum(["llm", "monte-carlo"]).optional(),
+  monteCarloConfig: z.object({
+    iterations: z.number().int().min(100).max(100000).optional(),
+    timeHorizonWeeks: z.number().int().min(4).max(260).optional(),
+    randomSeed: z.number().optional(),
+  }).optional(),
 });
 
 /**
@@ -59,12 +68,33 @@ export async function POST(request: Request) {
       });
     }
 
-    const { ecosystem, strategies, model } = parsed.data;
+    const { ecosystem, strategies, model, mode, monteCarloConfig } = parsed.data;
 
     const modelError = validateModel(model);
     if (modelError) return modelError;
 
     registerEcosystem(ecosystem);
+
+    // Monte Carlo mode: deterministic statistical simulation (no LLM)
+    if (mode === "monte-carlo") {
+      const comparison = runTwinMonteCarloComparison(ecosystem, strategies, {
+        iterations: monteCarloConfig?.iterations ?? 1000,
+        timeHorizonWeeks: monteCarloConfig?.timeHorizonWeeks ?? 52,
+        randomSeed: monteCarloConfig?.randomSeed,
+      });
+
+      logger.info("Monte Carlo strategy comparison completed", {
+        route: "/api/digital-twin",
+        requestId,
+        strategies: strategies.length,
+        iterations: monteCarloConfig?.iterations ?? 1000,
+        durationMs: Date.now() - startTime,
+      });
+
+      return Response.json(comparison, { headers: API_RESPONSE_HEADERS });
+    }
+
+    // Default: LLM-based simulation
     const comparison = await compareStrategies(ecosystem, strategies, model, request.signal);
 
     logger.info("Digital twin simulation completed", {
