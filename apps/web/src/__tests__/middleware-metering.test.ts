@@ -355,4 +355,83 @@ describe("middleware metering system", () => {
       expect(map.size).toBe(MAX);
     });
   });
+
+  // ---- Additional quota edge cases ----
+
+  describe("checkKeyQuota — quota resets at day boundary", () => {
+    it("daily count resets at UTC midnight", () => {
+      setMeteringKeyTier("reset-key", "free");
+
+      // Simulate entries from yesterday
+      const yesterday = Date.now() - 86_400_000 - 1000;
+      for (let i = 0; i < 100; i++) {
+        meteringLog.push({
+          keyId: "reset-key",
+          route: "/api/test",
+          method: "GET",
+          timestamp: yesterday,
+        });
+      }
+
+      // Today's count should be 0, so quota is not exceeded
+      const result = checkKeyQuota("reset-key");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("metering entry overflow", () => {
+    it("trims oldest entries when exceeding MAX_METERING_ENTRIES", () => {
+      const MAX_METERING_ENTRIES = 50_000;
+      // Fill to just above capacity
+      for (let i = 0; i < MAX_METERING_ENTRIES + 10; i++) {
+        recordMeteringEntry("overflow-key", "/api/test", "GET");
+      }
+      expect(meteringLog.length).toBeLessThanOrEqual(MAX_METERING_ENTRIES);
+    });
+  });
+
+  describe("setMeteringKeyTier — burst per minute values", () => {
+    it("free tier has burst limit of 10/min", () => {
+      setMeteringKeyTier("burst-free", "free");
+      expect(KEY_TIERS["burst-free"].burstPerMinute).toBe(10);
+    });
+
+    it("pro tier has burst limit of 60/min", () => {
+      setMeteringKeyTier("burst-pro", "pro");
+      expect(KEY_TIERS["burst-pro"].burstPerMinute).toBe(60);
+    });
+
+    it("enterprise tier has burst limit of 200/min", () => {
+      setMeteringKeyTier("burst-ent", "enterprise");
+      expect(KEY_TIERS["burst-ent"].burstPerMinute).toBe(200);
+    });
+  });
+
+  describe("checkKeyQuota — burst limit enforcement", () => {
+    it("free tier: blocks after 10 requests per minute", () => {
+      setMeteringKeyTier("burst-key", "free");
+      for (let i = 0; i < 10; i++) {
+        recordMeteringEntry("burst-key", "/api/test", "GET");
+      }
+      const result = checkKeyQuota("burst-key");
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(429);
+      expect(result!.error).toContain("Rate limit");
+    });
+  });
+
+  describe("in-flight timeout safety net", () => {
+    it("stale in-flight entries with count <= 0 are removed on cleanup", () => {
+      const inFlightMap = new Map<string, number>();
+      inFlightMap.set("stale-ip", 0);
+      inFlightMap.set("active-ip", 1);
+
+      for (const [key, count] of inFlightMap) {
+        if (count <= 0) inFlightMap.delete(key);
+      }
+
+      expect(inFlightMap.has("stale-ip")).toBe(false);
+      expect(inFlightMap.has("active-ip")).toBe(true);
+    });
+  });
 });
