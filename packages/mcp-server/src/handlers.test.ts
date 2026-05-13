@@ -1,15 +1,48 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockInvestigate, mockGenerateForAngle, mockRunAutoPipeline } = vi.hoisted(() => ({
+const {
+  mockInvestigate,
+  mockGenerateForAngle,
+  mockRunAutoPipeline,
+  mockAnalyzeCodebaseSync,
+  mockDeepAnalyze,
+  mockGenerateInnovationPRs,
+  mockGenerateNLExecutionPlan,
+  mockRetrieveRelatedMemories,
+  mockGenerateOrgDNA,
+  mockOrgDNAToMarkdown,
+  mockGenerateStakeholderAssessment,
+  mockAssessmentToMarkdown,
+} = vi.hoisted(() => ({
   mockInvestigate: vi.fn(),
   mockGenerateForAngle: vi.fn(),
   mockRunAutoPipeline: vi.fn(),
+  mockAnalyzeCodebaseSync: vi.fn(),
+  mockDeepAnalyze: vi.fn(),
+  mockGenerateInnovationPRs: vi.fn(),
+  mockGenerateNLExecutionPlan: vi.fn(),
+  mockRetrieveRelatedMemories: vi.fn(),
+  mockGenerateOrgDNA: vi.fn(),
+  mockOrgDNAToMarkdown: vi.fn(),
+  mockGenerateStakeholderAssessment: vi.fn(),
+  mockAssessmentToMarkdown: vi.fn(),
 }));
 
 vi.mock("@innovator/core", () => ({
   investigate: mockInvestigate,
   generateForAngle: mockGenerateForAngle,
   runAutoPipeline: mockRunAutoPipeline,
+  analyzeCodebaseSync: mockAnalyzeCodebaseSync,
+  deepAnalyze: mockDeepAnalyze,
+  generateInnovationPRs: mockGenerateInnovationPRs,
+  innovationPRToMarkdown: vi.fn(() => "# PR"),
+  analysisToMarkdown: vi.fn(() => "# Analysis"),
+  generateNLExecutionPlan: mockGenerateNLExecutionPlan,
+  retrieveRelatedMemories: mockRetrieveRelatedMemories,
+  generateOrgDNA: mockGenerateOrgDNA,
+  orgDNAToMarkdown: mockOrgDNAToMarkdown,
+  generateStakeholderAssessment: mockGenerateStakeholderAssessment,
+  assessmentToMarkdown: mockAssessmentToMarkdown,
   ANGLE_IDS: [
     "scamper",
     "first-principles",
@@ -22,7 +55,15 @@ vi.mock("@innovator/core", () => ({
   ],
 }));
 
-import { handleInvestigate, handleGenerate, handleAutoPipeline } from "./handlers.js";
+import {
+  handleInvestigate,
+  handleGenerate,
+  handleAutoPipeline,
+  handleInnovateFromCode,
+  handleInnovateFile,
+  handleInnovateArchitecture,
+  handlePersonaEval,
+} from "./handlers.js";
 
 describe("handleInvestigate", () => {
   beforeEach(() => {
@@ -219,5 +260,158 @@ describe("handleAutoPipeline", () => {
   it("accepts subject at 500 char boundary", async () => {
     mockRunAutoPipeline.mockResolvedValue({});
     await expect(handleAutoPipeline({ subject: "x".repeat(500) })).resolves.toBeDefined();
+  });
+});
+
+// ---- validatePath security tests (via handleInnovateFromCode) ----
+
+describe("handleInnovateFromCode", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("throws for path traversal with ../", async () => {
+    await expect(handleInnovateFromCode({ path: "../../etc/passwd" })).rejects.toThrow();
+  });
+
+  it("throws for non-existent path", async () => {
+    await expect(
+      handleInnovateFromCode({ path: "/nonexistent/path/that/does/not/exist" })
+    ).rejects.toThrow("does not exist");
+  });
+
+  it("throws for empty path", async () => {
+    await expect(handleInnovateFromCode({ path: "" })).rejects.toThrow();
+  });
+
+  it("succeeds with valid existing directory", async () => {
+    const mockAnalysis = {
+      fileCount: 5,
+      totalLines: 100,
+      languages: ["TypeScript"],
+      patterns: [],
+      subjects: [],
+      complexityHotspots: [],
+    };
+    mockAnalyzeCodebaseSync.mockReturnValue(mockAnalysis);
+    mockDeepAnalyze.mockReturnValue({
+      architecturalDebt: [],
+      featureGaps: [],
+      performanceBottlenecks: [],
+      innovationOpportunities: [],
+    });
+    mockGenerateInnovationPRs.mockReturnValue([]);
+
+    // Use current directory as a known-existing path
+    const result = await handleInnovateFromCode({ path: "." });
+    const parsed = JSON.parse(result);
+    expect(parsed.summary.files).toBe(5);
+  });
+});
+
+describe("handleInnovateFile", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("throws for non-existent file", async () => {
+    await expect(handleInnovateFile({ path: "/nonexistent/file.ts" })).rejects.toThrow(
+      "does not exist"
+    );
+  });
+
+  it("throws for empty path", async () => {
+    await expect(handleInnovateFile({ path: "" })).rejects.toThrow();
+  });
+});
+
+describe("handleInnovateArchitecture", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("throws for non-existent path", async () => {
+    await expect(handleInnovateArchitecture({ path: "/nonexistent/dir" })).rejects.toThrow(
+      "does not exist"
+    );
+  });
+
+  it("succeeds with valid path", async () => {
+    const mockAnalysis = {
+      fileCount: 3,
+      totalLines: 50,
+      languages: ["TypeScript"],
+      patterns: [],
+      subjects: [],
+      complexityHotspots: [],
+    };
+    mockAnalyzeCodebaseSync.mockReturnValue(mockAnalysis);
+    mockDeepAnalyze.mockReturnValue({
+      architecturalDebt: [],
+      featureGaps: [],
+      performanceBottlenecks: [],
+      innovationOpportunities: [],
+    });
+    mockGenerateInnovationPRs.mockReturnValue([]);
+
+    const result = await handleInnovateArchitecture({ path: "." });
+    expect(result).toContain("Analysis");
+  });
+});
+
+describe("handlePersonaEval", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("throws for empty personaIds", async () => {
+    await expect(handlePersonaEval({ idea: "Test idea", personaIds: [] })).rejects.toThrow();
+  });
+
+  it("throws for missing idea", async () => {
+    await expect(handlePersonaEval({ personaIds: ["p1"] })).rejects.toThrow();
+  });
+
+  it("throws for empty idea", async () => {
+    await expect(handlePersonaEval({ idea: "", personaIds: ["p1"] })).rejects.toThrow();
+  });
+
+  it("succeeds with valid inputs", async () => {
+    mockGenerateStakeholderAssessment.mockResolvedValue({ personas: [] });
+    mockAssessmentToMarkdown.mockReturnValue("# Assessment");
+
+    const result = await handlePersonaEval({
+      idea: "A great innovation idea",
+      personaIds: ["cto", "product-manager"],
+    });
+    expect(result).toBe("# Assessment");
+    expect(mockGenerateStakeholderAssessment).toHaveBeenCalledWith(
+      "A great innovation idea",
+      ["cto", "product-manager"],
+      { model: undefined }
+    );
+  });
+
+  it("passes model override", async () => {
+    mockGenerateStakeholderAssessment.mockResolvedValue({});
+    mockAssessmentToMarkdown.mockReturnValue("");
+
+    await handlePersonaEval({
+      idea: "Test",
+      personaIds: ["cto"],
+      model: "gpt-5",
+    });
+    expect(mockGenerateStakeholderAssessment).toHaveBeenCalledWith("Test", ["cto"], {
+      model: "gpt-5",
+    });
+  });
+
+  it("throws for > 12 persona IDs", async () => {
+    await expect(
+      handlePersonaEval({
+        idea: "Test",
+        personaIds: Array.from({ length: 13 }, (_, i) => `p${i}`),
+      })
+    ).rejects.toThrow();
   });
 });
