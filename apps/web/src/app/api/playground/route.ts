@@ -8,6 +8,11 @@ import {
   checkUsageLimit,
   getUserSessions,
   getUserUsage,
+  createPlaygroundWorkspace,
+  getPlaygroundWorkspace,
+  addPlaygroundWorkspaceMember,
+  listPlaygroundWorkspaces,
+  addPlaygroundSessionToWorkspace,
 } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "../../../lib/api-headers";
 
@@ -28,10 +33,27 @@ const UsageSchema = z.object({
   userId: z.string().max(200),
 });
 
+const CreateWorkspaceSchema = z.object({
+  action: z.literal("create_workspace"),
+  name: z.string().min(1).max(200),
+  ownerId: z.string().min(1).max(200),
+  tier: z.enum(["free", "pro", "team", "enterprise"]).optional(),
+});
+
+const WorkspaceActionSchema = z.object({
+  action: z.literal("workspace"),
+  workspaceId: z.string().min(1),
+  operation: z.enum(["add_member", "add_session", "get"]),
+  userId: z.string().optional(),
+  sessionId: z.string().optional(),
+});
+
 const PostBodySchema = z.discriminatedUnion("action", [
   CreateSessionSchema,
   GetSessionSchema,
   UsageSchema,
+  CreateWorkspaceSchema,
+  WorkspaceActionSchema,
 ]);
 
 export async function GET(request: Request) {
@@ -67,7 +89,8 @@ export async function GET(request: Request) {
       const sessions = getUserSessions(userId);
       const usage = getUserUsage(userId);
       const limit = checkUsageLimit(userId);
-      return NextResponse.json({ sessions, usage, limit }, { headers: API_RESPONSE_HEADERS });
+      const userWorkspaces = listPlaygroundWorkspaces(userId);
+      return NextResponse.json({ sessions, usage, limit, workspaces: userWorkspaces }, { headers: API_RESPONSE_HEADERS });
     }
 
     return NextResponse.json(
@@ -142,6 +165,46 @@ export async function POST(request: Request) {
       const usage = getUserUsage(parsed.userId);
       const limit = checkUsageLimit(parsed.userId);
       return NextResponse.json({ usage, limit }, { headers: API_RESPONSE_HEADERS });
+    }
+
+    if (parsed.action === "create_workspace") {
+      const workspace = createPlaygroundWorkspace(parsed.name, parsed.ownerId, parsed.tier);
+      return NextResponse.json({ workspace }, { status: 201, headers: API_RESPONSE_HEADERS });
+    }
+
+    if (parsed.action === "workspace") {
+      const workspace = getPlaygroundWorkspace(parsed.workspaceId);
+      if (!workspace) {
+        return NextResponse.json(
+          { error: "Workspace not found" },
+          { status: 404, headers: API_RESPONSE_HEADERS }
+        );
+      }
+
+      if (parsed.operation === "get") {
+        return NextResponse.json({ workspace }, { headers: API_RESPONSE_HEADERS });
+      }
+
+      if (parsed.operation === "add_member" && parsed.userId) {
+        const success = addPlaygroundWorkspaceMember(parsed.workspaceId, parsed.userId);
+        if (!success) {
+          return NextResponse.json(
+            { error: "Cannot add member — workspace at capacity" },
+            { status: 400, headers: API_RESPONSE_HEADERS }
+          );
+        }
+        return NextResponse.json({ success: true, workspace: getPlaygroundWorkspace(parsed.workspaceId) }, { headers: API_RESPONSE_HEADERS });
+      }
+
+      if (parsed.operation === "add_session" && parsed.sessionId) {
+        addPlaygroundSessionToWorkspace(parsed.workspaceId, parsed.sessionId);
+        return NextResponse.json({ success: true }, { headers: API_RESPONSE_HEADERS });
+      }
+
+      return NextResponse.json(
+        { error: "Missing required fields for operation" },
+        { status: 400, headers: API_RESPONSE_HEADERS }
+      );
     }
 
     return NextResponse.json(
