@@ -96,6 +96,17 @@ Identify 3-5 synergies, 2-4 trade-offs, 3-5 combined opportunities, and provide 
 
 /**
  * Run comparative analysis pipeline across 2-5 subjects.
+ *
+ * Processes each subject through the full innovation pipeline sequentially,
+ * then performs a cross-subject comparative synthesis to identify synergies,
+ * trade-offs, and combined opportunities.
+ *
+ * @param subjects - Array of 2-5 subject strings to compare.
+ * @param onProgress - Callback invoked on each stage transition with the current {@link ComparativeProgress}.
+ * @param model - Optional LLM model override.
+ * @param signal - Optional AbortSignal to cancel the pipeline early.
+ * @returns The final {@link ComparativeProgress} including per-subject results and comparative synthesis.
+ * @throws If fewer than 2 or more than 5 subjects are provided.
  */
 export async function runComparativePipeline(
   subjects: string[],
@@ -221,7 +232,12 @@ export interface CompetitiveMap {
 
 /**
  * Run parallel investigations across multiple subjects and produce
- * cross-subject comparative synthesis with competitive mapping.
+ * cross-subject comparative synthesis with optional competitive mapping.
+ *
+ * @param subjects - Array of 2-10 subject strings to investigate.
+ * @param options - Optional configuration: LLM model, AbortSignal, competitive map toggle, progress callback.
+ * @returns A {@link ParallelInvestigationResult} with per-subject investigations and cross-subject analysis.
+ * @throws If fewer than 2 or more than 10 subjects are provided.
  */
 export async function runParallelInvestigation(
   subjects: string[],
