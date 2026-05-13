@@ -3,7 +3,8 @@ import { API_RESPONSE_HEADERS } from "./api-headers";
 
 /**
  * Validate that the request Content-Type is application/json.
- * Returns a 415 Response if invalid, or null if the check passes.
+ * @param request - The incoming HTTP request to validate.
+ * @returns A 415 Response if Content-Type is missing or not JSON, or `null` if the check passes.
  */
 export function validateJsonContentType(request: Request): Response | null {
   const contentType = request.headers.get("content-type") ?? "";
@@ -18,7 +19,8 @@ export function validateJsonContentType(request: Request): Response | null {
 
 /**
  * Validate that a model name is in the known models list.
- * Returns a 400 Response if invalid, or null if the check passes.
+ * @param model - The model identifier to validate (may be `undefined` to skip validation).
+ * @returns A 400 Response if the model is unknown, or `null` if the check passes.
  */
 export function validateModel(model: string | undefined): Response | null {
   if (model && !(KNOWN_MODELS as readonly string[]).includes(model)) {
