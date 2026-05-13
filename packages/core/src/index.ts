@@ -259,10 +259,20 @@ export {
   artifactToMarkdown,
   artifactToGitHubIssue,
   getArtifactTypeLabel,
+  generateTraceableArtifact,
+  generateProjectBoard,
+  projectBoardToMarkdown,
   ArtifactSchema,
   ARTIFACT_TYPES,
 } from "./artifacts/index.js";
-export type { Artifact, ArtifactType, ArtifactContext } from "./artifacts/index.js";
+export type {
+  Artifact,
+  ArtifactType,
+  ArtifactContext,
+  TraceableArtifact,
+  ProjectBoard,
+  ProjectBoardColumn,
+} from "./artifacts/index.js";
 
 /** Knowledge graph — ingest investigations and query cross-subject entity relationships. */
 export {
@@ -838,8 +848,10 @@ export {
   getPortfolioMetrics,
   generatePortfolioInsights,
   buildDashboardData,
+  clusterSessionThemes,
+  getConversionMetrics,
 } from "./portfolio/index.js";
-export type { InnovationDashboardData } from "./portfolio/index.js";
+export type { InnovationDashboardData, ThemeCluster as PortfolioThemeCluster, ConversionMetrics } from "./portfolio/index.js";
 export {
   IdeaLifecycleStageSchema,
   StatusTransitionSchema,
@@ -2338,6 +2350,13 @@ export {
   detectConsensus,
   getActiveCursors,
   serializeCollaborativeState,
+  createCanvasRoom,
+  getCanvasRoom,
+  getCanvasRoomBySession,
+  applyRoomOperation,
+  deleteCanvasRoom,
+  clearCanvasRooms,
+  generateVotingHeatMap,
 } from "./canvas/index.js";
 export type {
   CanvasOperationType,
@@ -2345,6 +2364,9 @@ export type {
   CanvasVote,
   CursorState,
   CollaborativeCanvasState,
+  CanvasRoom,
+  HeatMapCell,
+  VotingHeatMap,
 } from "./canvas/index.js";
 
 /** Plugin Marketplace — publish, discover, install, and review community plugins. */
@@ -2362,6 +2384,8 @@ export {
   getReviews,
   verifyPlugin,
   clearMarketplace,
+  getSeedPackages,
+  seedMarketplace,
 } from "./marketplace/index.js";
 export type {
   PluginCategory,
@@ -2370,6 +2394,7 @@ export type {
   MarketplaceSearchOptions,
   PluginReview,
   PluginManifest,
+  SeedPackage,
 } from "./marketplace/index.js";
 
 /** Marketplace Creator Tools — scaffolding, validation, and statistics. */
@@ -3776,8 +3801,13 @@ export {
   TIER_LIMITS as PLAYGROUND_TIER_LIMITS,
   PlaygroundSessionSchema,
   UsageLimitSchema,
+  createWorkspace as createPlaygroundWorkspace,
+  getWorkspace as getPlaygroundWorkspace,
+  addWorkspaceMember as addPlaygroundWorkspaceMember,
+  listUserWorkspaces as listPlaygroundWorkspaces,
+  addSessionToWorkspace as addPlaygroundSessionToWorkspace,
 } from "./playground/index.js";
-export type { PlaygroundSession, UsageLimit, UserUsage } from "./playground/index.js";
+export type { PlaygroundSession, UsageLimit, UserUsage, Workspace as PlaygroundWorkspace } from "./playground/index.js";
 
 /** Ambient Innovation Capture — signal classification, dedup, topic clustering, investigation drafts. */
 export {
@@ -3973,6 +4003,8 @@ export {
   recordExecution as recordAdaptiveExecution,
   getExecutionStats,
   clearExecutionHistory,
+  getModeConfig,
+  listModes,
   ComplexityClassificationSchema,
   ExpertiseProfileSchema,
   BudgetConstraintSchema,
@@ -3984,6 +4016,8 @@ export type {
   BudgetConstraint,
   AdaptiveExecutionPlan,
   ClassifyComplexityOptions,
+  InnovationMode,
+  ModeConfig,
 } from "./adaptive-scaling/index.js";
 
 /** Synthetic Market Testing Arena — agent-based consumer persona simulation. */
@@ -4222,6 +4256,11 @@ export {
   applyCorrection,
   ConversationSession,
   conversationToMarkdown,
+  getSmartDefaults,
+  generateFollowUps,
+  createConversationSession,
+  getConversationSession,
+  clearConversationSessions,
   ConversationMessageSchema as NLApiConversationMessageSchema,
   ExecutionStepSchema,
   ExecutionPlanSchema,
@@ -4236,6 +4275,8 @@ export type {
   StreamEvent,
   ConversationSessionState,
   PlanGenerationResult,
+  SmartDefaults,
+  FollowUpSuggestion,
 } from "./nl-innovation-api/index.js";
 
 /** Peer Review Network — expertise profiles, review matching, reputation scoring, and leaderboards. */
