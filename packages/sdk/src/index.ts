@@ -20,11 +20,13 @@ export class InnovatorError extends Error {
 // Zod schemas — request bodies
 // ---------------------------------------------------------------------------
 
+/** Schema for {@link InvestigateRequest} — validates the body of `POST /api/investigate`. */
 export const InvestigateRequestSchema = z.object({
   subject: z.string().min(1).max(500),
   model: z.string().optional(),
 });
 
+/** Schema for {@link InnovateRequest} — validates the body of `POST /api/innovate`. */
 export const InnovateRequestSchema = z.object({
   subject: z.string().min(1).max(500),
   investigation: z.record(z.unknown()),
@@ -34,16 +36,19 @@ export const InnovateRequestSchema = z.object({
   score: z.boolean().optional(),
 });
 
+/** Schema for {@link AutoRequest} — validates the body of `POST /api/auto` (full pipeline). */
 export const AutoRequestSchema = z.object({
   subject: z.string().min(1).max(500),
   model: z.string().optional(),
 });
 
+/** Schema for {@link NLInnovateRequest} — validates natural-language pipeline descriptions. */
 export const NLInnovateRequestSchema = z.object({
   prompt: z.string().min(1).max(5000),
   model: z.string().optional(),
 });
 
+/** Schema for {@link DiffMergeRequest} — validates diff, merge, and conflict-resolution requests. */
 export const DiffMergeRequestSchema = z.object({
   action: z.enum(["diff", "merge", "resolve"]),
   sessionA: z.record(z.unknown()).optional(),
@@ -54,6 +59,7 @@ export const DiffMergeRequestSchema = z.object({
   format: z.enum(["json", "markdown"]).optional(),
 });
 
+/** Schema for {@link MemorySearchRequest} — validates semantic memory search queries. */
 export const MemorySearchRequestSchema = z.object({
   query: z.string().min(1).max(2000),
   threshold: z.number().min(0).max(1).optional(),
@@ -61,6 +67,7 @@ export const MemorySearchRequestSchema = z.object({
   sessionFilter: z.string().optional(),
 });
 
+/** Schema for {@link PersonaEvaluationRequest} — validates persona-based idea evaluation requests. */
 export const PersonaEvaluationRequestSchema = z.object({
   action: z.enum(["evaluate", "assess", "alignment", "list-personas"]),
   idea: z
@@ -74,6 +81,7 @@ export const PersonaEvaluationRequestSchema = z.object({
   format: z.enum(["json", "markdown"]).optional(),
 });
 
+/** Schema for {@link MonitorRequest} — validates innovation-monitor lifecycle actions. */
 export const MonitorRequestSchema = z.object({
   action: z.enum([
     "add-source",
@@ -120,42 +128,51 @@ export type MonitorRequest = z.infer<typeof MonitorRequestSchema>;
 // Response types (lightweight — kept loose so consumers can narrow as needed)
 // ---------------------------------------------------------------------------
 
+/** Raw investigation result returned by the investigate endpoint. Loosely typed to allow model variation. */
 export interface Investigation {
   [key: string]: unknown;
 }
 
+/** Single angle generation result containing the angle identifier and generated ideas. */
 export interface AngleResult {
   angleId: string;
   [key: string]: unknown;
 }
 
+/** Full innovation response containing results per angle plus optional synthesis and scoring. */
 export interface InnovateResponse {
   angleResults: AngleResult[];
   synthesis?: Record<string, unknown>;
   scoring?: Record<string, unknown>;
 }
 
+/** Response from a diff, merge, or conflict-resolution operation between two sessions. */
 export interface DiffMergeResponse {
   [key: string]: unknown;
 }
 
+/** Semantic memory search results with matched items and optional metadata. */
 export interface MemorySearchResponse {
   results: unknown[];
   [key: string]: unknown;
 }
 
+/** Organization DNA profile extracted from codebase and team patterns. */
 export interface OrgDNAResponse {
   [key: string]: unknown;
 }
 
+/** Persona-based idea evaluation result with per-persona scores and feedback. */
 export interface PersonaEvaluationResponse {
   [key: string]: unknown;
 }
 
+/** Current state of the innovation monitor including active sources and schedules. */
 export interface MonitorStateResponse {
   [key: string]: unknown;
 }
 
+/** Generated innovation digest summarizing monitored signals over a time period. */
 export interface DigestResponse {
   [key: string]: unknown;
 }
