@@ -458,4 +458,42 @@ describe("marketplace", () => {
       expect(diff.unchanged).toContain("shared.txt");
     });
   });
+
+  // ---- clearMarketplace regression test ----
+
+  describe("clearMarketplace", () => {
+    it("resets both plugin registry and template registry", () => {
+      // Populate both registries
+      publishPlugin(makePluginParams({ name: "test-plugin-clear" }));
+      publishTemplate({
+        name: "test-template-clear",
+        description: "Template for clear test",
+        type: "workflow",
+        files: { "main.ts": "content" },
+        dependencies: [],
+        metadata: {},
+        version: "1.0.0",
+        author: "test",
+      });
+
+      // Verify data exists before clear
+      expect(searchPlugins({ query: "test-plugin-clear" }).length).toBeGreaterThan(0);
+      expect(searchTemplates({ query: "test-template-clear" }).length).toBeGreaterThan(0);
+
+      // Clear and verify both registries are empty
+      clearMarketplace();
+      expect(searchPlugins({}).length).toBe(0);
+      expect(searchTemplates({}).length).toBe(0);
+      expect(listInstalledPlugins().length).toBe(0);
+      expect(listCollections().length).toBe(0);
+    });
+
+    it("allows publishing after clear without errors", () => {
+      publishPlugin(makePluginParams({ name: "before-clear" }));
+      clearMarketplace();
+      const plugin = publishPlugin(makePluginParams({ name: "after-clear" }));
+      expect(plugin.name).toBe("after-clear");
+      expect(searchPlugins({}).length).toBe(1);
+    });
+  });
 });
