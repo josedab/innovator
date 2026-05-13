@@ -14,6 +14,7 @@ import type { Investigation, InnovationIdea } from "../types.js";
 
 // ---- Schemas ----
 
+/** Zod schema for a debater persona with name, role, bias direction, and argumentation style. */
 export const DebaterPersonaSchema = z.object({
   name: z.string().max(200),
   role: z.string().max(500).describe("Role description for the debater"),
@@ -21,12 +22,14 @@ export const DebaterPersonaSchema = z.object({
   style: z.string().max(500).optional().describe("Argumentation style"),
 });
 
+/** Zod schema for a single debate argument with point, evidence, and strength score. */
 export const DebateArgumentSchema = z.object({
   point: z.string().max(2000).describe("The core argument"),
   evidence: z.string().max(2000).describe("Supporting evidence or reasoning"),
   strength: z.number().min(1).max(10).describe("How strong this argument is"),
 });
 
+/** Zod schema for one debate round containing pro/con arguments and optional rebuttals. */
 export const DebateRoundSchema = z.object({
   round: z.number().min(1),
   proArguments: z.array(DebateArgumentSchema).max(10),
@@ -35,6 +38,7 @@ export const DebateRoundSchema = z.object({
   conRebuttal: z.string().max(3000).optional(),
 });
 
+/** Zod schema for the final debate verdict including winner, confidence, and conditions for change. */
 export const DebateVerdictSchema = z.object({
   winner: z.enum(["pro", "con", "nuanced"]),
   confidence: z.number().min(0).max(1),
@@ -46,6 +50,7 @@ export const DebateVerdictSchema = z.object({
     .describe("Conditions under which verdict changes"),
 });
 
+/** Zod schema for debate quality metrics across argument depth, evidence, balance, and novelty. */
 export const DebateQualitySchema = z.object({
   argumentDepth: z.number().min(1).max(10),
   evidenceQuality: z.number().min(1).max(10),
@@ -54,6 +59,7 @@ export const DebateQualitySchema = z.object({
   overall: z.number().min(1).max(10),
 });
 
+/** Zod schema for the complete debate result including all rounds, verdict, and quality scores. */
 export const DebateResultSchema = z.object({
   idea: z.string().max(500),
   rounds: z.array(DebateRoundSchema).max(10),
@@ -62,11 +68,17 @@ export const DebateResultSchema = z.object({
   totalRounds: z.number().min(1),
 });
 
+/** A debater persona defining name, role, bias direction, and argumentation style. */
 export type DebaterPersona = z.infer<typeof DebaterPersonaSchema>;
+/** A single argument in a debate round with point, evidence, and strength (1-10). */
 export type DebateArgument = z.infer<typeof DebateArgumentSchema>;
+/** One round of debate containing pro/con arguments and optional rebuttals. */
 export type DebateRound = z.infer<typeof DebateRoundSchema>;
+/** Final verdict of a debate: winner, confidence, summary, key insight, and conditions for change. */
 export type DebateVerdict = z.infer<typeof DebateVerdictSchema>;
+/** Quality metrics for a debate session (each scored 1-10). */
 export type DebateQuality = z.infer<typeof DebateQualitySchema>;
+/** Complete result of a structured debate including all rounds, verdict, and quality scores. */
 export type DebateResult = z.infer<typeof DebateResultSchema>;
 
 /** Configuration for a structured debate session. */
@@ -215,8 +227,14 @@ async function generateArguments(
 /**
  * Run a structured debate on an innovation idea.
  *
- * Sends pro and con system prompts in parallel, supports multi-round rebuttals,
- * and synthesizes a final verdict with quality scoring.
+ * Generates pro and con arguments in parallel across multiple rounds,
+ * then synthesizes a final verdict with quality scoring.
+ *
+ * @param idea - The innovation idea to debate.
+ * @param investigation - Optional investigation context for grounding arguments.
+ * @param config - Debate configuration (rounds, personas, model, signal).
+ * @returns A complete {@link DebateResult} with all rounds, verdict, and quality scores.
+ * @throws If the number of rounds is outside the 1-5 range.
  */
 export async function runDebate(
   idea: InnovationIdea,
@@ -281,7 +299,11 @@ export async function runDebate(
 }
 
 /**
- * Run debates on multiple ideas and return results sorted by verdict confidence.
+ * Run debates on multiple ideas sequentially and return results sorted by verdict confidence.
+ * @param ideas - Array of innovation ideas to debate.
+ * @param investigation - Optional investigation context.
+ * @param config - Debate configuration.
+ * @returns Array of {@link DebateResult} sorted by descending verdict confidence.
  */
 export async function debateIdeas(
   ideas: InnovationIdea[],
@@ -297,7 +319,9 @@ export async function debateIdeas(
 }
 
 /**
- * Format a debate result as readable markdown.
+ * Format a debate result as readable markdown with rounds, verdict, and quality scores.
+ * @param result - The debate result to format.
+ * @returns A markdown string.
  */
 export function debateToMarkdown(result: DebateResult): string {
   const lines: string[] = [`# Debate: ${result.idea}`, ""];
