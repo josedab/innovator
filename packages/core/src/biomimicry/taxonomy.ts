@@ -1,3 +1,34 @@
+/**
+ * Curated biomimicry taxonomy — a catalog of 200+ nature-inspired strategies organized
+ * by biological function.
+ *
+ * Each {@link BiomimicryEntry} describes one organism's strategy, its underlying
+ * mechanism, a technical analogy, known applications, and transferability factors.
+ *
+ * **Functions covered** (16 categories):
+ * `energy-capture`, `structural-resilience`, `thermal-regulation`, `water-management`,
+ * `locomotion`, `self-repair`, `defense`, `communication`, `navigation`,
+ * `material-transport`, `information-processing`, `camouflage`, `adaptation`,
+ * `reproduction`, `symbiosis`, `waste-processing`.
+ *
+ * **Extending the taxonomy:**
+ * Add new entries to the array below following the existing shape. Assign a unique
+ * `id` using the two-letter function prefix and an incrementing number (e.g. `"ec-14"`
+ * for energy-capture). Include at least one tag for search/filtering.
+ *
+ * @example
+ * ```ts
+ * import { BIOMIMICRY_TAXONOMY } from "./taxonomy.js";
+ *
+ * // Filter entries by function
+ * const defenseStrategies = BIOMIMICRY_TAXONOMY.filter(e => e.function === "defense");
+ *
+ * // Search by tag
+ * const solarEntries = BIOMIMICRY_TAXONOMY.filter(e => e.tags.includes("solar"));
+ * ```
+ *
+ * @module
+ */
 import type { BiomimicryEntry } from "./types.js";
 
 /** Curated biomimicry taxonomy with 200+ entries organized by biological function. */
