@@ -14,6 +14,8 @@ import {
   installMarketplacePlugin,
   publishPlugin,
   addReview,
+  getSeedPackages,
+  seedMarketplace,
 } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 import { z } from "zod";
@@ -88,6 +90,12 @@ const ActionSchema = z.discriminatedUnion("action", [
     rating: z.number().min(1).max(5),
     comment: z.string().min(1).max(2000),
   }),
+  z.object({
+    action: z.literal("seed"),
+  }),
+  z.object({
+    action: z.literal("list_seed"),
+  }),
 ]);
 
 export async function POST(request: NextRequest) {
@@ -136,6 +144,20 @@ export async function POST(request: NextRequest) {
         );
       }
       return NextResponse.json({ review }, { headers: API_RESPONSE_HEADERS });
+    }
+    case "seed": {
+      const count = seedMarketplace();
+      return NextResponse.json(
+        { seeded: count, message: `Seeded ${count} first-party packages` },
+        { headers: API_RESPONSE_HEADERS }
+      );
+    }
+    case "list_seed": {
+      const packages = getSeedPackages();
+      return NextResponse.json(
+        { packages, count: packages.length },
+        { headers: API_RESPONSE_HEADERS }
+      );
     }
   }
 }
