@@ -79,6 +79,11 @@ export default function CollaborativeCanvas({
   const canvasRef = useRef<SVGSVGElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
+  const [showHeatMap, setShowHeatMap] = useState(false);
+  const [showAIOverlay, setShowAIOverlay] = useState(false);
+  const [aiClusters, setAiClusters] = useState<
+    Array<{ id: string; label: string; centroid: { x: number; y: number }; nodeIds: string[]; color: string; confidence: number }>
+  >([]);
   const dragOffset = useRef({ x: 0, y: 0 });
 
   const myColor = getUserColor(userId);
@@ -261,6 +266,26 @@ export default function CollaborativeCanvas({
             >
               🔗 Connect
             </button>
+            <button
+              onClick={() => setShowHeatMap(!showHeatMap)}
+              className={`text-xs px-2 py-1 rounded border ${
+                showHeatMap
+                  ? "bg-red-100 border-red-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+            >
+              🔥 Heat Map
+            </button>
+            <button
+              onClick={() => setShowAIOverlay(!showAIOverlay)}
+              className={`text-xs px-2 py-1 rounded border ${
+                showAIOverlay
+                  ? "bg-purple-100 border-purple-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+            >
+              🤖 AI Clusters
+            </button>
           </>
         )}
 
@@ -311,6 +336,62 @@ export default function CollaborativeCanvas({
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
+
+          {/* Voting heat map overlay */}
+          {showHeatMap &&
+            state.nodes
+              .filter((n) => {
+                const v = state.votes[n.id];
+                return v && v.up > 0;
+              })
+              .map((node) => {
+                const v = state.votes[node.id]!;
+                const maxVotes = Math.max(
+                  1,
+                  ...Object.values(state.votes).map((vt) => vt.up)
+                );
+                const intensity = v.up / maxVotes;
+                return (
+                  <circle
+                    key={`heat-${node.id}`}
+                    cx={node.position.x + node.size.width / 2}
+                    cy={node.position.y + node.size.height / 2}
+                    r={60 + intensity * 80}
+                    fill={`rgba(239, 68, 68, ${intensity * 0.3})`}
+                    pointerEvents="none"
+                  />
+                );
+              })}
+
+          {/* AI cluster overlays */}
+          {showAIOverlay &&
+            aiClusters.map((cluster) => {
+              const clusterNodes = state.nodes.filter((n) => cluster.nodeIds.includes(n.id));
+              if (clusterNodes.length < 2) return null;
+              const minX = Math.min(...clusterNodes.map((n) => n.position.x)) - 20;
+              const minY = Math.min(...clusterNodes.map((n) => n.position.y)) - 30;
+              const maxX = Math.max(...clusterNodes.map((n) => n.position.x + n.size.width)) + 20;
+              const maxY = Math.max(...clusterNodes.map((n) => n.position.y + n.size.height)) + 20;
+              return (
+                <g key={cluster.id}>
+                  <rect
+                    x={minX}
+                    y={minY}
+                    width={maxX - minX}
+                    height={maxY - minY}
+                    rx={12}
+                    fill={`${cluster.color}15`}
+                    stroke={cluster.color}
+                    strokeWidth={2}
+                    strokeDasharray="6 3"
+                    pointerEvents="none"
+                  />
+                  <text x={minX + 8} y={minY + 16} fontSize={11} fontWeight="600" fill={cluster.color}>
+                    🏷️ {cluster.label} ({Math.round(cluster.confidence * 100)}%)
+                  </text>
+                </g>
+              );
+            })}
 
           {/* Edges */}
           {state.edges.map((edge) => {
