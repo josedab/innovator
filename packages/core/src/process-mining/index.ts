@@ -66,7 +66,15 @@ function extractDirectlyFollows(
   return follows;
 }
 
-/** Run the Alpha mining algorithm. */
+/**
+ * Alpha mining algorithm: discovers a process model from event logs.
+ *
+ * 1. Groups events by case ID and sorts by timestamp.
+ * 2. Extracts the directly-follows relation (activity A → B frequency).
+ * 3. Identifies start/end activities per case.
+ * 4. Computes per-activity frequency and average duration.
+ * 5. Builds nodes (activities) and edges (transitions above minFrequency).
+ */
 function alphaMine(
   events: ProcessEvent[],
   config: ProcessMiningConfig
@@ -134,7 +142,11 @@ function alphaMine(
   return { nodes, edges };
 }
 
-/** Run the Inductive mining algorithm (simplified). */
+/**
+ * Simplified Inductive mining algorithm.
+ * Falls back to Alpha mining with a higher minimum frequency threshold,
+ * filtering out low-frequency transitions to reveal the dominant process structure.
+ */
 function inductiveMine(
   events: ProcessEvent[],
   config: ProcessMiningConfig
@@ -319,7 +331,12 @@ export function mineProcess(
   };
 }
 
-/** Convert analytics events to process mining events. */
+/**
+ * Convert analytics events (e.g., from the `/api/analytics` endpoint)
+ * to process mining events by mapping event types to pipeline stage names.
+ * @param analyticsEvents - Raw analytics events with type, timestamp, and optional data.
+ * @returns Array of {@link ProcessEvent} records suitable for {@link mineProcess}.
+ */
 export function analyticsToProcessEvents(
   analyticsEvents: Array<{
     id: string;
@@ -351,7 +368,12 @@ export function analyticsToProcessEvents(
     }));
 }
 
-/** Format process mining results as markdown. */
+/**
+ * Format process mining results as human-readable markdown.
+ * Includes statistics, bottleneck warnings with severity icons, and the process map.
+ * @param result - The {@link ProcessMiningResult} to format.
+ * @returns A markdown string.
+ */
 export function processMiningToMarkdown(result: ProcessMiningResult): string {
   const lines: string[] = [
     "# Innovation Process Mining",
