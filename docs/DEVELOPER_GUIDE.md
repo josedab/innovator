@@ -8,6 +8,7 @@ Practical recipes and patterns for working with the Innovator codebase. For setu
 
 - [Quick Reference](#quick-reference)
 - [Running the Pipeline Programmatically](#running-the-pipeline-programmatically)
+- [Environment Variables](#environment-variables)
 - [Creating Custom Angles](#creating-custom-angles)
 - [Writing a Plugin](#writing-a-plugin)
 - [Using Alternative LLM Providers](#using-alternative-llm-providers)
@@ -95,6 +96,52 @@ const result = await runAutoPipeline(
   }
 );
 ```
+
+---
+
+## Environment Variables
+
+Innovator is configured via environment variables. Copy `.env.local.example` to `.env.local` in the project root:
+
+```bash
+cp .env.local.example .env.local
+```
+
+### Core Variables
+
+| Variable                    | Description                                              | Default                  |
+| --------------------------- | -------------------------------------------------------- | ------------------------ |
+| `INNOVATOR_DEFAULT_MODEL`   | LLM model used when none is specified at runtime         | `gpt-4.1`               |
+| `INNOVATOR_LLM_TIMEOUT_MS`  | Timeout for each LLM request in milliseconds             | `90000`                  |
+| `INNOVATOR_EXTRA_MODELS`    | Comma-separated additional model IDs to allow            | _unset_                  |
+
+### Authentication & Security
+
+| Variable                    | Description                                              | Default                  |
+| --------------------------- | -------------------------------------------------------- | ------------------------ |
+| `INNOVATOR_API_KEY`         | API key protecting web routes (`X-API-Key` header)       | _unset_ (open access)    |
+| `INNOVATOR_API_KEYS`        | Comma-separated multi-key auth (overrides single key)    | _unset_                  |
+| `INNOVATOR_EMBED_API_KEY`   | API key for the `/api/embed` widget endpoint             | _unset_                  |
+| `INNOVATOR_EMBED_ORIGINS`   | Comma-separated CORS origins for embed endpoint          | `*`                      |
+
+### Alternative LLM Providers
+
+| Variable                    | Description                                              | Default                  |
+| --------------------------- | -------------------------------------------------------- | ------------------------ |
+| `OPENAI_API_KEY`            | Direct OpenAI provider (no Copilot subscription needed)  | _unset_                  |
+| `ANTHROPIC_API_KEY`         | Direct Anthropic provider                                | _unset_                  |
+| `OLLAMA_BASE_URL`           | Local Ollama instance URL                                | `http://localhost:11434` |
+
+### CI & Infrastructure
+
+| Variable                    | Description                                              | Default                  |
+| --------------------------- | -------------------------------------------------------- | ------------------------ |
+| `GH_TOKEN`                  | GitHub token for Copilot auth in CI/Docker               | _unset_                  |
+| `PORT`                      | Dev server port                                          | `3000`                   |
+| `MCP_PORT`                  | MCP server SSE transport port                            | `3100`                   |
+| `PLAYWRIGHT_BASE_URL`       | Base URL for E2E tests                                   | `http://localhost:3000`  |
+
+> **Full reference:** See [`.env.local.example`](../.env.local.example) for all variables with inline docs, and [Configuration docs](../website/docs/configuration.md) for detailed usage examples.
 
 ---
 
