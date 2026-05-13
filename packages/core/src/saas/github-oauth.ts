@@ -8,6 +8,7 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 
+/** Zod schema for a GitHub user profile returned after OAuth. */
 export const GitHubUserSchema = z.object({
   id: z.number(),
   login: z.string(),
@@ -17,8 +18,10 @@ export const GitHubUserSchema = z.object({
   accessToken: z.string(),
 });
 
+/** A GitHub user profile with access token. */
 export type GitHubUser = z.infer<typeof GitHubUserSchema>;
 
+/** Zod schema for validating OAuth state parameters. */
 export const OAuthStateSchema = z.object({
   state: z.string(),
   returnTo: z.string().optional(),
@@ -26,12 +29,14 @@ export const OAuthStateSchema = z.object({
   expiresAt: z.string(),
 });
 
+/** An OAuth state token with expiration, used to prevent CSRF. */
 export type OAuthState = z.infer<typeof OAuthStateSchema>;
 
 const pendingStates = new Map<string, OAuthState>();
 const authenticatedUsers = new Map<string, GitHubUser>();
 const sessionTokens = new Map<string, string>(); // token -> userId
 
+/** GitHub OAuth application configuration. */
 export interface OAuthConfig {
   clientId: string;
   clientSecret: string;
@@ -176,6 +181,10 @@ export function getAuthenticatedUser(githubId: number): GitHubUser | null {
   return authenticatedUsers.get(`github:${githubId}`) ?? null;
 }
 
+/**
+ * Clear all in-memory OAuth state (pending states, users, session tokens).
+ * Intended for test teardown.
+ */
 export function clearAuthData(): void {
   pendingStates.clear();
   authenticatedUsers.clear();

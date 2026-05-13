@@ -11,6 +11,7 @@ import type { Tenant, UsageRecord, SaasApiKey } from "./index.js";
 
 // ---- Storage Interface ----
 
+/** Pluggable persistence interface for sessions, tenants, and usage data. */
 export interface StorageAdapter {
   // Sessions
   saveSession(session: PlaygroundSession): Promise<void>;
@@ -37,6 +38,10 @@ export interface StorageAdapter {
 
 // ---- In-Memory Adapter (Development) ----
 
+/**
+ * In-memory storage adapter for development and testing.
+ * All data is lost on process restart.
+ */
 export class InMemoryStorageAdapter implements StorageAdapter {
   private sessions = new Map<string, PlaygroundSession>();
   private shareIndex = new Map<string, string>();
@@ -136,12 +141,14 @@ export class InMemoryStorageAdapter implements StorageAdapter {
 
 // ---- Postgres Adapter (Production) ----
 
+/** Zod schema for Postgres connection configuration. */
 export const PostgresConfigSchema = z.object({
   connectionString: z.string().min(1),
   maxConnections: z.number().int().min(1).max(100).default(10),
   ssl: z.boolean().default(true),
 });
 
+/** Postgres connection configuration. */
 export type PostgresConfig = z.infer<typeof PostgresConfigSchema>;
 
 /**
@@ -337,6 +344,7 @@ function toSnakeCase(str: string): string {
 
 // ---- SQL Migration ----
 
+/** SQL migration script for creating the Postgres schema. */
 export const POSTGRES_MIGRATION = `
 -- Playground sessions
 CREATE TABLE IF NOT EXISTS playground_sessions (
@@ -404,6 +412,11 @@ CREATE TABLE IF NOT EXISTS auth_users (
 
 let storageInstance: StorageAdapter | null = null;
 
+/**
+ * Get or create the global storage adapter.
+ * Uses {@link PostgresStorageAdapter} when `DATABASE_URL` is set, otherwise falls back to {@link InMemoryStorageAdapter}.
+ * @returns The active {@link StorageAdapter} singleton.
+ */
 export function getStorage(): StorageAdapter {
   if (storageInstance) return storageInstance;
 
@@ -419,6 +432,10 @@ export function getStorage(): StorageAdapter {
   return storageInstance;
 }
 
+/**
+ * Replace the global storage adapter (useful for testing).
+ * @param adapter - The storage adapter instance to use.
+ */
 export function setStorage(adapter: StorageAdapter): void {
   storageInstance = adapter;
 }

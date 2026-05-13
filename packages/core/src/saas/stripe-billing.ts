@@ -8,12 +8,14 @@
 import { z } from "zod";
 import type { BillingProvider, BillingEvent, Invoice, PlanId } from "./index.js";
 
+/** Zod schema for Stripe configuration. */
 export const StripeConfigSchema = z.object({
   secretKey: z.string().min(1),
   webhookSecret: z.string().min(1),
   priceIds: z.record(z.string()),
 });
 
+/** Stripe configuration including secret key, webhook secret, and price ID mappings. */
 export type StripeConfig = z.infer<typeof StripeConfigSchema>;
 
 const PLAN_TO_PRICE_ID: Record<PlanId, string> = {
@@ -57,7 +59,12 @@ async function stripeRequest<T>(options: StripeApiOptions): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/**
+ * Stripe-backed billing provider.
+ * Communicates with the Stripe REST API for customer, subscription, and invoice management.
+ */
 export class StripeBillingProvider implements BillingProvider {
+  /** Create a Stripe customer and return the customer ID. */
   async createCustomer(email: string, name: string): Promise<string> {
     const result = await stripeRequest<{ id: string }>({
       method: "POST",
@@ -67,6 +74,7 @@ export class StripeBillingProvider implements BillingProvider {
     return result.id;
   }
 
+  /** Create a subscription for a customer on the given plan. Returns the subscription ID. */
   async createSubscription(customerId: string, planId: PlanId): Promise<string> {
     if (planId === "free") {
       return `free_${customerId}`;
@@ -90,6 +98,7 @@ export class StripeBillingProvider implements BillingProvider {
     return result.id;
   }
 
+  /** Cancel a subscription. No-ops for free-tier subscriptions. */
   async cancelSubscription(subscriptionId: string): Promise<void> {
     if (subscriptionId.startsWith("free_")) return;
 
@@ -99,6 +108,7 @@ export class StripeBillingProvider implements BillingProvider {
     });
   }
 
+  /** Update a subscription to a different plan with prorated charges. */
   async updateSubscription(subscriptionId: string, planId: PlanId): Promise<void> {
     if (subscriptionId.startsWith("free_")) return;
 
@@ -129,6 +139,7 @@ export class StripeBillingProvider implements BillingProvider {
     });
   }
 
+  /** Retrieve the last 20 invoices for a customer. */
   async getInvoices(customerId: string): Promise<Invoice[]> {
     const result = await stripeRequest<{
       data: Array<{
@@ -156,6 +167,7 @@ export class StripeBillingProvider implements BillingProvider {
     }));
   }
 
+  /** Verify and process a Stripe webhook event. */
   async processWebhook(payload: string, signature: string): Promise<BillingEvent> {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
@@ -215,6 +227,10 @@ function mapInvoiceStatus(status: string): Invoice["status"] {
 /** Create a Stripe billing provider (singleton). */
 let instance: StripeBillingProvider | null = null;
 
+/**
+ * Get or create the singleton Stripe billing provider.
+ * @returns The {@link StripeBillingProvider} instance.
+ */
 export function getStripeBilling(): StripeBillingProvider {
   if (!instance) {
     instance = new StripeBillingProvider();

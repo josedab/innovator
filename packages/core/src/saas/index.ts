@@ -38,9 +38,12 @@ import { z } from "zod";
 
 // ---- Plan Definitions ----
 
+/** Zod schema for validating plan identifiers. */
 export const PlanIdSchema = z.enum(["free", "pro", "team", "enterprise"]);
+/** A valid plan tier identifier. */
 export type PlanId = z.infer<typeof PlanIdSchema>;
 
+/** Full definition of a SaaS plan including pricing, limits, and feature list. */
 export interface PlanDefinition {
   id: PlanId;
   name: string;
@@ -51,6 +54,7 @@ export interface PlanDefinition {
   features: string[];
 }
 
+/** Numeric limits enforced per plan tier. A value of `-1` means unlimited. */
 export interface PlanLimits {
   sessionsPerMonth: number;
   anglesPerSession: number;
@@ -62,6 +66,7 @@ export interface PlanLimits {
   concurrentSessions: number;
 }
 
+/** All available plan definitions keyed by plan ID. */
 export const PLANS: Record<PlanId, PlanDefinition> = {
   free: {
     id: "free",
@@ -165,6 +170,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
 
 // ---- Tenant / Account ----
 
+/** Zod schema for validating tenant records. */
 export const TenantSchema = z.object({
   id: z.string(),
   name: z.string().max(200),
@@ -182,10 +188,12 @@ export const TenantSchema = z.object({
   updatedAt: z.string(),
   trialEndsAt: z.string().optional(),
 });
+/** A tenant (organization or individual account) in the SaaS system. */
 export type Tenant = z.infer<typeof TenantSchema>;
 
 // ---- Usage Metering ----
 
+/** Zod schema for validating usage metering records. */
 export const UsageRecordSchema = z.object({
   tenantId: z.string(),
   period: z.string().describe("YYYY-MM format"),
@@ -196,10 +204,12 @@ export const UsageRecordSchema = z.object({
   llmTokensUsed: z.number().min(0),
   lastUpdated: z.string(),
 });
+/** Aggregated usage metrics for a tenant within a billing period. */
 export type UsageRecord = z.infer<typeof UsageRecordSchema>;
 
 // ---- API Key ----
 
+/** Zod schema for validating SaaS API key records. */
 export const SaasApiKeySchema = z.object({
   id: z.string(),
   tenantId: z.string(),
@@ -212,6 +222,7 @@ export const SaasApiKeySchema = z.object({
   expiresAt: z.string().optional(),
   revokedAt: z.string().optional(),
 });
+/** A SaaS API key with hashed secret, scopes, and lifecycle timestamps. */
 export type SaasApiKey = z.infer<typeof SaasApiKeySchema>;
 
 // ---- In-Memory Stores ----
@@ -222,6 +233,13 @@ const apiKeys = new Map<string, SaasApiKey>();
 
 // ---- Tenant Management ----
 
+/**
+ * Create a new tenant with the given details.
+ * Initializes usage metering and optionally starts a 14-day trial for paid plans.
+ * @param input - Tenant creation parameters (name, slug, ownerId, optional planId and billingEmail).
+ * @returns The newly created {@link Tenant} record.
+ * @throws If a tenant with the same slug already exists.
+ */
 export function createTenant(input: {
   name: string;
   slug: string;
@@ -255,14 +273,30 @@ export function createTenant(input: {
   return tenant;
 }
 
+/**
+ * Look up a tenant by its unique ID.
+ * @param id - The tenant UUID.
+ * @returns The {@link Tenant} record, or `undefined` if not found.
+ */
 export function getTenant(id: string): Tenant | undefined {
   return tenants.get(id);
 }
 
+/**
+ * Look up a tenant by its URL-safe slug.
+ * @param slug - The tenant slug (lowercase alphanumeric with hyphens).
+ * @returns The {@link Tenant} record, or `undefined` if not found.
+ */
 export function getTenantBySlug(slug: string): Tenant | undefined {
   return Array.from(tenants.values()).find((t) => t.slug === slug);
 }
 
+/**
+ * Change a tenant's subscription plan.
+ * @param tenantId - The tenant UUID.
+ * @param planId - The new plan to assign.
+ * @returns The updated {@link Tenant}, or `undefined` if the tenant was not found.
+ */
 export function updateTenantPlan(tenantId: string, planId: PlanId): Tenant | undefined {
   const tenant = tenants.get(tenantId);
   if (!tenant) return undefined;
@@ -271,6 +305,11 @@ export function updateTenantPlan(tenantId: string, planId: PlanId): Tenant | und
   return tenant;
 }
 
+/**
+ * Suspend a tenant, preventing further API access.
+ * @param tenantId - The tenant UUID to suspend.
+ * @returns `true` if the tenant was found and suspended, `false` otherwise.
+ */
 export function suspendTenant(tenantId: string): boolean {
   const tenant = tenants.get(tenantId);
   if (!tenant) return false;
@@ -306,11 +345,25 @@ function initializeUsage(tenantId: string): UsageRecord {
   return record;
 }
 
+/**
+ * Retrieve usage metrics for a tenant in the given billing period.
+ * Initializes a zero-usage record if none exists for the current period.
+ * @param tenantId - The tenant UUID.
+ * @param period - Optional billing period in `YYYY-MM` format (defaults to current month).
+ * @returns The {@link UsageRecord} for the specified period.
+ */
 export function getUsage(tenantId: string, period?: string): UsageRecord {
   const key = usageKey(tenantId, period);
   return usage.get(key) ?? initializeUsage(tenantId);
 }
 
+/**
+ * Increment a usage counter for a tenant in the current billing period.
+ * @param tenantId - The tenant UUID.
+ * @param field - The usage field to increment.
+ * @param amount - The amount to add (defaults to 1).
+ * @returns The updated {@link UsageRecord}.
+ */
 export function incrementUsage(
   tenantId: string,
   field: "sessionsUsed" | "anglesGenerated" | "apiRequests" | "llmTokensUsed",
@@ -325,6 +378,7 @@ export function incrementUsage(
 
 // ---- Limit Checking ----
 
+/** Result of a plan limit check, indicating whether the action is allowed. */
 export interface LimitCheckResult {
   allowed: boolean;
   currentUsage: number;
@@ -333,6 +387,12 @@ export interface LimitCheckResult {
   upgradeRequired?: PlanId;
 }
 
+/**
+ * Check whether a tenant has remaining capacity for a given plan limit.
+ * @param tenantId - The tenant UUID.
+ * @param limitName - The plan limit to check (e.g., `"sessionsPerMonth"`).
+ * @returns A {@link LimitCheckResult} indicating whether the action is allowed and current usage.
+ */
 export function checkLimit(tenantId: string, limitName: keyof PlanLimits): LimitCheckResult {
   const tenant = tenants.get(tenantId);
   if (!tenant) {
@@ -378,6 +438,15 @@ function suggestUpgrade(currentPlan: PlanId): PlanId | undefined {
 
 // ---- API Key Management ----
 
+/**
+ * Create a new API key for a tenant.
+ * The raw key is returned once and should be shown to the user immediately;
+ * only the hashed version is stored.
+ * @param tenantId - The tenant UUID.
+ * @param name - A human-readable name for the key.
+ * @param scopes - Permission scopes (defaults to `["read", "write"]`).
+ * @returns An object containing the persisted {@link SaasApiKey} and the plaintext `rawKey`.
+ */
 export function createApiKey(
   tenantId: string,
   name: string,
@@ -401,11 +470,21 @@ export function createApiKey(
   return { apiKey: key, rawKey };
 }
 
+/**
+ * Validate a raw API key and return the matching key record if valid and not revoked.
+ * @param rawKey - The plaintext API key to validate.
+ * @returns The matching {@link SaasApiKey}, or `undefined` if invalid or revoked.
+ */
 export function validateApiKey(rawKey: string): SaasApiKey | undefined {
   const hashed = hashKey(rawKey);
   return Array.from(apiKeys.values()).find((k) => k.hashedKey === hashed && !k.revokedAt);
 }
 
+/**
+ * Revoke an API key by ID, marking it as unusable.
+ * @param keyId - The API key UUID.
+ * @returns `true` if the key was found and revoked, `false` otherwise.
+ */
 export function revokeApiKey(keyId: string): boolean {
   const key = apiKeys.get(keyId);
   if (!key) return false;
@@ -413,6 +492,11 @@ export function revokeApiKey(keyId: string): boolean {
   return true;
 }
 
+/**
+ * List all active (non-revoked) API keys for a tenant.
+ * @param tenantId - The tenant UUID.
+ * @returns Array of active {@link SaasApiKey} records.
+ */
 export function listTenantApiKeys(tenantId: string): SaasApiKey[] {
   return Array.from(apiKeys.values()).filter((k) => k.tenantId === tenantId && !k.revokedAt);
 }
@@ -429,6 +513,7 @@ function hashKey(key: string): string {
 
 // ---- Billing Integration Interface ----
 
+/** Interface for external billing providers (e.g., Stripe). */
 export interface BillingProvider {
   createCustomer(email: string, name: string): Promise<string>;
   createSubscription(customerId: string, planId: PlanId): Promise<string>;
@@ -438,6 +523,7 @@ export interface BillingProvider {
   processWebhook(payload: string, signature: string): Promise<BillingEvent>;
 }
 
+/** A billing invoice record. */
 export interface Invoice {
   id: string;
   amount: number;
@@ -448,6 +534,7 @@ export interface Invoice {
   pdfUrl?: string;
 }
 
+/** A billing lifecycle event received from the payment provider webhook. */
 export interface BillingEvent {
   type:
     | "subscription.created"
@@ -462,16 +549,29 @@ export interface BillingEvent {
 
 // ---- Cleanup ----
 
+/**
+ * Clear all in-memory SaaS data (tenants, usage, API keys).
+ * Intended for test teardown.
+ */
 export function clearSaasData(): void {
   tenants.clear();
   usage.clear();
   apiKeys.clear();
 }
 
+/**
+ * Get the full plan definition for a given plan ID.
+ * @param planId - The plan identifier.
+ * @returns The {@link PlanDefinition} for the requested plan.
+ */
 export function getPlan(planId: PlanId): PlanDefinition {
   return PLANS[planId];
 }
 
+/**
+ * List all available plan definitions.
+ * @returns Array of all {@link PlanDefinition} records.
+ */
 export function listPlans(): PlanDefinition[] {
   return Object.values(PLANS);
 }
