@@ -1,3 +1,6 @@
+/**
+ * @description Visual workflow editor for composing and configuring multi-step innovation DAG pipelines.
+ */
 "use client";
 
 import { useState, useCallback, useMemo } from "react";

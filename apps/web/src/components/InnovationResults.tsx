@@ -1,3 +1,6 @@
+/**
+ * @description Display component for innovation pipeline results including angle cards, synthesis, and idea map.
+ */
 "use client";
 
 import { useState } from "react";

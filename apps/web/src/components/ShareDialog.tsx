@@ -1,3 +1,6 @@
+/**
+ * @description Share dialog for generating shareable links and configuring access to innovation sessions.
+ */
 "use client";
 
 import { useState, useCallback } from "react";

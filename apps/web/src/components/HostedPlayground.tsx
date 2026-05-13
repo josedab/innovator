@@ -1,3 +1,6 @@
+/**
+ * @description Hosted playground wrapper that handles authentication and session management for the SaaS tier.
+ */
 "use client";
 
 import { useState, useCallback, useEffect } from "react";

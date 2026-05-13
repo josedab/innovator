@@ -1,3 +1,6 @@
+/**
+ * @description Iterative idea refinement panel for evolving and improving selected innovations.
+ */
 "use client";
 
 import { useState } from "react";

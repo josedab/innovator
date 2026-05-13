@@ -1,3 +1,6 @@
+/**
+ * @description Visualization of jury consensus and divergence from multi-perspective idea evaluations.
+ */
 "use client";
 
 import { useMemo } from "react";

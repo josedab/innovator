@@ -1,3 +1,6 @@
+/**
+ * @description Step-by-step onboarding wizard that configures user preferences and introduces key features.
+ */
 "use client";
 
 import { useState, useCallback, useEffect } from "react";

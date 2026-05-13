@@ -1,3 +1,6 @@
+/**
+ * @description Version diff view for comparing changes between idea iterations or evolution steps.
+ */
 "use client";
 
 import { useState } from "react";

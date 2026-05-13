@@ -1,3 +1,6 @@
+/**
+ * @description Stakeholder simulation panel showing how different roles would evaluate proposed innovations.
+ */
 "use client";
 
 import { useState } from "react";

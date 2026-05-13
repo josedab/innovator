@@ -1,3 +1,6 @@
+/**
+ * @description Multi-axis health score radar chart for evaluating idea viability across dimensions.
+ */
 "use client";
 
 import { useState } from "react";

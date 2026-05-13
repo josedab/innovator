@@ -1,3 +1,6 @@
+/**
+ * @description Diff view showing changes between innovation session versions or snapshots.
+ */
 "use client";
 
 import { useState, useCallback } from "react";

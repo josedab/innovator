@@ -1,3 +1,6 @@
+/**
+ * @description Canvas-based idea dependency graph with drag-and-drop node positioning.
+ */
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";

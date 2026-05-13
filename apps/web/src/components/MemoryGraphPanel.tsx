@@ -1,3 +1,6 @@
+/**
+ * @description Knowledge memory graph visualization showing session history and concept relationships.
+ */
 "use client";
 
 import { useState, useCallback } from "react";

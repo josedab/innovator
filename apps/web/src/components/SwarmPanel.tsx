@@ -1,3 +1,6 @@
+/**
+ * @description Swarm intelligence panel that runs multiple parallel idea generation agents.
+ */
 "use client";
 
 import { useState } from "react";

@@ -1,3 +1,6 @@
+/**
+ * @description Visual editor for creating and editing directed acyclic graph (DAG) workflows.
+ */
 "use client";
 
 import { useState, useCallback } from "react";

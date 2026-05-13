@@ -1,3 +1,6 @@
+/**
+ * @description Panel for displaying and managing source citations linked to generated ideas.
+ */
 "use client";
 
 import { useState } from "react";

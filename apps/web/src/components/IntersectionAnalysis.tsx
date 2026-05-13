@@ -1,3 +1,6 @@
+/**
+ * @description Intersection analysis view identifying opportunities at the overlap of multiple domains.
+ */
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";

@@ -1,3 +1,6 @@
+/**
+ * @description Gallery of example investigations to help new users explore the platform.
+ */
 "use client";
 
 import { EXAMPLE_INVESTIGATIONS, type ExampleInvestigation } from "@/data/examples";

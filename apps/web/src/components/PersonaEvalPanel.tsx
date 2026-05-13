@@ -1,3 +1,6 @@
+/**
+ * @description Persona-based evaluation panel where AI personas score and critique innovation ideas.
+ */
 "use client";
 
 import { useState, useCallback } from "react";

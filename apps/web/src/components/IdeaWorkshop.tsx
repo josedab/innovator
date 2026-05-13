@@ -1,3 +1,6 @@
+/**
+ * @description Drag-and-drop idea workshop for organizing, tagging, and refining generated innovation ideas.
+ */
 "use client";
 
 import { useState, useCallback } from "react";

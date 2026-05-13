@@ -1,3 +1,6 @@
+/**
+ * @description Interactive dependency graph visualization showing relationships between ideas.
+ */
 "use client";
 
 import { useState } from "react";

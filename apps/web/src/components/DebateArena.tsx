@@ -1,3 +1,6 @@
+/**
+ * @description Structured multi-perspective debate interface for stress-testing innovation ideas.
+ */
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";

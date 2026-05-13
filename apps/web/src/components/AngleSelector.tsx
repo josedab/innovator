@@ -1,3 +1,6 @@
+/**
+ * @description Grid-based angle selection UI allowing users to pick creativity angles for idea generation.
+ */
 "use client";
 
 import { useState } from "react";

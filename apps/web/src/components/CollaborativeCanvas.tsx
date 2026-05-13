@@ -1,3 +1,6 @@
+/**
+ * @description Real-time collaborative canvas for multi-user brainstorming with shared idea cards.
+ */
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";

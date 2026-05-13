@@ -1,3 +1,6 @@
+/**
+ * @description Visualization of idea clusters showing semantic groupings and overlap regions.
+ */
 "use client";
 
 import { useMemo, useState } from "react";

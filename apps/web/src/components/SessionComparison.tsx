@@ -1,3 +1,6 @@
+/**
+ * @description Side-by-side comparison view for contrasting results across innovation sessions.
+ */
 "use client";
 
 import { useState, useCallback } from "react";

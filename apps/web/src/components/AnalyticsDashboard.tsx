@@ -1,3 +1,6 @@
+/**
+ * @description Innovation analytics dashboard with time-series charts, angle usage stats, and session metrics.
+ */
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
