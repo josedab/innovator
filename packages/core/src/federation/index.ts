@@ -654,3 +654,30 @@ export {
   checkDataResidencyCompliance,
   clearCrossOrgData,
 } from "./cross-org-insights.js";
+
+/** Innovation Genome Network — differential privacy, enrichment, gossip sync, analytics. */
+export {
+  applyDifferentialPrivacy,
+  privatizePattern,
+  generateGenomeInsights,
+  enrichAngleSelection,
+  createGossipDigest,
+  gossipSync,
+  computeGenomeAnalytics,
+  genomeAnalyticsToMarkdown,
+  wilsonConfidenceInterval,
+  signPattern,
+  verifyPatternSignature,
+  publishSignedPattern,
+  trackPrivacyBudget,
+  getPrivacyBudgetSpent,
+  isPrivacyBudgetExceeded,
+  resetPrivacyBudgets,
+} from "./genome.js";
+export type {
+  DiffPrivacyConfig,
+  GenomeInsight,
+  GossipDigest,
+  GenomeAnalytics,
+  PublishedPattern,
+} from "./genome.js";
