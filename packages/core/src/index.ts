@@ -6173,3 +6173,27 @@ export type {
   ReportOptions as DashboardReportOptions,
   ExecutiveSummaryReport,
 } from "./analytics/dashboard-service.js";
+
+/** Real-time — CRDT shared state, presence, and consensus. */
+export { SharedStateManager } from "./realtime/shared-state.js";
+export type {
+  SharedDocument,
+  CRDTOperation,
+  Conflict,
+  ConflictResolutionStrategy,
+} from "./realtime/shared-state.js";
+
+export { PresenceManager } from "./realtime/presence.js";
+export type {
+  PresenceStatus,
+  UserPresence,
+  RoomPresenceState,
+} from "./realtime/presence.js";
+
+export { ConsensusManager } from "./realtime/consensus.js";
+export type {
+  IdeaCard as ConsensusIdeaCard,
+  IdeaCardComment,
+  ConsensusEvent,
+  ConsensusSession,
+} from "./realtime/consensus.js";
