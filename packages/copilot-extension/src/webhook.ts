@@ -24,6 +24,7 @@ import {
 
 // ---- Types ----
 
+/** Incoming webhook payload from GitHub Copilot Chat. */
 export interface WebhookPayload {
   /** Copilot chat message from the user. */
   messages: WebhookMessage[];
@@ -38,17 +39,25 @@ export interface WebhookPayload {
   copilot_references?: CopilotReference[];
 }
 
+/** A single message in a Copilot Chat conversation. */
 export interface WebhookMessage {
+  /** Role of the message sender. */
   role: "user" | "assistant" | "system";
+  /** Text content of the message. */
   content: string;
 }
 
+/** A reference attached to a Copilot Chat message (e.g. selected code, file). */
 export interface CopilotReference {
+  /** Reference type identifier (e.g. "file", "selection"). */
   type: string;
+  /** Unique reference identifier. */
   id: string;
+  /** Optional reference data payload. */
   data?: unknown;
 }
 
+/** Response produced by the webhook handler, containing SSE-formatted chunks. */
 export interface WebhookResponse {
   /** SSE-formatted response stream chunks. */
   chunks: string[];

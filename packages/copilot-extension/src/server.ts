@@ -10,9 +10,13 @@ import { verifySignature } from "./verify.js";
 import { handleWebhook, type WebhookPayload } from "./webhook.js";
 import { EXTENSION_MANIFEST } from "./manifest.js";
 
+/** Configuration options for the Copilot Extension HTTP server. */
 export interface ServerConfig {
+  /** Port to listen on (default: 3200 or COPILOT_EXT_PORT env). */
   port?: number;
+  /** GitHub webhook secret for signature verification. */
   webhookSecret?: string;
+  /** Default LLM model for generation requests. */
   model?: string;
   /** Skip signature verification (development only). */
   skipVerification?: boolean;

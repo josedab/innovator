@@ -4,28 +4,47 @@
  * GitHub App manifest and Copilot Extension metadata for Marketplace listing.
  */
 
+/** Manifest describing the Copilot Extension's identity, commands, and permissions. */
 export interface ExtensionManifest {
+  /** Display name shown in GitHub Copilot Chat. */
   name: string;
+  /** Short description for the Marketplace listing. */
   description: string;
+  /** Semantic version of the extension. */
   version: string;
+  /** Emoji icon displayed alongside the extension name. */
   icon: string;
+  /** Slash commands the extension responds to. */
   commands: ExtensionCommand[];
+  /** GitHub App permissions required by the extension. */
   permissions: string[];
+  /** GitHub webhook events the extension subscribes to. */
   events: string[];
+  /** Homepage URL for the extension. */
   homepage: string;
+  /** Source code repository URL. */
   repository: string;
 }
 
+/** A single slash command exposed by the Copilot Extension. */
 export interface ExtensionCommand {
+  /** Slash command name (without the leading slash). */
   name: string;
+  /** Human-readable description shown in command palette. */
   description: string;
+  /** Optional parameters the command accepts. */
   parameters?: ExtensionParameter[];
 }
 
+/** Parameter definition for an extension command. */
 export interface ExtensionParameter {
+  /** Parameter name as used in the command syntax. */
   name: string;
+  /** Human-readable description of the parameter. */
   description: string;
+  /** Whether the parameter is required. */
   required: boolean;
+  /** Expected value type. */
   type: "string" | "number" | "boolean";
 }
 
