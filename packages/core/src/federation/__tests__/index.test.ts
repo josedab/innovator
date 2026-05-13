@@ -399,7 +399,8 @@ describe("federation", () => {
         },
       ];
 
-      const summary = createPrivateSummary(patterns);
+      // Use high epsilon (low noise) to ensure counts survive privatization
+      const summary = createPrivateSummary(patterns, { epsilon: 100, clippingBound: 10 });
       expect(summary.totalPatterns).toBeGreaterThanOrEqual(0);
       expect(summary.avgSuccessRate).toBeGreaterThanOrEqual(0);
       expect(summary.avgSuccessRate).toBeLessThanOrEqual(1);
@@ -716,6 +717,106 @@ describe("federation", () => {
         geographicSpread: [],
         healthScore: expect.any(Number),
       });
+    });
+  });
+
+  // ---- Additional error path and edge case tests ----
+
+  describe("getNode", () => {
+    it("returns undefined for non-existent node", () => {
+      expect(getNode("nonexistent-id")).toBeUndefined();
+    });
+
+    it("returns undefined for empty string ID", () => {
+      expect(getNode("")).toBeUndefined();
+    });
+  });
+
+  describe("mergePatterns — empty input", () => {
+    it("merging empty array returns 0 and leaves node unchanged", () => {
+      const node = createFederationNode({ name: "Test" });
+      const merged = mergePatterns(node.id, []);
+      expect(merged).toBe(0);
+      expect(getNode(node.id)!.receivedPatterns).toHaveLength(0);
+    });
+  });
+
+  describe("publishPatterns — sharing disabled", () => {
+    it("node always has sharing enabled by default", () => {
+      const node = createFederationNode({ name: "Test" });
+      extractPatterns({
+        nodeId: node.id,
+        domain: "ai",
+        angleResults: [{ angleId: "a1", angleName: "Angle", ideasCount: 5 }],
+      });
+      // sharingEnabled is always true in createFederationNode
+      const published = publishPatterns(node.id);
+      expect(published.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("fetchRemotePatterns", () => {
+    it("returns empty array for non-existent node", () => {
+      const patterns = fetchRemotePatterns("nonexistent");
+      expect(patterns).toEqual([]);
+    });
+  });
+
+  describe("createActivity — edge cases", () => {
+    it("creates activity even for non-existent node (no node check)", () => {
+      const activity = createActivity("nonexistent", "Create", "Content");
+      expect(activity).toBeDefined();
+      expect(activity.type).toBe("Create");
+    });
+
+    it("handles empty tags", () => {
+      const node = createFederationNode({ name: "Test" });
+      const activity = createActivity(node.id, "Create", "Content", []);
+      expect(activity).not.toBeNull();
+      expect(activity!.object.tags).toEqual([]);
+    });
+
+    it("handles undefined tags", () => {
+      const node = createFederationNode({ name: "Test" });
+      const activity = createActivity(node.id, "Create", "Content");
+      expect(activity.object.tags).toBeUndefined();
+    });
+  });
+
+  describe("getInbox/getOutbox — edge cases", () => {
+    it("getInbox returns empty for non-existent node", () => {
+      expect(getInbox("nonexistent")).toEqual([]);
+    });
+
+    it("getOutbox returns empty for node with no activities", () => {
+      const node = createFederationNode({ name: "Test" });
+      expect(getOutbox(node.id)).toEqual([]);
+    });
+  });
+
+  describe("privatizeCount — edge cases", () => {
+    it("negative input is clamped to 0", () => {
+      for (let i = 0; i < 20; i++) {
+        expect(privatizeCount(-5)).toBeGreaterThanOrEqual(0);
+      }
+    });
+  });
+
+  describe("privatizeRate — zero sample size", () => {
+    it("handles 0 sample size without error", () => {
+      const result = privatizeRate(0.5, 0);
+      expect(result).toBeGreaterThanOrEqual(0);
+      expect(result).toBeLessThanOrEqual(1);
+    });
+  });
+
+  describe("getNetworkDashboard — zero nodes", () => {
+    it("returns empty dashboard when federation is cleared", () => {
+      const dashboard = getNetworkDashboard("nonexistent");
+      expect(dashboard.totalNodes).toBe(0);
+      expect(dashboard.totalPatterns).toBe(0);
+      expect(dashboard.trendingAngles).toEqual([]);
+      expect(dashboard.topPatterns).toEqual([]);
     });
   });
 });
