@@ -6,13 +6,7 @@
  * as MCP resources accessible by any MCP-compatible client.
  */
 
-import {
-  listSessions,
-  getSession,
-  ANGLES,
-  getPresets,
-  KNOWN_MODELS,
-} from "@innovator/core";
+import { listSessions, getSession, ANGLES, getPresets, KNOWN_MODELS } from "@innovator/core";
 import type { SessionRecord } from "@innovator/core";
 
 /** Format a session record as a readable markdown resource. */
@@ -86,7 +80,10 @@ function sessionToMarkdown(session: SessionRecord): string {
   return lines.filter(Boolean).join("\n");
 }
 
-/** List all available session resources. */
+/**
+ * List all available innovation session resources as MCP resource descriptors.
+ * @returns Array of resource descriptors with URI, name, description, and MIME type.
+ */
 export async function listSessionResources(): Promise<
   Array<{ uri: string; name: string; description: string; mimeType: string }>
 > {
@@ -99,7 +96,11 @@ export async function listSessionResources(): Promise<
   }));
 }
 
-/** Read a specific session resource by URI. */
+/**
+ * Read a specific innovation session resource by its MCP URI.
+ * @param uri - MCP resource URI in the form `innovation://sessions/{id}`.
+ * @returns An object with `contents` array containing the session as markdown, or a not-found message.
+ */
 export async function readSessionResource(
   uri: string
 ): Promise<{ contents: Array<{ uri: string; mimeType: string; text: string }> }> {
@@ -127,7 +128,10 @@ export async function readSessionResource(
   };
 }
 
-/** Read the angles catalog resource. */
+/**
+ * Read the angles catalog resource, listing all available creativity angles in markdown table format.
+ * @returns An object with `contents` array containing the angles catalog as markdown.
+ */
 export function readAnglesResource(): {
   contents: Array<{ uri: string; mimeType: string; text: string }>;
 } {
@@ -138,9 +142,7 @@ export function readAnglesResource(): {
     "",
     "| ID | Name | Description | Icon |",
     "|---|---|---|---|",
-    ...ANGLES.map(
-      (a) => `| ${a.id} | ${a.name} | ${a.shortDescription} | ${a.icon} |`
-    ),
+    ...ANGLES.map((a) => `| ${a.id} | ${a.name} | ${a.shortDescription} | ${a.icon} |`),
     "",
     "## Usage",
     "",
@@ -158,7 +160,10 @@ export function readAnglesResource(): {
   };
 }
 
-/** Read the configuration resource. */
+/**
+ * Read the current server configuration resource (models, angles, presets, environment status).
+ * @returns An object with `contents` array containing the config as JSON.
+ */
 export function readConfigResource(): {
   contents: Array<{ uri: string; mimeType: string; text: string }>;
 } {
@@ -191,7 +196,10 @@ export function readConfigResource(): {
   };
 }
 
-/** Read the presets catalog resource. */
+/**
+ * Read the presets catalog resource, listing pre-configured angle combinations by domain.
+ * @returns An object with `contents` array containing the presets catalog as markdown.
+ */
 export function readPresetsResource(): {
   contents: Array<{ uri: string; mimeType: string; text: string }>;
 } {

@@ -8,6 +8,7 @@
 
 import { ANGLES } from "@innovator/core";
 
+/** Descriptor for an MCP prompt template. */
 export interface McpPrompt {
   name: string;
   description: string;
@@ -18,12 +19,16 @@ export interface McpPrompt {
   }>;
 }
 
+/** A single message in an MCP prompt conversation. */
 export interface McpPromptMessage {
   role: "user" | "assistant";
   content: { type: "text"; text: string };
 }
 
-/** All available prompt templates. */
+/**
+ * List all available MCP prompt templates.
+ * @returns Array of {@link McpPrompt} descriptors with name, description, and argument definitions.
+ */
 export function listPrompts(): McpPrompt[] {
   return [
     {
@@ -32,16 +37,23 @@ export function listPrompts(): McpPrompt[] {
         "Investigate a subject to understand its landscape, challenges, and opportunities before generating innovation ideas",
       arguments: [
         { name: "subject", description: "The topic or domain to investigate", required: true },
-        { name: "depth", description: "Investigation depth: quick, standard, or deep", required: false },
+        {
+          name: "depth",
+          description: "Investigation depth: quick, standard, or deep",
+          required: false,
+        },
       ],
     },
     {
       name: "innovate-with-angle",
-      description:
-        "Generate innovation ideas for a subject using a specific creativity angle",
+      description: "Generate innovation ideas for a subject using a specific creativity angle",
       arguments: [
         { name: "subject", description: "The topic to innovate on", required: true },
-        { name: "angle", description: `Creativity angle: ${ANGLES.map((a) => a.id).join(", ")}`, required: true },
+        {
+          name: "angle",
+          description: `Creativity angle: ${ANGLES.map((a) => a.id).join(", ")}`,
+          required: true,
+        },
         { name: "context", description: "Additional context or constraints", required: false },
       ],
     },
@@ -51,7 +63,11 @@ export function listPrompts(): McpPrompt[] {
         "Run the complete innovation pipeline: investigate, generate ideas from all angles, and synthesize top recommendations",
       arguments: [
         { name: "subject", description: "The topic to explore", required: true },
-        { name: "angles", description: "Comma-separated angle IDs (omit for all 8)", required: false },
+        {
+          name: "angles",
+          description: "Comma-separated angle IDs (omit for all 8)",
+          required: false,
+        },
       ],
     },
     {
@@ -59,8 +75,16 @@ export function listPrompts(): McpPrompt[] {
       description:
         "Analyze code or architecture and generate innovation ideas grounded in the actual codebase context",
       arguments: [
-        { name: "code_context", description: "Code snippet, file path, or architecture description", required: true },
-        { name: "focus", description: "Focus area: performance, security, ux, scalability, or general", required: false },
+        {
+          name: "code_context",
+          description: "Code snippet, file path, or architecture description",
+          required: true,
+        },
+        {
+          name: "focus",
+          description: "Focus area: performance, security, ux, scalability, or general",
+          required: false,
+        },
       ],
     },
     {
@@ -69,26 +93,35 @@ export function listPrompts(): McpPrompt[] {
         "Run a structured multi-perspective debate on an innovation idea to stress-test it",
       arguments: [
         { name: "idea", description: "The idea to debate", required: true },
-        { name: "perspectives", description: "Perspectives to include (e.g., cto, investor, end-user)", required: false },
+        {
+          name: "perspectives",
+          description: "Perspectives to include (e.g., cto, investor, end-user)",
+          required: false,
+        },
       ],
     },
     {
       name: "compare-approaches",
-      description:
-        "Compare multiple innovation approaches side-by-side for the same problem",
+      description: "Compare multiple innovation approaches side-by-side for the same problem",
       arguments: [
         { name: "problem", description: "The problem statement", required: true },
-        { name: "approaches", description: "Comma-separated approaches to compare", required: true },
+        {
+          name: "approaches",
+          description: "Comma-separated approaches to compare",
+          required: true,
+        },
       ],
     },
   ];
 }
 
-/** Resolve a prompt template with arguments into messages. */
-export function getPromptMessages(
-  name: string,
-  args: Record<string, string>
-): McpPromptMessage[] {
+/**
+ * Resolve a prompt template by name and substitute the provided arguments into messages.
+ * @param name - The prompt template name (e.g., `"investigate-subject"`, `"full-innovation-pipeline"`).
+ * @param args - Key–value argument map matching the template's declared arguments.
+ * @returns Array of {@link McpPromptMessage} objects ready for the MCP client.
+ */
+export function getPromptMessages(name: string, args: Record<string, string>): McpPromptMessage[] {
   switch (name) {
     case "investigate-subject": {
       const depth = args.depth ?? "standard";
@@ -179,7 +212,9 @@ export function getPromptMessages(
           role: "user",
           content: {
             type: "text",
-            text: `Unknown prompt template: ${name}. Available prompts: ${listPrompts().map((p) => p.name).join(", ")}`,
+            text: `Unknown prompt template: ${name}. Available prompts: ${listPrompts()
+              .map((p) => p.name)
+              .join(", ")}`,
           },
         },
       ];
