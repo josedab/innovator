@@ -302,3 +302,17 @@ export function clearDigitalTwinData(): void {
   ecosystems.clear();
   simulations.clear();
 }
+
+/** Monte Carlo simulation engine — statistical, non-LLM simulation. */
+export {
+  runMonteCarloSimulation,
+  runMonteCarloComparison,
+  monteCarloToMarkdown,
+  MonteCarloConfigSchema,
+} from "./monte-carlo.js";
+export type {
+  MonteCarloConfig,
+  MonteCarloResult,
+  MonteCarloComparison,
+  DistributionStats,
+} from "./monte-carlo.js";
