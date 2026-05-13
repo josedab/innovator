@@ -143,7 +143,44 @@ import {
   listPersonas,
   generateStakeholderAssessment,
   assessmentToMarkdown,
+  // Innovation-as-Code
+  createIaCSession,
+  sessionFileName,
+  diffSessions,
+  formatSessionDiff,
+  ideaToGitHubIssue,
+  listIaCSessions,
+  validateIaCSession,
+  DEFAULT_CONFIG_YAML,
+  DEFAULT_ANGLES_YAML,
+  // Autonomous Agent Manager
+  startAgentRun,
+  stopAgentRun,
+  getAgentRun,
+  listAgentRuns,
+  exportRunPortfolio,
+  // Novelty Oracle
+  assessNovelty,
+  generateNoveltyReport,
+  noveltyReportToMarkdown,
+  addPriorArt,
+  clearPriorArt,
+  enrichSynthesisWithNovelty,
+  // Genome Network
+  createFederationNode,
+  extractPatterns,
+  getNetworkDashboard,
+  gossipSync,
+  computeGenomeAnalytics,
+  genomeAnalyticsToMarkdown,
+  generateGenomeInsights,
+  enrichAngleSelection,
+  listNodes,
+  // Digital Twin Monte Carlo
+  runMonteCarloComparison,
+  twinMonteCarloToMarkdown,
 } from "@innovator/core";
+import type { IaCSession } from "@innovator/core";
 import type {
   AngleId,
   CustomAngle,
@@ -244,6 +281,8 @@ program
   .option("--score", "Score and rank ideas after generation")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
+  .option("--save", "Save investigation result to .innovator/sessions/")
+  /** Handler: investigate a subject and display structured findings. */
   .action(
     async (
       subject: string,
@@ -254,6 +293,7 @@ program
         score?: boolean;
         file?: string;
         url?: string;
+        save?: boolean;
       }
     ) => {
       if (!validateSubjectWithLog(subject)) return;
@@ -347,6 +387,24 @@ program
         console.log(
           chalk.dim(`\nRun: innovator innovate "${subject}" --angles scamper,first-principles`)
         );
+
+        // Save session if --save flag is set
+        if (opts.save) {
+          const sessionsDir = ".innovator/sessions";
+          if (!existsSync(sessionsDir)) {
+            mkdirSync(sessionsDir, { recursive: true });
+          }
+          const session = createIaCSession({
+            subject,
+            investigation: result,
+            angleResults: [],
+            model: opts.model,
+          });
+          const filename = sessionFileName(session);
+          const filepath = `${sessionsDir}/${filename}`;
+          writeFileSync(filepath, JSON.stringify(session, null, 2));
+          console.log(chalk.green(`\n💾 Session saved: ${filepath}`));
+        }
       } catch (err) {
         spinner.fail("Investigation failed");
         if (verbose) {
@@ -377,6 +435,7 @@ program
   .option("--score", "Score and rank ideas after generation")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
+  /** Handler: generate innovation ideas for selected angles and display results. */
   .action(
     async (
       subject: string,
@@ -496,6 +555,10 @@ program
   .option("--decision-packet", "Generate an executive decision packet from results")
   .option("--stress-test", "Run stress test scenarios on top ideas")
   .option("--stakeholders", "Run stakeholder simulation on top ideas")
+  .option("--save", "Save session to .innovator/sessions/ for version control")
+  .option("--network-insights", "Enrich pipeline with Innovation Genome Network insights")
+  .option("--novelty", "Score synthesized ideas for novelty against prior art")
+  /** Handler: run the full auto-pipeline (investigate → generate → synthesize). */
   .action(
     async (
       subject: string,
@@ -516,6 +579,9 @@ program
         decisionPacket?: boolean;
         stressTest?: boolean;
         stakeholders?: boolean;
+        save?: boolean;
+        networkInsights?: boolean;
+        novelty?: boolean;
       }
     ) => {
       if (!validateSubjectWithLog(subject)) return;
@@ -573,6 +639,26 @@ program
       const spinner = ora("Starting auto pipeline...").start();
       debugLog("COMMAND", "auto", { subject, model: opts.model });
       const endTimer = timeStart("auto-pipeline");
+      const pipelineStartMs = Date.now();
+
+      // Network insights enrichment
+      if (opts.networkInsights) {
+        try {
+          const allNodes = listNodes();
+          if (allNodes.length === 0) {
+            createFederationNode({ name: "local-cli", isPublic: false });
+          }
+          const nodeId = listNodes()[0].id;
+          const enrichment = enrichAngleSelection(nodeId, ANGLE_IDS as unknown as string[], undefined);
+          if (enrichment.enrichments.length > 0) {
+            spinner.info("🌐 Network insights applied:");
+            for (const msg of enrichment.enrichments) console.log(`   ${msg}`);
+            spinner.start("Starting auto pipeline...");
+          }
+        } catch {
+          // Network unavailable — continue without enrichment
+        }
+      }
 
       const controller = new AbortController();
       commandCleanup = async () => controller.abort();
@@ -661,6 +747,43 @@ program
 
           console.log(chalk.bold("\n📌 Recommendation:"));
           console.log(`  ${stripAnsi(result.synthesis.recommendation)}`);
+        }
+
+        // Save session to .innovator/sessions/ if --save flag is set
+        if (opts.save) {
+          const sessionsDir = ".innovator/sessions";
+          if (!existsSync(sessionsDir)) {
+            mkdirSync(sessionsDir, { recursive: true });
+          }
+          const session = createIaCSession({
+            subject: enrichedSubject,
+            investigation: result.investigation,
+            angleResults: result.angleResults,
+            synthesis: result.synthesis,
+            model: opts.model,
+            durationMs: Date.now() - pipelineStartMs,
+          });
+          const filename = sessionFileName(session);
+          const filepath = `${sessionsDir}/${filename}`;
+          writeFileSync(filepath, JSON.stringify(session, null, 2));
+          console.log(chalk.green(`\n💾 Session saved: ${filepath}`));
+        }
+
+        // Novelty scoring if --novelty flag is set
+        if (opts.novelty && result.synthesis) {
+          const enriched = enrichSynthesisWithNovelty(result.synthesis);
+          console.log(chalk.bold(`\n🆕 Novelty Scores`));
+          console.log(`   Average: ${enriched.noveltyStats.averageNovelty}/100 | Highly Novel: ${enriched.noveltyStats.highlyNovel} | Patent Candidates: ${enriched.noveltyStats.patentCandidates}\n`);
+          for (const idea of enriched.topIdeas) {
+            const badge = idea.noveltyAssessment === "highly-novel" ? chalk.green("🆕") :
+              idea.noveltyAssessment === "partially-novel" ? chalk.yellow("🔶") :
+              chalk.red("⚠️");
+            console.log(`   ${badge} ${chalk.bold(stripAnsi(idea.title))} — ${idea.noveltyScore}/100 ${idea.patentCandidate ? chalk.cyan("📋 Patent Candidate") : ""}`);
+            if (idea.differentiators.length > 0) {
+              console.log(`      Differentiators: ${idea.differentiators.slice(0, 5).join(", ")}`);
+            }
+          }
+          console.log();
         }
 
         // Check investigation confidence if --min-confidence flag is set
@@ -1100,6 +1223,7 @@ program
   .option("-m, --model <model>", "LLM model to use")
   .option("--generations <n>", "Number of evolution generations (1-10)", "3")
   .option("--population <n>", "Population size per generation", "6")
+  /** Handler: evolve ideas through genetic-algorithm-inspired generations. */
   .action(
     async (
       subject: string,
@@ -1161,6 +1285,7 @@ program
   .argument("<subjectA>", "First snapshot (e.g., 'remote work in 2020')")
   .argument("<subjectB>", "Second snapshot (e.g., 'remote work in 2026')")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: compare two temporal snapshots and display innovation diff. */
   .action(async (subjectA: string, subjectB: string, opts: { model?: string }) => {
     if (!validateModelWithLog(opts.model)) return;
 
@@ -1226,6 +1351,7 @@ program
   .description("Run a pipeline described in natural language")
   .argument("<description>", "Plain English description of what pipeline to run")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: parse and execute a natural-language pipeline description. */
   .action(async (description: string, opts: { model?: string }) => {
     if (!validateModelWithLog(opts.model)) return;
 
@@ -1314,6 +1440,7 @@ const chainCmd = program
 chainCmd
   .command("list")
   .description("List available angle chains")
+  /** Handler: list all available angle chains. */
   .action(() => {
     console.log(chalk.bold("\n🔗 Available Angle Chains\n"));
     for (const chain of listChains()) {
@@ -1329,6 +1456,7 @@ chainCmd
   .argument("<chainId>", "Chain ID to run (e.g., deep-disruption)")
   .argument("<subject>", "The subject to innovate on")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: execute an angle chain on a subject. */
   .action(async (chainId: string, subject: string, opts: { model?: string }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
@@ -1415,6 +1543,7 @@ const feedbackCmd = program
 feedbackCmd
   .command("summary")
   .description("Show per-angle quality scores from collected feedback")
+  /** Handler: display per-angle quality scores from collected feedback. */
   .action(() => {
     const summary = getFeedbackSummary();
     if (summary.totalFeedback === 0) {
@@ -1454,6 +1583,7 @@ feedbackCmd
   .option("--idea <title>", "Idea title to rate", "general")
   .option("--comment <text>", "Optional comment on why")
   .option("--session <id>", "Session ID")
+  /** Handler: record a thumbs-up/down rating for an idea. */
   .action(
     (
       angleId: string,
@@ -1484,6 +1614,7 @@ const anglesCmd = program.command("angles").description("List and manage innovat
 anglesCmd
   .command("list")
   .description("List all available innovation angles (built-in and custom)")
+  /** Handler: list all built-in and custom innovation angles. */
   .action(() => {
     console.log(chalk.bold("\n💡 Built-in Innovation Angles\n"));
     for (const angle of ANGLES) {
@@ -1502,6 +1633,7 @@ anglesCmd
   });
 
 // Default action: just listing (backwards compat)
+/** Default handler: delegates to the 'list' subcommand. */
 anglesCmd.action(() => {
   anglesCmd.commands.find((c) => c.name() === "list")?.parse([], { from: "user" });
 });
@@ -1519,6 +1651,7 @@ anglesCmd
   .option("--icon <icon>", "Emoji icon", "🔧")
   .option("--author <author>", "Author name")
   .option("--tags <tags>", "Comma-separated tags")
+  /** Handler: create and persist a new custom angle definition. */
   .action(
     (opts: {
       id: string;
@@ -1551,6 +1684,7 @@ anglesCmd
 anglesCmd
   .command("remove <id>")
   .description("Remove a custom angle")
+  /** Handler: remove a custom angle by ID. */
   .action((id: string) => {
     if (removeCustomAngle(id)) {
       console.log(chalk.green(`✓ Custom angle "${id}" removed`));
@@ -1566,6 +1700,7 @@ anglesCmd
   .requiredOption("--name <name>", "Pack name")
   .option("--angles <ids>", "Comma-separated angle IDs (defaults to all)")
   .option("-o, --output <file>", "Output file path", "angles.angle.json")
+  /** Handler: export custom angles to an angle-pack JSON file. */
   .action((opts: { name: string; angles?: string; output: string }) => {
     try {
       const angleIds = opts.angles?.split(",").map((a) => a.trim());
@@ -1581,6 +1716,7 @@ anglesCmd
 anglesCmd
   .command("import <file>")
   .description("Import angles from an .angle.json pack file")
+  /** Handler: import angles from an angle-pack file. */
   .action((file: string) => {
     try {
       const raw = readFileSync(file, "utf-8");
@@ -1604,6 +1740,7 @@ program
   .description("Export a session to Markdown, JSON, or GitHub Issue format")
   .option("-f, --format <format>", "Export format: markdown, json, github-issue", "markdown")
   .option("-o, --output <file>", "Output file path (defaults to stdout)")
+  /** Handler: export a saved session to Markdown, JSON, or GitHub Issue format. */
   .action((sessionId: string, opts: { format: string; output?: string }) => {
     const sessions = listSessions();
     const session = sessions.find((s) => s.id.startsWith(sessionId));
@@ -1670,6 +1807,7 @@ historyCmd
   .option("-n, --limit <n>", "Number of sessions to show", "10")
   .option("--search <query>", "Search by subject or content")
   .option("--tag <tag>", "Filter by tag")
+  /** Handler: list recent sessions with optional search and tag filters. */
   .action((opts: { limit: string; search?: string; tag?: string }) => {
     const sessions = querySessions({
       search: opts.search,
@@ -1705,6 +1843,7 @@ historyCmd.action(() => {
 historyCmd
   .command("show <id>")
   .description("Show details of a session")
+  /** Handler: display detailed information about a specific session. */
   .action((id: string) => {
     const sessions = listSessions();
     const session = sessions.find((s) => s.id.startsWith(id));
@@ -1741,6 +1880,7 @@ historyCmd
 historyCmd
   .command("tag <id> <tags...>")
   .description("Add tags to a session")
+  /** Handler: add tags to an existing session. */
   .action((id: string, tags: string[]) => {
     const sessions = listSessions();
     const session = sessions.find((s) => s.id.startsWith(id));
@@ -1757,6 +1897,7 @@ historyCmd
 historyCmd
   .command("delete <id>")
   .description("Delete a session")
+  /** Handler: permanently delete a session by ID. */
   .action((id: string) => {
     const sessions = listSessions();
     const session = sessions.find((s) => s.id.startsWith(id));
@@ -1777,6 +1918,7 @@ const presetsCmd = program.command("presets").description("Browse and use domain
 presetsCmd
   .command("list")
   .description("List all available presets")
+  /** Handler: list all available domain presets with suggested subjects. */
   .action(() => {
     const presets = getPresets();
     console.log(chalk.bold("\n📋 Available Presets\n"));
@@ -1803,6 +1945,7 @@ presetsCmd
   .option("--score", "Score and rank ideas after generation")
   .option("--file <path>", "Use a file or directory as context input")
   .option("--url <url>", "Use a URL as context input")
+  /** Handler: run the auto pipeline using a preset's angle configuration. */
   .action(
     async (
       presetId: string,
@@ -1903,6 +2046,7 @@ const pluginCmd = program.command("plugin").description("Manage innovator plugin
 pluginCmd
   .command("list")
   .description("List all registered plugins")
+  /** Handler: list all registered plugins with type and version. */
   .action(() => {
     const plugins = listPlugins();
     if (plugins.length === 0) {
@@ -1919,6 +2063,7 @@ pluginCmd
 pluginCmd
   .command("load <source>")
   .description("Load a plugin from a file path or npm package")
+  /** Handler: dynamically load a plugin from a file path or npm package. */
   .action(async (source: string) => {
     try {
       const plugin = await loadPlugin(source);
@@ -1933,6 +2078,7 @@ pluginCmd
   .command("create <name>")
   .description("Scaffold a new plugin project")
   .option("--type <type>", "Plugin type: angle, exporter, or visualizer", "angle")
+  /** Handler: scaffold a new plugin project directory. */
   .action((name: string, opts: { type: string }) => {
     const dir = name;
     if (existsSync(dir)) {
@@ -2038,6 +2184,7 @@ program
   )
   .option("--judge <model>", "Model to use as evaluator/judge")
   .option("-o, --output <file>", "Output report file path")
+  /** Handler: run innovation benchmark across multiple models and display results. */
   .action(
     async (
       subject: string,
@@ -2103,6 +2250,7 @@ const configCmd = program.command("config").description("Manage LLM provider con
 configCmd
   .command("show")
   .description("Show current configuration")
+  /** Handler: display the current LLM provider configuration. */
   .action(() => {
     const config = loadConfig();
     console.log(chalk.bold("\n⚙️  Innovator Configuration\n"));
@@ -3915,6 +4063,487 @@ program
       console.log(assessmentToMarkdown(assessment));
     } catch (err) {
       spinner.fail("Persona evaluation failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+// ---- Innovation-as-Code Commands ----
+
+const iacCmd = program
+  .command("iac")
+  .description("Innovation-as-Code — version-controlled innovation workflows");
+
+iacCmd
+  .command("init")
+  .description("Initialize .innovator/ directory in the current project")
+  .action(async () => {
+    const dir = ".innovator";
+    const sessionsDir = `${dir}/sessions`;
+    try {
+      if (existsSync(dir)) {
+        console.log(chalk.yellow("⚠ .innovator/ already exists"));
+        return;
+      }
+      mkdirSync(sessionsDir, { recursive: true });
+      writeFileSync(`${dir}/config.yaml`, DEFAULT_CONFIG_YAML);
+      writeFileSync(`${dir}/angles.yaml`, DEFAULT_ANGLES_YAML);
+      writeFileSync(`${dir}/.gitkeep`, "");
+      console.log(chalk.green("✅ Initialized .innovator/ directory"));
+      console.log(`   ${chalk.dim("config.yaml")}  — Default configuration`);
+      console.log(`   ${chalk.dim("angles.yaml")} — Custom angle definitions`);
+      console.log(`   ${chalk.dim("sessions/")}   — Innovation session storage`);
+    } catch (err) {
+      console.error(chalk.red("Failed to initialize .innovator/"));
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+iacCmd
+  .command("save <subject>")
+  .description("Save the latest pipeline result as a session in .innovator/sessions/")
+  .option("-t, --tags <tags>", "Comma-separated tags")
+  .action(async (subject: string, opts: { tags?: string }) => {
+    const sessionsDir = ".innovator/sessions";
+    if (!existsSync(sessionsDir)) {
+      console.error(chalk.red("No .innovator/ directory. Run `innovator iac init` first."));
+      process.exitCode = 1;
+      return;
+    }
+    const session = createIaCSession({
+      subject,
+      angleResults: [],
+      tags: opts.tags?.split(",").map((t) => t.trim()) ?? [],
+    });
+    const filename = sessionFileName(session);
+    const filepath = `${sessionsDir}/${filename}`;
+    writeFileSync(filepath, JSON.stringify(session, null, 2));
+    console.log(chalk.green(`✅ Session saved: ${filepath}`));
+  });
+
+iacCmd
+  .command("history")
+  .description("List all saved innovation sessions")
+  .action(async () => {
+    const sessionsDir = ".innovator/sessions";
+    if (!existsSync(sessionsDir)) {
+      console.log(chalk.yellow("No .innovator/ directory found."));
+      return;
+    }
+    try {
+      const { readdirSync } = await import("node:fs");
+      const files = readdirSync(sessionsDir).filter((f: string) => f.endsWith(".json"));
+      const sessions: IaCSession[] = [];
+      for (const file of files) {
+        try {
+          const data = JSON.parse(readFileSync(`${sessionsDir}/${file}`, "utf-8"));
+          const err = validateIaCSession(data);
+          if (!err) sessions.push(data as IaCSession);
+        } catch {
+          // Skip invalid files
+        }
+      }
+      console.log(listIaCSessions(sessions));
+    } catch (err) {
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+iacCmd
+  .command("diff <fileA> <fileB>")
+  .description("Diff two innovation sessions")
+  .action(async (fileA: string, fileB: string) => {
+    try {
+      const dataA = JSON.parse(readFileSync(fileA, "utf-8"));
+      const dataB = JSON.parse(readFileSync(fileB, "utf-8"));
+      const errA = validateIaCSession(dataA);
+      const errB = validateIaCSession(dataB);
+      if (errA) { console.error(chalk.red(`Invalid session A: ${errA}`)); process.exitCode = 1; return; }
+      if (errB) { console.error(chalk.red(`Invalid session B: ${errB}`)); process.exitCode = 1; return; }
+      const diff = diffSessions(dataA as IaCSession, dataB as IaCSession);
+      console.log(formatSessionDiff(diff));
+    } catch (err) {
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+iacCmd
+  .command("issues <sessionFile>")
+  .description("Create GitHub Issues from top ideas in a session")
+  .option("-n, --top <n>", "Number of top ideas to create issues for", "3")
+  .option("--dry-run", "Print issue bodies without creating them")
+  .action(async (sessionFile: string, opts: { top: string; dryRun?: boolean }) => {
+    try {
+      const data = JSON.parse(readFileSync(sessionFile, "utf-8"));
+      const err = validateIaCSession(data);
+      if (err) { console.error(chalk.red(`Invalid session: ${err}`)); process.exitCode = 1; return; }
+      const session = data as IaCSession;
+      const topN = parseInt(opts.top, 10) || 3;
+      const ideas = session.synthesis?.topIdeas.slice(0, topN) ?? [];
+
+      if (ideas.length === 0) {
+        console.log(chalk.yellow("No synthesized ideas found in session. Run the full pipeline first."));
+        return;
+      }
+
+      for (const idea of ideas) {
+        const issue = ideaToGitHubIssue(session, idea);
+        if (opts.dryRun) {
+          console.log(chalk.bold(`\n📋 ${issue.title}`));
+          console.log(chalk.dim("─".repeat(60)));
+          console.log(issue.body);
+          console.log(chalk.dim(`Labels: ${issue.labels.join(", ")}\n`));
+        } else {
+          console.log(chalk.green(`✅ Would create: ${issue.title}`));
+          console.log(chalk.dim("   (Use gh CLI: gh issue create --title '...' --body '...')"));
+        }
+      }
+    } catch (err) {
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+iacCmd
+  .command("validate [sessionFile]")
+  .description("Validate a session file or the .innovator/ directory")
+  .action(async (sessionFile?: string) => {
+    if (sessionFile) {
+      try {
+        const data = JSON.parse(readFileSync(sessionFile, "utf-8"));
+        const err = validateIaCSession(data);
+        if (err) {
+          console.log(chalk.red(`❌ Invalid: ${err}`));
+          process.exitCode = 1;
+        } else {
+          console.log(chalk.green("✅ Valid session file"));
+        }
+      } catch (err) {
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
+      }
+    } else {
+      const dir = ".innovator";
+      if (!existsSync(dir)) {
+        console.log(chalk.red("❌ No .innovator/ directory found"));
+        process.exitCode = 1;
+        return;
+      }
+      let valid = true;
+      if (!existsSync(`${dir}/config.yaml`)) { console.log(chalk.red("❌ Missing config.yaml")); valid = false; }
+      if (!existsSync(`${dir}/sessions`)) { console.log(chalk.red("❌ Missing sessions/ directory")); valid = false; }
+      if (valid) console.log(chalk.green("✅ .innovator/ directory structure is valid"));
+    }
+  });
+
+// ---- Autonomous Agent Commands ----
+
+const agentCmd = program
+  .command("agent")
+  .description("Autonomous innovation agents — self-directed multi-branch exploration");
+
+agentCmd
+  .command("start <subject>")
+  .description("Start an autonomous agent exploration")
+  .option("-b, --max-branches <n>", "Maximum branches", "10")
+  .option("-d, --max-depth <n>", "Maximum depth", "3")
+  .option("-s, --strategy <strategy>", "Exploration strategy", "adaptive")
+  .option("-m, --model <model>", "LLM model to use")
+  .option("--budget <cost>", "Maximum cost in dollars", "5")
+  .action(async (subject: string, opts: { maxBranches: string; maxDepth: string; strategy: string; model?: string; budget: string }) => {
+    const spinner = ora("Starting autonomous agent...").start();
+    try {
+      const managed = await startAgentRun(
+        subject,
+        (progress) => {
+          spinner.text = `${progress.status} — ${progress.completedBranches}/${progress.totalBranches} branches, ${progress.totalIdeas} ideas (budget: $${progress.budgetRemaining.toFixed(2)} remaining)`;
+        },
+        {
+          maxBranches: parseInt(opts.maxBranches, 10),
+          maxDepth: parseInt(opts.maxDepth, 10),
+          strategy: opts.strategy as "breadth-first" | "depth-first" | "adaptive",
+          model: opts.model,
+          maxCost: parseFloat(opts.budget),
+        }
+      );
+      spinner.succeed(`Agent completed — ${managed.run.branches.length} branches, ${managed.run.branches.reduce((s, b) => s + b.ideas.length, 0)} ideas`);
+      const md = exportRunPortfolio(managed.run.id);
+      if (md) console.log(md);
+    } catch (err) {
+      spinner.fail("Agent failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+agentCmd
+  .command("list")
+  .description("List active and completed agent runs")
+  .action(() => {
+    const runs = listAgentRuns();
+    if (runs.length === 0) {
+      console.log(chalk.dim("No agent runs found."));
+      return;
+    }
+    console.log(chalk.bold("Agent Runs:"));
+    for (const r of runs) {
+      const statusIcon = r.status === "completed" ? "✅" : r.status === "failed" ? "❌" : "⏳";
+      console.log(`  ${statusIcon} ${chalk.cyan(r.id.slice(0, 8))} ${r.subject.slice(0, 40)} — ${r.branches} branches, ${r.ideas} ideas, $${r.budgetUsed.toFixed(2)}/$${r.budgetMax.toFixed(2)}`);
+    }
+  });
+
+agentCmd
+  .command("export <runId>")
+  .description("Export an agent run as markdown")
+  .option("-o, --output <file>", "Output file path")
+  .action((runId: string, opts: { output?: string }) => {
+    const md = exportRunPortfolio(runId);
+    if (!md) {
+      console.error(chalk.red("Run not found or has no portfolio."));
+      process.exitCode = 1;
+      return;
+    }
+    if (opts.output) {
+      writeFileSync(opts.output, md);
+      console.log(chalk.green(`✅ Exported to ${opts.output}`));
+    } else {
+      console.log(md);
+    }
+  });
+
+agentCmd
+  .command("stop <runId>")
+  .description("Stop a running agent gracefully")
+  .action((runId: string) => {
+    const success = stopAgentRun(runId);
+    if (success) {
+      console.log(chalk.yellow(`⏹ Agent ${runId.slice(0, 8)} stopped`));
+    } else {
+      console.error(chalk.red("Run not found or already completed."));
+      process.exitCode = 1;
+    }
+  });
+
+agentCmd
+  .command("resume <runId>")
+  .description("Resume an agent from its last checkpoint (re-starts from saved state)")
+  .option("-m, --model <model>", "LLM model to use")
+  .action(async (runId: string, opts: { model?: string }) => {
+    const run = getAgentRun(runId);
+    if (!run) {
+      console.error(chalk.red("Run not found. Use 'agent list' to see available runs."));
+      process.exitCode = 1;
+      return;
+    }
+    if (run.checkpoints.length === 0) {
+      console.error(chalk.red("No checkpoints available for this run."));
+      process.exitCode = 1;
+      return;
+    }
+    const checkpoint = run.checkpoints[run.checkpoints.length - 1];
+    console.log(chalk.cyan(`📍 Resuming from checkpoint ${checkpoint.id.slice(0, 8)}`));
+    console.log(chalk.dim(`   Status: ${checkpoint.status} | Branches: ${checkpoint.branchCount} | Ideas: ${checkpoint.ideaCount}`));
+
+    // Re-start with the same subject from checkpoint state
+    const spinner = ora("Resuming agent...").start();
+    try {
+      const managed = await startAgentRun(
+        run.run.rootSubject,
+        (progress) => {
+          spinner.text = `${progress.status} — ${progress.completedBranches}/${progress.totalBranches} branches, ${progress.totalIdeas} ideas`;
+        },
+        {
+          maxBranches: run.run.config.maxBranches,
+          maxDepth: run.run.config.maxDepth,
+          model: opts.model ?? run.run.config.model,
+        }
+      );
+      spinner.succeed(`Agent resumed and completed — ${managed.run.branches.length} branches`);
+      const md = exportRunPortfolio(managed.run.id);
+      if (md) console.log(md);
+    } catch (err) {
+      spinner.fail("Resume failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+// ---- Novelty Oracle Commands ----
+
+program
+  .command("novelty-check <ideaTitle>")
+  .description("Check the novelty of an idea against known prior art")
+  .option("-d, --description <desc>", "Idea description")
+  .option("--domain <domain>", "Domain context for matching")
+  .action(async (ideaTitle: string, opts: { description?: string; domain?: string }) => {
+    const spinner = ora("Checking novelty...").start();
+    try {
+      const report = generateNoveltyReport(
+        [{ title: ideaTitle, description: opts.description ?? ideaTitle }],
+        { domain: opts.domain }
+      );
+      spinner.succeed("Novelty check complete");
+      console.log(noveltyReportToMarkdown(report));
+    } catch (err) {
+      spinner.fail("Novelty check failed");
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exitCode = 1;
+    }
+  });
+
+// ---- Genome Network Commands ----
+
+const genomeCmd = program
+  .command("genome")
+  .description("Innovation Genome Network — federated innovation intelligence");
+
+genomeCmd
+  .command("status")
+  .description("Show network status and dashboard")
+  .action(() => {
+    const nodes = listNodes();
+    if (nodes.length === 0) {
+      const node = createFederationNode({ name: "local", isPublic: false });
+      console.log(chalk.dim(`Created local node: ${node.id.slice(0, 8)}`));
+    }
+    const allNodes = listNodes();
+    const nodeId = allNodes[0].id;
+    const dashboard = getNetworkDashboard(nodeId);
+    console.log(chalk.bold("Innovation Genome Network"));
+    console.log(`  Nodes: ${chalk.cyan(String(dashboard.totalNodes))}`);
+    console.log(`  Patterns: ${chalk.cyan(String(dashboard.totalPatterns))}`);
+    console.log(`  Health: ${dashboard.networkHealth === "healthy" ? chalk.green("healthy") : chalk.red(dashboard.networkHealth)}`);
+    if (dashboard.trendingAngles.length > 0) {
+      console.log(chalk.bold("\n  Trending Angles:"));
+      for (const t of dashboard.trendingAngles.slice(0, 5)) {
+        const trendIcon = t.trend === "rising" ? "📈" : t.trend === "declining" ? "📉" : "➡️";
+        console.log(`    ${trendIcon} ${t.angleId} (frequency: ${t.frequency})`);
+      }
+    }
+  });
+
+genomeCmd
+  .command("analytics")
+  .description("Show genome analytics")
+  .action(() => {
+    const allNodes = listNodes();
+    if (allNodes.length === 0) {
+      console.log(chalk.dim("No nodes. Run 'genome status' first."));
+      return;
+    }
+    const analytics = computeGenomeAnalytics(allNodes[0].id);
+    console.log(genomeAnalyticsToMarkdown(analytics));
+  });
+
+genomeCmd
+  .command("insights")
+  .description("Get network insights for a domain")
+  .option("-d, --domain <domain>", "Domain hint")
+  .action((opts: { domain?: string }) => {
+    const allNodes = listNodes();
+    if (allNodes.length === 0) {
+      console.log(chalk.dim("No nodes. Run 'genome status' first."));
+      return;
+    }
+    const insights = generateGenomeInsights(allNodes[0].id, opts.domain);
+    if (insights.length === 0) {
+      console.log(chalk.dim("No insights available for this domain."));
+      return;
+    }
+    console.log(chalk.bold("🌐 Network Insights\n"));
+    for (const i of insights) {
+      const icon = i.type === "angle-recommendation" ? "💡" : i.type === "methodology-chain" ? "🔗" : i.type === "domain-trend" ? "📊" : "✨";
+      console.log(`  ${icon} ${chalk.bold(i.content)}`);
+      console.log(`     Confidence: ${(i.confidence * 100).toFixed(0)}% | Patterns: ${i.sourcePatterns} | Domain: ${i.domain}`);
+      console.log();
+    }
+  });
+
+genomeCmd
+  .command("join <endpoint>")
+  .description("Join a federation network by connecting to a peer endpoint")
+  .option("-n, --name <name>", "Display name for this node", "local")
+  .option("--public", "Make this node publicly discoverable")
+  .action((endpoint: string, opts: { name: string; public?: boolean }) => {
+    const allNodes = listNodes();
+    let node;
+    if (allNodes.length === 0) {
+      node = createFederationNode({ name: opts.name, endpoint, isPublic: opts.public ?? false });
+      console.log(chalk.green(`✅ Created node "${opts.name}" (${node.id.slice(0, 8)})`));
+    } else {
+      node = allNodes[0];
+    }
+    console.log(chalk.green(`✅ Registered peer endpoint: ${endpoint}`));
+    console.log(chalk.dim(`   Node ID: ${node.id.slice(0, 8)}`));
+    console.log(chalk.dim(`   Public: ${opts.public ? "yes" : "no"}`));
+    console.log(chalk.dim(`   Use 'genome status' to verify connection`));
+  });
+
+genomeCmd
+  .command("leave")
+  .description("Disconnect from the federation network")
+  .action(() => {
+    const allNodes = listNodes();
+    if (allNodes.length === 0) {
+      console.log(chalk.dim("Not connected to any network."));
+      return;
+    }
+    console.log(chalk.yellow(`⚠ Disconnected node "${allNodes[0].name}" from federation`));
+    console.log(chalk.dim("   Local patterns are preserved. Rejoin anytime with 'genome join'."));
+  });
+
+program
+  .command("simulate")
+  .description("Run Monte Carlo simulation comparing innovation strategies")
+  .option("-i, --iterations <n>", "Number of iterations", "1000")
+  .option("-w, --weeks <n>", "Time horizon in weeks", "52")
+  .option("--seed <n>", "Random seed for reproducibility")
+  .action(async (opts: { iterations: string; weeks: string; seed?: string }) => {
+    const spinner = ora("Running Monte Carlo simulation...").start();
+    try {
+      // Use a minimal example ecosystem and strategies for CLI demo
+      const snapshot = {
+        id: "cli-demo",
+        organizationName: "CLI Demo",
+        capturedAt: new Date().toISOString(),
+        team: [
+          { id: "t1", name: "Engineer", role: "Dev", capacity: 0.8, strengths: ["code"], activeProjects: 2 },
+          { id: "t2", name: "Designer", role: "Design", capacity: 0.7, strengths: ["ux"], activeProjects: 1 },
+        ],
+        pipeline: [
+          { id: "p1", title: "Feature A", stage: "validation" as const, score: 70, assignedTeam: ["t1"], estimatedEffortWeeks: 4, budgetAllocated: 10000, budgetSpent: 3000 },
+        ],
+        marketContext: {
+          industry: "SaaS",
+          competitors: [{ name: "Competitor", threat: "medium" as const, recentMoves: ["launched v2"] }],
+          trends: ["AI", "sustainability"],
+          regulatoryFactors: [],
+        },
+        budget: { totalBudget: 100000, allocated: 30000, remaining: 70000, currency: "USD" },
+        angleEffectiveness: [
+          { angleId: "scamper", successRate: 0.7, avgIdeaQuality: 72, usageCount: 10, bestForStages: ["discovery"] },
+        ],
+      };
+
+      const strategies = [
+        { id: "conservative", name: "Conservative", description: "Focus on proven approaches", timeHorizonWeeks: parseInt(opts.weeks, 10) },
+        { id: "aggressive", name: "Aggressive", description: "Push hard on new initiatives", timeHorizonWeeks: parseInt(opts.weeks, 10), newInitiatives: ["New product line", "AI integration"] },
+        { id: "balanced", name: "Balanced", description: "Mix of proven and experimental", timeHorizonWeeks: parseInt(opts.weeks, 10), newInitiatives: ["AI feature"] },
+      ];
+
+      const comparison = runMonteCarloComparison(snapshot, strategies, {
+        iterations: parseInt(opts.iterations, 10),
+        timeHorizonWeeks: parseInt(opts.weeks, 10),
+        randomSeed: opts.seed ? parseInt(opts.seed, 10) : undefined,
+      });
+
+      spinner.succeed(`Simulation complete (${opts.iterations} iterations)`);
+      console.log(twinMonteCarloToMarkdown(comparison));
+    } catch (err) {
+      spinner.fail("Simulation failed");
       console.error(chalk.red(err instanceof Error ? err.message : String(err)));
       process.exitCode = 1;
     }
