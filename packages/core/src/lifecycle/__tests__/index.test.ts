@@ -337,5 +337,39 @@ describe("lifecycle", () => {
 
       expect(listLifecycleIdeas({ priority: "high" })).toHaveLength(1);
     });
+
+    it("returns all ideas when no filter", () => {
+      createLifecycleIdea({ title: "A", description: "A" });
+      createLifecycleIdea({ title: "B", description: "B" });
+      expect(listLifecycleIdeas()).toHaveLength(2);
+    });
+
+    it("returns empty for non-matching filter", () => {
+      createLifecycleIdea({ title: "A", description: "A" });
+      expect(listLifecycleIdeas({ stage: "shipped" })).toHaveLength(0);
+    });
+
+    it("sorts by updatedAt descending", () => {
+      const a = createLifecycleIdea({ title: "A", description: "A" });
+      const b = createLifecycleIdea({ title: "B", description: "B" });
+      // Manually set different dates to ensure deterministic order
+      const aIdea = getLifecycleIdea(a.id)!;
+      const bIdea = getLifecycleIdea(b.id)!;
+      (aIdea as { updatedAt: string }).updatedAt = "2024-01-01T00:00:00.000Z";
+      (bIdea as { updatedAt: string }).updatedAt = "2024-01-02T00:00:00.000Z";
+      const list = listLifecycleIdeas();
+      // B has later date, should be first
+      expect(list[0].id).toBe(b.id);
+    });
+  });
+
+  // ---- clearLifecycle ----
+  describe("clearLifecycle", () => {
+    it("removes all ideas", () => {
+      createLifecycleIdea({ title: "A", description: "A" });
+      createLifecycleIdea({ title: "B", description: "B" });
+      clearLifecycle();
+      expect(listLifecycleIdeas()).toHaveLength(0);
+    });
   });
 });
