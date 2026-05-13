@@ -48,9 +48,9 @@ describe("replay-decisions", () => {
   describe("recordDecisionPoint", () => {
     it("records a decision and assigns an ID and timestamp", () => {
       const dp = makeDecision("run-1");
-      expect(dp.id).toBeDefined();
+      expect(typeof dp.id).toBe("string");
       expect(dp.id).toMatch(/^dp-/);
-      expect(dp.timestamp).toBeDefined();
+      expect(dp.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(dp.runId).toBe("run-1");
     });
 
@@ -166,11 +166,11 @@ describe("replay-decisions", () => {
     it("creates a branch with outcome from mocked LLM", async () => {
       makeDecision("run-1", { id: "dp-1" });
       const branch = await branchFromDecision("dp-1", "option-b");
-      expect(branch).toBeDefined();
+      expect(branch).not.toBeUndefined();
       expect(branch!.id).toMatch(/^dbranch-/);
       expect(branch!.parentDecisionId).toBe("dp-1");
       expect(branch!.chosenOption).toBe("option-b");
-      expect(branch!.outcome).toBeDefined();
+      expect(branch!.outcome).not.toBeUndefined();
       expect(branch!.outcome!.score).toBeGreaterThanOrEqual(0);
       expect(branch!.outcome!.score).toBeLessThanOrEqual(1);
     });
@@ -183,7 +183,7 @@ describe("replay-decisions", () => {
     it("allows branching with novel option not in availableOptions", async () => {
       makeDecision("run-1", { id: "dp-1" });
       const branch = await branchFromDecision("dp-1", "novel-option");
-      expect(branch).toBeDefined();
+      expect(branch).not.toBeUndefined();
       expect(branch!.chosenOption).toBe("novel-option");
     });
 
@@ -191,8 +191,8 @@ describe("replay-decisions", () => {
       makeDecision("run-1", { id: "dp-1" });
       const b1 = await branchFromDecision("dp-1", "option-b");
       const b2 = await branchFromDecision("dp-1", "option-c");
-      expect(b1).toBeDefined();
-      expect(b2).toBeDefined();
+      expect(b1).not.toBeUndefined();
+      expect(b2).not.toBeUndefined();
       expect(b1!.id).not.toBe(b2!.id);
       const tree = getSessionTree("run-1");
       expect(tree.branches).toHaveLength(2);
@@ -205,7 +205,7 @@ describe("replay-decisions", () => {
     it("marks a branch as adopted and updates chosen option", async () => {
       makeDecision("run-1", { id: "dp-1" });
       const branch = await branchFromDecision("dp-1", "option-b");
-      expect(branch).toBeDefined();
+      expect(branch).not.toBeUndefined();
       const result = adoptBranch(branch!.id, "run-1");
       expect(result).toBe(true);
       const dp = getDecisionPoint("dp-1");
@@ -424,11 +424,11 @@ describe("replay-decisions", () => {
       const b1 = await branchFromDecision("dp-1", "option-b");
       const b2 = await branchFromDecision("dp-1", "option-c");
       const comparison = await compareBranches(b1!.id, b2!.id);
-      expect(comparison).toBeDefined();
+      expect(comparison).not.toBeUndefined();
       expect(comparison!.branchA).toBe(b1!.id);
       expect(comparison!.branchB).toBe(b2!.id);
-      expect(comparison!.outcomeComparison).toBeDefined();
-      expect(comparison!.outcomeComparison.recommendation).toBeDefined();
+      expect(comparison!.outcomeComparison).not.toBeUndefined();
+      expect(typeof comparison!.outcomeComparison.recommendation).toBe("string");
     });
 
     it("returns undefined when a branch does not exist", async () => {
