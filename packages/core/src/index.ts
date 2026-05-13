@@ -978,7 +978,11 @@ export {
   clusterSessionThemes,
   getConversionMetrics,
 } from "./portfolio/index.js";
-export type { InnovationDashboardData, ThemeCluster as PortfolioThemeCluster, ConversionMetrics } from "./portfolio/index.js";
+export type {
+  InnovationDashboardData,
+  ThemeCluster as PortfolioThemeCluster,
+  ConversionMetrics,
+} from "./portfolio/index.js";
 export {
   IdeaLifecycleStageSchema,
   StatusTransitionSchema,
@@ -1569,6 +1573,45 @@ export type {
   LearningData,
 } from "./learning-loop/index.js";
 
+/** Innovation Memory Service — stores and retrieves innovation memories with vector similarity search. */
+export {
+  InnovationMemoryService,
+  getMemoryService as getInnovationMemoryService,
+  cosineSimilarity as memoryCosineSimilarity,
+  InnovationMemoryEntrySchema,
+  MemoryQueryOptionsSchema,
+  AngleEffectivenessSchema as MemoryAngleEffectivenessSchema,
+  BiasEntrySchema,
+  RecommendationSchema as InnovationRecommendationSchema,
+  MidSessionNudgeSchema,
+} from "./learning-loop/memory-service.js";
+export type {
+  InnovationMemoryEntry,
+  MemoryQueryOptions,
+  AngleEffectiveness as MemoryAngleEffectiveness,
+  BiasEntry,
+  Recommendation as InnovationRecommendation,
+  MidSessionNudge,
+  SessionContext,
+} from "./learning-loop/memory-service.js";
+
+/** Pipeline Instrumenter — records timing and quality metrics for innovation pipeline stages. */
+export {
+  PipelineInstrumenter,
+  getInstrumenter,
+  PipelineEventSchema as InstrumenterPipelineEventSchema,
+  PipelineStageSchema as InstrumenterPipelineStageSchema,
+  QualityMetricsSchema as InstrumenterQualityMetricsSchema,
+  AggregateOptionsSchema,
+  AggregateMetricsSchema as InstrumenterAggregateMetricsSchema,
+} from "./learning-loop/pipeline-instrumenter.js";
+export type {
+  PipelineEvent as InstrumenterPipelineEvent,
+  PipelineStage as InstrumenterPipelineStage,
+  QualityMetrics as InstrumenterQualityMetrics,
+  AggregateOptions,
+  AggregateMetrics as InstrumenterAggregateMetrics,
+} from "./learning-loop/pipeline-instrumenter.js";
 /** Hypothesis-driven innovation — parse, analyze, and track structured hypotheses with experiment cards. */
 export {
   parseHypothesis,
@@ -1907,10 +1950,7 @@ export {
   enrichSynthesisWithNovelty,
   enrichAngleResultsWithNovelty,
 } from "./novelty-oracle/index.js";
-export type {
-  NoveltyEnrichedIdea,
-  NoveltyEnrichedSynthesis,
-} from "./novelty-oracle/index.js";
+export type { NoveltyEnrichedIdea, NoveltyEnrichedSynthesis } from "./novelty-oracle/index.js";
 
 /** Idea provenance — trace idea origins through prompt chains with content hashes. */
 export {
@@ -4057,7 +4097,12 @@ export {
   listUserWorkspaces as listPlaygroundWorkspaces,
   addSessionToWorkspace as addPlaygroundSessionToWorkspace,
 } from "./playground/index.js";
-export type { PlaygroundSession, UsageLimit, UserUsage, Workspace as PlaygroundWorkspace } from "./playground/index.js";
+export type {
+  PlaygroundSession,
+  UsageLimit,
+  UserUsage,
+  Workspace as PlaygroundWorkspace,
+} from "./playground/index.js";
 
 /** Ambient Innovation Capture — signal classification, dedup, topic clustering, investigation drafts. */
 export {
