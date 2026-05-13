@@ -6263,3 +6263,34 @@ export type {
   GraphLayout,
   LayoutOptions,
 } from "./knowledge-graph/graph-visualizer.js";
+
+/** Coaching — innovation profiles, proactive coaching, skill trees. */
+export {
+  InnovationProfileBuilder,
+} from "./coaching/innovation-profile-builder.js";
+export type {
+  InnovationProfileDetailed,
+  ProfileMetrics as CoachingProfileMetrics,
+  GrowthTrajectory,
+  TeamComparison as CoachingTeamComparison,
+} from "./coaching/innovation-profile-builder.js";
+
+export { ProactiveCoachingEngine } from "./coaching/proactive-coach.js";
+export type {
+  CoachingRecommendation,
+  SessionContext as CoachingSessionContext,
+  PostSessionAnalysis,
+  PersonalizedChallenge,
+} from "./coaching/proactive-coach.js";
+
+export {
+  SkillTreeManager,
+  getSkillTreeManager,
+} from "./coaching/skill-tree.js";
+export type {
+  SkillCategory as CoachingSkillCategory,
+  SkillLevel,
+  SkillNode as CoachingSkillNode,
+  SkillAchievement,
+  SkillTree as CoachingSkillTree,
+} from "./coaching/skill-tree.js";
