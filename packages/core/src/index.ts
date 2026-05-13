@@ -6311,3 +6311,19 @@ export type {
   WorkflowDefinition as WorkflowSchemaDefinition,
   WorkflowExecution,
 } from "./orchestration/workflow-schema.js";
+
+/** Verticals — pack schema and industry-specific packs. */
+export {
+  VerticalPackRegistry,
+  EvaluationRubricSchema as VerticalRubricSchema,
+  ComplianceRuleSchema as VerticalComplianceSchema,
+  ExtendedVerticalPackSchema,
+} from "./verticals/pack-schema.js";
+export type {
+  EvaluationRubric as VerticalEvaluationRubric,
+  ComplianceRule as VerticalComplianceRule,
+  ExtendedVerticalPack,
+} from "./verticals/pack-schema.js";
+
+export { HEALTHCARE_PACK } from "./verticals/healthcare-pack.js";
+export { CLIMATE_PACK } from "./verticals/climate-pack.js";
