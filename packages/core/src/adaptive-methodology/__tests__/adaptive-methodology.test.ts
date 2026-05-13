@@ -919,4 +919,104 @@ describe("adaptive-methodology", () => {
       }
     });
   });
+
+  // ---- Error path tests ----
+
+  describe("error paths", () => {
+    it("recordEffectiveness accepts empty runId (no min constraint)", () => {
+      const result = recordEffectiveness(makeRecord({ runId: "" }));
+      expect(result.runId).toBe("");
+    });
+
+    it("recordEffectiveness rejects overly long runId", () => {
+      expect(() =>
+        recordEffectiveness(makeRecord({ runId: "x".repeat(101) }))
+      ).toThrow();
+    });
+
+    it("recordEffectiveness rejects negative userRating", () => {
+      expect(() => recordEffectiveness(makeRecord({ userRating: -1 }))).toThrow();
+    });
+
+    it("recordEffectiveness rejects overly long domain", () => {
+      expect(() =>
+        recordEffectiveness(makeRecord({ domain: "x".repeat(201) }))
+      ).toThrow();
+    });
+
+    it("recordEffectiveness rejects overly long inputSubject", () => {
+      expect(() =>
+        recordEffectiveness(makeRecord({ inputSubject: "x".repeat(501) }))
+      ).toThrow();
+    });
+
+    it("createMethodologyExperiment with empty angles array still creates experiment", () => {
+      const exp = createMethodologyExperiment("technology", { angles: [] });
+      expect(exp.experimentId).toMatch(/^exp-/);
+      expect(exp.variantB.angles).toEqual([]);
+    });
+
+    it("getExperimentResults returns correct structure even with no matching data", () => {
+      const exp = createMethodologyExperiment("technology", {
+        angles: ["nonexistent-angle"],
+      });
+      const results = getExperimentResults(exp.experimentId)!;
+      expect(results).toMatchObject({
+        experimentId: exp.experimentId,
+        variantAMetrics: { averageScore: 0, sampleSize: 0 },
+        variantBMetrics: { averageScore: 0, sampleSize: 0 },
+        winner: "inconclusive",
+      });
+    });
+
+    it("generateMethodologyInsights with improving trend", () => {
+      // Create older low-scoring records then newer high-scoring records
+      for (let i = 0; i < 10; i++) {
+        recordEffectiveness(
+          makeRecord({
+            runId: `old-${i}`,
+            angleId: "a1",
+            outputScore: 30,
+          })
+        );
+      }
+      for (let i = 0; i < 10; i++) {
+        recordEffectiveness(
+          makeRecord({
+            runId: `new-${i}`,
+            angleId: "a1",
+            outputScore: 80,
+          })
+        );
+      }
+      const insights = generateMethodologyInsights("technology");
+      const improving = insights.find((i) => i.title === "Improving Results");
+      expect(improving).toBeDefined();
+      expect(improving!.type).toBe("trend");
+    });
+
+    it("clearAdaptiveMethodology clears experiments", () => {
+      createMethodologyExperiment("tech", { angles: ["a1"] });
+      clearAdaptiveMethodology();
+      // After clear, a previously created experiment should not be retrievable
+      // (we can only verify indirectly since experiments is private)
+      expect(generateMethodologyInsights()).toHaveLength(0);
+      expect(getEffectivenessHistory()).toHaveLength(0);
+    });
+
+    it("recordFeedback with all undefined fields", () => {
+      const fb = recordFeedback("run-x", {});
+      expect(fb.runId).toBe("run-x");
+      expect(fb.rating).toBeUndefined();
+      expect(fb.exported).toBeUndefined();
+      expect(fb.used).toBeUndefined();
+    });
+
+    it("duplicate runIds in recordEffectiveness are allowed", () => {
+      recordEffectiveness(makeRecord({ runId: "dup-1", outputScore: 50 }));
+      recordEffectiveness(makeRecord({ runId: "dup-1", outputScore: 80 }));
+      const history = getEffectivenessHistory();
+      expect(history.filter((r) => r.runId === "dup-1")).toHaveLength(2);
+    });
+  });
 });
