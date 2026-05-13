@@ -30,9 +30,12 @@ vi.mock("@modelcontextprotocol/sdk/server/mcp.js", () => {
           handler: args[3] as (...args: unknown[]) => unknown,
         });
       }
+      resource() {}
+      prompt() {}
       async connect(transport: unknown) {
         serverConnectArgs = transport;
       }
+      async close() {}
     },
   };
 });
@@ -55,12 +58,36 @@ vi.mock("./handlers.js", () => ({
   handleInvestigate: mockHandleInvestigate,
   handleGenerate: mockHandleGenerate,
   handleAutoPipeline: mockHandleAutoPipeline,
+  handleInnovateFromCode: vi.fn(),
+  handleInnovateFile: vi.fn(),
+  handleInnovateArchitecture: vi.fn(),
+  handleNLInnovate: vi.fn(),
+  handleMemorySearch: vi.fn(),
+  handleOrgDNA: vi.fn(),
+  handlePersonaEval: vi.fn(),
+  handleAutonomousInnovate: vi.fn(),
+  handleSwarmInnovate: vi.fn(),
+  handleNetworkInsights: vi.fn(),
+  handleNoveltyCheck: vi.fn(),
 }));
 
 vi.mock("./schemas.js", () => ({
   InvestigateInputSchema: {},
   GenerateInputSchema: {},
   AutoPipelineInputSchema: {},
+}));
+
+vi.mock("./resources.js", () => ({
+  listSessionResources: vi.fn().mockResolvedValue([]),
+  readSessionResource: vi.fn().mockResolvedValue({ contents: [] }),
+  readAnglesResource: vi.fn().mockReturnValue({ contents: [] }),
+  readConfigResource: vi.fn().mockReturnValue({ contents: [] }),
+  readPresetsResource: vi.fn().mockReturnValue({ contents: [] }),
+}));
+
+vi.mock("./prompts.js", () => ({
+  listPrompts: vi.fn().mockReturnValue([]),
+  getPromptMessages: vi.fn().mockReturnValue([]),
 }));
 
 // Prevent process.exit from killing tests
@@ -81,8 +108,8 @@ describe("MCP Server (index.ts)", () => {
     });
   });
 
-  it("registers 10 tools: investigate, innovate, auto, innovate-from-code, innovate-file, innovate-architecture, nl-innovate, memory-search, org-dna, persona-eval", () => {
-    expect(toolRegistrations).toHaveLength(10);
+  it("registers 14 tools including the new Innovation Mesh tools", () => {
+    expect(toolRegistrations).toHaveLength(14);
     const toolNames = toolRegistrations.map((t) => t.name);
     expect(toolNames).toContain("investigate");
     expect(toolNames).toContain("innovate");
@@ -94,6 +121,10 @@ describe("MCP Server (index.ts)", () => {
     expect(toolNames).toContain("memory-search");
     expect(toolNames).toContain("org-dna");
     expect(toolNames).toContain("persona-eval");
+    expect(toolNames).toContain("autonomous-innovate");
+    expect(toolNames).toContain("swarm-innovate");
+    expect(toolNames).toContain("network-insights");
+    expect(toolNames).toContain("novelty-check");
   });
 
   it("connects to stdio transport (default)", () => {
