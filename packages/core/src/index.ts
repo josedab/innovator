@@ -3,10 +3,15 @@ export * from "./types.js";
 
 /** GitHub Copilot LLM client — text generation, streaming, and JSON extraction. */
 export {
+  /** Initialize and return a shared Copilot LLM client instance. */
   getCopilotClient,
+  /** Shut down the Copilot LLM client and release resources. */
   stopCopilotClient,
+  /** Generate a complete text response from the LLM. */
   generateText,
+  /** Stream text tokens from the LLM via an async iterable. */
   generateTextStream,
+  /** Extract and parse a JSON object from an LLM text response. */
   extractJson,
 } from "./copilot/client.js";
 
@@ -15,21 +20,37 @@ export type { GenerateOptions } from "./copilot/client.js";
 
 /** Innovation engine — angles, investigation, generation, synthesis, custom angles, and angle packs. */
 export {
+  /** Built-in innovation angle definitions (SCAMPER, First Principles, etc.). */
   ANGLES,
+  /** Look up a built-in angle by its ID. */
   getAngleById,
+  /** Run an LLM investigation on a subject, producing structured findings. */
   investigate,
+  /** Generate innovation ideas for a single angle given an investigation. */
   generateForAngle,
+  /** Execute the full auto pipeline: investigate → generate → synthesize. */
   runAutoPipeline,
+  /** Load user-defined custom angles from the local store. */
   loadCustomAngles,
+  /** Persist a new custom angle definition. */
   addCustomAngle,
+  /** Delete a custom angle by ID. */
   removeCustomAngle,
+  /** Retrieve a single custom angle by ID. */
   getCustomAngle,
+  /** Update an existing custom angle definition. */
   updateCustomAngle,
+  /** Serialize custom angles to a portable angle-pack JSON structure. */
   exportAnglePack,
+  /** Import angles from an angle-pack, skipping duplicates. */
   importAnglePack,
+  /** Build the LLM prompt for a custom angle template. */
   buildCustomAnglePrompt,
+  /** Run the same subject through multiple models and compare results. */
   runComparativePipeline,
+  /** Build the synthesis prompt for comparative pipeline results. */
   buildComparativeSynthesisPrompt,
+  /** Investigate a subject with multiple angles in parallel. */
   runParallelInvestigation,
 } from "./innovation/index.js";
 /** Types for comparative pipeline runs across multiple models. */
@@ -41,9 +62,21 @@ export type {
 } from "./innovation/index.js";
 
 /** Prompt builders for investigation and synthesis LLM calls. */
-export { buildInvestigationPrompt, buildSynthesisPrompt } from "./prompts/investigation.js";
+export {
+  /** Build the structured prompt sent to the LLM for subject investigation. */
+  buildInvestigationPrompt,
+  /** Build the prompt that synthesizes multiple angle results into top ideas. */
+  buildSynthesisPrompt,
+} from "./prompts/investigation.js";
 /** Prompt sanitization — defense against prompt injection attacks. */
-export { sanitizeUserInput, wrapUserInput, sanitizeLlmOutput } from "./prompts/sanitize.js";
+export {
+  /** Strip potentially dangerous tokens from user-supplied text before LLM calls. */
+  sanitizeUserInput,
+  /** Wrap user input in delimiters to reduce prompt injection risk. */
+  wrapUserInput,
+  /** Sanitize LLM output before displaying to users. */
+  sanitizeLlmOutput,
+} from "./prompts/sanitize.js";
 
 /** Retry utility with exponential backoff for unreliable async operations. */
 export { withRetry } from "./copilot/retry.js";
@@ -52,78 +85,131 @@ export type { RetryOptions } from "./copilot/retry.js";
 
 /** Plugin system — register, discover, and load angle/exporter/visualizer plugins. */
 export {
+  /** Register a plugin instance in the global plugin registry. */
   registerPlugin,
+  /** Remove a plugin from the registry by ID. */
   unregisterPlugin,
+  /** Retrieve a registered plugin by ID. */
   getPlugin,
+  /** List all currently registered plugins. */
   listPlugins,
+  /** Filter registered plugins by type (angle, exporter, visualizer). */
   getPluginsByType,
+  /** Remove all plugins from the registry. */
   clearPlugins,
+  /** Dynamically load a plugin from a file path or npm package name. */
   loadPlugin,
 } from "./plugins/index.js";
 
 /** Domain presets — pre-configured angle sets for common innovation domains. */
 export {
+  /** All built-in preset definitions. */
   BUILT_IN_PRESETS,
+  /** Retrieve all available presets (built-in + user-defined). */
   getPresets,
+  /** Look up a single preset by its ID. */
   getPresetById,
+  /** Filter presets by category (e.g. "product", "sustainability"). */
   getPresetsByCategory,
+  /** Filter presets by tag. */
   getPresetsByTag,
 } from "./presets/index.js";
 
 /** Session history — save, query, and compare innovation sessions. */
 export {
+  /** Persist an innovation session to the local store. */
   saveSession,
+  /** Retrieve a session by ID. */
   getSession,
+  /** Update metadata (tags, notes) on an existing session. */
   updateSession,
+  /** Delete a session by ID. */
   deleteSession,
+  /** List all saved sessions ordered by creation date. */
   listSessions,
+  /** Search sessions by subject, tags, or content. */
   querySessions,
+  /** Compare two sessions side-by-side. */
   compareSessions,
 } from "./history/index.js";
 
 /** Export — render sessions as Markdown, JSON, GitHub Issues, PowerPoint, Jira, Confluence, Notion, and Google Slides. */
 export {
+  /** Export a session to a Markdown document. */
   exportToMarkdown,
+  /** Export a session to a JSON file. */
   exportToJson,
+  /** Generate a GitHub Issue body from session data. */
   generateGitHubIssueBody,
+  /** Copy session output to the system clipboard. */
   exportToClipboard,
+  /** Export a session as a PowerPoint (.pptx) presentation. */
   exportToPowerPoint,
+  /** Export a session to Jira via the integration adapter. */
   exportToJira,
+  /** Export a session to Confluence via the integration adapter. */
   exportToConfluence,
+  /** Export a session to Notion via the integration adapter. */
   exportToNotion,
+  /** Export a session to Google Slides via the integration adapter. */
   exportToGoogleSlides,
+  /** List all supported export format identifiers. */
   getAvailableFormats,
 } from "./export/index.js";
 export type { ExportResult, IntegrationAdapter } from "./export/index.js";
 
 /** LLM model registry — capabilities, smart routing, and model comparison. */
 export {
+  /** Return the full model registry (built-in + custom models). */
   getModelRegistry,
+  /** Register a custom model definition. */
   registerModel,
+  /** Query a model's capabilities (context window, streaming, etc.). */
   getModelCapability,
+  /** Get the recommended model for a given task based on smart routing rules. */
   getSmartRouting,
+  /** Compare two or more models by capability matrix. */
   compareModels,
+  /** Remove all user-registered custom models. */
   clearCustomModels,
 } from "./models/index.js";
 
 /** Visualization — build idea relationship graphs with nodes and edges. */
-export { buildIdeaGraph, getAngleColor } from "./visualization/index.js";
+export {
+  /** Build a graph of idea nodes and edges from angle results. */
+  buildIdeaGraph,
+  /** Get the display color associated with a given angle ID. */
+  getAngleColor,
+} from "./visualization/index.js";
 export type { IdeaNode, IdeaEdge, IdeaGraph } from "./visualization/index.js";
 
 /** Copilot Extension — slash commands, chat formatters, and agent manifests for GitHub Copilot integration. */
 export {
+  /** Parse a slash command string into a structured command object. */
   parseSlashCommand,
+  /** Format investigation results for GitHub Copilot chat display. */
   formatInvestigationForChat,
+  /** Format angle results for GitHub Copilot chat display. */
   formatAngleResultsForChat,
+  /** Format synthesis output for GitHub Copilot chat display. */
   formatSynthesisForChat,
+  /** Format pipeline progress updates for GitHub Copilot chat display. */
   formatProgressForChat,
+  /** Format the available angles list for GitHub Copilot chat display. */
   formatAnglesForChat,
+  /** Format the presets list for GitHub Copilot chat display. */
   formatPresetsForChat,
+  /** Format the help text for GitHub Copilot chat display. */
   formatHelpForChat,
+  /** GitHub App manifest template for Copilot extension registration. */
   GITHUB_APP_MANIFEST,
+  /** Generate the Copilot agent manifest JSON for a given configuration. */
   getCopilotAgentManifest,
+  /** Main request handler for incoming Copilot extension requests. */
   handleCopilotRequest,
+  /** Wrap content in a collapsible details/summary block. */
   formatWithCollapsible,
+  /** Build an SSE streaming response for Copilot chat. */
   buildStreamingResponse,
 } from "./extension/index.js";
 export type {
@@ -136,39 +222,69 @@ export type {
 
 /** Collaborative sessions — real-time multi-user brainstorming with voting and merging. */
 export {
+  /** Create a new collaborative brainstorming session. */
   createSession as createCollaborativeSession,
+  /** Look up a collaborative session by its short join code. */
   findSessionByCode,
+  /** Retrieve a collaborative session by ID. */
   getCollaborativeSession,
+  /** Add a participant to a collaborative session. */
   joinSession,
+  /** Remove a participant from a collaborative session. */
   leaveSession,
+  /** Assign innovation angles to session participants. */
   assignAngles,
+  /** Transition a collaborative session to the active/running state. */
   startSession,
+  /** Submit a new idea to a collaborative session. */
   submitIdea,
+  /** Cast an upvote for an idea in a collaborative session. */
   voteForIdea,
+  /** Add a comment to an idea in a collaborative session. */
   addComment,
+  /** Merge two or more ideas into a combined idea. */
   mergeIdeas,
+  /** Mark a collaborative session as complete. */
   completeSession,
+  /** Register a listener for real-time session events. */
   onSessionEvent,
+  /** Return ideas ranked by vote count. */
   getRankedIdeas,
+  /** Delete a collaborative session and all its data. */
   deleteCollaborativeSession,
+  /** Remove all collaborative sessions (useful for testing). */
   clearAllSessions,
 } from "./collaboration/index.js";
 
 /** Idea scoring — novelty, feasibility, impact scoring and priority quadrant classification. */
 export {
+  /** Score a set of ideas across configured dimensions. */
   scoreIdeas,
+  /** Compute a weighted priority score from individual dimension scores. */
   computePriorityScore,
+  /** Classify an idea into a priority quadrant (quick-win, strategic, etc.). */
   getQuadrant,
+  /** Rank ideas by composite score. */
   rankIdeas,
+  /** Score ideas using a configurable scoring engine with custom dimensions. */
   scoreWithEngine,
+  /** Record user calibration feedback to improve future scoring accuracy. */
   recordCalibrationFeedback,
+  /** Reset all calibration data. */
   clearCalibration,
+  /** Default scoring dimension definitions (novelty, feasibility, impact). */
   DEFAULT_SCORING_DIMENSIONS,
+  /** Zod schema for a single idea score. */
   IdeaScoreSchema,
+  /** Zod schema for a full scoring result. */
   ScoringResultSchema,
+  /** Zod schema for a scoring dimension definition. */
   ScoringDimensionSchema,
+  /** Zod schema for scoring engine configuration. */
   ScoringEngineConfigSchema,
+  /** Zod schema for a multi-dimensional score. */
   MultiDimensionalScoreSchema,
+  /** Ordered list of time-to-implement categories for sorting. */
   TIME_TO_IMPLEMENT_ORDER,
 } from "./scoring/index.js";
 export type {
@@ -181,16 +297,27 @@ export type {
 
 /** Interactive refinement conversations — iterative deepening with branching exploration trees. */
 export {
+  /** Start a new refinement conversation for an idea or topic. */
   createConversation,
+  /** Retrieve a conversation by ID. */
   getConversation,
+  /** Delete a conversation by ID. */
   deleteConversation,
+  /** List all active conversations. */
   listConversations,
+  /** Send a follow-up message to deepen or redirect a conversation. */
   refineConversation,
+  /** Remove all conversations. */
   clearConversations,
+  /** Create a branching exploration tree rooted at an idea. */
   createExplorationTree,
+  /** Retrieve an exploration tree by ID. */
   getExplorationTree,
+  /** Expand a node in the exploration tree with a deeper investigation. */
   drillDown,
+  /** Get the path from root to a specific exploration node. */
   getExplorationPath,
+  /** List the child branches of an exploration node. */
   getNodeBranches,
   ConversationMessageSchema,
   RefinementResponseSchema,
@@ -1718,6 +1845,73 @@ export type {
   SessionSnapshot,
 } from "./diff-merge/index.js";
 
+/** Innovation-as-Code — version-controlled innovation workflows with .innovator/ directory. */
+export {
+  createIaCSession,
+  sessionFileName,
+  diffSessions,
+  formatSessionDiff,
+  ideaToGitHubIssue,
+  listIaCSessions,
+  validateIaCSession,
+  validateIaCConfig,
+  iacSessionToRecord,
+  recordToIaCSession,
+  IaCConfigSchema,
+  IaCSessionSchema,
+  IaCSessionMetadataSchema,
+  DEFAULT_IAC_CONFIG,
+  DEFAULT_CONFIG_YAML,
+  DEFAULT_ANGLES_YAML,
+} from "./innovation-as-code/index.js";
+export type {
+  IaCConfig,
+  IaCSession,
+  IaCSessionMetadata,
+  SessionDiff,
+  SessionDiffEntry,
+} from "./innovation-as-code/index.js";
+
+/** Novelty Oracle — prior art search, novelty scoring, patent candidate identification. */
+export {
+  assessNovelty,
+  generateNoveltyReport,
+  noveltyReportToMarkdown,
+  registerPriorArtProvider,
+  addPriorArt,
+  clearPriorArt,
+  getPriorArtCount,
+  PriorArtSourceSchema,
+  PriorArtEntrySchema,
+  NoveltyAssessmentSchema,
+  NoveltyReportSchema,
+} from "./novelty-oracle/index.js";
+export type {
+  PriorArtSource,
+  PriorArtEntry,
+  NoveltyAssessment,
+  NoveltyReport,
+  PriorArtProvider,
+} from "./novelty-oracle/index.js";
+
+/** Novelty Oracle — external prior art search providers (USPTO, Semantic Scholar). */
+export {
+  USPTOProvider,
+  SemanticScholarProvider,
+  CompositeProvider,
+  createDefaultProviders,
+} from "./novelty-oracle/index.js";
+
+/** Novelty Oracle — pipeline enrichment for auto-scoring ideas. */
+export {
+  enrichSynthesisWithNovelty,
+  enrichAngleResultsWithNovelty,
+} from "./novelty-oracle/index.js";
+export type {
+  NoveltyEnrichedIdea,
+  NoveltyEnrichedSynthesis,
+} from "./novelty-oracle/index.js";
+
 /** Idea provenance — trace idea origins through prompt chains with content hashes. */
 export {
   buildProvenanceRecords,
@@ -2617,6 +2811,33 @@ export type {
   InnovationPulse,
 } from "./federation/index.js";
 
+/** Innovation Genome Network — differential privacy, enrichment, gossip sync, analytics. */
+export {
+  applyDifferentialPrivacy,
+  privatizePattern,
+  generateGenomeInsights,
+  enrichAngleSelection,
+  createGossipDigest,
+  gossipSync,
+  computeGenomeAnalytics,
+  genomeAnalyticsToMarkdown,
+  wilsonConfidenceInterval,
+  signPattern,
+  verifyPatternSignature,
+  publishSignedPattern,
+  trackPrivacyBudget,
+  getPrivacyBudgetSpent,
+  isPrivacyBudgetExceeded,
+  resetPrivacyBudgets,
+} from "./federation/index.js";
+export type {
+  DiffPrivacyConfig,
+  GenomeInsight,
+  GossipDigest,
+  GenomeAnalytics,
+  PublishedPattern,
+} from "./federation/index.js";
+
 /** Innovation Sprints with Facilitation Engine — time-boxed sessions with automated facilitation. */
 export {
   SPRINT_TEMPLATES,
@@ -3372,6 +3593,21 @@ export type {
   AutonomousAgentConfig,
 } from "./autonomous-agent/index.js";
 
+/** Agent Lifecycle Manager — persistence, budget tracking, injection, resume. */
+export {
+  startAgentRun,
+  stopAgentRun,
+  getAgentRun,
+  listAgentRuns,
+  injectTopics,
+  getLatestCheckpoint,
+  exportRunPortfolio,
+  removeAgentRun,
+  clearAgentRuns,
+  AgentBudgetSchema,
+} from "./autonomous-agent/index.js";
+export type { AgentBudget, ManagedAgentRun, AgentCheckpoint } from "./autonomous-agent/index.js";
+
 /** Innovation Monitor — long-running domain monitoring with opportunity detection and digest generation. */
 export {
   addMonitorSource,
@@ -3554,6 +3790,20 @@ export type {
   Strategy,
   SimulationResult,
   StrategyComparison,
+} from "./digital-twin/index.js";
+
+/** Digital Twin Monte Carlo Simulation — statistical portfolio simulation engine. */
+export {
+  runMonteCarloSimulation as runTwinMonteCarloSimulation,
+  runMonteCarloComparison,
+  monteCarloToMarkdown as twinMonteCarloToMarkdown,
+  MonteCarloConfigSchema as TwinMonteCarloConfigSchema,
+} from "./digital-twin/index.js";
+export type {
+  MonteCarloConfig as TwinMonteCarloConfig,
+  MonteCarloResult as TwinMonteCarloResult,
+  MonteCarloComparison,
+  DistributionStats,
 } from "./digital-twin/index.js";
 
 /** Idea-to-Content Pipeline — transform ideas into blog posts, threads, articles, pitch decks, memos, press releases. */
