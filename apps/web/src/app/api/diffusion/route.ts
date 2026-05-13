@@ -1,3 +1,6 @@
+/**
+ * @description Innovation diffusion simulation across adoption curves.
+ */
 export const runtime = "nodejs";
 
 import { simulateDiffusion } from "@innovator/core";

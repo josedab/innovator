@@ -1,3 +1,6 @@
+/**
+ * @description Multi-subject parallel investigation and comparison.
+ */
 export const runtime = "nodejs";
 
 import { runParallelInvestigation } from "@innovator/core";

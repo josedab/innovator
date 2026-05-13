@@ -1,3 +1,6 @@
+/**
+ * @description Autonomous AI agent for self-directed innovation exploration.
+ */
 export const runtime = "nodejs";
 
 import { runAutonomousAgent } from "@innovator/core";

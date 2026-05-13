@@ -1,3 +1,6 @@
+/**
+ * @description Multi-step refinement loop for progressive idea improvement.
+ */
 export const runtime = "nodejs";
 
 import {

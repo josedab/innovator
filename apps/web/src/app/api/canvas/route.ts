@@ -1,3 +1,6 @@
+/**
+ * @description Collaborative canvas state management for multi-user brainstorming.
+ */
 export const runtime = "nodejs";
 
 import {

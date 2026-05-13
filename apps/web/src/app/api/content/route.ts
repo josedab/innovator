@@ -1,3 +1,6 @@
+/**
+ * @description Content generation from innovation insights.
+ */
 export const runtime = "nodejs";
 
 import {

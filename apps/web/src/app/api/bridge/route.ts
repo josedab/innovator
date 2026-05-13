@@ -1,3 +1,6 @@
+/**
+ * @description Bridge endpoint for cross-system innovation data exchange.
+ */
 export const runtime = "nodejs";
 
 import {

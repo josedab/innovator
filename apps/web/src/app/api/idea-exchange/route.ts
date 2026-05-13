@@ -1,3 +1,6 @@
+/**
+ * @description Idea marketplace — share and discover innovations across teams.
+ */
 export const runtime = "nodejs";
 
 import { publishListing, searchListings, getMarketplaceStats } from "@innovator/core";

@@ -1,3 +1,6 @@
+/**
+ * @description Adaptive methodology selection based on project characteristics.
+ */
 export const runtime = "nodejs";
 
 import {

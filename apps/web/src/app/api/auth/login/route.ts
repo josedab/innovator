@@ -1,3 +1,6 @@
+/**
+ * @description GitHub OAuth login initiation.
+ */
 import { NextResponse } from "next/server";
 import { getAuthorizationUrl } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "../../../../lib/api-headers";

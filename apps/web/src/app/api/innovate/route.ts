@@ -1,3 +1,6 @@
+/**
+ * @description Single-angle idea generation for a given subject and angle.
+ */
 export const runtime = "nodejs";
 
 import {

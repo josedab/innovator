@@ -1,3 +1,6 @@
+/**
+ * @description Input validation endpoint for subjects and models.
+ */
 export const runtime = "nodejs";
 
 import { validateIdea, validateIdeas } from "@innovator/core";

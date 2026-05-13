@@ -1,3 +1,6 @@
+/**
+ * @description Public shared session retrieval by slug.
+ */
 export const runtime = "nodejs";
 
 import {

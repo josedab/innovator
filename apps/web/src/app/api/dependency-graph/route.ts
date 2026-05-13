@@ -1,3 +1,6 @@
+/**
+ * @description Idea dependency graph generation and analysis.
+ */
 export const runtime = "nodejs";
 
 import {

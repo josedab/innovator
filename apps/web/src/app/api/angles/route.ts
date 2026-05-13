@@ -1,3 +1,6 @@
+/**
+ * @description CRUD operations for innovation angles including custom angle management.
+ */
 export const runtime = "nodejs";
 
 import { loadCustomAngles, addCustomAngle, removeCustomAngle, ANGLES } from "@innovator/core";

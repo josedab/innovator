@@ -1,3 +1,6 @@
+/**
+ * @description Market validation analysis for innovation feasibility.
+ */
 export const runtime = "nodejs";
 
 import {

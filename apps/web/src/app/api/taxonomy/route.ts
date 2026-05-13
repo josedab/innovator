@@ -1,3 +1,6 @@
+/**
+ * @description Innovation taxonomy management and categorization.
+ */
 export const runtime = "nodejs";
 
 import {

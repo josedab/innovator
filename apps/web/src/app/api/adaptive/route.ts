@@ -1,3 +1,6 @@
+/**
+ * @description Adaptive innovation pipeline with dynamic angle selection.
+ */
 export const runtime = "nodejs";
 
 import {

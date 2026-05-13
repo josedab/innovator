@@ -1,3 +1,6 @@
+/**
+ * @description Innovation impact measurement and ROI tracking.
+ */
 export const runtime = "nodejs";
 
 import {

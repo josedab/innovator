@@ -1,3 +1,6 @@
+/**
+ * @description Multi-axis health score evaluation for innovation ideas.
+ */
 export const runtime = "nodejs";
 
 import { computeHealthScore, HealthScoreInputSchema } from "@innovator/core";

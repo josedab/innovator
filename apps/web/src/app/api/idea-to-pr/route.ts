@@ -1,3 +1,6 @@
+/**
+ * @description Convert innovation ideas into GitHub pull request drafts.
+ */
 export const runtime = "nodejs";
 
 import {

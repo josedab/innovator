@@ -1,3 +1,6 @@
+/**
+ * @description A/B testing configuration and results tracking for innovation experiments.
+ */
 export const runtime = "nodejs";
 
 import {

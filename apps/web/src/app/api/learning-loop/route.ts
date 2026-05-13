@@ -1,3 +1,6 @@
+/**
+ * @description Continuous learning loop for improving innovation quality.
+ */
 export const runtime = "nodejs";
 
 import {

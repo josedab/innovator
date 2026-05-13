@@ -1,3 +1,6 @@
+/**
+ * @description Innovation analytics — session stats, angle usage, and trend data.
+ */
 export const runtime = "nodejs";
 
 import {

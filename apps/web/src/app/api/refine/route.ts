@@ -1,3 +1,6 @@
+/**
+ * @description Iterative idea refinement with LLM feedback.
+ */
 export const runtime = "nodejs";
 
 import {

@@ -1,3 +1,6 @@
+/**
+ * @description Diff and merge operations for innovation session versions.
+ */
 export const runtime = "nodejs";
 
 import {

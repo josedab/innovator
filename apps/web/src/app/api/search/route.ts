@@ -1,3 +1,6 @@
+/**
+ * @description Full-text search across innovation sessions and ideas.
+ */
 export const runtime = "nodejs";
 
 import {

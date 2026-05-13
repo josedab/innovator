@@ -1,3 +1,6 @@
+/**
+ * @description Intersection analysis identifying opportunities across domain overlaps.
+ */
 export const runtime = "nodejs";
 
 import {

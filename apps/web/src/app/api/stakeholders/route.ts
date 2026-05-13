@@ -1,3 +1,6 @@
+/**
+ * @description Stakeholder simulation — model how roles evaluate innovations.
+ */
 export const runtime = "nodejs";
 
 import {

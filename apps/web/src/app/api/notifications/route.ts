@@ -1,3 +1,6 @@
+/**
+ * @description User notification management.
+ */
 export const runtime = "nodejs";
 
 import {

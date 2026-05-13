@@ -1,3 +1,6 @@
+/**
+ * @description Semantic search across innovation ideas.
+ */
 export const runtime = "nodejs";
 
 import {

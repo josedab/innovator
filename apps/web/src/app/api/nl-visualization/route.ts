@@ -1,3 +1,6 @@
+/**
+ * @description Natural language to visualization generation.
+ */
 export const runtime = "nodejs";
 
 import { generateVisualization, extractInnovationData } from "@innovator/core";

@@ -1,3 +1,6 @@
+/**
+ * @description Digital twin simulation for innovation scenarios.
+ */
 export const runtime = "nodejs";
 
 import {

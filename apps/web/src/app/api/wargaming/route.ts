@@ -1,3 +1,6 @@
+/**
+ * @description Innovation wargaming — competitive scenario simulation.
+ */
 export const runtime = "nodejs";
 
 import { runWargaming } from "@innovator/core";

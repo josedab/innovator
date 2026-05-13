@@ -1,3 +1,6 @@
+/**
+ * @description Source citation management for generated ideas.
+ */
 export const runtime = "nodejs";
 
 import {

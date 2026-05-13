@@ -1,3 +1,6 @@
+/**
+ * @description Session replay — step-through visualization of pipeline execution.
+ */
 export const runtime = "nodejs";
 
 import {

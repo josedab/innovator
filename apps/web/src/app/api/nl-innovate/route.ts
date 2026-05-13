@@ -1,3 +1,6 @@
+/**
+ * @description Natural language innovation — free-form text to structured pipeline.
+ */
 export const runtime = "nodejs";
 
 import {

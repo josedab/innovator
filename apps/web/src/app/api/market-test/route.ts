@@ -1,3 +1,6 @@
+/**
+ * @description Market testing simulation for innovation ideas.
+ */
 export const runtime = "nodejs";
 
 import { runMarketTest } from "@innovator/core";

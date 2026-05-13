@@ -1,3 +1,6 @@
+/**
+ * @description Semantic embedding space visualization for idea relationships.
+ */
 export const runtime = "nodejs";
 
 import { buildEmbeddingSpace } from "@innovator/core";

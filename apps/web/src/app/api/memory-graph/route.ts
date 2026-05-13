@@ -1,3 +1,6 @@
+/**
+ * @description Knowledge memory graph for cross-session concept relationships.
+ */
 export const runtime = "nodejs";
 
 import {

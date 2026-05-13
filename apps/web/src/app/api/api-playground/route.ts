@@ -1,3 +1,6 @@
+/**
+ * @description Interactive API playground for testing innovation endpoints.
+ */
 export const runtime = "nodejs";
 
 import { generateOpenAPISpec, getSwaggerUIHTML, exportAsSwaggerJSON } from "@innovator/core";

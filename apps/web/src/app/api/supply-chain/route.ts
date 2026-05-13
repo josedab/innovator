@@ -1,3 +1,6 @@
+/**
+ * @description Supply chain innovation analysis and optimization.
+ */
 export const runtime = "nodejs";
 
 import { mapSupplyChain } from "@innovator/core";

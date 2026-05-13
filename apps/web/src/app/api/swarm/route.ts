@@ -1,3 +1,6 @@
+/**
+ * @description Swarm intelligence — parallel multi-agent idea generation.
+ */
 export const runtime = "nodejs";
 
 import {

@@ -1,3 +1,6 @@
+/**
+ * @description Current authenticated user profile retrieval.
+ */
 import { NextResponse } from "next/server";
 import { validateSessionToken } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "../../../../lib/api-headers";

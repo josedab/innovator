@@ -1,3 +1,6 @@
+/**
+ * @description Novelty scoring and prior art detection for ideas.
+ */
 export const runtime = "nodejs";
 
 import {

@@ -1,3 +1,6 @@
+/**
+ * @description Optimal timing analysis for innovation implementation.
+ */
 export const runtime = "nodejs";
 
 import { analyzeTimings } from "@innovator/core";

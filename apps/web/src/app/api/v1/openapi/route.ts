@@ -1,3 +1,6 @@
+/**
+ * @description V1 API — OpenAPI specification endpoint.
+ */
 import { NextRequest } from "next/server";
 import { getOpenApiSpec } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";

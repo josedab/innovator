@@ -1,3 +1,6 @@
+/**
+ * @description V1 API — single-angle idea generation.
+ */
 export const runtime = "nodejs";
 
 import { generateForAngle, investigate, ANGLE_IDS, MAX_CONCURRENCY } from "@innovator/core";

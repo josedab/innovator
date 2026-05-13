@@ -1,3 +1,6 @@
+/**
+ * @description SaaS usage metering — track sessions, API calls, and token usage.
+ */
 export const runtime = "nodejs";
 
 import {

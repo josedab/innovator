@@ -1,3 +1,6 @@
+/**
+ * @description GitHub OAuth callback handler for token exchange.
+ */
 import { NextResponse } from "next/server";
 import { validateState, exchangeCodeForUser, createSessionToken } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "../../../../lib/api-headers";

@@ -1,3 +1,6 @@
+/**
+ * @description Third-party integration management (Slack, Jira, etc.).
+ */
 export const runtime = "nodejs";
 
 import {

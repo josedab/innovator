@@ -1,3 +1,6 @@
+/**
+ * @description Data provenance visualization for innovation lineage.
+ */
 export const runtime = "nodejs";
 
 import {

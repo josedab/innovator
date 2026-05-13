@@ -1,3 +1,6 @@
+/**
+ * @description Artifact generation (PRD, tech spec, pitch deck) from innovation results.
+ */
 export const runtime = "nodejs";
 
 import {

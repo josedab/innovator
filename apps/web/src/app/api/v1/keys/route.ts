@@ -1,3 +1,6 @@
+/**
+ * @description V1 API — API key management (create, list, revoke).
+ */
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import {

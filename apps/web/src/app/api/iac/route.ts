@@ -1,3 +1,6 @@
+/**
+ * @description Infrastructure-as-code generation from technical innovations.
+ */
 export const runtime = "nodejs";
 
 import {

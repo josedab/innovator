@@ -1,3 +1,6 @@
+/**
+ * @description Idea version tracking and comparison.
+ */
 export const runtime = "nodejs";
 
 import { getVersionLog, listBranches, semanticDiff, createVersion, commitVersion, createBranch, mergeVersions } from "@innovator/core";

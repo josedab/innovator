@@ -1,3 +1,6 @@
+/**
+ * @description Session handoff between users or teams.
+ */
 export const runtime = "nodejs";
 
 import {

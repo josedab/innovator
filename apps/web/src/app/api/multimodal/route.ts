@@ -1,3 +1,6 @@
+/**
+ * @description Multimodal innovation — combine text, image, and audio inputs.
+ */
 export const runtime = "nodejs";
 
 import {

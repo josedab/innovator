@@ -1,3 +1,6 @@
+/**
+ * @description V1 API — full auto-mode pipeline with SSE streaming.
+ */
 export const runtime = "nodejs";
 
 import { runAutoPipeline } from "@innovator/core";

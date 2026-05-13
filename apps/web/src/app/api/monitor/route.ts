@@ -1,3 +1,6 @@
+/**
+ * @description System monitoring and health check dashboard data.
+ */
 export const runtime = "nodejs";
 
 import {

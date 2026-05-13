@@ -1,3 +1,6 @@
+/**
+ * @description AI-powered angle recommendation based on subject analysis.
+ */
 export const runtime = "nodejs";
 
 import {

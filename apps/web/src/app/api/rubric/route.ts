@@ -1,3 +1,6 @@
+/**
+ * @description Custom evaluation rubric creation and management.
+ */
 export const runtime = "nodejs";
 
 import { createRubric, getRubric, listRubrics, scoreWithRubric } from "@innovator/core";

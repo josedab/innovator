@@ -1,3 +1,6 @@
+/**
+ * @description Adaptive complexity scaling with execution plan generation.
+ */
 export const runtime = "nodejs";
 
 import { classifyComplexityHeuristic, generateExecutionPlan } from "@innovator/core";

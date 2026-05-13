@@ -1,3 +1,6 @@
+/**
+ * @description Negotiation simulation for stakeholder alignment on innovations.
+ */
 export const runtime = "nodejs";
 
 import {

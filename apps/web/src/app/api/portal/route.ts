@@ -1,3 +1,6 @@
+/**
+ * @description Innovation portal — public-facing innovation showcase.
+ */
 export const runtime = "nodejs";
 
 import {

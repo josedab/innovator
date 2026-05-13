@@ -1,3 +1,6 @@
+/**
+ * @description Competitive landscape radar analysis.
+ */
 export const runtime = "nodejs";
 
 import {

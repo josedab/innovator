@@ -1,3 +1,6 @@
+/**
+ * @description Patent landscape scanning for innovation clearance.
+ */
 export const runtime = "nodejs";
 
 import { runPatentScan } from "@innovator/core";

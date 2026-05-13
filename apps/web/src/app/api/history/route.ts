@@ -1,3 +1,6 @@
+/**
+ * @description Innovation session history CRUD operations.
+ */
 export const runtime = "nodejs";
 
 import { querySessions, getSession, saveSession, deleteSession, updateSession } from "@innovator/core";

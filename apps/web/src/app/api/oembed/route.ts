@@ -1,3 +1,6 @@
+/**
+ * @description oEmbed endpoint for rich embedding of innovation sessions.
+ */
 export const runtime = "nodejs";
 
 import { getSession } from "@innovator/core";

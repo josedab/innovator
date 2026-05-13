@@ -1,3 +1,6 @@
+/**
+ * @description Regulatory compliance analysis for innovations.
+ */
 export const runtime = "nodejs";
 
 import { simulateRegulatory, getRegulatoryFrameworks } from "@innovator/core";

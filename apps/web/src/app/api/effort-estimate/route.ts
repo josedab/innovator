@@ -1,3 +1,6 @@
+/**
+ * @description Effort estimation for implementing innovation ideas.
+ */
 export const runtime = "nodejs";
 
 import { estimateEffort, estimateEffortBatch, formatEstimateMarkdown } from "@innovator/core";

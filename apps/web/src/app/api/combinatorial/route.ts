@@ -1,3 +1,6 @@
+/**
+ * @description Combinatorial synthesis — cross-angle idea combinations.
+ */
 export const runtime = "nodejs";
 
 import { runCombinatorialSynthesis } from "@innovator/core";

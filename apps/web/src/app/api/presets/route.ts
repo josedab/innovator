@@ -1,3 +1,6 @@
+/**
+ * @description List available innovation presets (pre-configured angle combinations).
+ */
 export const runtime = "nodejs";
 
 import { getPresets, getPresetById } from "@innovator/core";

@@ -1,3 +1,6 @@
+/**
+ * @description Cognitive bias detection and mitigation in innovation ideas.
+ */
 export const runtime = "nodejs";
 
 import {

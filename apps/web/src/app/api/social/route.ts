@@ -1,3 +1,6 @@
+/**
+ * @description Social sharing and collaboration features.
+ */
 export const runtime = "nodejs";
 
 import {

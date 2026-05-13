@@ -1,3 +1,6 @@
+/**
+ * @description GitHub repository health analysis for code-related innovations.
+ */
 export const runtime = "nodejs";
 
 import { analyzeRepoHealth, generateBadgeMarkdown, getRepoHealthScore } from "@innovator/core";

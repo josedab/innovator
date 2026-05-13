@@ -1,3 +1,6 @@
+/**
+ * @description Climate and sustainability impact analysis for innovations.
+ */
 export const runtime = "nodejs";
 
 import { assessClimate, quickAssess, getSurveyQuestions } from "@innovator/core";

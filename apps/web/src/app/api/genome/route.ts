@@ -1,3 +1,6 @@
+/**
+ * @description Innovation genome — DNA-like trait mapping for ideas.
+ */
 export const runtime = "nodejs";
 
 import {

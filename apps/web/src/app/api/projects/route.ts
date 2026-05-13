@@ -1,3 +1,6 @@
+/**
+ * @description Project management for innovation initiatives.
+ */
 export const runtime = "nodejs";
 
 import {

@@ -1,3 +1,6 @@
+/**
+ * @description Team DNA analysis — innovation style and strength mapping.
+ */
 export const runtime = "nodejs";
 
 import { analyzeTeamDNA } from "@innovator/core";

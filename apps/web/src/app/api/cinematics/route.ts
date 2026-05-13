@@ -1,3 +1,6 @@
+/**
+ * @description Cinematic narrative generation from innovation results.
+ */
 export const runtime = "nodejs";
 
 import { generateCinematicScript } from "@innovator/core";

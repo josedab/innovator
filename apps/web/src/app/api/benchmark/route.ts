@@ -1,3 +1,6 @@
+/**
+ * @description Innovation pipeline benchmarking and performance tracking.
+ */
 export const runtime = "nodejs";
 
 import {

@@ -1,3 +1,6 @@
+/**
+ * @description Innovation observatory — cross-team trend monitoring dashboard.
+ */
 import { NextRequest } from "next/server";
 import {
   getObservatoryStats,

@@ -1,3 +1,6 @@
+/**
+ * @description Session memory persistence and retrieval.
+ */
 export const runtime = "nodejs";
 
 import {

@@ -1,3 +1,6 @@
+/**
+ * @description Side-by-side session comparison and diff analysis.
+ */
 export const runtime = "nodejs";
 
 import {

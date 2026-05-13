@@ -1,3 +1,6 @@
+/**
+ * @description Meeting intelligence — extract innovation insights from meeting notes.
+ */
 export const runtime = "nodejs";
 
 import {

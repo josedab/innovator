@@ -1,3 +1,6 @@
+/**
+ * @description Prompt engineering lab for testing custom LLM prompts.
+ */
 export const runtime = "nodejs";
 
 import {

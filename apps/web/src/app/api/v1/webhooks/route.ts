@@ -1,3 +1,6 @@
+/**
+ * @description V1 API — webhook registration and management.
+ */
 export const runtime = "nodejs";
 
 import {

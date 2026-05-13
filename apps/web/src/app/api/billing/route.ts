@@ -1,3 +1,6 @@
+/**
+ * @description SaaS billing management — plans, subscriptions, and invoices.
+ */
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getTenant, getUsage, listPlans, updateTenantPlan, createTenant } from "@innovator/core";

@@ -1,3 +1,6 @@
+/**
+ * @description Embeddable widget endpoint for third-party integration (CORS-enabled).
+ */
 export const runtime = "nodejs";
 
 import { runAutoPipeline, ANGLE_IDS } from "@innovator/core";

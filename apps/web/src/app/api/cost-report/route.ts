@@ -1,3 +1,6 @@
+/**
+ * @description Cost analysis and reporting for innovation pipeline usage.
+ */
 export const runtime = "nodejs";
 
 import { generateCostReport } from "@innovator/core";

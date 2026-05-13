@@ -1,3 +1,6 @@
+/**
+ * @description Full auto-mode innovation pipeline with SSE progress streaming.
+ */
 export const runtime = "nodejs";
 
 import { runAutoPipeline, ANGLE_IDS } from "@innovator/core";

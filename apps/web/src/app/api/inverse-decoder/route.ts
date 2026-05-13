@@ -1,3 +1,6 @@
+/**
+ * @description Inverse decoding — reverse-engineer innovations from outcomes.
+ */
 export const runtime = "nodejs";
 
 import { analyzeProduct } from "@innovator/core";

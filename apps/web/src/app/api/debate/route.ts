@@ -1,3 +1,6 @@
+/**
+ * @description Structured multi-perspective debate on innovation ideas.
+ */
 export const runtime = "nodejs";
 
 import {

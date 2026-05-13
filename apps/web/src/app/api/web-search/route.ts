@@ -1,3 +1,6 @@
+/**
+ * @description Web search integration for real-time context enrichment.
+ */
 export const runtime = "nodejs";
 
 import {

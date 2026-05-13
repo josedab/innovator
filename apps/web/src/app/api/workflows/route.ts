@@ -1,3 +1,6 @@
+/**
+ * @description Innovation workflow definition and execution.
+ */
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {

@@ -1,3 +1,6 @@
+/**
+ * @description Real-time collaborative innovation sessions.
+ */
 export const runtime = "nodejs";
 
 import {

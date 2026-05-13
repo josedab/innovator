@@ -1,3 +1,6 @@
+/**
+ * @description Export innovation sessions to various formats (JSON, CSV, markdown).
+ */
 export const runtime = "nodejs";
 
 import {

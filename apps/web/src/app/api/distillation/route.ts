@@ -1,3 +1,6 @@
+/**
+ * @description Knowledge distillation — compress complex results into key insights.
+ */
 export const runtime = "nodejs";
 
 import { routeRequest, getCostDashboard } from "@innovator/core";

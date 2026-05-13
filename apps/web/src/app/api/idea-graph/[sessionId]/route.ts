@@ -1,3 +1,6 @@
+/**
+ * @description Session-specific idea relationship graph retrieval.
+ */
 export const runtime = "nodejs";
 
 import {

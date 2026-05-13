@@ -1,3 +1,6 @@
+/**
+ * @description Subject investigation — analyze landscape, challenges, and opportunities.
+ */
 export const runtime = "nodejs";
 
 import { investigate } from "@innovator/core";

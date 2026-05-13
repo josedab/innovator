@@ -1,3 +1,6 @@
+/**
+ * @description SCIM 2.0 user provisioning for enterprise SSO.
+ */
 export const runtime = "nodejs";
 
 import {

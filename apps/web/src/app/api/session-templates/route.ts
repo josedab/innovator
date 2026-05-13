@@ -1,3 +1,6 @@
+/**
+ * @description Reusable session templates for common innovation workflows.
+ */
 export const runtime = "nodejs";
 
 import {

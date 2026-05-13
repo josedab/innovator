@@ -1,3 +1,6 @@
+/**
+ * @description DAG-based pipeline workflow definition and execution.
+ */
 export const runtime = "nodejs";
 
 import {

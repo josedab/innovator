@@ -1,3 +1,6 @@
+/**
+ * @description Persona-based evaluation — AI personas score and critique ideas.
+ */
 export const runtime = "nodejs";
 
 import {

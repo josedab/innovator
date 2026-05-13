@@ -1,3 +1,6 @@
+/**
+ * @description Portfolio optimization — balance risk and impact across ideas.
+ */
 export const runtime = "nodejs";
 
 import { optimizePortfolio } from "@innovator/core";

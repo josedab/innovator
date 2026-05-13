@@ -1,3 +1,6 @@
+/**
+ * @description Usage telemetry collection for product analytics.
+ */
 export const runtime = "nodejs";
 
 import {

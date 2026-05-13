@@ -1,3 +1,6 @@
+/**
+ * @description Mobile-optimized innovation endpoints.
+ */
 export const runtime = "nodejs";
 
 import {

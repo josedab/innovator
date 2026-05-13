@@ -1,3 +1,6 @@
+/**
+ * @description RSS feed for innovation session history.
+ */
 export const runtime = "nodejs";
 
 import { listSessions, querySessions } from "@innovator/core";

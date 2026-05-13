@@ -1,3 +1,6 @@
+/**
+ * @description Natural language command processing for innovation workflows.
+ */
 export const runtime = "nodejs";
 
 import {

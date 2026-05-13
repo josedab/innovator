@@ -1,3 +1,6 @@
+/**
+ * @description Flow state assessment and intervention selection for innovation work.
+ */
 export const runtime = "nodejs";
 
 import { assessFlowState, selectIntervention, getInterventionLibrary } from "@innovator/core";

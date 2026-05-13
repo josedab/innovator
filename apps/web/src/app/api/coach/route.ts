@@ -1,3 +1,6 @@
+/**
+ * @description Innovation coaching — guided prompts and methodology recommendations.
+ */
 export const runtime = "nodejs";
 
 import {

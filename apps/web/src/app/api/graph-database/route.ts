@@ -1,3 +1,6 @@
+/**
+ * @description Knowledge graph database operations for innovation data.
+ */
 export const runtime = "nodejs";
 
 import { getKnowledgeGraph, getGraphStats, queryRelatedSubjects } from "@innovator/core";

@@ -1,3 +1,6 @@
+/**
+ * @description Monte Carlo simulation for innovation outcome probability.
+ */
 export const runtime = "nodejs";
 
 import { runMonteCarloSimulation, MonteCarloInputSchema } from "@innovator/core";

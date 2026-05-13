@@ -1,3 +1,6 @@
+/**
+ * @description Process mining — extract workflow patterns from innovation sessions.
+ */
 export const runtime = "nodejs";
 
 import { mineProcess, analyticsToProcessEvents, readEvents } from "@innovator/core";

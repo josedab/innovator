@@ -1,3 +1,6 @@
+/**
+ * @description Share session creation and link generation.
+ */
 export const runtime = "nodejs";
 
 import {

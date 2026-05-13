@@ -1,3 +1,6 @@
+/**
+ * @description V1 API — plugin listing and management.
+ */
 export const runtime = "nodejs";
 
 import { listPlugins, registerPlugin, unregisterPlugin } from "@innovator/core";

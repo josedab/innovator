@@ -1,3 +1,6 @@
+/**
+ * @description Natural language pipeline with SSE progress streaming.
+ */
 export const runtime = "nodejs";
 
 import {
