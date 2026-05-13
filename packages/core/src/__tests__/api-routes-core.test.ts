@@ -12,15 +12,20 @@ describe("Workflows API - Core Functions", () => {
     const templates = getWorkflowTemplates();
     expect(templates.length).toBeGreaterThanOrEqual(5);
     for (const t of templates) {
-      expect(t.id).toBeDefined();
-      expect(t.name).toBeDefined();
-      expect(t.workflow).toBeDefined();
+      expect(typeof t.id).toBe("string");
+      expect(t.id.length).toBeGreaterThan(0);
+      expect(typeof t.name).toBe("string");
+      expect(t.name.length).toBeGreaterThan(0);
+      expect(t.workflow).toMatchObject({
+        nodes: expect.any(Array),
+      });
     }
   });
 
   it("retrieves template by ID", () => {
     const template = getWorkflowTemplate("deep-analysis");
-    expect(template).toBeDefined();
+    expect(template).not.toBeNull();
+    expect(template!.id).toBe("deep-analysis");
     expect(template!.category).toBe("advanced");
   });
 
@@ -47,24 +52,27 @@ describe("Workflows API - Core Functions", () => {
 
   it("team-collaboration template has human-review gates", () => {
     const t = getWorkflowTemplate("team-collaboration");
-    expect(t).toBeDefined();
+    expect(t).not.toBeNull();
+    expect(t!.id).toBe("team-collaboration");
     const gates = t!.workflow.nodes.filter((n) => n.type === "human-review");
     expect(gates.length).toBeGreaterThanOrEqual(2);
   });
 
   it("adaptive-pipeline template has a condition node", () => {
     const t = getWorkflowTemplate("adaptive-pipeline");
-    expect(t).toBeDefined();
+    expect(t).not.toBeNull();
+    expect(t!.id).toBe("adaptive-pipeline");
     const conditions = t!.workflow.nodes.filter((n) => n.type === "condition");
     expect(conditions.length).toBeGreaterThanOrEqual(1);
-    expect(conditions[0].condition).toBeDefined();
+    expect(conditions[0].condition).toMatchObject(expect.any(Object));
   });
 
   it("iterative-refinement template has a loop node", () => {
     const t = getWorkflowTemplate("iterative-refinement");
-    expect(t).toBeDefined();
+    expect(t).not.toBeNull();
+    expect(t!.id).toBe("iterative-refinement");
     const loops = t!.workflow.nodes.filter((n) => n.type === "loop");
     expect(loops.length).toBeGreaterThanOrEqual(1);
-    expect(loops[0].loop).toBeDefined();
+    expect(typeof loops[0].loop).toBe("object");
   });
 });
