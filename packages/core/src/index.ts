@@ -6247,3 +6247,19 @@ export { LinearIntegration } from "./integrations/linear.js";
 export { SlackIntegration } from "./integrations/slack.js";
 export { ConfluenceIntegration } from "./integrations/confluence.js";
 export { NotionIntegration } from "./integrations/notion.js";
+
+/** Knowledge Graph — entity extraction and graph visualization. */
+export { EntityExtractor } from "./knowledge-graph/entity-extractor.js";
+export type {
+  ExtractedEntity,
+  ExtractedRelationship,
+} from "./knowledge-graph/entity-extractor.js";
+
+export { GraphVisualizer } from "./knowledge-graph/graph-visualizer.js";
+export type {
+  GraphNode as VisualizerGraphNode,
+  GraphEdge as VisualizerGraphEdge,
+  GraphCluster,
+  GraphLayout,
+  LayoutOptions,
+} from "./knowledge-graph/graph-visualizer.js";
