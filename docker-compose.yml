@@ -1,20 +1,23 @@
 services:
+  # Main Innovator web application — Next.js app serving the API and UI.
+  # Built from the repo root Dockerfile. Connects to Postgres for session persistence.
   innovator:
     build: .
     ports:
-      - "3000:3000"
+      - "3000:3000" # Web UI and API
     environment:
       - PORT=3000
-      - INNOVATOR_API_KEY=${INNOVATOR_API_KEY}
-      - INNOVATOR_DEFAULT_MODEL=${INNOVATOR_DEFAULT_MODEL:-gpt-4.1}
-      - INNOVATOR_LLM_TIMEOUT_MS=${INNOVATOR_LLM_TIMEOUT_MS:-90000}
-      - GH_TOKEN=${GH_TOKEN}
+      - INNOVATOR_API_KEY=${INNOVATOR_API_KEY} # Optional: protects API routes
+      - INNOVATOR_DEFAULT_MODEL=${INNOVATOR_DEFAULT_MODEL:-gpt-4.1} # LLM model for generation
+      - INNOVATOR_LLM_TIMEOUT_MS=${INNOVATOR_LLM_TIMEOUT_MS:-90000} # Request timeout (ms)
+      - GH_TOKEN=${GH_TOKEN} # GitHub token for Copilot SDK auth
       - DATABASE_URL=postgresql://innovator:innovator@postgres:5432/innovator
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
 
+  # PostgreSQL database — stores innovation sessions, history, and collaboration data.
   postgres:
     image: postgres:16-alpine
     ports:
@@ -22,9 +25,9 @@ services:
     environment:
       POSTGRES_DB: innovator
       POSTGRES_USER: innovator
-      POSTGRES_PASSWORD: innovator
+      POSTGRES_PASSWORD: innovator # Change in production
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data # Persist data across container restarts
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U innovator"]
       interval: 5s
@@ -32,18 +35,20 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # pgAdmin — web-based PostgreSQL admin UI for development/debugging.
+  # Access at http://localhost:5050 with the credentials below.
   pgadmin:
     image: dpage/pgadmin4:latest
     ports:
-      - "5050:80"
+      - "5050:80" # pgAdmin web UI
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@innovator.dev
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_DEFAULT_PASSWORD: admin # Change in production
+      PGADMIN_CONFIG_SERVER_MODE: "False" # Single-user desktop mode
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  pgdata:
+  pgdata: # Named volume for PostgreSQL data persistence
