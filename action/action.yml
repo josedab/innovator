@@ -31,6 +31,18 @@ inputs:
     description: "Post results as issue comment (true/false)"
     required: false
     default: "true"
+  config-path:
+    description: "Path to .innovator/config.yaml for project-specific defaults"
+    required: false
+    default: ".innovator/config.yaml"
+  save-session:
+    description: "Save pipeline results to .innovator/sessions/ (true/false)"
+    required: false
+    default: "false"
+  novelty-check:
+    description: "Score ideas for novelty against prior art (true/false)"
+    required: false
+    default: "false"
 
 outputs:
   markdown:
@@ -63,6 +75,27 @@ runs:
         fi
         echo "value=$SUBJECT" >> $GITHUB_OUTPUT
 
+    - name: Read IaC config
+      id: config
+      shell: bash
+      run: |
+        CONFIG_PATH="${{ inputs.config-path }}"
+        if [ -f "$CONFIG_PATH" ]; then
+          echo "found=true" >> $GITHUB_OUTPUT
+          # Extract defaultModel from YAML (simple grep, no yq dependency)
+          MODEL=$(grep 'defaultModel:' "$CONFIG_PATH" 2>/dev/null | head -1 | sed 's/.*defaultModel:\s*//' | tr -d '"' | tr -d "'")
+          if [ -n "$MODEL" ]; then
+            echo "model=$MODEL" >> $GITHUB_OUTPUT
+          fi
+          # Extract defaultAngles
+          ANGLES=$(grep -A20 'defaultAngles:' "$CONFIG_PATH" 2>/dev/null | grep '^\s*-' | sed 's/.*-\s*//' | tr '\n' ',' | sed 's/,$//')
+          if [ -n "$ANGLES" ]; then
+            echo "angles=$ANGLES" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "found=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Run innovation pipeline
       id: innovate
       shell: bash
@@ -72,12 +105,25 @@ runs:
         ARGS="auto '${{ steps.subject.outputs.value }}'"
         ARGS="$ARGS --depth ${{ inputs.depth }}"
 
+        # Use IaC config defaults, overridden by explicit inputs
         if [ -n "${{ inputs.angles }}" ]; then
           ARGS="$ARGS --angles ${{ inputs.angles }}"
+        elif [ -n "${{ steps.config.outputs.angles }}" ]; then
+          ARGS="$ARGS --angles ${{ steps.config.outputs.angles }}"
         fi
 
         if [ -n "${{ inputs.model }}" ]; then
           ARGS="$ARGS --model ${{ inputs.model }}"
+        elif [ -n "${{ steps.config.outputs.model }}" ]; then
+          ARGS="$ARGS --model ${{ steps.config.outputs.model }}"
+        fi
+
+        if [ "${{ inputs.save-session }}" = "true" ]; then
+          ARGS="$ARGS --save"
+        fi
+
+        if [ "${{ inputs.novelty-check }}" = "true" ]; then
+          ARGS="$ARGS --novelty"
         fi
 
         # Run and capture output
