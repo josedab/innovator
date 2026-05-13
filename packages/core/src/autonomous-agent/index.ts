@@ -23,3 +23,18 @@ export type {
   AutonomousProgress,
   AutonomousAgentConfig,
 } from "./types.js";
+
+/** Agent lifecycle manager — persistence, budget tracking, mid-run injection. */
+export {
+  startAgentRun,
+  stopAgentRun,
+  getAgentRun,
+  listAgentRuns,
+  injectTopics,
+  getLatestCheckpoint,
+  exportRunPortfolio,
+  removeAgentRun,
+  clearAgentRuns,
+  AgentBudgetSchema,
+} from "./manager.js";
+export type { AgentBudget, ManagedAgentRun, AgentCheckpoint } from "./manager.js";
