@@ -10,6 +10,49 @@
  * Prerequisites:
  *   - GitHub CLI authenticated (`gh auth login`)
  *   - Core package built (`npm run build --workspace=packages/core`)
+ *
+ * Expected output:
+ *
+ *   🔍 Investigating: "developer productivity tools"
+ *
+ *   ⚡ Generating ideas with SCAMPER...
+ *
+ *   📊 Scoring ideas...
+ *
+ *   Scored Ideas:
+ *     🟢 AI Pair Debugger — feasibility: 8, impact: 9
+ *     🟡 Context-Aware CLI Assistant — feasibility: 6, impact: 7
+ *     🟢 Auto-Documentation Engine — feasibility: 7, impact: 8
+ *
+ *   📁 Adding to portfolio...
+ *
+ *     ✅ Added: AI Pair Debugger (stage: ideation)
+ *     ✅ Added: Context-Aware CLI Assistant (stage: ideation)
+ *     ✅ Added: Auto-Documentation Engine (stage: ideation)
+ *
+ *   🚀 Advancing "AI Pair Debugger" through lifecycle...
+ *
+ *     → Evaluation
+ *     → Prototyping
+ *
+ *   🏗️  Generating implementation scaffolding...
+ *
+ *     📂 Generated structure:
+ *        src/index.ts — Main entry point
+ *        src/debugger/engine.ts — Core debugging engine
+ *        src/debugger/context.ts — Context analysis module
+ *        tests/engine.test.ts — Unit tests for engine
+ *        package.json — Package manifest
+ *
+ *     📋 Issues to create: 4
+ *     🏗️  Tech stack: TypeScript, Node.js, VS Code Extension API
+ *
+ *   📈 Portfolio Metrics:
+ *
+ *     Total ideas: 3
+ *     Ship rate: 0.0%
+ *     Velocity: 3.0 ideas/week
+ *     By stage: ideation: 2, prototyping: 1
  */
 
 import {

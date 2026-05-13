@@ -7,6 +7,36 @@
  * Prerequisites:
  *   - GitHub CLI authenticated (`gh auth login`)
  *   - Core package built (`npm run build --workspace=packages/core`)
+ *
+ * Expected output:
+ *
+ *   🔍 Investigating: "sustainable packaging"
+ *
+ *   📋 Summary: Sustainable packaging focuses on reducing environmental impact...
+ *   📌 Key Aspects: Material Innovation, Supply Chain, Consumer Behavior, ...
+ *   ⚡ Challenges: Cost parity with traditional materials; Scalability of bio-based...
+ *   💡 Opportunities: Edible packaging for single-use items; Mycelium-based...
+ *
+ *   🚀 Running auto pipeline with 8 angles...
+ *
+ *     ▶ Starting angle: scamper
+ *     ✅ Completed: scamper (5 ideas)
+ *     ▶ Starting angle: first-principles
+ *     ✅ Completed: first-principles (4 ideas)
+ *     ... (more angles)
+ *
+ *   📊 Results:
+ *
+ *   --- scamper ---
+ *     • Modular Refill Stations: Replace single-use packaging with...
+ *     • Edible Wrapper Film: Substitute plastic wrap with...
+ *     ...
+ *
+ *   🏆 Top Ideas:
+ *     ⭐ Modular Refill Stations
+ *     ⭐ Mycelium Packaging Blocks
+ *
+ *   📝 Recommendation: Focus on modular refill infrastructure as the highest...
  */
 
 import { investigate, runAutoPipeline, ANGLES } from "@innovator/core";

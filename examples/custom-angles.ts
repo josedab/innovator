@@ -7,6 +7,28 @@
  * Prerequisites:
  *   - GitHub CLI authenticated (`gh auth login`)
  *   - Core package built (`npm run build --workspace=packages/core`)
+ *
+ * Expected output:
+ *
+ *   📦 Registered plugins: Example Custom Angles
+ *
+ *   🔍 Investigating: "food delivery services"
+ *
+ *   📋 Summary: Food delivery services connect restaurants with consumers...
+ *
+ *   ⚖️ Running custom angle: Ethics Lens
+ *      Evaluate ideas through ethical frameworks — fairness, transparency, ...
+ *
+ *     • Fair-Pricing Algorithm: Dynamically adjust fees to prevent...
+ *     • Transparent Carbon Tracker: Show the environmental cost of each...
+ *     • Gig Worker Equity Program: Ensure minimum earnings and benefits...
+ *
+ *   ♻️ Running custom angle: Circular Economy
+ *      Reimagine through reduce, reuse, recycle, and regenerate principles
+ *
+ *     • Reusable Container Network: Replace disposable packaging with...
+ *     • Food Waste Redistribution Hub: Route surplus meals to community...
+ *     • Compostable Packaging Standard: Require all delivery containers...
  */
 
 import { investigate, generateForAngle, registerPlugin, listPlugins } from "@innovator/core";

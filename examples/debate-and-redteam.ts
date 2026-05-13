@@ -10,6 +10,43 @@
  * Prerequisites:
  *   - GitHub CLI authenticated (`gh auth login`)
  *   - Core package built (`npm run build --workspace=packages/core`)
+ *
+ * Expected output:
+ *
+ *   🔍 Investigating: "AI-powered code review tools"
+ *
+ *   📋 Summary: AI-powered code review tools use machine learning to...
+ *
+ *   ⚡ Generating ideas with First Principles...
+ *
+ *     💡 Contextual Code Reasoning Engine
+ *     💡 Incremental Learning Reviewer
+ *     💡 Multi-Language AST Analyzer
+ *
+ *   🏆 Focusing on: "Contextual Code Reasoning Engine"
+ *
+ *   🎭 Running structured debate...
+ *
+ *     Round 1:
+ *       🟢 Pro: Deep context understanding reduces false positives...
+ *       🔴 Con: High computational cost limits real-time feedback...
+ *     Round 2:
+ *       🟢 Pro: Learns team-specific patterns over time...
+ *       🔴 Con: Risk of reinforcing existing bad practices...
+ *
+ *     📝 Verdict: [pro] The benefits of contextual reasoning outweigh...
+ *
+ *   🔴 Red teaming the top idea...
+ *
+ *     Round 1:
+ *       ⚠️  [high] Data privacy — training on proprietary code raises...
+ *       ⚠️  [medium] Adoption resistance — developers may distrust...
+ *       Survival score: 7/10
+ *     Round 2:
+ *       ⚠️  [medium] Scalability bottleneck — deep analysis on large...
+ *       Survival score: 6/10
+ *
+ *     🏁 Final verdict: Viable with mitigations for privacy and...
  */
 
 import {

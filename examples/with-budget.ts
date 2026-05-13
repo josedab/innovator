@@ -3,10 +3,56 @@
  *
  * Usage:
  *   npx tsx examples/with-budget.ts
+ *   npx tsx examples/with-budget.ts "telemedicine" 1.00
  *
  * Prerequisites:
  *   - GitHub CLI authenticated (`gh auth login`)
  *   - Core package built (`npm run build --workspace=packages/core`)
+ *
+ * Expected output:
+ *
+ *   💰 Model Pricing:
+ *
+ *     gpt-4.1: $0.03/1K input, $0.06/1K output
+ *     gpt-4.1-mini: $0.0004/1K input, $0.0016/1K output
+ *     ...
+ *
+ *   📊 Estimated auto pipeline cost (gpt-4.1): $2.2200
+ *   💳 Budget cap: $0.50
+ *
+ *   🔍 Investigating: "telemedicine"
+ *
+ *   📋 Summary: Telemedicine enables remote clinical services using...
+ *
+ *   💰 Cost after investigation: $0.0342
+ *
+ *   🚀 Running auto pipeline...
+ *
+ *     ✅ scamper — running total: $0.0724 / $0.50
+ *     ✅ first-principles — running total: $0.1108 / $0.50
+ *     ...
+ *     ⚠️  Budget exceeded! Reason: Cost limit reached ($0.50)
+ *
+ *   🛑 Pipeline stopped due to budget limit.
+ *
+ *   ============================================================
+ *   📊 COST SUMMARY
+ *   ============================================================
+ *     Total calls:    6
+ *     Input tokens:   12,340
+ *     Output tokens:  5,218
+ *     Total cost:     $0.5012
+ *     Total latency:  14.2s
+ *
+ *     By Model:
+ *       gpt-4.1: $0.5012 (6 calls)
+ *
+ *     By Stage:
+ *       investigation: $0.0342 (1 calls)
+ *       generation: $0.4670 (5 calls)
+ *
+ *     Budget remaining: $0.0000 of $0.50
+ *   ============================================================
  */
 
 import {
