@@ -81,4 +81,46 @@ describe("validateModel", () => {
   it("returns false for model with extra whitespace", () => {
     expect(validateModel(" gpt-4.1 ", knownModels)).toBe(false);
   });
+
+  it("is case-sensitive (uppercase rejected)", () => {
+    expect(validateModel("GPT-4.1", knownModels)).toBe(false);
+  });
+
+  it("returns false for partial model name", () => {
+    expect(validateModel("gpt", knownModels)).toBe(false);
+  });
+
+  it("returns true for all known models", () => {
+    for (const m of knownModels) {
+      expect(validateModel(m, knownModels)).toBe(true);
+    }
+  });
+
+  it("returns false with empty knownModels list", () => {
+    expect(validateModel("gpt-4.1", [])).toBe(false);
+  });
+});
+
+describe("stripAnsi — additional edge cases", () => {
+  it("strips cursor movement sequences", () => {
+    expect(stripAnsi("\x1b[2Amoved up")).toBe("moved up");
+  });
+
+  it("handles mixed ANSI and unicode content", () => {
+    expect(stripAnsi("\x1b[31m🚀 launch\x1b[0m")).toBe("🚀 launch");
+  });
+
+  it("handles newlines and tabs without stripping them", () => {
+    expect(stripAnsi("line1\nline2\ttab")).toBe("line1\nline2\ttab");
+  });
+});
+
+describe("validateSubject — additional edge cases", () => {
+  it("handles subjects with special characters", () => {
+    expect(validateSubject("AI & ML: testing <things>")).toBe(true);
+  });
+
+  it("handles subjects with unicode", () => {
+    expect(validateSubject("🚀 innovation topic")).toBe(true);
+  });
 });
