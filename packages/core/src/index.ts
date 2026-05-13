@@ -6197,3 +6197,30 @@ export type {
   ConsensusEvent,
   ConsensusSession,
 } from "./realtime/consensus.js";
+
+/** Multi-modal — upload processing and visual output generation. */
+export {
+  UploadedFileSchema,
+  ProcessingResultSchema,
+  resolveFileType,
+  validateUploadedFile,
+  UploadProcessor,
+} from "./multi-modal/upload-processor.js";
+export type {
+  UploadedFile,
+  ProcessingResult,
+} from "./multi-modal/upload-processor.js";
+
+export {
+  VisualArtifactSchema,
+  VisualOutputGenerator,
+} from "./multi-modal/visual-output.js";
+export type {
+  VisualArtifact,
+  IdeaNode as VisualIdeaNode,
+  IdeaMapData,
+  ChartDataPoint,
+  IdeaInput as VisualIdeaInput,
+  SynthesisInput as VisualSynthesisInput,
+  AngleResultInput as VisualAngleResultInput,
+} from "./multi-modal/visual-output.js";
