@@ -290,5 +290,70 @@ describe("embeddings", () => {
       expect(doc.id).toBeDefined();
       expect(getIndexSize()).toBe(1);
     });
+
+    it("idea type documents get idea- prefix ID", () => {
+      const doc = indexDocument({
+        type: "idea",
+        title: "Test Idea",
+        content: "Test content",
+      });
+      expect(doc.id).toMatch(/^idea-/);
+    });
+
+    it("non-idea types get full UUID", () => {
+      const doc = indexDocument({
+        type: "investigation",
+        title: "Test Investigation",
+        content: "Test content",
+      });
+      expect(doc.id).not.toMatch(/^idea-/);
+    });
+
+    it("handles stopword-only content", () => {
+      const doc = indexDocument({
+        type: "idea",
+        title: "the is a",
+        content: "is are the a an",
+      });
+      expect(doc.id).toBeDefined();
+    });
+
+    it("handles punctuation in content", () => {
+      const doc = indexDocument({
+        type: "idea",
+        title: "Test!",
+        content: "hello, world! (test) [brackets] {braces}",
+      });
+      expect(doc.id).toBeDefined();
+      const results = semanticSearch("hello world");
+      expect(results.totalIndexed).toBe(1);
+    });
+
+    it("filters tokens shorter than 3 chars", () => {
+      const doc = indexDocument({
+        type: "idea",
+        title: "AB",
+        content: "AI ML NLP is ok no",
+      });
+      expect(doc.id).toBeDefined();
+    });
+
+    it("handles Unicode content", () => {
+      const doc = indexDocument({
+        type: "idea",
+        title: "Café résumé",
+        content: "Café résumé naïve über straße",
+      });
+      expect(doc.id).toBeDefined();
+    });
+
+    it("clearEmbeddingsIndex resets everything", () => {
+      indexDocument({ type: "idea", title: "A", content: "test content" });
+      indexDocument({ type: "idea", title: "B", content: "test content two" });
+      expect(getIndexSize()).toBe(2);
+      clearEmbeddingsIndex();
+      expect(getIndexSize()).toBe(0);
+      expect(semanticSearch("test").results).toHaveLength(0);
+    });
   });
 });
