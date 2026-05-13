@@ -54,7 +54,7 @@ describe("api-gateway", () => {
       expect(key.id).toMatch(/^key_/);
       expect(key.key).toMatch(/^inv_free_/);
       expect(key.rateLimit).toEqual(TIER_LIMITS.free);
-      expect(key.createdAt).toBeDefined();
+      expect(key.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     it("creates a key with specified tier", () => {
@@ -75,7 +75,7 @@ describe("api-gateway", () => {
     it("returns the key by ID", () => {
       const created = createApiKey("Test");
       const found = getApiKey(created.id);
-      expect(found).toBeDefined();
+      expect(found).not.toBeUndefined();
       expect(found!.name).toBe("Test");
     });
 
@@ -88,7 +88,7 @@ describe("api-gateway", () => {
     it("finds key by key value", () => {
       const created = createApiKey("Find Me");
       const found = findApiKeyByValue(created.key);
-      expect(found).toBeDefined();
+      expect(found).not.toBeUndefined();
       expect(found!.id).toBe(created.id);
     });
 
@@ -363,7 +363,7 @@ describe("api-gateway", () => {
       const spec = getOpenApiSpec();
       expect(spec.openapi).toBe("3.1.0");
       expect((spec.info as Record<string, unknown>).title).toBe("Innovator API");
-      expect(spec.paths).toBeDefined();
+      expect(spec.paths).toMatchObject(expect.any(Object));
     });
   });
 
@@ -403,7 +403,7 @@ describe("api-gateway", () => {
     it("creates an initial API key for the tenant", () => {
       const tenant = createTenant("Test", "t@t.com", "free");
       const key = getApiKey(tenant.apiKeys[0]);
-      expect(key).toBeDefined();
+      expect(key).not.toBeUndefined();
       expect(key!.tier).toBe("free");
     });
   });
@@ -411,7 +411,7 @@ describe("api-gateway", () => {
   describe("getTenant / findTenantBySlug", () => {
     it("retrieves tenant by ID", () => {
       const tenant = createTenant("Find Me", "f@m.com");
-      expect(getTenant(tenant.id)).toBeDefined();
+      expect(getTenant(tenant.id)).not.toBeUndefined();
       expect(getTenant(tenant.id)!.name).toBe("Find Me");
     });
 
@@ -422,7 +422,7 @@ describe("api-gateway", () => {
     it("finds tenant by slug", () => {
       const tenant = createTenant("Slug Test", "s@t.com");
       const found = findTenantBySlug(tenant.slug);
-      expect(found).toBeDefined();
+      expect(found).not.toBeUndefined();
       expect(found!.id).toBe(tenant.id);
     });
 
@@ -520,8 +520,7 @@ describe("api-gateway", () => {
       const demo = createDemoKey();
       expect(demo.rateLimit.dailyLimit).toBe(5);
       expect(demo.rateLimit.minuteLimit).toBe(2);
-      expect(demo.metadata).toBeDefined();
-      expect(demo.metadata!.demo).toBe("true");
+      expect(demo.metadata).toEqual(expect.objectContaining({ demo: "true" }));
     });
   });
 
@@ -541,7 +540,7 @@ describe("api-gateway", () => {
       expect(sub.failureCount).toBe(0);
 
       const retrieved = getWebhookSubscription(sub.id);
-      expect(retrieved).toBeDefined();
+      expect(retrieved).not.toBeUndefined();
       expect(retrieved!.id).toBe(sub.id);
     });
 
