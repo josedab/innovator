@@ -165,40 +165,92 @@ graph LR
 
 ## Key Directories
 
-| Path                                  | Purpose                                                       |
-| ------------------------------------- | ------------------------------------------------------------- |
-| `packages/core/src/prompts/`          | Prompt templates for each innovation angle                    |
-| `packages/core/src/innovation/`       | Pipeline orchestration (investigate → generate → synthesize)  |
-| `packages/core/src/copilot/`          | Copilot SDK client wrapper                                    |
-| `packages/core/src/providers/`        | LLM provider abstraction (Copilot, OpenAI, Anthropic, Ollama) |
-| `packages/core/src/artifacts/`        | Structured artifact generation (PRD, tech spec, user story)   |
-| `packages/core/src/collaboration/`    | Collaborative sessions with voting and commenting             |
-| `packages/core/src/research/`         | Deep research agent for extended investigations               |
-| `packages/core/src/debate/`           | Structured multi-perspective debate engine                    |
-| `packages/core/src/evolution/`        | Genetic-algorithm idea evolution                              |
-| `packages/core/src/rag/`              | RAG knowledge grounding module                                |
-| `packages/core/src/analytics/`        | Innovation analytics and insights                             |
-| `packages/core/src/pipeline-builder/` | Natural language pipeline builder                             |
-| `packages/core/src/knowledge-graph/`  | Persistent concept knowledge graph                            |
-| `packages/core/src/events/`           | Event bus and webhook delivery system                         |
-| `packages/core/src/cost/`             | LLM cost tracking and budget management                       |
-| `packages/core/src/storage/`          | Pluggable storage abstraction (memory, SQLite backends)       |
-| `packages/core/src/validation/`       | Input validation and sanitization utilities                   |
-| `packages/core/src/models/`           | Model allowlist and configuration                             |
-| `packages/core/src/chaining/`         | Multi-step prompt chaining                                    |
-| `packages/core/src/embeddings/`       | Vector embedding generation and similarity                    |
-| `packages/core/src/orchestration/`    | High-level workflow orchestration                             |
-| `packages/core/src/rbac/`             | Role-based access control                                     |
-| `packages/core/src/plugins/`          | Plugin system for extensibility                               |
-| `packages/core/src/presets/`          | Pipeline presets and templates                                |
-| `packages/mcp-server/src/`            | MCP server exposing tools via stdio/SSE transports            |
-| `packages/bot/`                       | Chat platform bot (Slack, Discord, Teams)                     |
-| `packages/vscode-extension/`          | VS Code extension for in-editor innovation                    |
-| `packages/copilot-extension/`         | GitHub Copilot Extension (@innovator in Copilot Chat)         |
-| `packages/create-innovator/`          | Project scaffolder (`npx create-innovator`)                   |
-| `apps/web/src/components/`            | React UI components                                           |
-| `apps/web/src/app/api/`               | Next.js API route handlers                                    |
-| `apps/cli/src/`                       | Commander.js CLI entry point                                  |
+| Path                                   | Purpose                                                       |
+| -------------------------------------- | ------------------------------------------------------------- |
+| `packages/core/src/prompts/`           | Prompt templates for each innovation angle                    |
+| `packages/core/src/innovation/`        | Pipeline orchestration (investigate → generate → synthesize)  |
+| `packages/core/src/copilot/`           | Copilot SDK client wrapper                                    |
+| `packages/core/src/providers/`         | LLM provider abstraction (Copilot, OpenAI, Anthropic, Ollama) |
+| `packages/core/src/artifacts/`         | Structured artifact generation (PRD, tech spec, user story)   |
+| `packages/core/src/collaboration/`     | Collaborative sessions with voting and commenting             |
+| `packages/core/src/research/`          | Deep research agent for extended investigations               |
+| `packages/core/src/debate/`            | Structured multi-perspective debate engine                    |
+| `packages/core/src/evolution/`         | Genetic-algorithm idea evolution                              |
+| `packages/core/src/rag/`               | RAG knowledge grounding module                                |
+| `packages/core/src/analytics/`         | Innovation analytics and insights                             |
+| `packages/core/src/pipeline-builder/`  | Natural language pipeline builder                             |
+| `packages/core/src/knowledge-graph/`   | Persistent concept knowledge graph                            |
+| `packages/core/src/events/`            | Event bus and webhook delivery system                         |
+| `packages/core/src/cost/`              | LLM cost tracking and budget management                       |
+| `packages/core/src/storage/`           | Pluggable storage abstraction (memory, SQLite backends)       |
+| `packages/core/src/validation/`        | Input validation and sanitization utilities                   |
+| `packages/core/src/models/`            | Model allowlist and configuration                             |
+| `packages/core/src/chaining/`          | Multi-step prompt chaining                                    |
+| `packages/core/src/embeddings/`        | Vector embedding generation and similarity                    |
+| `packages/core/src/orchestration/`     | High-level workflow orchestration                             |
+| `packages/core/src/rbac/`              | Role-based access control                                     |
+| `packages/core/src/plugins/`           | Plugin system for extensibility                               |
+| `packages/core/src/presets/`           | Pipeline presets and templates                                |
+| `packages/core/src/gauntlet/`          | Adversarial idea stress-testing (Survivability Index)         |
+| `packages/core/src/provenance-ledger/` | Tamper-evident hash-chained audit trail                       |
+| `packages/core/src/temporal-memory/`   | Temporal knowledge graph for innovation memory                |
+| `packages/core/src/sentinel/`          | Always-on signal monitoring and opportunity generation        |
+| `packages/core/src/genome-sequencer/`  | Idea decomposition, similarity search, and recombination      |
+| `packages/core/src/federation-dp/`     | Differential privacy for federated pattern sharing            |
+| `packages/mcp-server/src/`             | MCP server exposing tools via stdio/SSE transports            |
+| `packages/bot/`                        | Chat platform bot (Slack, Discord, Teams)                     |
+| `packages/vscode-extension/`           | VS Code extension for in-editor innovation                    |
+| `packages/copilot-extension/`          | GitHub Copilot Extension (@innovator in Copilot Chat)         |
+| `packages/create-innovator/`           | Project scaffolder (`npx create-innovator`)                   |
+| `apps/web/src/components/`             | React UI components                                           |
+| `apps/web/src/app/api/`                | Next.js API route handlers                                    |
+| `apps/cli/src/`                        | Commander.js CLI entry point                                  |
+
+## Moonshot Modules
+
+Six advanced modules extend the core innovation pipeline with intelligence, memory, and quality assurance capabilities:
+
+```mermaid
+graph TB
+    subgraph "Quality & Trust"
+        G["⚔️ Gauntlet<br/><i>Adversarial stress-testing</i>"]
+        PL["📋 Provenance Ledger<br/><i>Tamper-evident audit trail</i>"]
+    end
+
+    subgraph "Memory & Intelligence"
+        TM["🧠 Temporal Memory<br/><i>Concept evolution graph</i>"]
+        GS["🧬 Genome Sequencer<br/><i>Idea decomposition</i>"]
+    end
+
+    subgraph "Network & Automation"
+        S["🛰️ Sentinel<br/><i>Signal monitoring agent</i>"]
+        FDP["🔒 Federation DP<br/><i>Privacy-preserving sharing</i>"]
+    end
+
+    Pipeline["Innovation Pipeline"] --> G
+    Pipeline --> PL
+    Pipeline --> TM
+    TM --> GS
+    G --> S
+    FDP --> TM
+
+    style Pipeline fill:#4f46e5,color:#fff,stroke:#4338ca
+    style G fill:#ef4444,color:#fff
+    style PL fill:#f59e0b,color:#000
+    style TM fill:#8b5cf6,color:#fff
+    style GS fill:#06b6d4,color:#fff
+    style S fill:#22c55e,color:#fff
+    style FDP fill:#ec4899,color:#fff
+```
+
+| Module                | Purpose                                                                     | Key Functions                                                   | ADR                                                              |
+| --------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **Gauntlet**          | 5 adversary personas attack ideas, producing a 0–100 Survivability Index    | `runGauntlet()`, `computeSurvivabilityIndex()`                  | [ADR-0016](docs/adr/ADR-0016-llm-as-judge-evaluation.md)         |
+| **Provenance Ledger** | SHA-256 hash-chained append-only log of AI actions and human decisions      | `appendEntry()`, `verifyLedger()`, `exportForActor()`           | [ADR-0017](docs/adr/ADR-0017-append-only-hash-chained-ledger.md) |
+| **Temporal Memory**   | Persistent graph tracking concept evolution, recurrence, and causality      | `ingestSession()`, `queryTemporalMemory()`, `computeVelocity()` | [ADR-0019](docs/adr/ADR-0019-temporal-knowledge-graph.md)        |
+| **Sentinel**          | Monitors RSS/Atom feeds, filters by relevance, generates daily briefs       | `runSentinel()`, `briefToMarkdown()`                            | —                                                                |
+| **Genome Sequencer**  | Decomposes ideas into 7 traits, enables similarity search and recombination | `sequenceIdea()`, `findSimilar()`, `recombine()`                | —                                                                |
+| **Federation DP**     | Laplace-mechanism ε-differential privacy for cross-org pattern sharing      | `extractAnonymizedPatterns()`, `generateRecommendations()`      | [ADR-0018](docs/adr/ADR-0018-differential-privacy-federation.md) |
 
 ## Concurrency Model
 

@@ -52,7 +52,10 @@ nvm use  # or fnm use
 # Install dependencies
 npm install
 
-# Verify prerequisites (Node 20+, gh CLI, Copilot auth)
+# Copy environment config (edit as needed)
+cp .env.local.example .env.local
+
+# Verify prerequisites (Node 20+, npm 10+, gh CLI, Copilot auth)
 npm run doctor
 
 # Start the web app (automatically builds core first)
@@ -62,6 +65,22 @@ npm run dev
 ```
 
 > **Prefer `make`?** Run `make help` to see all available targets.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Watch mode (re-runs on file changes)
+npm run test:watch
+
+# Run a single test file
+npx vitest run packages/core/src/__tests__/gauntlet.test.ts
+
+# Run tests with coverage
+npm run test:coverage
+```
 
 ## CLI Usage
 
@@ -187,30 +206,30 @@ Supported models include `gpt-4.1`, `gpt-5`, `claude-sonnet-4.5`, and others ava
 
 ### Environment Variables
 
-| Variable                   | Description                                                         | Default                  | Required |
-| -------------------------- | ------------------------------------------------------------------- | ------------------------ | -------- |
-| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime                    | `gpt-4.1`                | No       |
-| `INNOVATOR_API_KEY`        | API key to protect web routes (`X-API-Key` header)                  | _unset_                  | No       |
-| `INNOVATOR_API_KEYS`       | Comma-separated API keys for multi-key auth (`X-API-Key`/Bearer)    | _unset_                  | No       |
-| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for LLM requests in milliseconds                            | `90000`                  | No       |
-| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs                        | _unset_                  | No       |
-| `INNOVATOR_EMBED_ORIGINS`  | Comma-separated CORS origins for `/api/embed` widget endpoint       | `*`                      | No       |
-| `INNOVATOR_EMBED_API_KEY`  | API key to protect the `/api/embed` widget endpoint (`X-Embed-Key`) | _unset_                  | No       |
-| `GH_TOKEN`                 | GitHub token for Copilot SDK auth in CI/Docker (when `gh` CLI is unavailable) | _unset_      | No*      |
-| `OPENAI_API_KEY`           | OpenAI API key for direct OpenAI provider (non-Copilot usage)       | _unset_                  | No       |
-| `ANTHROPIC_API_KEY`        | Anthropic API key for direct Anthropic provider (non-Copilot usage) | _unset_                  | No       |
-| `OLLAMA_BASE_URL`          | Base URL for local Ollama instance                                  | `http://localhost:11434` | No       |
-| `PORT`                     | Dev server port                                                     | `3000`                   | No       |
+| Variable                   | Description                                                                   | Default                  | Required |
+| -------------------------- | ----------------------------------------------------------------------------- | ------------------------ | -------- |
+| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime                              | `gpt-4.1`                | No       |
+| `INNOVATOR_API_KEY`        | API key to protect web routes (`X-API-Key` header)                            | _unset_                  | No       |
+| `INNOVATOR_API_KEYS`       | Comma-separated API keys for multi-key auth (`X-API-Key`/Bearer)              | _unset_                  | No       |
+| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for LLM requests in milliseconds                                      | `90000`                  | No       |
+| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs                                  | _unset_                  | No       |
+| `INNOVATOR_EMBED_ORIGINS`  | Comma-separated CORS origins for `/api/embed` widget endpoint                 | `*`                      | No       |
+| `INNOVATOR_EMBED_API_KEY`  | API key to protect the `/api/embed` widget endpoint (`X-Embed-Key`)           | _unset_                  | No       |
+| `GH_TOKEN`                 | GitHub token for Copilot SDK auth in CI/Docker (when `gh` CLI is unavailable) | _unset_                  | No\*     |
+| `OPENAI_API_KEY`           | OpenAI API key for direct OpenAI provider (non-Copilot usage)                 | _unset_                  | No       |
+| `ANTHROPIC_API_KEY`        | Anthropic API key for direct Anthropic provider (non-Copilot usage)           | _unset_                  | No       |
+| `OLLAMA_BASE_URL`          | Base URL for local Ollama instance                                            | `http://localhost:11434` | No       |
+| `PORT`                     | Dev server port                                                               | `3000`                   | No       |
 
 ## Docker
 
 The project includes a multi-service Docker Compose setup for containerized development and deployment:
 
-| Service        | Description                         | Port  |
-| -------------- | ----------------------------------- | ----- |
-| `innovator`    | Next.js app (multi-stage Dockerfile)| 3000  |
-| `postgres`     | PostgreSQL 16 database              | 5432  |
-| `pgadmin`      | pgAdmin 4 web UI                    | 5050  |
+| Service     | Description                          | Port |
+| ----------- | ------------------------------------ | ---- |
+| `innovator` | Next.js app (multi-stage Dockerfile) | 3000 |
+| `postgres`  | PostgreSQL 16 database               | 5432 |
+| `pgadmin`   | pgAdmin 4 web UI                     | 5050 |
 
 ```bash
 # Start all services (set GH_TOKEN for Copilot auth in Docker)

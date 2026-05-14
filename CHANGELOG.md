@@ -7,7 +7,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+
+#### Moonshot Modules — Core Engine ✅
+
+- ✅ **Adversarial Idea Gauntlet** (`packages/core/src/gauntlet/`) — Multi-agent adversarial stress-testing with 5 built-in adversary personas (Competitor, Regulator, Skeptic, Economist, Engineer), weighted Survivability Index (0–100), optional Strengthen mode, and Markdown report generation
+- ✅ **Innovation Provenance Ledger** (`packages/core/src/provenance-ledger/`) — Tamper-evident append-only audit trail with SHA-256 hash chaining, GDPR Art. 15 export and Art. 17 erasure support, human decision recording, and chain verification
+- ✅ **Temporal Innovation Memory** (`packages/core/src/temporal-memory/`) — Persistent temporal knowledge graph tracking concept evolution, idea genealogy, and outcome causality across sessions with recurrence detection, NL queries, innovation velocity metrics, and configurable graph pruning
+- ✅ **Sentinel: Always-On Innovation Agent** (`packages/core/src/sentinel/`) — Signal monitoring agent that collects RSS/Atom feeds, scores relevance via LLM, generates opportunities through the innovation pipeline, and produces daily briefs with cost budget enforcement
+- ✅ **Idea Genome Sequencer** (`packages/core/src/genome-sequencer/`) — Decomposes ideas into 7 genome traits (problem-space, solution-mechanism, value-proposition, target-audience, enabling-technology, risk-profile, competitive-differentiation) with Jaccard similarity search and LLM-powered recombination
+- ✅ **Federation DP** (`packages/core/src/federation-dp/`) — Differential privacy layer for cross-organization pattern sharing using Laplace mechanism with privacy budget tracking, pattern recommendation engine, and anti-pattern detection
+
+#### Web App UX ✅
+
+- ✅ **Global Navigation** — Collapsible sidebar linking all 21 pages, grouped into Create/Explore/Analyze/Tools categories, with mobile hamburger menu and active-state highlighting
+- ✅ **Dark Mode Toggle** — Light/dark/system theme switcher persisted to localStorage with class-based Tailwind `dark:` integration via `@custom-variant`
+- ✅ **Session Persistence** — Auto-saves innovation results to localStorage with recent sessions list on home page, restore capability, and 4MB size guard with quota recovery
+- ✅ **Results Action Bar** — Sticky export toolbar with Copy Markdown, Copy JSON, Download .md, and Download .json
+- ✅ **Copy-to-Clipboard** — Reusable `CopyButton` component wired into investigation summary, synthesis recommendation, and individual idea cards
+- ✅ **Elapsed Timer** — Progress indication with elapsed time and estimate comparison for manual investigation/generation loading states
+- ✅ **Onboarding Wizard** — First-run experience showing role selection, suggested subjects, and preset angles for new visitors
+- ✅ **Improved Error Messages** — Context-aware error parsing for rate limits (429), timeouts, auth failures, model unavailability, and network errors
+
+#### Documentation ✅
+
+- ✅ **10 Architecture Decision Records** — ADR-0013 (Bounded Concurrency), ADR-0014 (Blackboard Swarm), ADR-0015 (Atomic File Persistence), ADR-0016 (LLM-as-Judge), ADR-0017 (Hash-Chained Ledger), ADR-0018 (Differential Privacy Federation), ADR-0019 (Temporal Knowledge Graph), ADR-0020 (Genetic Algorithm Evolution), ADR-0021 (TF-IDF Semantic Search), ADR-0022 (Event-Driven Webhooks)
+- ✅ **Root AGENTS.md** — AI-assisted development guide covering monorepo conventions, module patterns, LLM call patterns, naming conventions, testing conventions
+- ✅ **Updated API Reference** — Full API documentation for all 6 moonshot modules with function signatures, parameter tables, config options, and code examples
+- ✅ **Updated Developer Guide** — 4 new recipe sections: Gauntlet stress-testing, Provenance Ledger usage, Temporal Memory building, Genome Sequencing
+
+#### Developer Experience ✅
+
+- ✅ **Shared Test Factories** (`packages/core/src/__test-utils__/factories.ts`) — Typed builders for `Investigation`, `AngleResult`, `Synthesis`, `InnovationIdea`, `Attack`, `SessionIngestion`, and `PipelineProgress`
+- ✅ **Improved PR Template** — What/Why/How sections with expanded checklist
+- ✅ **README Quick Start** — Added `.env.local` copy step, Running Tests section with watch mode and single-file docs
+
+### Changed
+
+- **Coverage thresholds** raised from 35% to 50% for lines/functions/branches in `vitest.config.ts`
+- **Pre-commit speed** — ESLint now uses `--cache` flag in lint-staged for faster commits
+- **Doctor script** now checks npm version (≥ 10) alongside Node.js (≥ 20)
+- **CI audit gate** uses `--omit=dev` to exclude dev-only transitive vulnerabilities with warning annotation fallback
+- **Architecture docs** updated with Moonshot Modules section including Mermaid dependency diagram and key functions table
+
+### Fixed
+
+- **npm vulnerabilities** — `npm audit fix` resolved 6 high-severity CVEs (babel, copilot CLI, fast-uri); 20 remaining are Next.js transitive deps requiring framework upgrade
+- **Gauntlet input validation** — `runGauntlet()` now validates idea title and description before LLM calls
+- **Gauntlet scoring** — `computeSurvivabilityIndex()` handles NaN, negative, and out-of-range severity values
+- **Gauntlet error logging** — All per-adversary catch blocks now log with `console.warn("[gauntlet]")`
+- **Genome sequencer validation** — `sequenceIdea()` validates idea fields; `recombine()` guards against empty traits
+- **Provenance ledger resilience** — `loadLedger()` recovers from corrupted JSON by backing up and starting fresh
+- **Temporal memory validation** — `ingestSession()` validates sessionId, subject, and timestamp
+- **Temporal memory pruning** — New `pruneGraph()` function prevents unbounded graph growth with configurable retention, max nodes/edges, and edge strength thresholds
+- **Sentinel ESM fix** — Replaced `require("node:fs")` with proper ESM `readdirSync` import in `loadBriefs()`
+- **Sentinel validation** — `runSentinel()` validates config (sources, topics, threshold range, budget)
+- **Sentinel cost budget** — Added per-run cost tracking with configurable `dailyCostBudget` enforcement
+- **Sentinel error logging** — All catch blocks now log with `console.warn("[sentinel]")`
+- **Sentinel RSS robustness** — Feed parser guards against empty/binary/oversized content with 50-item cap
+- **Federation DP safety** — `laplaceMechanism()` throws on epsilon ≤ 0 and negative sensitivity; `spendBudget()` rejects negative epsilon
+- **Federation DP precision** — Added `dpRound()` helper for consistent floating-point rounding
+- **Dark mode toggle** — ThemeToggle now adds/removes `.dark` class on `<html>` with `@custom-variant dark` for proper Tailwind `dark:` integration
+- **Session storage quota** — Added 4MB size guard with auto-trim and quota-exceeded recovery
+- **Web font** — `globals.css` body font-family now uses the Geist CSS variable instead of hardcoded Arial
+- **Error boundary** — Added `role="alert"` to `error.tsx` for screen reader accessibility
+- **Character count** — Subject input now shows character count with amber warning at 450+
+
+### Security
+
+- Resolved `@babel/plugin-transform-modules-systemjs` arbitrary code execution (GHSA-fv7c-fp4j-7gwp)
+- Resolved `@github/copilot` nested bare repository command injection (GHSA-9ccr-r5hg-74gf)
+- Resolved `fast-uri` path traversal via percent-encoded segments (GHSA-q3j6-qgpj-74h6, GHSA-v39h-62p7-jpjc)
+- Added `.eslintcache` to `.gitignore` to prevent cached lint data from being committed
 
 ## [0.2.0] — 2025-05-10
 
