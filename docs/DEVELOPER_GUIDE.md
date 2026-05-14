@@ -1,6 +1,6 @@
 # Developer Guide
 
-Practical recipes and patterns for working with the Innovator codebase. For setup instructions see [CONTRIBUTING.md](../CONTRIBUTING.md); for architecture context see [ARCHITECTURE.md](../ARCHITECTURE.md).
+Practical recipes and patterns for working with the Innovator codebase. For setup instructions see [CONTRIBUTING.md](../CONTRIBUTING.md); for architecture context see [ARCHITECTURE.md](../ARCHITECTURE.md); for the full API surface see the [API Reference](./API.md).
 
 ---
 
@@ -46,6 +46,8 @@ Practical recipes and patterns for working with the Innovator codebase. For setu
 ---
 
 ## Running the Pipeline Programmatically
+
+> 📖 **API Reference:** [`investigate()`](./API.md#investigate), [`runAutoPipeline()`](./API.md#runautopipeline), [`ModelRouting`](./API.md#modelrouting)
 
 ### Minimal example
 
@@ -151,6 +153,8 @@ cp .env.local.example .env.local
 
 ## Creating Custom Angles
 
+> 📖 **API Reference:** [`Custom Angles`](./API.md#custom-angles), [`addCustomAngle()`](./API.md#custom-angles)
+
 ### Inline registration
 
 ```typescript
@@ -238,6 +242,8 @@ Plugin IDs must match `^[a-z0-9.-]+$`.
 ---
 
 ## Using Alternative LLM Providers
+
+> 📖 **API Reference:** [`LLMProvider` interface](./API.md#llmprovider-interface), [Provider Registry](./API.md#provider-registry), [Provider Configuration](./API.md#provider-configuration)
 
 ### Via environment variables
 
@@ -424,6 +430,8 @@ console.log(`Graph: ${stats.nodes} nodes, ${stats.edges} edges`);
 
 ## Stress-Testing Ideas with the Gauntlet
 
+> 📖 **API Reference:** [`runGauntlet()`](./API.md#rungauntlet), [`computeSurvivabilityIndex()`](./API.md#computesurvivabilityindex)
+
 The Adversarial Gauntlet runs 5 specialized adversary agents against an idea and produces a Survivability Index (0–100).
 
 ```typescript
@@ -463,6 +471,8 @@ console.log(gauntletToMarkdown(result));
 ---
 
 ## Using the Provenance Ledger
+
+> 📖 **API Reference:** [`appendEntry()`](./API.md#appendentry), [`verifyLedger()`](./API.md#verifyledger), [GDPR Functions](./API.md#gdpr-functions)
 
 The provenance ledger records every AI action and human decision in a tamper-evident hash chain.
 
@@ -505,6 +515,8 @@ const exported = exportForActor("alice@company.com");
 ---
 
 ## Building Innovation Memory
+
+> 📖 **API Reference:** [`ingestSession()`](./API.md#ingestsession), [`queryTemporalMemory()`](./API.md#querytemporalmemory), [`computeVelocity()`](./API.md#computevelocity)
 
 The temporal memory module tracks concept evolution across sessions.
 
@@ -557,6 +569,8 @@ console.log(`${velocity.ideasPerMonth} ideas/month, ${velocity.activeConcepts} a
 ---
 
 ## Sequencing Idea Genomes
+
+> 📖 **API Reference:** [`sequenceIdea()`](./API.md#sequenceidea), [`findSimilar()`](./API.md#findsimilar), [`recombine()`](./API.md#recombine)
 
 The genome sequencer decomposes ideas into structural traits for similarity search and recombination.
 
