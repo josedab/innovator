@@ -649,7 +649,11 @@ program
             createFederationNode({ name: "local-cli", isPublic: false });
           }
           const nodeId = listNodes()[0].id;
-          const enrichment = enrichAngleSelection(nodeId, ANGLE_IDS as unknown as string[], undefined);
+          const enrichment = enrichAngleSelection(
+            nodeId,
+            ANGLE_IDS as unknown as string[],
+            undefined
+          );
           if (enrichment.enrichments.length > 0) {
             spinner.info("🌐 Network insights applied:");
             for (const msg of enrichment.enrichments) console.log(`   ${msg}`);
@@ -773,12 +777,19 @@ program
         if (opts.novelty && result.synthesis) {
           const enriched = enrichSynthesisWithNovelty(result.synthesis);
           console.log(chalk.bold(`\n🆕 Novelty Scores`));
-          console.log(`   Average: ${enriched.noveltyStats.averageNovelty}/100 | Highly Novel: ${enriched.noveltyStats.highlyNovel} | Patent Candidates: ${enriched.noveltyStats.patentCandidates}\n`);
+          console.log(
+            `   Average: ${enriched.noveltyStats.averageNovelty}/100 | Highly Novel: ${enriched.noveltyStats.highlyNovel} | Patent Candidates: ${enriched.noveltyStats.patentCandidates}\n`
+          );
           for (const idea of enriched.topIdeas) {
-            const badge = idea.noveltyAssessment === "highly-novel" ? chalk.green("🆕") :
-              idea.noveltyAssessment === "partially-novel" ? chalk.yellow("🔶") :
-              chalk.red("⚠️");
-            console.log(`   ${badge} ${chalk.bold(stripAnsi(idea.title))} — ${idea.noveltyScore}/100 ${idea.patentCandidate ? chalk.cyan("📋 Patent Candidate") : ""}`);
+            const badge =
+              idea.noveltyAssessment === "highly-novel"
+                ? chalk.green("🆕")
+                : idea.noveltyAssessment === "partially-novel"
+                  ? chalk.yellow("🔶")
+                  : chalk.red("⚠️");
+            console.log(
+              `   ${badge} ${chalk.bold(stripAnsi(idea.title))} — ${idea.noveltyScore}/100 ${idea.patentCandidate ? chalk.cyan("📋 Patent Candidate") : ""}`
+            );
             if (idea.differentiators.length > 0) {
               console.log(`      Differentiators: ${idea.differentiators.slice(0, 5).join(", ")}`);
             }
@@ -2309,7 +2320,6 @@ configCmd
   .command("providers")
   .description("List available LLM providers")
   .action(() => {
-    initializeProviders();
     const providers = listProviders();
     console.log(chalk.bold("\n🔌 Available Providers\n"));
     for (const p of providers) {
@@ -4160,8 +4170,16 @@ iacCmd
       const dataB = JSON.parse(readFileSync(fileB, "utf-8"));
       const errA = validateIaCSession(dataA);
       const errB = validateIaCSession(dataB);
-      if (errA) { console.error(chalk.red(`Invalid session A: ${errA}`)); process.exitCode = 1; return; }
-      if (errB) { console.error(chalk.red(`Invalid session B: ${errB}`)); process.exitCode = 1; return; }
+      if (errA) {
+        console.error(chalk.red(`Invalid session A: ${errA}`));
+        process.exitCode = 1;
+        return;
+      }
+      if (errB) {
+        console.error(chalk.red(`Invalid session B: ${errB}`));
+        process.exitCode = 1;
+        return;
+      }
       const diff = diffSessions(dataA as IaCSession, dataB as IaCSession);
       console.log(formatSessionDiff(diff));
     } catch (err) {
@@ -4179,13 +4197,19 @@ iacCmd
     try {
       const data = JSON.parse(readFileSync(sessionFile, "utf-8"));
       const err = validateIaCSession(data);
-      if (err) { console.error(chalk.red(`Invalid session: ${err}`)); process.exitCode = 1; return; }
+      if (err) {
+        console.error(chalk.red(`Invalid session: ${err}`));
+        process.exitCode = 1;
+        return;
+      }
       const session = data as IaCSession;
       const topN = parseInt(opts.top, 10) || 3;
       const ideas = session.synthesis?.topIdeas.slice(0, topN) ?? [];
 
       if (ideas.length === 0) {
-        console.log(chalk.yellow("No synthesized ideas found in session. Run the full pipeline first."));
+        console.log(
+          chalk.yellow("No synthesized ideas found in session. Run the full pipeline first.")
+        );
         return;
       }
 
@@ -4233,8 +4257,14 @@ iacCmd
         return;
       }
       let valid = true;
-      if (!existsSync(`${dir}/config.yaml`)) { console.log(chalk.red("❌ Missing config.yaml")); valid = false; }
-      if (!existsSync(`${dir}/sessions`)) { console.log(chalk.red("❌ Missing sessions/ directory")); valid = false; }
+      if (!existsSync(`${dir}/config.yaml`)) {
+        console.log(chalk.red("❌ Missing config.yaml"));
+        valid = false;
+      }
+      if (!existsSync(`${dir}/sessions`)) {
+        console.log(chalk.red("❌ Missing sessions/ directory"));
+        valid = false;
+      }
       if (valid) console.log(chalk.green("✅ .innovator/ directory structure is valid"));
     }
   });
@@ -4253,31 +4283,44 @@ agentCmd
   .option("-s, --strategy <strategy>", "Exploration strategy", "adaptive")
   .option("-m, --model <model>", "LLM model to use")
   .option("--budget <cost>", "Maximum cost in dollars", "5")
-  .action(async (subject: string, opts: { maxBranches: string; maxDepth: string; strategy: string; model?: string; budget: string }) => {
-    const spinner = ora("Starting autonomous agent...").start();
-    try {
-      const managed = await startAgentRun(
-        subject,
-        (progress) => {
-          spinner.text = `${progress.status} — ${progress.completedBranches}/${progress.totalBranches} branches, ${progress.totalIdeas} ideas (budget: $${progress.budgetRemaining.toFixed(2)} remaining)`;
-        },
-        {
-          maxBranches: parseInt(opts.maxBranches, 10),
-          maxDepth: parseInt(opts.maxDepth, 10),
-          strategy: opts.strategy as "breadth-first" | "depth-first" | "adaptive",
-          model: opts.model,
-          maxCost: parseFloat(opts.budget),
-        }
-      );
-      spinner.succeed(`Agent completed — ${managed.run.branches.length} branches, ${managed.run.branches.reduce((s, b) => s + b.ideas.length, 0)} ideas`);
-      const md = exportRunPortfolio(managed.run.id);
-      if (md) console.log(md);
-    } catch (err) {
-      spinner.fail("Agent failed");
-      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      process.exitCode = 1;
+  .action(
+    async (
+      subject: string,
+      opts: {
+        maxBranches: string;
+        maxDepth: string;
+        strategy: string;
+        model?: string;
+        budget: string;
+      }
+    ) => {
+      const spinner = ora("Starting autonomous agent...").start();
+      try {
+        const managed = await startAgentRun(
+          subject,
+          (progress) => {
+            spinner.text = `${progress.status} — ${progress.completedBranches}/${progress.totalBranches} branches, ${progress.totalIdeas} ideas (budget: $${progress.budgetRemaining.toFixed(2)} remaining)`;
+          },
+          {
+            maxBranches: parseInt(opts.maxBranches, 10),
+            maxDepth: parseInt(opts.maxDepth, 10),
+            strategy: opts.strategy as "breadth-first" | "depth-first" | "adaptive",
+            model: opts.model,
+            maxCost: parseFloat(opts.budget),
+          }
+        );
+        spinner.succeed(
+          `Agent completed — ${managed.run.branches.length} branches, ${managed.run.branches.reduce((s, b) => s + b.ideas.length, 0)} ideas`
+        );
+        const md = exportRunPortfolio(managed.run.id);
+        if (md) console.log(md);
+      } catch (err) {
+        spinner.fail("Agent failed");
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
+      }
     }
-  });
+  );
 
 agentCmd
   .command("list")
@@ -4291,7 +4334,9 @@ agentCmd
     console.log(chalk.bold("Agent Runs:"));
     for (const r of runs) {
       const statusIcon = r.status === "completed" ? "✅" : r.status === "failed" ? "❌" : "⏳";
-      console.log(`  ${statusIcon} ${chalk.cyan(r.id.slice(0, 8))} ${r.subject.slice(0, 40)} — ${r.branches} branches, ${r.ideas} ideas, $${r.budgetUsed.toFixed(2)}/$${r.budgetMax.toFixed(2)}`);
+      console.log(
+        `  ${statusIcon} ${chalk.cyan(r.id.slice(0, 8))} ${r.subject.slice(0, 40)} — ${r.branches} branches, ${r.ideas} ideas, $${r.budgetUsed.toFixed(2)}/$${r.budgetMax.toFixed(2)}`
+      );
     }
   });
 
@@ -4345,7 +4390,11 @@ agentCmd
     }
     const checkpoint = run.checkpoints[run.checkpoints.length - 1];
     console.log(chalk.cyan(`📍 Resuming from checkpoint ${checkpoint.id.slice(0, 8)}`));
-    console.log(chalk.dim(`   Status: ${checkpoint.status} | Branches: ${checkpoint.branchCount} | Ideas: ${checkpoint.ideaCount}`));
+    console.log(
+      chalk.dim(
+        `   Status: ${checkpoint.status} | Branches: ${checkpoint.branchCount} | Ideas: ${checkpoint.ideaCount}`
+      )
+    );
 
     // Re-start with the same subject from checkpoint state
     const spinner = ora("Resuming agent...").start();
@@ -4415,7 +4464,9 @@ genomeCmd
     console.log(chalk.bold("Innovation Genome Network"));
     console.log(`  Nodes: ${chalk.cyan(String(dashboard.totalNodes))}`);
     console.log(`  Patterns: ${chalk.cyan(String(dashboard.totalPatterns))}`);
-    console.log(`  Health: ${dashboard.networkHealth === "healthy" ? chalk.green("healthy") : chalk.red(dashboard.networkHealth)}`);
+    console.log(
+      `  Health: ${dashboard.networkHealth === "healthy" ? chalk.green("healthy") : chalk.red(dashboard.networkHealth)}`
+    );
     if (dashboard.trendingAngles.length > 0) {
       console.log(chalk.bold("\n  Trending Angles:"));
       for (const t of dashboard.trendingAngles.slice(0, 5)) {
@@ -4455,9 +4506,18 @@ genomeCmd
     }
     console.log(chalk.bold("🌐 Network Insights\n"));
     for (const i of insights) {
-      const icon = i.type === "angle-recommendation" ? "💡" : i.type === "methodology-chain" ? "🔗" : i.type === "domain-trend" ? "📊" : "✨";
+      const icon =
+        i.type === "angle-recommendation"
+          ? "💡"
+          : i.type === "methodology-chain"
+            ? "🔗"
+            : i.type === "domain-trend"
+              ? "📊"
+              : "✨";
       console.log(`  ${icon} ${chalk.bold(i.content)}`);
-      console.log(`     Confidence: ${(i.confidence * 100).toFixed(0)}% | Patterns: ${i.sourcePatterns} | Domain: ${i.domain}`);
+      console.log(
+        `     Confidence: ${(i.confidence * 100).toFixed(0)}% | Patterns: ${i.sourcePatterns} | Domain: ${i.domain}`
+      );
       console.log();
     }
   });
@@ -4510,28 +4570,76 @@ program
         organizationName: "CLI Demo",
         capturedAt: new Date().toISOString(),
         team: [
-          { id: "t1", name: "Engineer", role: "Dev", capacity: 0.8, strengths: ["code"], activeProjects: 2 },
-          { id: "t2", name: "Designer", role: "Design", capacity: 0.7, strengths: ["ux"], activeProjects: 1 },
+          {
+            id: "t1",
+            name: "Engineer",
+            role: "Dev",
+            capacity: 0.8,
+            strengths: ["code"],
+            activeProjects: 2,
+          },
+          {
+            id: "t2",
+            name: "Designer",
+            role: "Design",
+            capacity: 0.7,
+            strengths: ["ux"],
+            activeProjects: 1,
+          },
         ],
         pipeline: [
-          { id: "p1", title: "Feature A", stage: "validation" as const, score: 70, assignedTeam: ["t1"], estimatedEffortWeeks: 4, budgetAllocated: 10000, budgetSpent: 3000 },
+          {
+            id: "p1",
+            title: "Feature A",
+            stage: "validation" as const,
+            score: 70,
+            assignedTeam: ["t1"],
+            estimatedEffortWeeks: 4,
+            budgetAllocated: 10000,
+            budgetSpent: 3000,
+          },
         ],
         marketContext: {
           industry: "SaaS",
-          competitors: [{ name: "Competitor", threat: "medium" as const, recentMoves: ["launched v2"] }],
+          competitors: [
+            { name: "Competitor", threat: "medium" as const, recentMoves: ["launched v2"] },
+          ],
           trends: ["AI", "sustainability"],
           regulatoryFactors: [],
         },
         budget: { totalBudget: 100000, allocated: 30000, remaining: 70000, currency: "USD" },
         angleEffectiveness: [
-          { angleId: "scamper", successRate: 0.7, avgIdeaQuality: 72, usageCount: 10, bestForStages: ["discovery"] },
+          {
+            angleId: "scamper",
+            successRate: 0.7,
+            avgIdeaQuality: 72,
+            usageCount: 10,
+            bestForStages: ["discovery"],
+          },
         ],
       };
 
       const strategies = [
-        { id: "conservative", name: "Conservative", description: "Focus on proven approaches", timeHorizonWeeks: parseInt(opts.weeks, 10) },
-        { id: "aggressive", name: "Aggressive", description: "Push hard on new initiatives", timeHorizonWeeks: parseInt(opts.weeks, 10), newInitiatives: ["New product line", "AI integration"] },
-        { id: "balanced", name: "Balanced", description: "Mix of proven and experimental", timeHorizonWeeks: parseInt(opts.weeks, 10), newInitiatives: ["AI feature"] },
+        {
+          id: "conservative",
+          name: "Conservative",
+          description: "Focus on proven approaches",
+          timeHorizonWeeks: parseInt(opts.weeks, 10),
+        },
+        {
+          id: "aggressive",
+          name: "Aggressive",
+          description: "Push hard on new initiatives",
+          timeHorizonWeeks: parseInt(opts.weeks, 10),
+          newInitiatives: ["New product line", "AI integration"],
+        },
+        {
+          id: "balanced",
+          name: "Balanced",
+          description: "Mix of proven and experimental",
+          timeHorizonWeeks: parseInt(opts.weeks, 10),
+          newInitiatives: ["AI feature"],
+        },
       ];
 
       const comparison = runMonteCarloComparison(snapshot, strategies, {
