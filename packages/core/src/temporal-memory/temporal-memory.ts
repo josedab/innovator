@@ -64,11 +64,13 @@ function saveTemporalGraph(graph: TemporalGraph, dir: string = DEFAULT_DIR): voi
 
 // ---- Node Operations ----
 
-function findNodeByLabel(graph: TemporalGraph, label: string, type: string): TemporalNode | undefined {
+function findNodeByLabel(
+  graph: TemporalGraph,
+  label: string,
+  type: string
+): TemporalNode | undefined {
   const normalized = label.toLowerCase().trim();
-  return graph.nodes.find(
-    (n) => n.label.toLowerCase().trim() === normalized && n.type === type
-  );
+  return graph.nodes.find((n) => n.label.toLowerCase().trim() === normalized && n.type === type);
 }
 
 function upsertNode(
@@ -151,6 +153,16 @@ export function ingestSession(
   session: SessionIngestion,
   dir: string = DEFAULT_DIR
 ): { nodesCreated: number; edgesCreated: number; recurrences: ConceptRecurrence[] } {
+  if (!session.sessionId?.trim()) {
+    throw new Error("Session ID is required for ingestion");
+  }
+  if (!session.subject?.trim()) {
+    throw new Error("Subject is required for ingestion");
+  }
+  if (!session.timestamp) {
+    throw new Error("Timestamp is required for ingestion");
+  }
+
   const graph = loadTemporalGraph(dir);
   const initialNodes = graph.nodes.length;
   const initialEdges = graph.edges.length;
@@ -268,8 +280,7 @@ export function searchNodes(
       !options.timeRange ||
       (n.createdAt >= options.timeRange.from && n.createdAt <= options.timeRange.to);
 
-    const matchesType =
-      !options.nodeTypes || options.nodeTypes.includes(n.type);
+    const matchesType = !options.nodeTypes || options.nodeTypes.includes(n.type);
 
     return matchesText && matchesTime && matchesType;
   });
@@ -288,9 +299,10 @@ export function getConceptTimeline(
   graph: TemporalGraph,
   conceptLabel: string
 ): Array<{ timestamp: string; event: string; nodeId: string }> {
-  const node = findNodeByLabel(graph, conceptLabel, "concept")
-    ?? findNodeByLabel(graph, conceptLabel, "idea")
-    ?? findNodeByLabel(graph, conceptLabel, "theme");
+  const node =
+    findNodeByLabel(graph, conceptLabel, "concept") ??
+    findNodeByLabel(graph, conceptLabel, "idea") ??
+    findNodeByLabel(graph, conceptLabel, "theme");
 
   if (!node) return [];
 
@@ -372,9 +384,7 @@ export async function queryTemporalMemory(
 
   // Find related edges
   const nodeIds = new Set(matchingNodes.map((n) => n.id));
-  const matchingEdges = graph.edges.filter(
-    (e) => nodeIds.has(e.source) || nodeIds.has(e.target)
-  );
+  const matchingEdges = graph.edges.filter((e) => nodeIds.has(e.source) || nodeIds.has(e.target));
 
   const edgeContext = matchingEdges
     .slice(0, 30)
@@ -419,10 +429,18 @@ Respond in JSON:
         { signal: options.signal }
       );
       narrative = result;
-    } catch {
+    } catch (err) {
+      console.warn(
+        "[temporal-memory] NL query failed, using fallback:",
+        err instanceof Error ? err.message : err
+      );
       // Fallback to a simple summary
-      narrative = `Found ${matchingNodes.length} concepts related to "${query.question}". ` +
-        `Most frequent: ${matchingNodes.slice(0, 3).map((n) => `"${n.label}" (${n.occurrenceCount}x)`).join(", ")}.`;
+      narrative =
+        `Found ${matchingNodes.length} concepts related to "${query.question}". ` +
+        `Most frequent: ${matchingNodes
+          .slice(0, 3)
+          .map((n) => `"${n.label}" (${n.occurrenceCount}x)`)
+          .join(", ")}.`;
     }
   }
 
@@ -470,9 +488,7 @@ export function computeVelocity(
   const recentNodes = graph.nodes.filter((n) => n.createdAt >= cutoffStr);
   const ideaNodes = recentNodes.filter((n) => n.type === "idea");
   const conceptNodes = recentNodes.filter((n) => n.type === "concept");
-  const obsoletedNodes = graph.nodes.filter(
-    (n) => n.obsoletedAt && n.obsoletedAt >= cutoffStr
-  );
+  const obsoletedNodes = graph.nodes.filter((n) => n.obsoletedAt && n.obsoletedAt >= cutoffStr);
 
   // Evolution edges as a proxy for concept evolution rate
   const recentEdges = graph.edges.filter(
@@ -484,13 +500,12 @@ export function computeVelocity(
   let totalLeadDays = 0;
   let outcomeCount = 0;
   for (const outcome of outcomeNodes) {
-    const sessionEdge = graph.edges.find(
-      (e) => e.target === outcome.id && e.type === "caused"
-    );
+    const sessionEdge = graph.edges.find((e) => e.target === outcome.id && e.type === "caused");
     if (sessionEdge) {
       const sessionNode = graph.nodes.find((n) => n.id === sessionEdge.source);
       if (sessionNode) {
-        const diff = new Date(outcome.createdAt).getTime() - new Date(sessionNode.createdAt).getTime();
+        const diff =
+          new Date(outcome.createdAt).getTime() - new Date(sessionNode.createdAt).getTime();
         totalLeadDays += diff / (1000 * 60 * 60 * 24);
         outcomeCount++;
       }
@@ -530,13 +545,64 @@ export function deleteSessionData(sessionId: string, dir: string = DEFAULT_DIR):
 
   // Remove edges referencing removed nodes
   const nodeIds = new Set(graph.nodes.map((n) => n.id));
-  graph.edges = graph.edges.filter(
-    (e) => nodeIds.has(e.source) && nodeIds.has(e.target)
-  );
+  graph.edges = graph.edges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
 
   const removed = initial - (graph.nodes.length + graph.edges.length);
   saveTemporalGraph(graph, dir);
   return removed;
+}
+
+/**
+ * Prune the graph by removing low-strength edges and single-occurrence
+ * nodes older than the retention period. Prevents unbounded growth.
+ */
+export function pruneGraph(
+  options: {
+    maxNodes?: number;
+    maxEdges?: number;
+    minEdgeStrength?: number;
+    retentionDays?: number;
+    dir?: string;
+  } = {}
+): { nodesRemoved: number; edgesRemoved: number } {
+  const dir = options.dir ?? DEFAULT_DIR;
+  const graph = loadTemporalGraph(dir);
+  const maxNodes = options.maxNodes ?? 10000;
+  const maxEdges = options.maxEdges ?? 50000;
+  const minStrength = options.minEdgeStrength ?? 0.1;
+  const retentionDays = options.retentionDays ?? 365;
+  const initialNodes = graph.nodes.length;
+  const initialEdges = graph.edges.length;
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - retentionDays);
+  const cutoffStr = cutoff.toISOString();
+
+  // Remove weak edges
+  graph.edges = graph.edges.filter((e) => e.strength >= minStrength);
+
+  // Remove old single-occurrence nodes
+  graph.nodes = graph.nodes.filter((n) => n.occurrenceCount > 1 || n.modifiedAt >= cutoffStr);
+
+  // Enforce hard caps (remove oldest nodes/edges if over limit)
+  if (graph.nodes.length > maxNodes) {
+    graph.nodes.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
+    graph.nodes = graph.nodes.slice(0, maxNodes);
+  }
+  if (graph.edges.length > maxEdges) {
+    graph.edges.sort((a, b) => b.strength - a.strength);
+    graph.edges = graph.edges.slice(0, maxEdges);
+  }
+
+  // Remove orphan edges
+  const nodeIds = new Set(graph.nodes.map((n) => n.id));
+  graph.edges = graph.edges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
+
+  saveTemporalGraph(graph, dir);
+  return {
+    nodesRemoved: initialNodes - graph.nodes.length,
+    edgesRemoved: initialEdges - graph.edges.length,
+  };
 }
 
 // ---- Formatting ----

@@ -73,10 +73,7 @@ Respond in JSON:
 }`;
 }
 
-function buildStrengthenPrompt(
-  idea: InnovationIdea,
-  topAttacks: Attack[]
-): string {
+function buildStrengthenPrompt(idea: InnovationIdea, topAttacks: Attack[]): string {
   const attackSummary = topAttacks
     .map(
       (a, i) =>
@@ -118,11 +115,11 @@ const StrengthenResponseSchema = z.object({
 
 /** Severity weights by adversary role — technical and economic attacks weighted higher. */
 const ROLE_WEIGHTS: Record<string, number> = {
-  competitor: 0.20,
-  regulator: 0.20,
+  competitor: 0.2,
+  regulator: 0.2,
   skeptic: 0.15,
   economist: 0.25,
-  engineer: 0.20,
+  engineer: 0.2,
 };
 
 /**
@@ -137,7 +134,10 @@ export function computeSurvivabilityIndex(attacks: Attack[]): number {
 
   for (const attack of attacks) {
     const weight = ROLE_WEIGHTS[attack.adversaryRole] ?? 0.15;
-    weightedSum += attack.severity * weight;
+    const severity = Number.isFinite(attack.severity)
+      ? Math.max(0, Math.min(10, attack.severity))
+      : 0;
+    weightedSum += severity * weight;
     totalWeight += weight;
   }
 
@@ -186,6 +186,13 @@ export async function runGauntlet(
   config: GauntletConfig = {},
   onProgress?: (progress: GauntletProgress) => void
 ): Promise<GauntletResult> {
+  if (!idea.title?.trim()) {
+    throw new Error("Idea title is required for gauntlet evaluation");
+  }
+  if (!idea.description?.trim()) {
+    throw new Error("Idea description is required for gauntlet evaluation");
+  }
+
   const adversaries = config.adversaries ?? DEFAULT_ADVERSARIES;
   const allAttacks: Attack[] = [];
   const transcript: GauntletTranscriptEntry[] = [];
@@ -225,8 +232,12 @@ export async function runGauntlet(
         attacks,
         timestamp: new Date().toISOString(),
       });
-    } catch {
-      // Individual adversary failure is non-fatal
+    } catch (err) {
+      // Individual adversary failure is non-fatal — log and continue
+      console.warn(
+        `[gauntlet] Adversary "${role}" failed:`,
+        err instanceof Error ? err.message : err
+      );
       transcript.push({
         adversaryRole: role,
         attacks: [],
@@ -263,7 +274,11 @@ export async function runGauntlet(
           attacks,
           timestamp: new Date().toISOString(),
         });
-      } catch {
+      } catch (err) {
+        console.warn(
+          `[gauntlet] Custom adversary "${custom.role}" failed:`,
+          err instanceof Error ? err.message : err
+        );
         transcript.push({
           adversaryRole: custom.role as AdversaryRole,
           attacks: [],
@@ -307,9 +322,7 @@ export async function runGauntlet(
     });
 
     try {
-      const topAttacks = [...allAttacks]
-        .sort((a, b) => b.severity - a.severity)
-        .slice(0, 5);
+      const topAttacks = [...allAttacks].sort((a, b) => b.severity - a.severity).slice(0, 5);
 
       const prompt = buildStrengthenPrompt(idea, topAttacks);
       const strengthened = await withRetry(
@@ -339,8 +352,8 @@ export async function runGauntlet(
         addressedAttacks: strengthened.addressedAttacks,
         revisedSurvivabilityIndex: computeSurvivabilityIndex(adjustedAttacks),
       };
-    } catch {
-      // Strengthening failure is non-fatal
+    } catch (err) {
+      console.warn("[gauntlet] Strengthen failed:", err instanceof Error ? err.message : err);
     }
   }
 
@@ -399,9 +412,7 @@ export function gauntletToMarkdown(result: GauntletResult): string {
     lines.push(
       `**Revised Survivability:** ${result.strengthenedIdea.revisedSurvivabilityIndex}/100`
     );
-    lines.push(
-      `**Addressed:** ${result.strengthenedIdea.addressedAttacks.join(", ")}`
-    );
+    lines.push(`**Addressed:** ${result.strengthenedIdea.addressedAttacks.join(", ")}`);
   }
 
   return lines.join("\n");

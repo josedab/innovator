@@ -9,6 +9,7 @@ export {
   computeVelocity,
   exportGraph,
   deleteSessionData,
+  pruneGraph,
   temporalMemoryToMarkdown,
 } from "./temporal-memory.js";
 export {

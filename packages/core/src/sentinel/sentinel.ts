@@ -5,7 +5,14 @@
  * innovation pipeline on high-relevance signals, and produces daily briefs.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  readdirSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -69,16 +76,25 @@ function saveState(state: SentinelState, dir: string = DEFAULT_DIR): void {
 
 /** Parse a simple RSS/Atom feed from raw XML text. Returns title+link items. */
 function parseSimpleFeed(xml: string): Array<{ title: string; link: string; summary: string }> {
+  // Safety: reject binary/non-XML content
+  if (!xml || xml.length === 0) return [];
+  if (xml.length > 5_000_000) return []; // Skip feeds > 5MB
+  // Check for XML-like content (must contain at least one angle bracket)
+  if (!xml.includes("<")) return [];
+
   const items: Array<{ title: string; link: string; summary: string }> = [];
-  // Simplified XML parsing for RSS <item> and Atom <entry> elements
+  const MAX_ITEMS = 50;
   const itemRegex = /<(?:item|entry)>([\s\S]*?)<\/(?:item|entry)>/gi;
   let match: RegExpExecArray | null;
 
-  while ((match = itemRegex.exec(xml)) !== null) {
+  while ((match = itemRegex.exec(xml)) !== null && items.length < MAX_ITEMS) {
     const block = match[1];
     const titleMatch = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(block);
     const linkMatch = /<link[^>]*(?:href="([^"]*)"[^>]*\/?>|>([\s\S]*?)<\/link>)/i.exec(block);
-    const descMatch = /<(?:description|summary|content)[^>]*>([\s\S]*?)<\/(?:description|summary|content)>/i.exec(block);
+    const descMatch =
+      /<(?:description|summary|content)[^>]*>([\s\S]*?)<\/(?:description|summary|content)>/i.exec(
+        block
+      );
 
     const title = (titleMatch?.[1] ?? "").replace(/<!\[CDATA\[|\]\]>/g, "").trim();
     const link = (linkMatch?.[1] ?? linkMatch?.[2] ?? "").trim();
@@ -134,8 +150,11 @@ export async function collectSignals(
           processed: false,
         });
       }
-    } catch {
-      // Skip failed sources gracefully
+    } catch (err) {
+      console.warn(
+        "[sentinel] Source collection failed:",
+        err instanceof Error ? err.message : err
+      );
     }
   }
 
@@ -177,14 +196,13 @@ Respond in JSON:
           model: config.model,
           signal: config.signal,
         });
-        return RelevanceResponseSchema.parse(
-          JSON.parse(extractJson(sanitizeLlmOutput(raw)))
-        );
+        return RelevanceResponseSchema.parse(JSON.parse(extractJson(sanitizeLlmOutput(raw))));
       },
       { signal: config.signal }
     );
     return { score: result.relevanceScore, matchedTopics: result.matchedTopics };
-  } catch {
+  } catch (err) {
+    console.warn("[sentinel] Relevance scoring failed:", err instanceof Error ? err.message : err);
     return { score: 0, matchedTopics: [] };
   }
 }
@@ -197,14 +215,13 @@ async function generateOpportunity(
 ): Promise<Opportunity | null> {
   try {
     // Run investigation on the signal
-    const investigation = await investigate(
-      signal.title,
-      config.model,
-      config.signal
-    );
+    const investigation = await investigate(signal.title, config.model, config.signal);
 
     // Generate ideas from 2 angles
-    const selectedAngles = (config.angles ?? ["cross-domain", "constraints"]).slice(0, 2) as AngleId[];
+    const selectedAngles = (config.angles ?? ["cross-domain", "constraints"]).slice(
+      0,
+      2
+    ) as AngleId[];
     const ideas: Opportunity["ideas"] = [];
 
     for (const angleId of selectedAngles) {
@@ -223,8 +240,11 @@ async function generateOpportunity(
             angleId,
           });
         }
-      } catch {
-        // Skip failed angles
+      } catch (err) {
+        console.warn(
+          "[sentinel] Angle generation failed:",
+          err instanceof Error ? err.message : err
+        );
       }
     }
 
@@ -241,7 +261,11 @@ async function generateOpportunity(
       createdAt: new Date().toISOString(),
       status: "new",
     };
-  } catch {
+  } catch (err) {
+    console.warn(
+      "[sentinel] Opportunity generation failed:",
+      err instanceof Error ? err.message : err
+    );
     return null;
   }
 }
@@ -255,10 +279,30 @@ export async function runSentinel(
   config: SentinelConfig,
   onProgress?: (progress: SentinelProgress) => void
 ): Promise<DailyBrief> {
+  // Validate config
+  if (!config.sources || config.sources.length === 0) {
+    throw new Error("At least one signal source is required");
+  }
+  if (!config.topics || config.topics.length === 0) {
+    throw new Error("At least one topic is required for relevance filtering");
+  }
+  if (
+    config.relevanceThreshold !== undefined &&
+    (config.relevanceThreshold < 0 || config.relevanceThreshold > 1)
+  ) {
+    throw new Error("Relevance threshold must be between 0 and 1");
+  }
+  if (config.dailyCostBudget !== undefined && config.dailyCostBudget < 0) {
+    throw new Error("Daily cost budget must be non-negative");
+  }
+
   const state = loadState();
   const processedIds = new Set(state.processedSignalIds);
   const threshold = config.relevanceThreshold ?? 0.5;
   const maxSignals = config.maxSignalsPerRun ?? 5;
+  const costBudget = config.dailyCostBudget ?? Infinity;
+  // Rough cost estimate: ~$0.01 per relevance scoring, ~$0.10 per opportunity generation
+  let estimatedCost = 0;
 
   // 1. Collect signals
   onProgress?.({
@@ -281,8 +325,10 @@ export async function runSentinel(
   const scoredSignals: DetectedSignal[] = [];
   for (const signal of rawSignals.slice(0, maxSignals * 3)) {
     if (config.signal?.aborted) break;
+    if (estimatedCost >= costBudget) break;
 
     const { score, matchedTopics } = await scoreRelevance(signal, config.topics, config);
+    estimatedCost += 0.01; // ~$0.01 per relevance scoring call
     signal.relevanceScore = score;
     signal.topics = matchedTopics;
     if (score >= threshold) {
@@ -306,6 +352,7 @@ export async function runSentinel(
   const opportunities: Opportunity[] = [];
   for (const signal of topSignals) {
     if (config.signal?.aborted) break;
+    if (estimatedCost >= costBudget) break;
 
     onProgress?.({
       stage: "generating",
@@ -316,6 +363,7 @@ export async function runSentinel(
     });
 
     const opportunity = await generateOpportunity(signal, config);
+    estimatedCost += 0.1; // ~$0.10 per opportunity (investigation + generation)
     if (opportunity) {
       opportunities.push(opportunity);
     }
@@ -336,15 +384,13 @@ export async function runSentinel(
     signalsProcessed: topSignals.length,
     opportunities,
     topOpportunity: opportunities[0],
+    costEstimate: Math.round(estimatedCost * 100) / 100,
     createdAt: new Date().toISOString(),
   };
 
   // Save brief
   ensureDir(join(DEFAULT_DIR, BRIEFS_DIR));
-  atomicWrite(
-    join(DEFAULT_DIR, BRIEFS_DIR, `${brief.id}.json`),
-    JSON.stringify(brief, null, 2)
-  );
+  atomicWrite(join(DEFAULT_DIR, BRIEFS_DIR, `${brief.id}.json`), JSON.stringify(brief, null, 2));
 
   // Update state
   state.lastRunAt = new Date().toISOString();
@@ -408,8 +454,7 @@ export function loadBriefs(limit: number = 30): DailyBrief[] {
   const dir = join(DEFAULT_DIR, BRIEFS_DIR);
   if (!existsSync(dir)) return [];
 
-  const files = require("node:fs")
-    .readdirSync(dir)
+  const files = readdirSync(dir)
     .filter((f: string) => f.endsWith(".json"))
     .sort()
     .reverse()

@@ -77,6 +77,13 @@ export async function sequenceIdea(
     dir?: string;
   } = {}
 ): Promise<IdeaGenome> {
+  if (!idea.title?.trim()) {
+    throw new Error("Idea title is required for genome sequencing");
+  }
+  if (!idea.description?.trim()) {
+    throw new Error("Idea description is required for genome sequencing");
+  }
+
   const prompt = `Decompose the following innovation idea into its fundamental "genome" traits.
 Each trait captures one dimension of the idea's DNA.
 
@@ -114,9 +121,7 @@ Respond in JSON:
         model: options.model,
         signal: options.signal,
       });
-      return SequenceResponseSchema.parse(
-        JSON.parse(extractJson(sanitizeLlmOutput(raw)))
-      );
+      return SequenceResponseSchema.parse(JSON.parse(extractJson(sanitizeLlmOutput(raw))));
     },
     { signal: options.signal }
   );
@@ -232,6 +237,10 @@ export async function recombine(
   genomeB: IdeaGenome,
   options: { model?: string; signal?: AbortSignal } = {}
 ): Promise<RecombinantIdea> {
+  if (genomeA.traits.length === 0 && genomeB.traits.length === 0) {
+    throw new Error("At least one genome must have traits for recombination");
+  }
+
   const traitSources: RecombinantIdea["traitSources"] = [];
 
   // Pick the highest-confidence trait from each genome for each type
@@ -244,8 +253,13 @@ export async function recombine(
     const traitA = genomeA.traits.find((t) => t.type === type);
     const traitB = genomeB.traits.find((t) => t.type === type);
 
-    const best = !traitA ? traitB! : !traitB ? traitA :
-      traitA.confidence >= traitB.confidence ? traitA : traitB;
+    const best = !traitA
+      ? traitB!
+      : !traitB
+        ? traitA
+        : traitA.confidence >= traitB.confidence
+          ? traitA
+          : traitB;
     const sourceId = best === traitA ? genomeA.id : genomeB.id;
 
     traitSources.push({
@@ -256,9 +270,7 @@ export async function recombine(
   }
 
   // Use LLM to synthesize a coherent recombinant idea
-  const traitContext = traitSources
-    .map((ts) => `- ${ts.trait}: ${ts.value}`)
-    .join("\n");
+  const traitContext = traitSources.map((ts) => `- ${ts.trait}: ${ts.value}`).join("\n");
 
   const prompt = `You are given the "genome" of a new innovation idea — traits extracted from two different ideas and combined.
 Create a coherent, novel idea that synthesizes these traits into something new.
@@ -313,18 +325,12 @@ export function getAllGenomes(dir: string = DEFAULT_DIR): IdeaGenome[] {
 }
 
 /** Get a genome by ID. */
-export function getGenome(
-  genomeId: string,
-  dir: string = DEFAULT_DIR
-): IdeaGenome | undefined {
+export function getGenome(genomeId: string, dir: string = DEFAULT_DIR): IdeaGenome | undefined {
   return loadLibrary(dir).genomes.find((g) => g.id === genomeId);
 }
 
 /** Search genomes by keyword. */
-export function searchGenomes(
-  keyword: string,
-  dir: string = DEFAULT_DIR
-): IdeaGenome[] {
+export function searchGenomes(keyword: string, dir: string = DEFAULT_DIR): IdeaGenome[] {
   const normalized = keyword.toLowerCase();
   return loadLibrary(dir).genomes.filter(
     (g) =>

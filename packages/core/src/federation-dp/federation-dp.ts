@@ -37,6 +37,12 @@ function atomicWrite(filePath: string, data: string): void {
 
 // ---- Differential Privacy Primitives ----
 
+/** Round to N decimal places to avoid floating-point noise accumulation. */
+function dpRound(value: number, decimals: number = 6): number {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
+}
+
 /**
  * Generate Laplace noise for ε-differential privacy.
  * Uses the inverse CDF method: noise = -b * sign(u) * ln(1 - 2|u|)
@@ -47,13 +53,19 @@ export function laplaceMechanism(
   sensitivity: number,
   epsilon: number
 ): { noisedValue: number; noise: number } {
+  if (epsilon <= 0) {
+    throw new Error("Epsilon must be positive for Laplace mechanism");
+  }
+  if (sensitivity < 0) {
+    throw new Error("Sensitivity must be non-negative");
+  }
   const b = sensitivity / epsilon;
   // Generate uniform random in (-0.5, 0.5)
   const u = Math.random() - 0.5;
   const noise = -b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
   return {
-    noisedValue: trueValue + noise,
-    noise,
+    noisedValue: dpRound(trueValue + noise),
+    noise: dpRound(noise),
   };
 }
 
@@ -103,6 +115,9 @@ export function spendBudget(
   queryType: string,
   dir: string = DEFAULT_DIR
 ): boolean {
+  if (epsilon <= 0) {
+    throw new Error("Epsilon must be positive");
+  }
   const budget = loadPrivacyBudget(dir);
   if (budget.totalSpent + epsilon > budget.maxBudget) {
     return false; // Budget exhausted
@@ -164,11 +179,7 @@ export function extractAnonymizedPatterns(
     );
     const clampedValue = Math.max(0, Math.min(1, noisedValue));
 
-    const ci = laplaceConfidenceInterval(
-      clampedValue,
-      config.sensitivity,
-      config.epsilon
-    );
+    const ci = laplaceConfidenceInterval(clampedValue, config.sensitivity, config.epsilon);
 
     patterns.push({
       id: `dp-${randomUUID().slice(0, 12)}`,
@@ -239,20 +250,18 @@ export function generateRecommendations(
     if (userAngles.includes(angleId)) continue;
 
     // Only recommend for relevant topics
-    const topicRelevant = userTopics.some(
-      (t) => topicCategory.toLowerCase().includes(t.toLowerCase())
+    const topicRelevant = userTopics.some((t) =>
+      topicCategory.toLowerCase().includes(t.toLowerCase())
     );
     if (!topicRelevant && userTopics.length > 0) continue;
 
     // Average effectiveness across all reports
-    const avgEffectiveness =
-      group.reduce((sum, p) => sum + p.noisedValue, 0) / group.length;
+    const avgEffectiveness = group.reduce((sum, p) => sum + p.noisedValue, 0) / group.length;
     const totalSamples = group.reduce((sum, p) => sum + p.sampleSize, 0);
 
     if (avgEffectiveness < 0.3) continue; // Too low effectiveness
 
-    const confidence =
-      totalSamples >= 50 ? "high" : totalSamples >= 10 ? "medium" : "low";
+    const confidence = totalSamples >= 50 ? "high" : totalSamples >= 10 ? "medium" : "low";
 
     recommendations.push({
       id: `rec-${randomUUID().slice(0, 12)}`,
@@ -268,9 +277,7 @@ export function generateRecommendations(
     });
   }
 
-  return recommendations
-    .sort((a, b) => b.effectivenessScore - a.effectivenessScore)
-    .slice(0, 10);
+  return recommendations.sort((a, b) => b.effectivenessScore - a.effectivenessScore).slice(0, 10);
 }
 
 // ---- Anti-Pattern Detection ----
@@ -279,7 +286,12 @@ export function generateRecommendations(
 export function detectAntiPatterns(
   patterns: AnonymizedPattern[],
   threshold: number = 0.15
-): Array<{ angleId: string; topicCategory: string; avgEffectiveness: number; warningReason: string }> {
+): Array<{
+  angleId: string;
+  topicCategory: string;
+  avgEffectiveness: number;
+  warningReason: string;
+}> {
   const grouped = new Map<string, AnonymizedPattern[]>();
 
   for (const p of patterns) {
@@ -340,7 +352,7 @@ export function computeNetworkStats(patterns: AnonymizedPattern[]): FederationNe
       angleId: key.split("::")[0],
       topicCategory: data.topic,
       effectivenessScore: Math.round((data.total / data.count) * 100) / 100,
-      trend: data.count >= 5 ? "rising" as const : "stable" as const,
+      trend: data.count >= 5 ? ("rising" as const) : ("stable" as const),
     }))
     .sort((a, b) => b.effectivenessScore - a.effectivenessScore)
     .slice(0, 20);

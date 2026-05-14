@@ -6167,10 +6167,7 @@ export type {
   VelocityMetrics,
 } from "./analytics/standard-events.js";
 
-export {
-  DashboardService,
-  getDashboardService,
-} from "./analytics/dashboard-service.js";
+export { DashboardService, getDashboardService } from "./analytics/dashboard-service.js";
 export type {
   DateRange,
   DashboardOverview,
@@ -6193,11 +6190,7 @@ export type {
 } from "./realtime/shared-state.js";
 
 export { PresenceManager } from "./realtime/presence.js";
-export type {
-  PresenceStatus,
-  UserPresence,
-  RoomPresenceState,
-} from "./realtime/presence.js";
+export type { PresenceStatus, UserPresence, RoomPresenceState } from "./realtime/presence.js";
 
 export { ConsensusManager } from "./realtime/consensus.js";
 export type {
@@ -6215,15 +6208,9 @@ export {
   validateUploadedFile,
   UploadProcessor,
 } from "./multi-modal/upload-processor.js";
-export type {
-  UploadedFile,
-  ProcessingResult,
-} from "./multi-modal/upload-processor.js";
+export type { UploadedFile, ProcessingResult } from "./multi-modal/upload-processor.js";
 
-export {
-  VisualArtifactSchema,
-  VisualOutputGenerator,
-} from "./multi-modal/visual-output.js";
+export { VisualArtifactSchema, VisualOutputGenerator } from "./multi-modal/visual-output.js";
 export type {
   VisualArtifact,
   IdeaNode as VisualIdeaNode,
@@ -6241,10 +6228,7 @@ export {
   getOpenAPISpecYAML,
 } from "./api-gateway/openapi-spec.js";
 
-export {
-  WebhookRegistry,
-  getWebhookRegistry,
-} from "./api-gateway/webhooks.js";
+export { WebhookRegistry, getWebhookRegistry } from "./api-gateway/webhooks.js";
 export type {
   WebhookRegistration,
   WebhookDelivery as WebhookDeliveryRecord,
@@ -6259,10 +6243,7 @@ export { NotionIntegration } from "./integrations/notion.js";
 
 /** Knowledge Graph — entity extraction and graph visualization. */
 export { EntityExtractor } from "./knowledge-graph/entity-extractor.js";
-export type {
-  ExtractedEntity,
-  ExtractedRelationship,
-} from "./knowledge-graph/entity-extractor.js";
+export type { ExtractedEntity, ExtractedRelationship } from "./knowledge-graph/entity-extractor.js";
 
 export { GraphVisualizer } from "./knowledge-graph/graph-visualizer.js";
 export type {
@@ -6293,10 +6274,7 @@ export type {
   PersonalizedChallenge,
 } from "./coaching/proactive-coach.js";
 
-export {
-  SkillTreeManager,
-  getSkillTreeManager,
-} from "./coaching/skill-tree.js";
+export { SkillTreeManager, getSkillTreeManager } from "./coaching/skill-tree.js";
 export type {
   SkillCategory as CoachingSkillCategory,
   SkillLevel,
@@ -6373,19 +6351,12 @@ export {
 } from "./rbac/team-management.js";
 
 /** Reports — aliased to match web app import names. */
-export {
-  generateReport,
-  reportToMarkdown,
-} from "./analytics/advanced.js";
+export { generateReport, reportToMarkdown } from "./analytics/advanced.js";
 
 // ---- Moonshot Features ----
 
 /** Adversarial Idea Gauntlet — multi-agent stress-testing for ideas. */
-export {
-  runGauntlet,
-  gauntletToMarkdown,
-  computeSurvivabilityIndex,
-} from "./gauntlet/index.js";
+export { runGauntlet, gauntletToMarkdown, computeSurvivabilityIndex } from "./gauntlet/index.js";
 export {
   AdversaryRoleSchema,
   AttackSchema,
@@ -6445,6 +6416,7 @@ export {
   computeVelocity as computeInnovationVelocity,
   exportGraph as exportTemporalGraph,
   deleteSessionData as deleteTemporalSessionData,
+  pruneGraph as pruneTemporalGraph,
   temporalMemoryToMarkdown,
 } from "./temporal-memory/index.js";
 export {
