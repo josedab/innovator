@@ -153,9 +153,9 @@ function renderBundleHtml(bundle: SessionBundle): string {
 </html>`;
 }
 
-/** Generate a simple QR-like SVG data URL (placeholder - real QR would use a library). */
+/** Generate a decorative QR-like SVG data URL for visual representation. Not scannable — use a QR library (e.g. qrcode) for real QR codes. */
 function generateQrSvgDataUrl(data: string): string {
-  // Simple hash-based pattern as a placeholder for a real QR code library
+  // Deterministic hash-based visual pattern
   const size = 21;
   let hash = 0;
   for (let i = 0; i < data.length; i++) {

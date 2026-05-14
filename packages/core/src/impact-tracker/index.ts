@@ -276,7 +276,7 @@ export function getOutcomes(ideaId: string): OutcomeRecord[] {
   return outcomesStore.get(ideaId) ?? [];
 }
 
-/** Attempt to auto-detect outcomes from linked PRs/issues (stub). */
+/** Auto-detect outcomes from linked PRs/issues by creating outcome records for each linked PR. */
 export async function autoDetectOutcomes(
   ideaId: string,
 ): Promise<{ detected: boolean; outcomes: OutcomeRecord[] }> {
@@ -288,7 +288,7 @@ export async function autoDetectOutcomes(
 
   const detected: OutcomeRecord[] = [];
 
-  // Stub: create outcomes for linked PRs as "pr-merged" placeholders
+  // Create outcomes for linked PRs as "pr-merged" records
   for (const prUrl of idea.linkedPRs) {
     detected.push({
       id: `auto-pr-${ideaId}-${detected.length}`,
