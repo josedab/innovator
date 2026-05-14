@@ -165,10 +165,18 @@ Return your response as a JSON object:
       timestamp: now,
       challengeType: "none",
     });
-  } catch {
+  } catch (openErr) {
+    const reason = openErr instanceof Error ? openErr.message : "unknown error";
     session.messages.push({
       role: "ai",
       content: `Let's negotiate on "${idea.title}". I see potential in this idea, but let's explore three key areas: feasibility, market fit, and implementation approach. Which would you like to discuss first?`,
+      phase: "opening",
+      timestamp: now,
+      challengeType: "none",
+    });
+    session.messages.push({
+      role: "system",
+      content: `[Opening generation fell back to template: ${reason}]`,
       phase: "opening",
       timestamp: now,
       challengeType: "none",
@@ -258,11 +266,13 @@ Based on this negotiation phase and conversation, respond with JSON:
       challengeType: (parsed.challengeType as NegotiationMessage["challengeType"]) ?? "none",
     });
 
-    // Apply suggested changes
+    // Apply suggested changes with validated field names
     if (parsed.suggestedChanges) {
+      const validFields = ["title", "description", "potentialImpact", "implementationHint"] as const;
+      type IdeaField = (typeof validFields)[number];
       for (const change of parsed.suggestedChanges) {
-        const field = change.field as keyof typeof session.currentIdea;
-        if (field in session.currentIdea) {
+        if (validFields.includes(change.field as IdeaField)) {
+          const field = change.field as IdeaField;
           const before = session.currentIdea[field];
           session.currentIdea[field] = change.newValue.slice(0, 5000);
           session.deltas.push({
@@ -278,10 +288,18 @@ Based on this negotiation phase and conversation, respond with JSON:
     if (parsed.convergenceEstimate !== undefined) {
       session.convergenceScore = Math.min(1, Math.max(0, parsed.convergenceEstimate));
     }
-  } catch {
+  } catch (stepErr) {
+    const reason = stepErr instanceof Error ? stepErr.message : "unknown error";
     session.messages.push({
       role: "ai",
       content: `I understand your point. Let's continue exploring this aspect. What specific concerns do you have about the current approach?`,
+      phase: session.phase,
+      timestamp: new Date().toISOString(),
+      challengeType: "none",
+    });
+    session.messages.push({
+      role: "system",
+      content: `[Negotiation step fell back to template: ${reason}]`,
       phase: session.phase,
       timestamp: new Date().toISOString(),
       challengeType: "none",
@@ -297,11 +315,47 @@ Based on this negotiation phase and conversation, respond with JSON:
   return session;
 }
 
+/** Maximum session idle time before auto-expiry (1 hour). */
+const SESSION_TIMEOUT_MS = 60 * 60 * 1000;
+
 /**
- * Get a negotiation session by ID.
+ * Get a negotiation session by ID. Returns undefined if expired.
  */
 export function getNegotiation(sessionId: string): NegotiationSession | undefined {
-  return sessions.get(sessionId);
+  const session = sessions.get(sessionId);
+  if (!session) return undefined;
+
+  // Auto-expire idle sessions
+  const lastUpdate = new Date(session.updatedAt).getTime();
+  if (Date.now() - lastUpdate > SESSION_TIMEOUT_MS && session.phase !== "completed") {
+    session.phase = "completed";
+    session.messages.push({
+      role: "system",
+      content: "Session expired due to inactivity.",
+      phase: "completed",
+      timestamp: new Date().toISOString(),
+      challengeType: "none",
+    });
+    session.updatedAt = new Date().toISOString();
+  }
+
+  return session;
+}
+
+/**
+ * Clean up expired negotiation sessions.
+ */
+export function cleanupExpiredNegotiations(): number {
+  const now = Date.now();
+  let cleaned = 0;
+  for (const [id, session] of sessions) {
+    const lastUpdate = new Date(session.updatedAt).getTime();
+    if (now - lastUpdate > SESSION_TIMEOUT_MS * 24) {
+      sessions.delete(id);
+      cleaned++;
+    }
+  }
+  return cleaned;
 }
 
 /**
