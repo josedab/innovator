@@ -281,6 +281,20 @@ describe("metrics-dashboard", () => {
       });
       expect(roi.estimatedRevenue).toBe(0);
     });
+
+    it("computes negative ROI correctly", () => {
+      const roi = calculateROI({
+        ideaId: "roi-neg",
+        title: "Negative ROI",
+        developmentCost: 10000,
+        monthlyRevenue: 100,
+        timeToMarketMonths: 10,
+        probabilityOfSuccess: 1,
+        projectionMonths: 12,
+      });
+      // Revenue: 100 * (12 - 10) = 200, Cost: 10000, ROI: ((200-10000)/10000)*100 = -98%
+      expect(roi.estimatedROI).toBeLessThan(0);
+    });
   });
 
   // ---- computeAngleEffectiveness ----
@@ -340,6 +354,18 @@ describe("metrics-dashboard", () => {
       expect(lb).toHaveLength(1);
       expect(lb[0].totalIdeas).toBe(1);
       expect(lb[0].conversionRate).toBe(0);
+    });
+
+    it("handles tie-breaking: teams with same ROI", () => {
+      trackIdea({ id: "tie1", title: "T", description: "d", teamId: "alpha" });
+      trackIdea({ id: "tie2", title: "T", description: "d", teamId: "beta" });
+      setIdeaROI("tie1", 100, 500);
+      setIdeaROI("tie2", 100, 500);
+      const lb = computeTeamLeaderboard();
+      expect(lb).toHaveLength(2);
+      // Both teams have same ROI — both should appear
+      expect(lb[0].totalActualROI).toBe(500);
+      expect(lb[1].totalActualROI).toBe(500);
     });
   });
 
