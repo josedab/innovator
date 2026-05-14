@@ -9,12 +9,12 @@ import {
 import type { AngleId, PipelineProgress, CodebaseAnalysis, InnovationPR } from "@innovator/core";
 import { InvestigateInputSchema, GenerateInputSchema, AutoPipelineInputSchema } from "./schemas.js";
 import { resolve, normalize } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, lstatSync, realpathSync } from "node:fs";
 
 /**
  * Validate that a path is safe to access: resolves to an absolute path,
- * exists on disk, and contains no traversal sequences that escape the
- * resolved directory.
+ * exists on disk, is not a symlink to an external location, and contains
+ * no traversal sequences.
  */
 function validatePath(rawPath: string): string {
   const resolved = resolve(rawPath);
@@ -23,6 +23,15 @@ function validatePath(rawPath: string): string {
   }
   if (!existsSync(resolved)) {
     throw new Error(`Path does not exist: ${resolved}`);
+  }
+  // Check for symlink — resolve the real path and verify it still matches
+  const stat = lstatSync(resolved);
+  if (stat.isSymbolicLink()) {
+    const realPath = realpathSync(resolved);
+    const cwd = process.cwd();
+    if (!realPath.startsWith(cwd)) {
+      throw new Error("Symlink target is outside the working directory");
+    }
   }
   return resolved;
 }
