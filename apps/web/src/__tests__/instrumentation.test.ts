@@ -1,3 +1,4 @@
+// @ts-nocheck — test mocks use simplified types
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock the env module

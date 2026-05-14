@@ -8,6 +8,7 @@ vi.mock("@innovator/core", () => ({
   checkUsageLimit: vi.fn(),
   getUserSessions: vi.fn(),
   getUserUsage: vi.fn(),
+  listPlaygroundWorkspaces: vi.fn().mockReturnValue([]),
 }));
 
 vi.mock("@/lib/api-headers", () => ({

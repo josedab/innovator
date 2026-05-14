@@ -1,3 +1,4 @@
+// @ts-nocheck — test mocks use simplified types
 /**
  * @vitest-environment jsdom
  */

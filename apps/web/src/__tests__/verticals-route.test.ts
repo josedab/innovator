@@ -1,3 +1,4 @@
+// @ts-nocheck — test mocks use simplified types
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/api-headers", () => ({
@@ -11,7 +12,7 @@ function makePost(body: unknown): Request {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  });
+  }) as unknown as Request & { nextUrl: URL };
 }
 
 describe("API /api/verticals", () => {
