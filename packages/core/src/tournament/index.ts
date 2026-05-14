@@ -162,6 +162,55 @@ function generateSingleEliminationBracket(participants: TournamentParticipant[])
   return matches;
 }
 
+/** Generate a double-elimination bracket: winners bracket + losers bracket + grand final. */
+function generateDoubleEliminationBracket(participants: TournamentParticipant[]): Match[] {
+  // Winners bracket is standard single-elimination
+  const winnerMatches = generateSingleEliminationBracket(participants);
+  const winnerRounds = Math.ceil(Math.log2(participants.length));
+
+  // Mark all winner bracket matches
+  for (const m of winnerMatches) {
+    m.id = `W-${m.id}`;
+  }
+
+  let matchNum = winnerMatches.length;
+  const loserMatches: Match[] = [];
+
+  // Losers bracket: roughly 2*(winnerRounds - 1) rounds
+  // Each winners bracket round feeds losers into the losers bracket
+  const losersRounds = (winnerRounds - 1) * 2;
+  for (let round = 0; round < losersRounds; round++) {
+    const matchesInRound = Math.max(
+      1,
+      Math.ceil(participants.length / Math.pow(2, Math.floor(round / 2) + 2))
+    );
+    for (let i = 0; i < matchesInRound; i++) {
+      loserMatches.push({
+        id: `L-match-${randomUUID().slice(0, 8)}`,
+        round: winnerRounds + round,
+        matchNumber: matchNum++,
+        participantA: null,
+        participantB: null,
+        result: "pending",
+        votes: { a: 0, b: 0 },
+      });
+    }
+  }
+
+  // Grand final
+  const grandFinal: Match = {
+    id: `GF-match-${randomUUID().slice(0, 8)}`,
+    round: winnerRounds + losersRounds,
+    matchNumber: matchNum++,
+    participantA: null,
+    participantB: null,
+    result: "pending",
+    votes: { a: 0, b: 0 },
+  };
+
+  return [...winnerMatches, ...loserMatches, grandFinal];
+}
+
 function generateRoundRobinSchedule(participants: TournamentParticipant[]): Match[] {
   const matches: Match[] = [];
   let matchNum = 0;
@@ -218,8 +267,11 @@ export function createTournament(input: {
   if (input.format === "round-robin") {
     matches = generateRoundRobinSchedule(participants);
     totalRounds = 1;
+  } else if (input.format === "double-elimination") {
+    matches = generateDoubleEliminationBracket(participants);
+    totalRounds = Math.ceil(Math.log2(participants.length)) * 2;
   } else {
-    // single-elimination or double-elimination (using single as base)
+    // single-elimination
     matches = generateSingleEliminationBracket(participants);
     totalRounds = Math.ceil(Math.log2(participants.length));
   }
@@ -339,19 +391,27 @@ function advanceBracket(
 
   if (!winnerId) return;
 
-  // Find the next round match to advance to
+  // Find all matches in the next round
   const nextRoundMatches = tournament.matches.filter((m) => m.round === match.round + 1);
-  const nextMatchIndex = Math.floor(match.matchNumber / 2);
-  const nextMatch = nextRoundMatches[nextMatchIndex - (nextRoundMatches[0]?.matchNumber ?? 0)];
+  if (nextRoundMatches.length === 0) return;
 
-  if (nextMatch) {
-    // Fill the appropriate slot
-    const isFirstFeeder = match.matchNumber % 2 === 0;
-    if (isFirstFeeder) {
-      nextMatch.participantA = winnerId;
-    } else {
-      nextMatch.participantB = winnerId;
-    }
+  // Calculate which match in the next round this feeds into
+  const matchesInCurrentRound = tournament.matches.filter((m) => m.round === match.round);
+  const indexInRound = matchesInCurrentRound.findIndex((m) => m.id === match.id);
+  if (indexInRound < 0) return;
+
+  const nextMatchIndex = Math.floor(indexInRound / 2);
+  if (nextMatchIndex >= nextRoundMatches.length) return;
+
+  const nextMatch = nextRoundMatches[nextMatchIndex];
+  if (!nextMatch) return;
+
+  // Fill the appropriate slot based on position
+  const isFirstFeeder = indexInRound % 2 === 0;
+  if (isFirstFeeder) {
+    nextMatch.participantA = winnerId;
+  } else {
+    nextMatch.participantB = winnerId;
   }
 }
 
@@ -367,9 +427,28 @@ function checkTournamentCompletion(tournament: Tournament): void {
       tournament.winnerId = notEliminated[0].id;
       tournament.state = "completed";
     } else if (tournament.format === "round-robin") {
-      // Winner is the one with most wins (or highest Elo)
+      // Build head-to-head record for tiebreaking
+      const h2h = new Map<string, Map<string, number>>();
+      for (const m of tournament.matches) {
+        if (m.result === "pending" || !m.participantA || !m.participantB) continue;
+        if (!h2h.has(m.participantA)) h2h.set(m.participantA, new Map());
+        if (!h2h.has(m.participantB)) h2h.set(m.participantB, new Map());
+        if (m.result === "participant-a") {
+          h2h.get(m.participantA)!.set(m.participantB, 1);
+          h2h.get(m.participantB)!.set(m.participantA, -1);
+        } else if (m.result === "participant-b") {
+          h2h.get(m.participantB)!.set(m.participantA, 1);
+          h2h.get(m.participantA)!.set(m.participantB, -1);
+        }
+      }
+
       const sorted = [...tournament.participants].sort((a, b) => {
+        // Primary: most wins
         if (b.wins !== a.wins) return b.wins - a.wins;
+        // Secondary: head-to-head record
+        const aBeatsB = h2h.get(a.id)?.get(b.id) ?? 0;
+        if (aBeatsB !== 0) return -aBeatsB;
+        // Tertiary: highest Elo
         return b.elo - a.elo;
       });
       tournament.winnerId = sorted[0]?.id;

@@ -41,6 +41,7 @@ export const MatchJudgmentSchema = z.object({
       scoreB: z.number().min(0).max(100),
     })
   ),
+  confidence: z.number().min(0).max(1).optional(),
 });
 
 export type JudgingCriterion = z.infer<typeof JudgingCriterionSchema>;
@@ -112,7 +113,24 @@ Respond with JSON only:
         signal: config.signal,
       });
       const jsonStr = extractJson(raw);
-      return MatchJudgmentSchema.parse(JSON.parse(jsonStr));
+      const judgment = MatchJudgmentSchema.parse(JSON.parse(jsonStr));
+
+      // Compute statistical confidence from criteria score variance
+      if (judgment.criteriaScores.length > 0 && judgment.confidence === undefined) {
+        const diffs = judgment.criteriaScores.map((cs) => cs.scoreA - cs.scoreB);
+        const meanDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+        const variance =
+          diffs.length > 1
+            ? diffs.reduce((sum, d) => sum + (d - meanDiff) ** 2, 0) / (diffs.length - 1)
+            : 0;
+        const stdDev = Math.sqrt(variance);
+        // Confidence: high when score gap is large relative to variance
+        const absDiff = Math.abs(judgment.scoreA - judgment.scoreB);
+        judgment.confidence =
+          Math.round(Math.min(1, absDiff / Math.max(1, absDiff + stdDev)) * 100) / 100;
+      }
+
+      return judgment;
     },
     {
       signal: config.signal,
@@ -176,8 +194,10 @@ export async function autoJudgeTournament(
             : ("draw" as const);
 
       resolveMatch(tournamentId, match.id, result, judgment.rationale, "llm");
-    } catch {
-      // Skip failed judgments, leave match pending
+    } catch (judgeErr) {
+      // Record failure reason in the match for debugging
+      const reason = judgeErr instanceof Error ? judgeErr.message : "unknown error";
+      match.rationale = `[Judgment failed: ${reason}]`;
     }
   }
 
