@@ -20,6 +20,16 @@ ADRs document significant architectural decisions made during the development of
 | [ADR-0010](./ADR-0010-defense-in-depth-api-security.md)           | Defense-in-Depth API Security                   | Accepted |
 | [ADR-0011](./ADR-0011-prompt-injection-defense.md)                | Prompt Injection Defense Layer                  | Accepted |
 | [ADR-0012](./ADR-0012-plugin-system-for-extensibility.md)         | Plugin System for Extensibility                 | Accepted |
+| [ADR-0013](./ADR-0013-bounded-concurrency-semaphore.md)           | Bounded-Concurrency Semaphore for LLM Calls     | Accepted |
+| [ADR-0014](./ADR-0014-blackboard-pattern-swarm.md)                | Blackboard Pattern for Multi-Agent Swarm        | Accepted |
+| [ADR-0015](./ADR-0015-file-based-persistence-atomic-writes.md)    | File-Based Persistence with Atomic Writes       | Accepted |
+| [ADR-0016](./ADR-0016-llm-as-judge-evaluation.md)                 | LLM-as-Judge for Idea Quality Evaluation        | Accepted |
+| [ADR-0017](./ADR-0017-append-only-hash-chained-ledger.md)         | Append-Only Hash-Chained Provenance Ledger      | Accepted |
+| [ADR-0018](./ADR-0018-differential-privacy-federation.md)         | Differential Privacy for Federated Sharing      | Accepted |
+| [ADR-0019](./ADR-0019-temporal-knowledge-graph.md)                | Temporal Knowledge Graph for Innovation Memory  | Accepted |
+| [ADR-0020](./ADR-0020-genetic-algorithm-idea-evolution.md)        | Genetic Algorithm Metaphor for Idea Evolution   | Accepted |
+| [ADR-0021](./ADR-0021-tfidf-offline-semantic-search.md)           | TF-IDF Embeddings for Offline Semantic Search   | Accepted |
+| [ADR-0022](./ADR-0022-event-driven-webhooks.md)                   | Event-Driven Architecture with Webhook Delivery | Accepted |
 
 ## Format
 
