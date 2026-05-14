@@ -3,7 +3,7 @@
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getTenant, getUsage, listPlans, updateTenantPlan, createTenant } from "@innovator/core";
+import { getTenant, getUsage, listPlans, updateTenantPlan, createSaasTenant as createTenant } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "../../../lib/api-headers";
 
 const BillingActionSchema = z.discriminatedUnion("action", [

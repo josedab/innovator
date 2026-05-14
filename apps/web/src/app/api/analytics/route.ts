@@ -9,7 +9,7 @@ import {
   trackEvent,
   getTimeSeries,
   getActivityHeatmap,
-  getLeaderboard,
+  getAnalyticsLeaderboard as getLeaderboard,
   generateReport,
   reportToMarkdown,
 } from "@innovator/core";

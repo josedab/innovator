@@ -9,13 +9,9 @@ import { NextResponse } from "next/server";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 import {
   getInnovationProfileBuilder,
-} from "../../../../../../packages/core/src/coaching/innovation-profile-builder";
-import {
   getProactiveCoachingEngine,
-} from "../../../../../../packages/core/src/coaching/proactive-coach";
-import {
   getSkillTreeManager,
-} from "../../../../../../packages/core/src/coaching/skill-tree";
+} from "@innovator/core";
 
 // ---- Schemas ----
 

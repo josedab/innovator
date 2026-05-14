@@ -10,7 +10,7 @@ import {
   generateAggregateInsights,
   getAggregateInsights,
   getPrivacyBudget,
-  setDataResidency,
+  setFederationDataResidency as setDataResidency,
   checkDataResidencyCompliance,
 } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "../../../lib/api-headers";

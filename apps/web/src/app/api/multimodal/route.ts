@@ -7,7 +7,7 @@ import {
   validateAttachment,
   parseAttachment,
   buildMultiModalContext as buildExtendedMultiModalContext,
-  processMultiModalInput as processExtendedMultiModalInput,
+  processExtendedMultiModalInput,
 } from "@innovator/core";
 import type { Attachment } from "@innovator/core";
 import { z } from "zod";

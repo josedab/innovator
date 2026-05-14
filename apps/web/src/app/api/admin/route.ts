@@ -7,8 +7,8 @@ import {
   createRBACTeam,
   getRBACTeam,
   updateRBACTeam,
-  addTeamMember,
-  removeTeamMember,
+  addRBACTeamMember,
+  removeRBACTeamMember,
   getTeamHierarchy,
   listRBACTeams,
   getQuota,
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
       }
 
       case "add-member": {
-        addTeamMember(parsed.teamId, parsed.userId);
+        addRBACTeamMember(parsed.teamId, parsed.userId);
         const team = getRBACTeam(parsed.teamId);
         return NextResponse.json(
           { team, message: "Member added" },
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       }
 
       case "remove-member": {
-        removeTeamMember(parsed.teamId, parsed.userId);
+        removeRBACTeamMember(parsed.teamId, parsed.userId);
         const team = getRBACTeam(parsed.teamId);
         return NextResponse.json(
           { team, message: "Member removed" },

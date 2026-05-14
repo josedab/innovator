@@ -4,10 +4,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
-  processMultiModalInput,
+  processExtendedMultiModalInput as processMultiModalInput,
   analyzeImage,
   visionToSubject,
-  validateImage,
+  validateBase64Image as validateImage,
 } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "../../../lib/api-headers";
 
