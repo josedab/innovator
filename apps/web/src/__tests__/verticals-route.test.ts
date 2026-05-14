@@ -19,12 +19,18 @@ describe("API /api/verticals", () => {
     vi.resetAllMocks();
   });
 
+  // ---- list ----
+
   it("lists all vertical packs", async () => {
     const res = await POST(makePost({ action: "list" }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.packs).toBeInstanceOf(Array);
     expect(body.packs.length).toBeGreaterThanOrEqual(3);
+    const ids = body.packs.map((p: { id: string }) => p.id);
+    expect(ids).toContain("healthcare");
+    expect(ids).toContain("fintech");
+    expect(ids).toContain("climate");
   });
 
   it("lists packs filtered by tag", async () => {
@@ -42,6 +48,8 @@ describe("API /api/verticals", () => {
     expect(body.packs.length).toBeGreaterThanOrEqual(1);
   });
 
+  // ---- get ----
+
   it("gets a specific pack by ID", async () => {
     const res = await POST(makePost({ action: "get", packId: "healthcare" }));
     expect(res.status).toBe(200);
@@ -56,6 +64,8 @@ describe("API /api/verticals", () => {
     const body = await res.json();
     expect(body.error).toBe("Pack not found");
   });
+
+  // ---- evaluate ----
 
   it("evaluates ideas against a rubric", async () => {
     const res = await POST(
@@ -85,6 +95,8 @@ describe("API /api/verticals", () => {
     expect(body.error).toBe("Rubric not found");
   });
 
+  // ---- compliance_check ----
+
   it("runs compliance check on ideas", async () => {
     const res = await POST(
       makePost({
@@ -109,10 +121,76 @@ describe("API /api/verticals", () => {
       })
     );
     expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe("Pack not found");
+  });
+
+  // ---- glossary ----
+
+  it("returns glossary for a pack", async () => {
+    const res = await POST(makePost({ action: "glossary", packId: "healthcare" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.packId).toBe("healthcare");
+    expect(body.glossary).toBeDefined();
+    expect(body.termCount).toBeGreaterThan(0);
+  });
+
+  // ---- install ----
+
+  it("installs a pack", async () => {
+    const res = await POST(makePost({ action: "install", packId: "healthcare" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.installed).toBe(true);
+    expect(body.packId).toBe("healthcare");
+  });
+
+  // ---- community_submit ----
+
+  it("submits a community pack", async () => {
+    const res = await POST(
+      makePost({
+        action: "community_submit",
+        pack: {
+          id: "test-pack",
+          name: "Test Pack",
+          domainAngles: [{ id: "a1", name: "Angle 1" }],
+          glossary: { term: "definition" },
+        },
+        authorName: "Test Author",
+      })
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.submitted).toBe(true);
+    expect(body.authorName).toBe("Test Author");
+  });
+
+  // ---- error handling ----
+
+  it("returns 400 for malformed JSON body", async () => {
+    const req = new Request("http://localhost/api/verticals", {
+      method: "POST",
+      body: "not json{",
+      headers: { "Content-Type": "application/json" },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("Invalid JSON");
+  });
+
+  it("returns 400 for missing required fields", async () => {
+    const res = await POST(makePost({ action: "get" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("Invalid request");
+    expect(body.details).toBeDefined();
   });
 
   it("returns 400 for invalid action", async () => {
-    const res = await POST(makePost({ action: "bad_action" }));
+    const res = await POST(makePost({ action: "unknown_action" }));
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toBe("Invalid request");
