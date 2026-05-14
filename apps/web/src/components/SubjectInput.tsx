@@ -44,6 +44,14 @@ export function SubjectInput({ onSubmit, onAutoMode }: SubjectInputProps) {
           className="w-full px-5 py-4 text-lg rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition placeholder:text-neutral-400"
           autoFocus
         />
+        {value.length > 0 && (
+          <span
+            className={`absolute right-3 bottom-1 text-xs ${value.length > 450 ? "text-amber-500" : "text-neutral-400"}`}
+            aria-live="polite"
+          >
+            {value.length}/500
+          </span>
+        )}
       </div>
       <div className="flex gap-3 mt-4 justify-center">
         <button

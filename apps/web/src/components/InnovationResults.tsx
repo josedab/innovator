@@ -6,6 +6,7 @@
 import { useState } from "react";
 import type { AngleResult, Synthesis } from "@innovator/core/types";
 import { IdeaMap } from "./IdeaMap";
+import { CopyButton } from "./CopyButton";
 
 interface InnovationResultsProps {
   angleResults: AngleResult[];
@@ -113,7 +114,10 @@ export function InnovationResults({ angleResults, synthesis }: InnovationResults
                 </div>
 
                 <div className="p-5 rounded-xl border border-neutral-200 dark:border-neutral-700">
-                  <h4 className="font-semibold mb-3">📌 Recommendation</h4>
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="font-semibold mb-3">📌 Recommendation</h4>
+                    <CopyButton text={synthesis.recommendation} label="Copy" />
+                  </div>
                   <p className="text-sm text-neutral-700 dark:text-neutral-300">
                     {synthesis.recommendation}
                   </p>
@@ -161,7 +165,13 @@ export function InnovationResults({ angleResults, synthesis }: InnovationResults
                         key={i}
                         className="p-4 rounded-lg border border-neutral-100 dark:border-neutral-800"
                       >
-                        <h5 className="font-semibold">{idea.title}</h5>
+                        <div className="flex items-start justify-between gap-2">
+                          <h5 className="font-semibold">{idea.title}</h5>
+                          <CopyButton
+                            text={`${idea.title}\n\n${idea.description}\n\nImpact: ${idea.potentialImpact}\nHow to start: ${idea.implementationHint}`}
+                            label="Copy"
+                          />
+                        </div>
                         <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
                           {idea.description}
                         </p>

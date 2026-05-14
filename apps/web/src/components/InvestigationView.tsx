@@ -1,4 +1,5 @@
 import type { Investigation } from "@innovator/core/types";
+import { CopyButton } from "./CopyButton";
 
 interface InvestigationViewProps {
   investigation: Investigation;
@@ -16,7 +17,10 @@ export function InvestigationView({ investigation }: InvestigationViewProps) {
   return (
     <div className="space-y-6">
       <div className="p-5 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800">
-        <h3 className="font-semibold text-lg mb-2">📋 Summary</h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-semibold text-lg mb-2">📋 Summary</h3>
+          <CopyButton text={investigation.summary} label="Copy" />
+        </div>
         <p className="text-neutral-700 dark:text-neutral-300">{investigation.summary}</p>
       </div>
 

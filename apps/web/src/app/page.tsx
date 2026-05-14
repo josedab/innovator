@@ -10,7 +10,7 @@
  */
 "use client";
 
-import { useReducer, useRef } from "react";
+import { useReducer, useRef, useState, useEffect } from "react";
 import { SubjectInput } from "@/components/SubjectInput";
 import { InvestigationView } from "@/components/InvestigationView";
 import { AngleSelector } from "@/components/AngleSelector";
@@ -18,6 +18,11 @@ import { InnovationResults } from "@/components/InnovationResults";
 import { AutoModePanel } from "@/components/AutoModePanel";
 import { IdeaWorkshop } from "@/components/IdeaWorkshop";
 import { ExploreExamples } from "@/components/ExploreExamples";
+import { OnboardingWizard } from "@/components/OnboardingWizard";
+import { ElapsedTimer } from "@/components/ElapsedTimer";
+import { ResultsActionBar } from "@/components/ResultsActionBar";
+import { RecentSessions } from "@/components/RecentSessions";
+import { saveSession, type SavedSession } from "@/lib/session-storage";
 import { appReducer, initialState } from "./appReducer";
 import type { Investigation, AngleResult, Synthesis, AngleId } from "@innovator/core/types";
 
@@ -25,6 +30,17 @@ export default function Home() {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { stage, subject, investigation, selectedAngles, angleResults, synthesis, error } = state;
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("innovator-onboarded")) {
+        setShowOnboarding(true);
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
 
   const handleInvestigate = async (subjectText: string) => {
     abortControllerRef.current?.abort();
@@ -89,6 +105,7 @@ export default function Home() {
         angleResults: data.angleResults,
         synthesis: data.synthesis ?? null,
       });
+      saveSession(subject, data.angleResults, data.synthesis ?? null);
     } catch (err) {
       dispatch({
         type: "INNOVATION_ERROR",
@@ -103,6 +120,16 @@ export default function Home() {
 
   const handleAutoComplete = (results: AngleResult[], synth: Synthesis | null) => {
     dispatch({ type: "AUTO_COMPLETE", angleResults: results, synthesis: synth });
+    saveSession(subject, results, synth);
+  };
+
+  const handleRestoreSession = (session: SavedSession) => {
+    dispatch({
+      type: "RESTORE_SESSION",
+      subject: session.subject,
+      angleResults: session.angleResults,
+      synthesis: session.synthesis,
+    });
   };
 
   const handleReset = () => {
@@ -111,24 +138,78 @@ export default function Home() {
     dispatch({ type: "RESET" });
   };
 
+  const friendlyError = (raw: string): { title: string; message: string; hint?: string } => {
+    const lower = raw.toLowerCase();
+    if (lower.includes("429") || lower.includes("rate limit") || lower.includes("too many"))
+      return {
+        title: "Too many requests",
+        message: "You're sending requests too quickly. Please wait a moment and try again.",
+        hint: "Rate limits reset after 60 seconds.",
+      };
+    if (lower.includes("timeout") || lower.includes("timed out") || lower.includes("aborted"))
+      return {
+        title: "Request timed out",
+        message: "The AI took too long to respond. Try a shorter or simpler subject.",
+        hint: "Complex topics may need multiple shorter sessions.",
+      };
+    if (
+      lower.includes("401") ||
+      lower.includes("unauthorized") ||
+      lower.includes("auth") ||
+      lower.includes("token")
+    )
+      return {
+        title: "Authentication error",
+        message: "Could not authenticate with the AI provider.",
+        hint: "Run `gh auth login` and verify your Copilot subscription is active.",
+      };
+    if (lower.includes("model") && (lower.includes("not found") || lower.includes("not available")))
+      return {
+        title: "Model unavailable",
+        message:
+          "The requested AI model is not available. Try a different model or use the default.",
+        hint: "Check INNOVATOR_DEFAULT_MODEL in your .env.local file.",
+      };
+    if (lower.includes("network") || lower.includes("fetch") || lower.includes("econnrefused"))
+      return {
+        title: "Network error",
+        message: "Could not connect to the server. Check your internet connection.",
+        hint: "If running locally, make sure the dev server is running.",
+      };
+    return {
+      title: "Something went wrong",
+      message: raw.length > 200 ? raw.slice(0, 200) + "…" : raw,
+    };
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      {error && (
-        <div
-          role="alert"
-          className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200"
-        >
-          <p className="font-medium">Error</p>
-          <p className="text-sm mt-1">{error}</p>
-          <p className="text-xs mt-2 text-red-600 dark:text-red-400">
-            Common causes: check that{" "}
-            <code className="bg-red-100 dark:bg-red-900 px-1 rounded">gh auth login</code> is active
-            and your Copilot subscription is valid.
-          </p>
-        </div>
+      {error &&
+        (() => {
+          const { title, message, hint } = friendlyError(error);
+          return (
+            <div
+              role="alert"
+              className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200"
+            >
+              <p className="font-medium">{title}</p>
+              <p className="text-sm mt-1">{message}</p>
+              {hint && <p className="text-xs mt-2 text-red-600 dark:text-red-400">{hint}</p>}
+            </div>
+          );
+        })()}
+
+      {stage === "input" && showOnboarding && (
+        <OnboardingWizard
+          onComplete={(profile, session) => {
+            setShowOnboarding(false);
+            if (session) handleAutoMode(session.subject);
+          }}
+          onSkip={() => setShowOnboarding(false)}
+        />
       )}
 
-      {stage === "input" && (
+      {stage === "input" && !showOnboarding && (
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-3">💡 What do you want to innovate on?</h1>
@@ -139,6 +220,7 @@ export default function Home() {
           </div>
           <SubjectInput onSubmit={handleInvestigate} onAutoMode={handleAutoMode} />
           <ExploreExamples onSelect={(s) => handleAutoMode(s)} />
+          <RecentSessions onRestore={handleRestoreSession} />
         </div>
       )}
 
@@ -149,12 +231,13 @@ export default function Home() {
           aria-busy={true}
           className="flex flex-col items-center justify-center min-h-[60vh]"
         >
-          <div className="animate-pulse text-center">
-            <div className="text-5xl mb-4">🔍</div>
+          <div className="text-center">
+            <div className="text-5xl mb-4 animate-pulse">🔍</div>
             <h2 className="text-2xl font-semibold mb-2">Investigating...</h2>
             <p className="text-neutral-500">
               Analyzing &quot;{subject}&quot; to find key aspects, challenges, and opportunities
             </p>
+            <ElapsedTimer estimateSeconds={20} />
           </div>
         </div>
       )}
@@ -185,20 +268,21 @@ export default function Home() {
           aria-busy={true}
           className="flex flex-col items-center justify-center min-h-[60vh]"
         >
-          <div className="animate-pulse text-center">
-            <div className="text-5xl mb-4">⚡</div>
+          <div className="text-center">
+            <div className="text-5xl mb-4 animate-pulse">⚡</div>
             <h2 className="text-2xl font-semibold mb-2">Generating Innovations...</h2>
             <p className="text-neutral-500">
               Exploring {selectedAngles.length} angle
               {selectedAngles.length !== 1 ? "s" : ""} for &quot;{subject}&quot;
             </p>
+            <ElapsedTimer estimateSeconds={45} />
           </div>
         </div>
       )}
 
       {stage === "results" && (
         <div>
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="text-2xl font-bold">Innovation Results: {subject}</h2>
             <button
               onClick={handleReset}
@@ -208,6 +292,7 @@ export default function Home() {
               Start over
             </button>
           </div>
+          <ResultsActionBar subject={subject} angleResults={angleResults} synthesis={synthesis} />
           <InnovationResults angleResults={angleResults} synthesis={synthesis} />
           {angleResults.length > 0 && (
             <div className="mt-8">

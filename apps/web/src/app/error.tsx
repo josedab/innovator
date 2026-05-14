@@ -16,7 +16,7 @@ export default function Error({
 }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh]">
-      <div className="text-center max-w-md">
+      <div className="text-center max-w-md" role="alert">
         <div className="text-5xl mb-4">⚠️</div>
         <h2 className="text-2xl font-semibold mb-2">Something went wrong</h2>
         <p className="text-neutral-500 mb-6">
