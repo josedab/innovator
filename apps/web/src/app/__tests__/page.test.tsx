@@ -70,6 +70,33 @@ vi.mock("@/components/ExploreExamples", () => ({
   ExploreExamples: () => <div data-testid="explore-examples">Examples</div>,
 }));
 
+vi.mock("@/components/OnboardingWizard", () => ({
+  OnboardingWizard: ({ onSkip }: { onSkip: () => void }) => (
+    <div data-testid="onboarding-wizard">
+      <button data-testid="skip-onboarding" onClick={onSkip}>
+        Skip
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock("@/components/ElapsedTimer", () => ({
+  ElapsedTimer: () => <span data-testid="elapsed-timer">0s</span>,
+}));
+
+vi.mock("@/components/ResultsActionBar", () => ({
+  ResultsActionBar: () => <div data-testid="results-action-bar">Actions</div>,
+}));
+
+vi.mock("@/components/RecentSessions", () => ({
+  RecentSessions: () => <div data-testid="recent-sessions">Recent</div>,
+}));
+
+vi.mock("@/lib/session-storage", () => ({
+  saveSession: vi.fn(),
+  loadRecentSessions: vi.fn().mockReturnValue([]),
+}));
+
 import Home from "../page";
 
 describe("Home page", () => {
@@ -78,6 +105,12 @@ describe("Home page", () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
+    // Mark as onboarded so tests see the input stage directly
+    try {
+      localStorage.setItem("innovator-onboarded", "true");
+    } catch {
+      /* jsdom */
+    }
   });
 
   afterEach(() => {

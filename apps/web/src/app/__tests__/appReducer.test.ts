@@ -231,4 +231,43 @@ describe("appReducer", () => {
       expect(result).toEqual(initialState);
     });
   });
+
+  describe("RESTORE_SESSION", () => {
+    it("restores a saved session directly to results stage", () => {
+      const result = appReducer(initialState, {
+        type: "RESTORE_SESSION",
+        subject: "Restored Topic",
+        angleResults: mockAngleResults,
+        synthesis: mockSynthesis,
+      });
+      expect(result.stage).toBe("results");
+      expect(result.subject).toBe("Restored Topic");
+      expect(result.angleResults).toBe(mockAngleResults);
+      expect(result.synthesis).toBe(mockSynthesis);
+      expect(result.error).toBeNull();
+      expect(result.investigation).toBeNull();
+    });
+
+    it("clears previous state when restoring", () => {
+      const dirtyState: AppState = {
+        stage: "innovating",
+        subject: "old",
+        investigation: mockInvestigation,
+        selectedAngles: ["scamper"],
+        angleResults: [],
+        synthesis: null,
+        error: "old error",
+      };
+      const result = appReducer(dirtyState, {
+        type: "RESTORE_SESSION",
+        subject: "New",
+        angleResults: mockAngleResults,
+        synthesis: null,
+      });
+      expect(result.stage).toBe("results");
+      expect(result.subject).toBe("New");
+      expect(result.error).toBeNull();
+      expect(result.investigation).toBeNull();
+    });
+  });
 });
