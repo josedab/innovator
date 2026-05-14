@@ -34,6 +34,12 @@ export type AppAction =
   | { type: "INNOVATION_ERROR"; error: string }
   | { type: "START_AUTO"; subject: string }
   | { type: "AUTO_COMPLETE"; angleResults: AngleResult[]; synthesis: Synthesis | null }
+  | {
+      type: "RESTORE_SESSION";
+      subject: string;
+      angleResults: AngleResult[];
+      synthesis: Synthesis | null;
+    }
   | { type: "RESET" };
 
 /** Default state: clean input form with no data. */
@@ -84,6 +90,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         stage: "results",
+        angleResults: action.angleResults,
+        synthesis: action.synthesis,
+      };
+    case "RESTORE_SESSION":
+      return {
+        ...initialState,
+        stage: "results",
+        subject: action.subject,
         angleResults: action.angleResults,
         synthesis: action.synthesis,
       };
