@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
 /*
+ * Enable class-based dark mode: Tailwind dark: utilities activate when
+ * <html> has the "dark" class (set by ThemeToggle) OR when the OS
+ * prefers dark mode. This @custom-variant overrides the default
+ * media-only dark mode in Tailwind v4.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
  * Design Tokens (CSS Custom Properties)
  *
  * --background    Base background color (light: #ffffff, dark: #0a0a0a)
@@ -8,8 +16,8 @@
  * --font-sans     Sans-serif font stack (Geist Sans via next/font)
  * --font-mono     Monospace font stack (Geist Mono via next/font)
  *
- * Light/dark mode is handled automatically via prefers-color-scheme.
- * To add new tokens, define them in both the :root and the dark media query below.
+ * Dark mode is controlled by the ThemeToggle component (light/dark/system).
+ * The "dark" class on <html> drives both CSS vars and Tailwind dark: utilities.
  */
 
 :root {
@@ -24,15 +32,22 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* System preference fallback — applies when ThemeToggle hasn't set a preference */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.dark):not(:has(style[data-theme])) {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
 }
 
+/* Class-based dark mode — driven by ThemeToggle */
+:root.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
 }
