@@ -31,6 +31,14 @@ export interface PostgreSQLConfig {
   connectionString?: string;
 }
 
+/** Validate a SQL identifier (table/column name) to prevent injection. */
+const SAFE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+function assertSafeIdentifier(name: string, label: string): void {
+  if (!SAFE_IDENTIFIER.test(name) || name.length > 128) {
+    throw new Error(`Invalid ${label}: "${name}". Identifiers must be alphanumeric/underscore and ≤128 chars.`);
+  }
+}
+
 export class PostgreSQLDriver implements DatabaseDriver {
   readonly name = "postgresql";
   readonly type = "postgresql" as const;
@@ -92,6 +100,7 @@ export class PostgreSQLDriver implements DatabaseDriver {
     const params: unknown[] = [];
 
     for (const cond of conditions) {
+      assertSafeIdentifier(cond.field, "field name");
       const idx = params.length + 1;
       switch (cond.operator) {
         case "eq":
@@ -143,9 +152,11 @@ export class PostgreSQLDriver implements DatabaseDriver {
   }
 
   async insert(options: InsertOptions): Promise<string> {
+    assertSafeIdentifier(options.table, "table name");
     const id = (options.data.id as string) ?? randomUUID();
     const data = { ...options.data, id };
     const fields = Object.keys(data);
+    for (const f of fields) assertSafeIdentifier(f, "field name");
     const values = Object.values(data).map((v) =>
       typeof v === "object" && v !== null ? JSON.stringify(v) : v
     );
@@ -157,18 +168,23 @@ export class PostgreSQLDriver implements DatabaseDriver {
   }
 
   async query<T = Record<string, unknown>>(options: QueryOptions): Promise<T[]> {
+    assertSafeIdentifier(options.table, "table name");
+    if (options.select) {
+      for (const f of options.select) assertSafeIdentifier(f, "select field");
+    }
     const select = options.select?.map((f) => `"${f}"`).join(", ") ?? "*";
     let sql = `SELECT ${select} FROM "${options.table}"`;
     const { clause, params } = this.buildWhere(options.conditions ?? []);
     sql += clause;
 
     if (options.orderBy?.length) {
+      for (const o of options.orderBy) assertSafeIdentifier(o.field, "orderBy field");
       const orders = options.orderBy.map((o) => `"${o.field}" ${o.direction.toUpperCase()}`);
       sql += ` ORDER BY ${orders.join(", ")}`;
     }
 
-    if (options.limit) sql += ` LIMIT ${options.limit}`;
-    if (options.offset) sql += ` OFFSET ${options.offset}`;
+    if (options.limit) sql += ` LIMIT ${Number(options.limit)}`;
+    if (options.offset) sql += ` OFFSET ${Number(options.offset)}`;
 
     const result = await this.pool.query(sql, params);
     return result.rows as T[];
@@ -180,8 +196,10 @@ export class PostgreSQLDriver implements DatabaseDriver {
   }
 
   async update(options: UpdateOptions): Promise<number> {
+    assertSafeIdentifier(options.table, "table name");
     const { clause, params: whereParams } = this.buildWhere(options.conditions);
     const fields = Object.keys(options.data);
+    for (const f of fields) assertSafeIdentifier(f, "update field");
     const values = Object.values(options.data).map((v) =>
       typeof v === "object" && v !== null ? JSON.stringify(v) : v
     );
@@ -194,6 +212,7 @@ export class PostgreSQLDriver implements DatabaseDriver {
   }
 
   async delete(options: DeleteOptions): Promise<number> {
+    assertSafeIdentifier(options.table, "table name");
     const { clause, params } = this.buildWhere(options.conditions);
     const sql = `DELETE FROM "${options.table}"${clause}`;
     const result = await this.pool.query(sql, params);
