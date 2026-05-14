@@ -21,6 +21,10 @@ const {
   setRecordingEnabled,
   isRecordingEnabled,
   comparisonToMarkdown,
+  forkRun,
+  timeTravel,
+  buildBranchDiff,
+  clearTimeline,
 } = await import("../replay/index.js");
 
 // Use inline type for RunComparison
@@ -268,6 +272,164 @@ describe("replay", () => {
       expect(md).not.toContain("Overrides Applied");
       expect(md).not.toContain("New Ideas in Run B");
       expect(md).not.toContain("Ideas Only in Run A");
+    });
+  });
+
+  describe("forkRun", () => {
+    it("creates a forked run from investigation stage", () => {
+      const runId = startRunRecord("Solar energy", "gpt-4.1", ["scamper"]);
+      recordPrompt(runId, "Investigate", "investigation", "gpt-4.1");
+      recordPrompt(runId, "Generate SCAMPER", "generation", "gpt-4.1", "scamper");
+      completeRunRecord(runId, {
+        investigation: { summary: "Test" } as import("../types.js").Investigation,
+        angleResults: [
+          {
+            angleId: "scamper",
+            angleName: "SCAMPER",
+            ideas: [
+              {
+                title: "Idea1",
+                description: "D",
+                potentialImpact: "High",
+                implementationHint: "Do it",
+              },
+            ],
+            reasoning: "Applied",
+          },
+        ] as import("../types.js").AngleResult[],
+      });
+
+      const forked = forkRun(runId, "investigation");
+      expect(forked).toBeDefined();
+      expect(forked!.id).not.toBe(runId);
+      expect(forked!.subject).toBe("Solar energy");
+      expect(forked!.investigation).toBeDefined();
+      expect(forked!.metadata?.forkedFrom).toBe(runId);
+    });
+
+    it("applies overrides when forking", () => {
+      const runId = startRunRecord("Test", "gpt-4.1", ["scamper"]);
+      recordPrompt(runId, "Investigate", "investigation");
+      completeRunRecord(runId, {
+        investigation: { summary: "Test" } as import("../types.js").Investigation,
+      });
+
+      const forked = forkRun(runId, "investigation", {
+        subject: "New subject",
+        model: "claude-sonnet-4.5",
+      });
+      expect(forked!.subject).toBe("New subject");
+      expect(forked!.model).toBe("claude-sonnet-4.5");
+    });
+
+    it("returns undefined for non-existent run", () => {
+      expect(forkRun("nonexistent", "investigation")).toBeUndefined();
+    });
+  });
+
+  describe("timeTravel", () => {
+    it("navigates to a specific prompt index", () => {
+      const runId = startRunRecord("Test", "model", ["scamper"]);
+      recordPrompt(runId, "Investigate", "investigation", "model");
+      recordPrompt(runId, "Generate", "generation", "model", "scamper");
+      recordPrompt(runId, "Synthesize", "synthesis", "model");
+
+      const snapshot = timeTravel(runId, 1);
+      expect(snapshot).toBeDefined();
+      expect(snapshot!.stage).toBe("generation");
+      expect(snapshot!.completedPrompts).toHaveLength(2);
+      expect(snapshot!.remainingPrompts).toHaveLength(1);
+    });
+
+    it("returns undefined for non-existent run", () => {
+      expect(timeTravel("nonexistent", 0)).toBeUndefined();
+    });
+
+    it("returns undefined for out-of-bounds index", () => {
+      const runId = startRunRecord("Test", "model");
+      recordPrompt(runId, "Test", "investigation");
+      expect(timeTravel(runId, 5)).toBeUndefined();
+      expect(timeTravel(runId, -1)).toBeUndefined();
+    });
+
+    it("includes investigation result for past investigation prompts", () => {
+      const runId = startRunRecord("Test", "model");
+      recordPrompt(runId, "Investigate", "investigation");
+      completeRunRecord(runId, {
+        investigation: { summary: "Investigated" } as import("../types.js").Investigation,
+      });
+
+      const snapshot = timeTravel(runId, 0);
+      expect(snapshot!.investigation).toBeDefined();
+    });
+  });
+
+  describe("buildBranchDiff", () => {
+    it("computes diff between parent and branch runs", () => {
+      const parentId = startRunRecord("Test", "model", ["scamper"]);
+      recordPrompt(parentId, "Investigate", "investigation");
+      completeRunRecord(parentId, {
+        investigation: { summary: "Test" } as import("../types.js").Investigation,
+        angleResults: [
+          {
+            angleId: "scamper",
+            angleName: "SCAMPER",
+            ideas: [
+              {
+                title: "Shared Idea",
+                description: "D",
+                potentialImpact: "High",
+                implementationHint: "Do",
+              },
+            ],
+            reasoning: "R",
+          },
+        ] as import("../types.js").AngleResult[],
+      });
+
+      const branch = forkRun(parentId, "investigation")!;
+      completeRunRecord(branch.id, {
+        investigation: { summary: "Test" } as import("../types.js").Investigation,
+        angleResults: [
+          {
+            angleId: "scamper",
+            angleName: "SCAMPER",
+            ideas: [
+              {
+                title: "Shared Idea",
+                description: "D",
+                potentialImpact: "High",
+                implementationHint: "Do",
+              },
+              {
+                title: "New Branch Idea",
+                description: "D2",
+                potentialImpact: "Med",
+                implementationHint: "Try",
+              },
+            ],
+            reasoning: "R2",
+          },
+        ] as import("../types.js").AngleResult[],
+      });
+
+      const diff = buildBranchDiff(parentId, branch.id);
+      expect(diff).toBeDefined();
+      expect(diff!.sharedIdeas.length).toBeGreaterThanOrEqual(1);
+      expect(diff!.branchOnlyIdeas).toContain("New Branch Idea");
+    });
+
+    it("returns undefined for non-existent runs", () => {
+      expect(buildBranchDiff("nonexistent", "also-nonexistent")).toBeUndefined();
+    });
+  });
+
+  describe("clearTimeline", () => {
+    it("clears timeline data without affecting run records", () => {
+      const runId = startRunRecord("Test", "model");
+      clearTimeline();
+      // Run records should still exist
+      expect(getRunRecord(runId)).toBeDefined();
     });
   });
 });
