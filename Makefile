@@ -2,11 +2,20 @@
 
 .PHONY: help install dev dev-all dev-docs build build-check clean clean-all test test-ci test-coverage check lint lint-fix typecheck format doctor dev-cli
 
+# ── Help ──────────────────────────────────────────────────────────────
+
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
+# ── Setup ─────────────────────────────────────────────────────────────
+
 install: ## Install all dependencies
 	npm install
+
+doctor: ## Check prerequisites (Node, gh CLI, auth, core build)
+	npm run doctor
+
+# ── Development ───────────────────────────────────────────────────────
 
 dev: ## Start web dev server (builds core first)
 	npm run dev
@@ -17,17 +26,18 @@ dev-all: ## Run core watch + web dev in parallel (labeled output)
 dev-docs: ## Start Docusaurus documentation dev server
 	npm run dev:docs
 
+dev-cli: ## Run CLI in development mode via tsx
+	npm run dev:cli
+
+# ── Build ─────────────────────────────────────────────────────────────
+
 build: ## Build all packages for production
 	npm run build
 
-clean: ## Remove build artifacts
-	npm run clean
+build-check: ## Verify all expected build outputs exist
+	npm run build:check
 
-test: ## Run all tests
-	npm test
-
-test-coverage: ## Run tests with coverage report
-	npm run test:coverage
+# ── Quality ───────────────────────────────────────────────────────────
 
 check: ## Run all quality gates (lint, typecheck, format, test)
 	npm run check
@@ -35,26 +45,30 @@ check: ## Run all quality gates (lint, typecheck, format, test)
 lint: ## Run ESLint across all packages
 	npm run lint
 
+lint-fix: ## Auto-fix linting and formatting issues
+	npm run lint:fix
+
 typecheck: ## Run TypeScript type checking
 	npm run typecheck
 
 format: ## Format all files with Prettier
 	npm run format
 
-doctor: ## Check prerequisites (Node, gh CLI, auth, core build)
-	npm run doctor
+# ── Testing ───────────────────────────────────────────────────────────
 
-dev-cli: ## Run CLI in development mode via tsx
-	npm run dev:cli
+test: ## Run all tests
+	npm test
 
-build-check: ## Verify all expected build outputs exist
-	npm run build:check
+test-coverage: ## Run tests with coverage report
+	npm run test:coverage
 
 test-ci: ## Simulate full CI pipeline (format, lint, typecheck, build, test)
 	npm run test:ci
 
-lint-fix: ## Auto-fix linting and formatting issues
-	npm run lint:fix
+# ── Cleanup ───────────────────────────────────────────────────────────
+
+clean: ## Remove build artifacts
+	npm run clean
 
 clean-all: ## Clean build artifacts and all node_modules
 	npm run clean:all
