@@ -319,12 +319,19 @@ export function getWorkspace(workspaceId: string): Workspace | undefined {
   return workspaces.get(workspaceId);
 }
 
+/** Maximum workspace members per tier. */
+const TIER_MAX_MEMBERS: Record<string, number> = {
+  free: 1,
+  pro: 5,
+  team: 25,
+  enterprise: Infinity,
+};
+
 /** Add a member to a workspace. */
 export function addWorkspaceMember(workspaceId: string, userId: string): boolean {
   const workspace = workspaces.get(workspaceId);
   if (!workspace) return false;
-  const limits = TIER_LIMITS[workspace.tier] ?? TIER_LIMITS.free;
-  const maxMembers = workspace.tier === "enterprise" ? Infinity : limits.maxSessionsPerDay;
+  const maxMembers = TIER_MAX_MEMBERS[workspace.tier] ?? 1;
   if (workspace.memberIds.length >= maxMembers) return false;
   if (!workspace.memberIds.includes(userId)) {
     workspace.memberIds.push(userId);
