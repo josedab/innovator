@@ -416,8 +416,22 @@ export function checkLimit(tenantId: string, limitName: keyof PlanLimits): Limit
     case "apiRequestsPerDay":
       currentUsage = record.apiRequests;
       break;
-    default:
+    case "anglesPerSession":
+      currentUsage = record.anglesGenerated;
+      break;
+    case "customAngles":
+      currentUsage = record.anglesGenerated;
+      break;
+    case "storageGB": {
+      const usedGB = record.storageUsedBytes / (1024 * 1024 * 1024);
+      currentUsage = Math.round(usedGB * 100) / 100;
+      break;
+    }
+    case "teamMembers":
+    case "historyRetentionDays":
+    case "concurrentSessions":
       currentUsage = 0;
+      break;
   }
 
   const allowed = currentUsage < limit;
@@ -473,11 +487,25 @@ export function createApiKey(
 /**
  * Validate a raw API key and return the matching key record if valid and not revoked.
  * @param rawKey - The plaintext API key to validate.
- * @returns The matching {@link SaasApiKey}, or `undefined` if invalid or revoked.
+ * @param requiredScope - Optional scope that must be present on the key.
+ * @returns The matching {@link SaasApiKey}, or `undefined` if invalid, revoked, or missing scope.
  */
-export function validateApiKey(rawKey: string): SaasApiKey | undefined {
+export function validateApiKey(rawKey: string, requiredScope?: string): SaasApiKey | undefined {
   const hashed = hashKey(rawKey);
-  return Array.from(apiKeys.values()).find((k) => k.hashedKey === hashed && !k.revokedAt);
+  const key = Array.from(apiKeys.values()).find((k) => k.hashedKey === hashed && !k.revokedAt);
+  if (!key) return undefined;
+
+  // Check expiration
+  if (key.expiresAt && new Date(key.expiresAt) < new Date()) return undefined;
+
+  // Validate scope if required
+  if (requiredScope && !key.scopes.includes(requiredScope) && !key.scopes.includes("*")) {
+    return undefined;
+  }
+
+  // Update last used timestamp
+  key.lastUsedAt = new Date().toISOString();
+  return key;
 }
 
 /**
