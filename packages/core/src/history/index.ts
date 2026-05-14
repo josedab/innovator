@@ -6,13 +6,22 @@
  * Supports CRUD, full-text search, and filtering.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync, renameSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { SessionRecord, HistoryQuery, Investigation, AngleResult, Synthesis } from "../types.js";
 
 const HISTORY_DIR = join(homedir(), ".innovator", "history");
+
+/** Write to a temp file then atomically rename to prevent corruption. */
+function atomicWriteFileSync(filePath: string, data: string): void {
+  const dir = dirname(filePath);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const tmpPath = `${filePath}.${randomUUID().slice(0, 8)}.tmp`;
+  writeFileSync(tmpPath, data, "utf-8");
+  renameSync(tmpPath, filePath);
+}
 
 function ensureHistoryDir(): void {
   if (!existsSync(HISTORY_DIR)) {
@@ -49,7 +58,7 @@ export function saveSession(params: {
     notes: params.notes,
     presetId: params.presetId,
   };
-  writeFileSync(sessionPath(id), JSON.stringify(session, null, 2), "utf-8");
+  atomicWriteFileSync(sessionPath(id), JSON.stringify(session, null, 2));
   return id;
 }
 
@@ -74,7 +83,7 @@ export function updateSession(
   if (updates.tags !== undefined) session.tags = updates.tags;
   if (updates.notes !== undefined) session.notes = updates.notes;
   session.updatedAt = new Date().toISOString();
-  writeFileSync(sessionPath(id), JSON.stringify(session, null, 2), "utf-8");
+  atomicWriteFileSync(sessionPath(id), JSON.stringify(session, null, 2));
   return true;
 }
 

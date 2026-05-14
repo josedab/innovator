@@ -16,9 +16,10 @@ import {
   writeFileSync,
   readdirSync,
   unlinkSync,
+  renameSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { InnovatorPlugin } from "../types.js";
 
@@ -27,6 +28,15 @@ const REGISTRY_FILE = join(MARKETPLACE_DIR, "registry.json");
 
 function ensureDir(): void {
   if (!existsSync(MARKETPLACE_DIR)) mkdirSync(MARKETPLACE_DIR, { recursive: true });
+}
+
+/** Write to a temp file then atomically rename to prevent corruption. */
+function atomicWriteFileSync(filePath: string, data: string): void {
+  const dir = dirname(filePath);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const tmpPath = `${filePath}.${randomUUID().slice(0, 8)}.tmp`;
+  writeFileSync(tmpPath, data, "utf-8");
+  renameSync(tmpPath, filePath);
 }
 
 // ---- Types ----
@@ -123,7 +133,7 @@ function loadRegistry(): RegistryData {
 
 function saveRegistry(data: RegistryData): void {
   ensureDir();
-  writeFileSync(REGISTRY_FILE, JSON.stringify(data, null, 2), "utf-8");
+  atomicWriteFileSync(REGISTRY_FILE, JSON.stringify(data, null, 2));
 }
 
 // ---- Publishing ----
@@ -404,15 +414,13 @@ export function verifyPlugin(pluginId: string): boolean {
  */
 export function clearMarketplace(): void {
   ensureDir();
-  writeFileSync(
+  atomicWriteFileSync(
     REGISTRY_FILE,
-    JSON.stringify({ plugins: [], installed: [], reviews: [] }),
-    "utf-8"
+    JSON.stringify({ plugins: [], installed: [], reviews: [] })
   );
-  writeFileSync(
+  atomicWriteFileSync(
     TEMPLATE_REGISTRY_FILE,
-    JSON.stringify({ templates: [], collections: [] }),
-    "utf-8"
+    JSON.stringify({ templates: [], collections: [] })
   );
 }
 
@@ -684,7 +692,7 @@ function loadTemplateRegistry(): TemplateRegistryData {
 
 function saveTemplateRegistry(data: TemplateRegistryData): void {
   ensureDir();
-  writeFileSync(TEMPLATE_REGISTRY_FILE, JSON.stringify(data, null, 2), "utf-8");
+  atomicWriteFileSync(TEMPLATE_REGISTRY_FILE, JSON.stringify(data, null, 2));
 }
 
 // ---- Dependency Resolution ----

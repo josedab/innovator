@@ -6,13 +6,21 @@
  * Supports import/export via .angle.json pack files.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 import { CustomAngleSchema, AnglePackSchema, type CustomAngle, type AnglePack } from "../types.js";
 
 const CONFIG_DIR = join(homedir(), ".innovator");
 const ANGLES_FILE = join(CONFIG_DIR, "custom-angles.json");
+
+/** Write to a temp file then atomically rename to prevent corruption. */
+function atomicWriteFileSync(filePath: string, data: string): void {
+  const tmpPath = `${filePath}.${randomUUID().slice(0, 8)}.tmp`;
+  writeFileSync(tmpPath, data, "utf-8");
+  renameSync(tmpPath, filePath);
+}
 
 function ensureConfigDir(): void {
   if (!existsSync(CONFIG_DIR)) {
@@ -40,7 +48,7 @@ export function loadCustomAngles(): CustomAngle[] {
 /** Save all custom angles to disk. */
 function saveCustomAngles(angles: CustomAngle[]): void {
   ensureConfigDir();
-  writeFileSync(ANGLES_FILE, JSON.stringify(angles, null, 2), "utf-8");
+  atomicWriteFileSync(ANGLES_FILE, JSON.stringify(angles, null, 2));
 }
 
 /**
