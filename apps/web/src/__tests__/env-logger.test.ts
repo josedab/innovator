@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+function setNodeEnv(value: string | undefined): void {
+  vi.stubEnv("NODE_ENV", value ?? "");
+}
+
 describe("logger", () => {
   let originalEnv: string | undefined;
 
@@ -8,14 +12,14 @@ describe("logger", () => {
   });
 
   afterEach(() => {
-    process.env.NODE_ENV = originalEnv;
+    setNodeEnv(originalEnv);
     vi.restoreAllMocks();
     vi.resetModules();
   });
 
   describe("in development mode", () => {
     it("formats error with level prefix", async () => {
-      process.env.NODE_ENV = "development";
+      setNodeEnv("development");
       vi.resetModules();
       const { logger } = await import("@/lib/logger");
       const spy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -26,7 +30,7 @@ describe("logger", () => {
     });
 
     it("debug outputs in development", async () => {
-      process.env.NODE_ENV = "development";
+      setNodeEnv("development");
       vi.resetModules();
       const { logger } = await import("@/lib/logger");
       const spy = vi.spyOn(console, "debug").mockImplementation(() => {});
@@ -36,7 +40,7 @@ describe("logger", () => {
     });
 
     it("info includes context", async () => {
-      process.env.NODE_ENV = "development";
+      setNodeEnv("development");
       vi.resetModules();
       const { logger } = await import("@/lib/logger");
       const spy = vi.spyOn(console, "info").mockImplementation(() => {});
@@ -48,7 +52,7 @@ describe("logger", () => {
 
   describe("in production mode", () => {
     it("formats error as JSON", async () => {
-      process.env.NODE_ENV = "production";
+      setNodeEnv("production");
       vi.resetModules();
       const { logger } = await import("@/lib/logger");
       const spy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -62,7 +66,7 @@ describe("logger", () => {
     });
 
     it("debug is silent in production", async () => {
-      process.env.NODE_ENV = "production";
+      setNodeEnv("production");
       vi.resetModules();
       const { logger } = await import("@/lib/logger");
       const spy = vi.spyOn(console, "debug").mockImplementation(() => {});
@@ -87,14 +91,14 @@ describe("env", () => {
     } else {
       process.env.INNOVATOR_DEFAULT_MODEL = originalModel;
     }
-    process.env.NODE_ENV = originalEnv;
+    setNodeEnv(originalEnv);
     vi.restoreAllMocks();
     vi.resetModules();
   });
 
   it("validates successfully with a known model", async () => {
     process.env.INNOVATOR_DEFAULT_MODEL = "gpt-4.1";
-    process.env.NODE_ENV = "development";
+    setNodeEnv("development");
     vi.resetModules();
     const { validateEnv } = await import("@/lib/env");
     const env = validateEnv();
@@ -103,7 +107,7 @@ describe("env", () => {
 
   it("warns but does not throw for unknown model", async () => {
     process.env.INNOVATOR_DEFAULT_MODEL = "unknown-model-xyz";
-    process.env.NODE_ENV = "development";
+    setNodeEnv("development");
     vi.resetModules();
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { validateEnv } = await import("@/lib/env");
