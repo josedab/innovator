@@ -80,6 +80,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved `fast-uri` path traversal via percent-encoded segments (GHSA-q3j6-qgpj-74h6, GHSA-v39h-62p7-jpjc)
 - Added `.eslintcache` to `.gitignore` to prevent cached lint data from being committed
 
+### Upgrade Notes
+
+- **Coverage thresholds increased** — CI now enforces 50% minimum for lines, functions, and branches (previously 35%). Run `npm run test:coverage` locally before opening a PR to verify your changes meet the threshold.
+- **Node.js requirement** — The `doctor` script now validates npm ≥ 10 in addition to Node.js ≥ 20. Run `npm run doctor` to check your environment.
+- **ESLint cache** — The lint-staged configuration now uses `--cache` for faster pre-commit checks. If you encounter stale lint results after config changes, delete `.eslintcache` and re-run `npm run lint`.
+- **Docker Compose** — The `POSTGRES_PASSWORD` environment variable is now **required** (previously had a default). Set it in your `.env` file or export it before running `docker compose up`.
+
 ## [0.2.0] — 2025-05-10
 
 ### Added
