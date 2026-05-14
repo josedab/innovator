@@ -50,6 +50,9 @@ export const AutoPipelineInputSchema = z.object({
   angles: z.array(z.string()).optional().describe("Optional subset of angle IDs to use"),
 });
 
+/** Validated input for the `investigate` MCP tool. */
 export type InvestigateInput = z.infer<typeof InvestigateInputSchema>;
+/** Validated input for the `innovate` (generate) MCP tool. */
 export type GenerateInput = z.infer<typeof GenerateInputSchema>;
+/** Validated input for the `auto` (full pipeline) MCP tool. */
 export type AutoPipelineInput = z.infer<typeof AutoPipelineInputSchema>;
