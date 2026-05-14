@@ -54,7 +54,11 @@ export class DiscordAdapter implements BotPlatform {
     if (!this.sendFn) {
       throw new Error("Discord send function not configured. Call setSendFunction() first.");
     }
-    await this.sendFn(channelId, response.text, response.threadId);
+    // Discord has a 2000-character message limit
+    const text = response.text.length > 1950
+      ? response.text.slice(0, 1950) + "\n…[truncated]"
+      : response.text;
+    await this.sendFn(channelId, text, response.threadId);
   }
 
   async sendUpdate(channelId: string, response: BotResponse): Promise<void> {
