@@ -33,18 +33,17 @@ import {
 import type { Synthesis } from "../types.js";
 
 const mockSynthesis: Synthesis = {
-  subject: "AI in Healthcare",
   topIdeas: [
     {
       title: "Idea A",
       description: "Desc A",
       potentialImpact: "High",
-      implementationHint: "Start here",
+      sourceAngle: "scamper",
+      feasibility: "high" as const,
     },
   ],
-  crossCuttingThemes: ["technology", "innovation"],
-  recommendedNextSteps: ["Prototype"],
-  generatedAt: new Date().toISOString(),
+  themes: ["technology", "innovation"],
+  recommendation: "Prototype the top idea first",
 };
 
 describe("audience", () => {

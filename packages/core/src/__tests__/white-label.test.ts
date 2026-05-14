@@ -22,7 +22,7 @@ function makeTenantConfig(id = "acme") {
   return {
     tenantId: id,
     organizationName: "Acme Corp",
-    customDomain: "acme.innovator.app",
+    customDomain: `${id}.innovator.app`,
     branding: BrandingConfigSchema.parse({}),
     features: {
       enableCollaboration: true,

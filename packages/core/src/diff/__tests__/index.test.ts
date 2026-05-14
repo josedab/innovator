@@ -195,7 +195,7 @@ describe("diff", () => {
 
       const invalidResult = DiffResultSchema.safeParse(
         makeDiffResult({
-          changed: [{ title: "T", description: "D", significance: "extreme" }],
+          changed: [{ title: "T", description: "D", significance: "invalid-value" as "low" }],
         })
       );
       expect(invalidResult.success).toBe(false);

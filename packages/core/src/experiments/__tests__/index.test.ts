@@ -94,7 +94,7 @@ describe("experiments", () => {
 
     it("uses default runsPerVariant of 5 when not specified", () => {
       const config = makeConfig();
-      delete (config as Record<string, unknown>).runsPerVariant;
+      delete (config as unknown as Record<string, unknown>).runsPerVariant;
       const exp = createExperiment(config);
       expect(exp.runsPerVariant).toBe(5);
     });

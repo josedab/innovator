@@ -757,7 +757,7 @@ describe("federation", () => {
 
   describe("fetchRemotePatterns", () => {
     it("returns empty array for non-existent node", () => {
-      const patterns = fetchRemotePatterns("nonexistent");
+      const patterns = fetchRemotePatterns("nonexistent", "also-nonexistent");
       expect(patterns).toEqual([]);
     });
   });
