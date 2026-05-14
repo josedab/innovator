@@ -257,7 +257,13 @@ export function mineProcess(
   events: ProcessEvent[],
   config: ProcessMiningConfig = {}
 ): ProcessMiningResult {
-  if (events.length === 0) {
+  // Filter out events with invalid timestamps
+  const validEvents = events.filter((e) => {
+    const ts = new Date(e.timestamp).getTime();
+    return !isNaN(ts);
+  });
+
+  if (validEvents.length === 0) {
     return {
       processMap: { nodes: [], edges: [] },
       transitions: [],
@@ -277,9 +283,9 @@ export function mineProcess(
   const algorithm = config.algorithm ?? "alpha";
   const bottleneckThreshold = config.bottleneckThresholdMs ?? 5000;
 
-  const cases = groupByCase(events);
+  const cases = groupByCase(validEvents);
   const processMap =
-    algorithm === "inductive" ? inductiveMine(events, config) : alphaMine(events, config);
+    algorithm === "inductive" ? inductiveMine(validEvents, config) : alphaMine(validEvents, config);
   const transitions = analyzeTransitions(cases);
   const bottlenecks = detectBottlenecks(cases, bottleneckThreshold);
 
@@ -294,8 +300,8 @@ export function mineProcess(
   }
   const sortedDurations = [...caseDurations].sort((a, b) => a - b);
 
-  // Conformance: check expected sequence
-  const expectedSequence = ["investigation", "generation", "synthesis"];
+  // Conformance: check expected sequence (configurable)
+  const expectedSequence = config.expectedSequence ?? ["investigation", "generation", "synthesis"];
   const deviations: string[] = [];
   for (const [caseId, caseEvents] of cases) {
     const activities = caseEvents.map((e) => e.activity);
@@ -319,8 +325,8 @@ export function mineProcess(
     },
     statistics: {
       totalCases: cases.size,
-      totalEvents: events.length,
-      uniqueActivities: new Set(events.map((e) => e.activity)).size,
+      totalEvents: validEvents.length,
+      uniqueActivities: new Set(validEvents.map((e) => e.activity)).size,
       averageCaseDurationMs:
         caseDurations.length > 0
           ? Math.round(caseDurations.reduce((a, b) => a + b, 0) / caseDurations.length)

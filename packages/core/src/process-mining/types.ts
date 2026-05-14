@@ -86,4 +86,6 @@ export interface ProcessMiningConfig {
   algorithm?: "alpha" | "inductive";
   minFrequency?: number;
   bottleneckThresholdMs?: number;
+  /** Expected activity sequence for conformance checking. Defaults to investigation→generation→synthesis. */
+  expectedSequence?: string[];
 }
