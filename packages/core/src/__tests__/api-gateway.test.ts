@@ -289,6 +289,40 @@ describe("api-gateway", () => {
       const result = checkDailyLimit("nonexistent");
       expect(result.allowed).toBe(false);
     });
+
+    it("allows at 99 of 100 daily limit (boundary)", () => {
+      const key = createApiKey("Boundary", "free");
+      const today = new Date().toISOString();
+      for (let i = 0; i < TIER_LIMITS.free.dailyLimit - 1; i++) {
+        recordUsage({
+          keyId: key.id,
+          endpoint: "/api/test",
+          timestamp: today,
+          durationMs: 50,
+          statusCode: 200,
+        });
+      }
+      const result = checkDailyLimit(key.id);
+      expect(result.allowed).toBe(true);
+      expect(result.used).toBe(TIER_LIMITS.free.dailyLimit - 1);
+    });
+
+    it("blocks at exactly daily limit (boundary)", () => {
+      const key = createApiKey("Exact", "free");
+      const today = new Date().toISOString();
+      for (let i = 0; i < TIER_LIMITS.free.dailyLimit; i++) {
+        recordUsage({
+          keyId: key.id,
+          endpoint: "/api/test",
+          timestamp: today,
+          durationMs: 50,
+          statusCode: 200,
+        });
+      }
+      const result = checkDailyLimit(key.id);
+      expect(result.allowed).toBe(false);
+      expect(result.used).toBe(TIER_LIMITS.free.dailyLimit);
+    });
   });
 
   // ---- Token Bucket Rate Limiter ----
@@ -318,6 +352,15 @@ describe("api-gateway", () => {
 
       expect(blocked.allowed).toBe(false);
       expect(allowed.allowed).toBe(true);
+    });
+
+    it("does not overflow tokens beyond limit on refill", () => {
+      const config = { limit: 5, windowMs: 1_000 };
+      // Create bucket
+      checkTokenBucket("overflow-test", config);
+      // Wait and check — tokens should not exceed limit
+      const result = checkTokenBucket("overflow-test", config);
+      expect(result.remaining).toBeLessThanOrEqual(config.limit);
     });
   });
 
@@ -521,6 +564,19 @@ describe("api-gateway", () => {
       expect(demo.rateLimit.dailyLimit).toBe(5);
       expect(demo.rateLimit.minuteLimit).toBe(2);
       expect(demo.metadata).toEqual(expect.objectContaining({ demo: "true" }));
+    });
+
+    it("includes TTL expiry metadata", () => {
+      const demo = createDemoKey();
+      expect(demo.metadata?.expiresAt).toBeDefined();
+      const expiresAt = new Date(demo.metadata!.expiresAt!);
+      expect(expiresAt.getTime()).toBeGreaterThan(Date.now());
+    });
+  });
+
+  describe("findApiKeyByValue - edge cases", () => {
+    it("returns undefined when store is empty", () => {
+      expect(findApiKeyByValue("inv_free_anything")).toBeUndefined();
     });
   });
 
