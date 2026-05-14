@@ -562,3 +562,67 @@ describe("recordTestResult - transitions status", () => {
     );
   });
 });
+
+describe("analyzeResults - edge cases", () => {
+  it("returns null winner when variants are tied", () => {
+    const test = createABTest(
+      "Tied test",
+      "H",
+      [
+        { name: "A", description: "", config: {} },
+        { name: "B", description: "", config: {} },
+      ],
+      [{ name: "score", type: "continuous", primary: true, higherIsBetter: true }]
+    );
+    // Record identical results for both variants
+    for (let i = 0; i < 10; i++) {
+      recordTestResult(test.id, test.variants[0].id, { metrics: { score: 5 } });
+      recordTestResult(test.id, test.variants[1].id, { metrics: { score: 5 } });
+    }
+    const analysis = analyzeResults(test.id);
+    expect(analysis.winner).toBeNull();
+    expect(analysis.pairwiseComparisons[0].significant).toBe(false);
+  });
+
+  it("works with more than 2 variants (3-way comparison)", () => {
+    const test = createABTest(
+      "Three-way",
+      "H",
+      [
+        { name: "A", description: "", config: {} },
+        { name: "B", description: "", config: {} },
+        { name: "C", description: "", config: {} },
+      ],
+      [{ name: "score", type: "continuous", primary: true, higherIsBetter: true }]
+    );
+    for (let i = 0; i < 10; i++) {
+      recordTestResult(test.id, test.variants[0].id, { metrics: { score: 2 } });
+      recordTestResult(test.id, test.variants[1].id, { metrics: { score: 5 } });
+      recordTestResult(test.id, test.variants[2].id, { metrics: { score: 8 } });
+    }
+    const analysis = analyzeResults(test.id);
+    // 3 variants => C(3,2) = 3 pairwise comparisons
+    expect(analysis.pairwiseComparisons).toHaveLength(3);
+  });
+
+  it("throws for unknown test ID", () => {
+    expect(() => analyzeResults("nonexistent")).toThrow("A/B test not found");
+  });
+
+  it("handles variants with insufficient data (<2 results)", () => {
+    const test = createABTest(
+      "Insufficient",
+      "H",
+      [
+        { name: "A", description: "", config: {} },
+        { name: "B", description: "", config: {} },
+      ],
+      [{ name: "score", type: "continuous", primary: true, higherIsBetter: true }]
+    );
+    recordTestResult(test.id, test.variants[0].id, { metrics: { score: 5 } });
+    recordTestResult(test.id, test.variants[1].id, { metrics: { score: 8 } });
+    const analysis = analyzeResults(test.id);
+    expect(analysis.pairwiseComparisons[0].pValue).toBe(1);
+    expect(analysis.pairwiseComparisons[0].significant).toBe(false);
+  });
+});
