@@ -1986,6 +1986,7 @@ export {
   listNegotiations,
   completeNegotiation,
   computeIdeaDeltaScore,
+  cleanupExpiredNegotiations,
   clearNegotiations,
   NegotiationPhaseSchema,
   NegotiationMessageSchema,
@@ -3644,6 +3645,7 @@ export {
   exportRunPortfolio,
   removeAgentRun,
   clearAgentRuns,
+  resumeAgentRun,
   AgentBudgetSchema,
 } from "./autonomous-agent/index.js";
 export type { AgentBudget, ManagedAgentRun, AgentCheckpoint } from "./autonomous-agent/index.js";
@@ -5231,12 +5233,18 @@ export type {
 export {
   runPanel,
   panelToMarkdown,
+  computeInterRaterAgreement,
+  storePersona,
+  getStoredPersona,
+  listStoredPersonas,
+  clearPersonaStore,
   PersonaArchetypeSchema,
   SyntheticPersonaSchema,
   PersonaEvaluationSchema,
   PanelDebateEntrySchema,
   PanelConsensusSchema,
   PanelResultSchema,
+  InterRaterAgreementSchema,
   ARCHETYPE_PROFILES,
 } from "./synthetic-panels/index.js";
 export type {
@@ -5248,6 +5256,7 @@ export type {
   PanelResult,
   PanelConfig,
   PanelProgress,
+  InterRaterAgreement,
 } from "./synthetic-panels/index.js";
 
 /** Innovation Failure Pattern Library — curated failure patterns with semantic matching. */
