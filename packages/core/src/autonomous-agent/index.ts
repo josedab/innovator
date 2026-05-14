@@ -35,6 +35,7 @@ export {
   exportRunPortfolio,
   removeAgentRun,
   clearAgentRuns,
+  resumeAgentRun,
   AgentBudgetSchema,
 } from "./manager.js";
 export type { AgentBudget, ManagedAgentRun, AgentCheckpoint } from "./manager.js";

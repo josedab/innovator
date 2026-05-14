@@ -12,6 +12,7 @@ import type {
   AutonomousProgress,
   AutonomousAgentConfig,
   AgentStatus,
+  AgentDecision,
 } from "./types.js";
 import { runAutonomousAgent } from "./agent.js";
 
@@ -169,6 +170,96 @@ export async function startAgentRun(
     managed.run = result;
   } catch (err) {
     managed.run.status = "failed";
+    managed.run.updatedAt = new Date().toISOString();
+    // Store error context in the last decision for debugging
+    managed.run.decisions.push({
+      id: randomUUID(),
+      branchId: "",
+      action: "pause",
+      reasoning: `Run failed: ${err instanceof Error ? err.message : "unknown error"}`,
+      newSubjects: [],
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  return managed;
+}
+
+/** Resume a failed/paused agent run from the latest checkpoint. */
+export async function resumeAgentRun(
+  runId: string,
+  onProgress: (progress: AutonomousProgress & { budgetRemaining: number }) => void
+): Promise<ManagedAgentRun | undefined> {
+  const checkpoint = getLatestCheckpoint(runId);
+  if (!checkpoint) return undefined;
+
+  const previousRun: AutonomousRun = JSON.parse(checkpoint.serializedRun);
+  const managed = activeRuns.get(runId);
+  if (!managed) return undefined;
+
+  // Reset abort controller for the resumed run
+  managed.abortController = new AbortController();
+  managed.run.status = "exploring";
+  managed.run.updatedAt = new Date().toISOString();
+
+  const wrappedProgress = (progress: AutonomousProgress) => {
+    managed.budget.currentLLMCalls++;
+    const elapsed = Date.now() - managed.budget.startTimeMs;
+
+    if (managed.budget.currentLLMCalls >= managed.budget.maxLLMCalls) {
+      managed.abortController.abort();
+    }
+    if (elapsed >= managed.budget.maxWallTimeMs) {
+      managed.abortController.abort();
+    }
+
+    onProgress({
+      ...progress,
+      budgetRemaining: managed.budget.maxCost - managed.budget.currentCost,
+    });
+  };
+
+  // Collect unfinished branches from the checkpoint
+  const pendingBranches = previousRun.branches
+    .filter((b) => b.status === "pending")
+    .map((b) => b.subject);
+
+  // Add any injected topics that haven't been processed
+  const allTopics = [...pendingBranches, ...managed.injectedTopics];
+  managed.injectedTopics = [];
+
+  if (allTopics.length === 0) {
+    // Nothing to resume — trigger synthesis
+    managed.run.status = "completed";
+    return managed;
+  }
+
+  try {
+    const result = await runAutonomousAgent(allTopics[0], wrappedProgress, {
+      maxBranches: managed.run.config.maxBranches,
+      maxDepth: managed.run.config.maxDepth,
+      pruneThreshold: managed.run.config.pruneThreshold,
+      strategy: managed.run.strategy,
+      model: managed.run.config.model,
+      signal: managed.abortController.signal,
+    });
+
+    // Merge resumed results with existing
+    managed.run.branches.push(...result.branches);
+    managed.run.decisions.push(...result.decisions);
+    if (result.portfolio) managed.run.portfolio = result.portfolio;
+    managed.run.status = result.status;
+    managed.run.completedAt = result.completedAt;
+  } catch (err) {
+    managed.run.status = "failed";
+    managed.run.decisions.push({
+      id: randomUUID(),
+      branchId: "",
+      action: "pause",
+      reasoning: `Resume failed: ${err instanceof Error ? err.message : "unknown error"}`,
+      newSubjects: [],
+      timestamp: new Date().toISOString(),
+    });
   }
 
   return managed;
@@ -181,6 +272,23 @@ export function injectTopics(runId: string, topics: string[]): boolean {
     return false;
   }
   managed.injectedTopics.push(...topics);
+
+  // Add injected topics as new branches in the current run
+  for (const topic of topics) {
+    if (managed.run.branches.length >= managed.run.config.maxBranches) break;
+    const branch = {
+      id: randomUUID(),
+      parentId: null,
+      subject: topic,
+      depth: 0,
+      status: "pending" as const,
+      ideas: [],
+      subBranches: [],
+      createdAt: new Date().toISOString(),
+    };
+    managed.run.branches.push(branch);
+  }
+
   return true;
 }
 
