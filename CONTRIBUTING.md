@@ -210,7 +210,7 @@ Tests are configured in `vitest.config.ts` at the repository root. Key settings:
 
 - **Environment** — Web app tests (`apps/web/**`) run in a `jsdom` environment; all other tests use the default Node environment.
 - **Coverage provider** — V8, with `lcov` and `text` reporters.
-- **Minimum thresholds** — CI enforces **35%** coverage for lines, functions, and branches. Pull requests that drop below these thresholds will fail.
+- **Minimum thresholds** — CI enforces **50%** coverage for lines, functions, and branches. Pull requests that drop below these thresholds will fail.
 - **Run coverage locally** with `npm run test:coverage`.
 
 ## Testing Guide
@@ -267,7 +267,7 @@ const MOCK_INVESTIGATION: Investigation = {
 
 ### Coverage Thresholds
 
-CI enforces a **35% minimum** for lines, functions, and branches (configured in `vitest.config.ts`). This threshold reflects the project's reliance on LLM integration code that is mocked in tests — the goal is to ensure utility and pipeline logic is well-tested while acknowledging that full coverage of SDK-dependent code requires integration tests. Run `npm run test:coverage` to check locally.
+CI enforces a **50% minimum** for lines, functions, and branches (configured in `vitest.config.ts`). This threshold reflects the project's reliance on LLM integration code that is mocked in tests — the goal is to ensure utility and pipeline logic is well-tested while acknowledging that full coverage of SDK-dependent code requires integration tests. Run `npm run test:coverage` to check locally.
 
 ## E2E Testing with Playwright
 
