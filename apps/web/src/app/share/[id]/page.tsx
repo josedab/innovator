@@ -1,43 +1,121 @@
 /**
- * @description Shared investigation result page with OG metadata for social previews.
+ * @description Shared result page — resolves both shared investigations (by slug)
+ * and direct session lookups (by sessionId). Includes OG metadata for social previews.
  */
-import { getSharedInvestigation } from "@innovator/core";
+import { getSharedInvestigation, getSession } from "@innovator/core";
 import type { Metadata } from "next";
 
 interface SharePageProps {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({ params }: SharePageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const shared = getSharedInvestigation(slug);
+  const { id } = await params;
+  const shared = getSharedInvestigation(id);
 
-  if (!shared) {
-    return { title: "Investigation Not Found — Innovator" };
+  if (shared) {
+    return {
+      title: `${shared.title} — Innovator`,
+      description: `AI-powered innovation analysis of "${shared.subject}" — explore ${shared.viewCount} views`,
+      openGraph: {
+        title: shared.title,
+        description: `Innovation analysis: ${shared.subject}`,
+        type: "article",
+        publishedTime: shared.createdAt,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: shared.title,
+        description: `AI-powered innovation analysis of "${shared.subject}"`,
+      },
+    };
   }
 
-  return {
-    title: `${shared.title} — Innovator`,
-    description: `AI-powered innovation analysis of "${shared.subject}" — explore ${shared.viewCount} views`,
-    openGraph: {
-      title: shared.title,
-      description: `Innovation analysis: ${shared.subject}`,
-      type: "article",
-      publishedTime: shared.createdAt,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: shared.title,
-      description: `AI-powered innovation analysis of "${shared.subject}"`,
-    },
-  };
+  // Fallback: try direct session lookup
+  if (/^[a-zA-Z0-9_-]+$/.test(id) && id.length <= 200) {
+    const session = getSession(id);
+    if (session) {
+      const description = session.investigation?.summary
+        ?? `Innovation session exploring "${session.subject}" from ${session.angleResults.length} angles.`;
+      const ideaCount = session.angleResults.reduce((sum, ar) => sum + ar.ideas.length, 0);
+      return {
+        title: `${session.subject} — Innovator`,
+        description,
+        openGraph: {
+          title: `💡 ${session.subject}`,
+          description: `${ideaCount} innovation ideas from ${session.angleResults.length} angles. ${description.slice(0, 120)}`,
+          type: "article",
+          siteName: "Innovator",
+        },
+        twitter: {
+          card: "summary_large_image",
+          title: `💡 ${session.subject} — Innovator`,
+          description: `${ideaCount} innovation ideas across ${session.angleResults.length} creativity angles`,
+        },
+      };
+    }
+  }
+
+  return { title: "Not Found — Innovator" };
 }
 
 export default async function SharePage({ params }: SharePageProps) {
-  const { slug } = await params;
-  const shared = getSharedInvestigation(slug);
+  const { id } = await params;
+  const shared = getSharedInvestigation(id);
 
   if (!shared) {
+    // Fallback: try direct session lookup by ID
+    if (/^[a-zA-Z0-9_-]+$/.test(id) && id.length <= 200) {
+      const session = getSession(id);
+      if (session) {
+        const ideaCount = session.angleResults.reduce((sum, ar) => sum + ar.ideas.length, 0);
+        return (
+          <div className="max-w-4xl mx-auto px-4 py-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-neutral-800 dark:text-neutral-200">
+                💡 {session.subject}
+              </h1>
+              <p className="text-sm text-neutral-500 mt-2">
+                {session.angleResults.length} angles · {ideaCount} ideas · {new Date(session.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+
+            {session.investigation && (
+              <section className="mb-8">
+                <h2 className="text-xl font-semibold mb-3 text-neutral-700 dark:text-neutral-300">Investigation</h2>
+                <p className="text-neutral-600 dark:text-neutral-400">{session.investigation.summary}</p>
+              </section>
+            )}
+
+            {session.angleResults.map((ar) => (
+              <section key={ar.angleId} className="mb-6">
+                <h2 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 mb-3">{ar.angleId}</h2>
+                <div className="grid gap-3">
+                  {ar.ideas.map((idea, i) => (
+                    <div key={i} className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-700">
+                      <h3 className="font-medium text-neutral-800 dark:text-neutral-200">{idea.title}</h3>
+                      <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">{idea.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+
+            {session.synthesis && (
+              <section className="mt-8 rounded-xl border border-indigo-200 bg-indigo-50 p-5 dark:border-indigo-800 dark:bg-indigo-900/20">
+                <h2 className="text-lg font-semibold text-indigo-700 dark:text-indigo-300 mb-2">Synthesis</h2>
+                <p className="text-sm text-neutral-700 dark:text-neutral-300">{session.synthesis.recommendation}</p>
+              </section>
+            )}
+
+            <footer className="mt-8 pt-4 border-t border-neutral-200 dark:border-neutral-700 text-center text-xs text-neutral-500">
+              Generated by <a href="/" className="text-indigo-600 hover:underline">Innovator</a>
+            </footer>
+          </div>
+        );
+      }
+    }
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-white flex items-center justify-center">
         <div className="text-center">
