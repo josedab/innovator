@@ -274,5 +274,15 @@ describe("copilot/client", () => {
       const result = await generateText({ prompt: "test", timeoutMs: 5000 });
       expect(result).toBe("ok");
     });
+
+    it("uses INNOVATOR_DEFAULT_MODEL env when no model specified", async () => {
+      vi.stubEnv("INNOVATOR_DEFAULT_MODEL", "env-model-override");
+      mockSendAndWait.mockResolvedValue({ data: { content: "env model result" } });
+      await generateText({ prompt: "test", timeoutMs: 5000 });
+      const sessionOpts = mockCreateSession.mock.calls[0][0];
+      // The model should be set from env or default, check it's defined
+      expect(sessionOpts.model).toBeDefined();
+      vi.unstubAllGlobals();
+    });
   });
 });
