@@ -18,12 +18,12 @@ import {
   deleteSessionData,
   temporalMemoryToMarkdown,
 } from "../temporal-memory/temporal-memory.js";
+import { makeSessionIngestion } from "../__test-utils__/factories.js";
 import type { SessionIngestion } from "../temporal-memory/types.js";
 
 function makeSession(overrides: Partial<SessionIngestion> = {}): SessionIngestion {
-  return {
+  return makeSessionIngestion({
     sessionId: "session-1",
-    subject: "AI Ethics",
     investigation: {
       summary: "Investigation of AI ethics challenges",
       keyAspects: [
@@ -34,13 +34,16 @@ function makeSession(overrides: Partial<SessionIngestion> = {}): SessionIngestio
       opportunities: ["Ethical AI frameworks", "Audit tools"],
     },
     ideas: [
-      { title: "Bias Detection Tool", description: "Automated bias scanner", angleId: "first-principles" },
+      {
+        title: "Bias Detection Tool",
+        description: "Automated bias scanner",
+        angleId: "first-principles",
+      },
       { title: "Ethics Dashboard", description: "Real-time monitoring", angleId: "what-if" },
     ],
     themes: ["fairness", "transparency"],
-    timestamp: new Date().toISOString(),
     ...overrides,
-  };
+  });
 }
 
 describe("temporal-memory", () => {

@@ -5,20 +5,8 @@ vi.mock("@github/copilot-sdk", () => ({
 }));
 
 import { computeSurvivabilityIndex } from "../gauntlet/gauntlet.js";
-import type { Attack } from "../gauntlet/types.js";
-
-function makeAttack(overrides: Partial<Attack> = {}): Attack {
-  return {
-    adversaryRole: "skeptic",
-    category: "flawed-assumption",
-    severity: 5,
-    title: "Test Attack",
-    reasoning: "Test reasoning",
-    evidence: "Test evidence",
-    suggestedCounter: "Test counter",
-    ...overrides,
-  };
-}
+import { makeAttack } from "../__test-utils__/factories.js";
+import type { Attack, AdversaryRole } from "../gauntlet/types.js";
 
 describe("gauntlet", () => {
   describe("computeSurvivabilityIndex", () => {
@@ -62,7 +50,7 @@ describe("gauntlet", () => {
     });
 
     it("handles unknown adversary role gracefully", () => {
-      const attacks = [makeAttack({ adversaryRole: "custom-role" as any, severity: 5 })];
+      const attacks = [makeAttack({ adversaryRole: "custom-role" as AdversaryRole, severity: 5 })];
       const score = computeSurvivabilityIndex(attacks);
       expect(score).toBeGreaterThanOrEqual(0);
       expect(score).toBeLessThanOrEqual(100);
@@ -70,6 +58,21 @@ describe("gauntlet", () => {
 
     it("clamps to 0-100 range", () => {
       const attacks = [makeAttack({ severity: 1 })];
+      const score = computeSurvivabilityIndex(attacks);
+      expect(score).toBeGreaterThanOrEqual(0);
+      expect(score).toBeLessThanOrEqual(100);
+    });
+
+    it("handles NaN severity by treating as zero impact", () => {
+      const attacks = [makeAttack({ severity: NaN as unknown as number })];
+      const score = computeSurvivabilityIndex(attacks);
+      expect(typeof score).toBe("number");
+      expect(score).toBeGreaterThanOrEqual(0);
+      expect(score).toBeLessThanOrEqual(100);
+    });
+
+    it("handles negative severity gracefully", () => {
+      const attacks = [makeAttack({ severity: -5 })];
       const score = computeSurvivabilityIndex(attacks);
       expect(score).toBeGreaterThanOrEqual(0);
       expect(score).toBeLessThanOrEqual(100);

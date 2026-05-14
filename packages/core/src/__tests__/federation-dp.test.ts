@@ -54,6 +54,18 @@ describe("federation-dp", () => {
       // With epsilon=0.1, sensitivity=1, b=10, expected |noise| ≈ 10
       expect(avgNoise).toBeGreaterThan(1);
     });
+
+    it("throws on epsilon=0", () => {
+      expect(() => laplaceMechanism(50, 1, 0)).toThrow("Epsilon must be positive");
+    });
+
+    it("throws on negative epsilon", () => {
+      expect(() => laplaceMechanism(50, 1, -1)).toThrow("Epsilon must be positive");
+    });
+
+    it("throws on negative sensitivity", () => {
+      expect(() => laplaceMechanism(50, -1, 1)).toThrow("Sensitivity must be non-negative");
+    });
   });
 
   describe("laplaceConfidenceInterval", () => {
@@ -74,9 +86,13 @@ describe("federation-dp", () => {
   describe("generateRecommendations", () => {
     it("recommends effective angles for matching topics", () => {
       const patterns = [
-        makePattern({ angleId: "cross-domain", topicCategory: "sustainability", noisedValue: 0.85 }),
-        makePattern({ angleId: "cross-domain", topicCategory: "sustainability", noisedValue: 0.80 }),
-        makePattern({ angleId: "constraints", topicCategory: "sustainability", noisedValue: 0.60 }),
+        makePattern({
+          angleId: "cross-domain",
+          topicCategory: "sustainability",
+          noisedValue: 0.85,
+        }),
+        makePattern({ angleId: "cross-domain", topicCategory: "sustainability", noisedValue: 0.8 }),
+        makePattern({ angleId: "constraints", topicCategory: "sustainability", noisedValue: 0.6 }),
       ];
 
       const recs = generateRecommendations(
@@ -96,11 +112,7 @@ describe("federation-dp", () => {
         makePattern({ angleId: "scamper", topicCategory: "sustainability", noisedValue: 0.9 }),
       ];
 
-      const recs = generateRecommendations(
-        ["sustainability"],
-        ["scamper"],
-        patterns
-      );
+      const recs = generateRecommendations(["sustainability"], ["scamper"], patterns);
 
       expect(recs.find((r) => r.recommendedAngle === "scamper")).toBeUndefined();
     });
@@ -120,7 +132,7 @@ describe("federation-dp", () => {
       const patterns = [
         makePattern({ angleId: "first-principles", topicCategory: "HR", noisedValue: 0.08 }),
         makePattern({ angleId: "first-principles", topicCategory: "HR", noisedValue: 0.12 }),
-        makePattern({ angleId: "first-principles", topicCategory: "HR", noisedValue: 0.10 }),
+        makePattern({ angleId: "first-principles", topicCategory: "HR", noisedValue: 0.1 }),
       ];
 
       const antiPatterns = detectAntiPatterns(patterns, 0.15);
