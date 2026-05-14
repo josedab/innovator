@@ -1,4 +1,12 @@
-export { runPanel, panelToMarkdown } from "./panels.js";
+export {
+  runPanel,
+  panelToMarkdown,
+  computeInterRaterAgreement,
+  storePersona,
+  getStoredPersona,
+  listStoredPersonas,
+  clearPersonaStore,
+} from "./panels.js";
 export {
   PersonaArchetypeSchema,
   SyntheticPersonaSchema,
@@ -6,6 +14,7 @@ export {
   PanelDebateEntrySchema,
   PanelConsensusSchema,
   PanelResultSchema,
+  InterRaterAgreementSchema,
   ARCHETYPE_PROFILES,
 } from "./types.js";
 export type {
@@ -17,4 +26,5 @@ export type {
   PanelResult,
   PanelConfig,
   PanelProgress,
+  InterRaterAgreement,
 } from "./types.js";

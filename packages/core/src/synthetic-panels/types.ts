@@ -187,3 +187,20 @@ export interface PanelProgress {
   totalEvaluations: number;
   currentPersona?: string;
 }
+
+// ---- Inter-Rater Agreement ----
+
+export const InterRaterAgreementSchema = z.object({
+  fleissKappa: z.number().min(-1).max(1),
+  agreementLevel: z.enum(["poor", "slight", "fair", "moderate", "substantial", "almost-perfect"]),
+  pairwiseAgreement: z.number().min(0).max(1),
+  scoreVariance: z.number().min(0),
+  scoreStdDev: z.number().min(0),
+  confidenceInterval: z.object({
+    lower: z.number(),
+    upper: z.number(),
+    level: z.number(),
+  }),
+});
+
+export type InterRaterAgreement = z.infer<typeof InterRaterAgreementSchema>;

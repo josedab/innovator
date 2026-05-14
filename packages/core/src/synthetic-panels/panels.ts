@@ -13,6 +13,7 @@ import {
   type PanelConsensus,
   type PanelConfig,
   type PanelResult,
+  type InterRaterAgreement,
 } from "./types.js";
 
 const DEFAULT_PANEL_SIZE = 5;
@@ -24,7 +25,37 @@ const DEFAULT_ARCHETYPES: PersonaArchetype[] = [
   "skeptical-executive",
 ];
 
+// ---- Persistent Persona Store ----
+
+const personaStore = new Map<string, SyntheticPersona>();
+
+/** Store a persona for reuse across panel sessions. */
+export function storePersona(persona: SyntheticPersona): void {
+  personaStore.set(persona.id, persona);
+}
+
+/** Retrieve a stored persona by ID. */
+export function getStoredPersona(id: string): SyntheticPersona | undefined {
+  return personaStore.get(id);
+}
+
+/** List all stored personas, optionally filtered by archetype. */
+export function listStoredPersonas(archetype?: PersonaArchetype): SyntheticPersona[] {
+  const all = Array.from(personaStore.values());
+  return archetype ? all.filter((p) => p.archetype === archetype) : all;
+}
+
+/** Clear all stored personas (testing). */
+export function clearPersonaStore(): void {
+  personaStore.clear();
+}
+
 function generatePersona(archetype: PersonaArchetype, index: number): SyntheticPersona {
+  // Check persistent store first for character consistency
+  const storeKey = `persona-${archetype}-${index}`;
+  const existing = personaStore.get(storeKey);
+  if (existing) return existing;
+
   const profile = ARCHETYPE_PROFILES[archetype];
   const names: Record<PersonaArchetype, string> = {
     "early-adopter": "Alex Chen",
@@ -41,7 +72,7 @@ function generatePersona(archetype: PersonaArchetype, index: number): SyntheticP
     "casual-consumer": "Lisa Brown",
   };
 
-  return {
+  const persona: SyntheticPersona = {
     id: `persona-${archetype}-${index}`,
     name: names[archetype] ?? `Persona ${index}`,
     archetype,
@@ -55,6 +86,10 @@ function generatePersona(archetype: PersonaArchetype, index: number): SyntheticP
     frustrations: [profile.objectionStyle],
     decisionCriteria: profile.priorities,
   };
+
+  // Persist for reuse across sessions
+  personaStore.set(persona.id, persona);
+  return persona;
 }
 
 function buildEvaluationPrompt(
@@ -244,8 +279,16 @@ export async function runPanel(
             archetype: persona.archetype,
             ...result,
           });
-        } catch {
-          // Non-critical: skip debate entry on failure
+        } catch (debateErr) {
+          // Log which persona failed and continue
+          const reason = debateErr instanceof Error ? debateErr.message : "unknown error";
+          debate.push({
+            personaId: persona.id,
+            personaName: persona.name,
+            archetype: persona.archetype,
+            statement: `[Debate contribution failed: ${reason}]`,
+            sentiment: "nuance",
+          });
         }
       }
     }
@@ -332,4 +375,87 @@ export function panelToMarkdown(result: PanelResult): string {
   }
 
   return lines.join("\n");
+}
+
+/**
+ * Compute inter-rater agreement statistics for panel evaluations.
+ * Uses Fleiss' kappa for categorical agreement and variance metrics for scores.
+ */
+export function computeInterRaterAgreement(
+  evaluations: PersonaEvaluation[]
+): InterRaterAgreement {
+  if (evaluations.length < 2) {
+    return {
+      fleissKappa: 1,
+      agreementLevel: "almost-perfect",
+      pairwiseAgreement: 1,
+      scoreVariance: 0,
+      scoreStdDev: 0,
+      confidenceInterval: { lower: 0, upper: 10, level: 0.95 },
+    };
+  }
+
+  const scores = evaluations.map((e) => e.score);
+  const n = scores.length;
+
+  // Score statistics
+  const mean = scores.reduce((a, b) => a + b, 0) / n;
+  const variance = scores.reduce((sum, s) => sum + (s - mean) ** 2, 0) / n;
+  const stdDev = Math.sqrt(variance);
+
+  // 95% confidence interval for mean score
+  const tValue = 1.96; // approximation for large samples
+  const marginOfError = tValue * (stdDev / Math.sqrt(n));
+  const confidenceInterval = {
+    lower: Math.max(0, mean - marginOfError),
+    upper: Math.min(10, mean + marginOfError),
+    level: 0.95,
+  };
+
+  // Pairwise agreement: fraction of pairs with same verdict
+  const verdicts = evaluations.map((e) => e.verdict);
+  let agreePairs = 0;
+  let totalPairs = 0;
+  for (let i = 0; i < verdicts.length; i++) {
+    for (let j = i + 1; j < verdicts.length; j++) {
+      totalPairs++;
+      if (verdicts[i] === verdicts[j]) agreePairs++;
+    }
+  }
+  const pairwiseAgreement = totalPairs > 0 ? agreePairs / totalPairs : 1;
+
+  // Fleiss' kappa for verdict categories
+  const categories = ["enthusiastic", "positive", "neutral", "skeptical", "opposed"];
+  const N = n;
+  const k = categories.length;
+
+  const categoryCounts = categories.map(
+    (cat) => verdicts.filter((v) => v === cat).length
+  );
+  const pj = categoryCounts.map((c) => c / N);
+  const Pe = pj.reduce((sum, p) => sum + p * p, 0);
+  const Po = pairwiseAgreement;
+  const fleissKappa = Pe === 1 ? 1 : (Po - Pe) / (1 - Pe);
+
+  // Interpret kappa
+  let agreementLevel: InterRaterAgreement["agreementLevel"];
+  if (fleissKappa <= 0) agreementLevel = "poor";
+  else if (fleissKappa <= 0.2) agreementLevel = "slight";
+  else if (fleissKappa <= 0.4) agreementLevel = "fair";
+  else if (fleissKappa <= 0.6) agreementLevel = "moderate";
+  else if (fleissKappa <= 0.8) agreementLevel = "substantial";
+  else agreementLevel = "almost-perfect";
+
+  return {
+    fleissKappa: Math.round(fleissKappa * 1000) / 1000,
+    agreementLevel,
+    pairwiseAgreement: Math.round(pairwiseAgreement * 1000) / 1000,
+    scoreVariance: Math.round(variance * 100) / 100,
+    scoreStdDev: Math.round(stdDev * 100) / 100,
+    confidenceInterval: {
+      lower: Math.round(confidenceInterval.lower * 100) / 100,
+      upper: Math.round(confidenceInterval.upper * 100) / 100,
+      level: 0.95,
+    },
+  };
 }
