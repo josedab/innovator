@@ -43,7 +43,21 @@ check("Node.js >= 20", () => {
   }
 });
 
-// 2. GitHub CLI installed
+// 2. npm version >= 10
+check("npm >= 10", () => {
+  try {
+    const version = execSync("npm --version", { encoding: "utf8" }).trim();
+    const major = parseInt(version.split(".")[0], 10);
+    if (major < 10) {
+      throw new Error(`Found npm ${version} — upgrade to 10+ (comes with Node 20+)`);
+    }
+  } catch (err) {
+    if (err.message.includes("Found npm")) throw err;
+    throw new Error("npm not found");
+  }
+});
+
+// 3. GitHub CLI installed
 check("GitHub CLI (gh) installed", () => {
   try {
     const version = execSync("gh --version", { encoding: "utf8" }).trim().split("\n")[0];
@@ -53,7 +67,7 @@ check("GitHub CLI (gh) installed", () => {
   }
 });
 
-// 3. GitHub CLI authenticated
+// 4. GitHub CLI authenticated
 check("GitHub CLI authenticated", () => {
   try {
     execSync("gh auth status", { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
@@ -62,7 +76,7 @@ check("GitHub CLI authenticated", () => {
   }
 });
 
-// 4. packages/core/dist/ exists
+// 5. packages/core/dist/ exists
 check("Core package built (packages/core/dist/)", () => {
   const distPath = resolve(ROOT, "packages/core/dist");
   if (!existsSync(distPath)) {

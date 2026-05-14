@@ -1,13 +1,25 @@
-## Description
+## What
 
-Brief description of the changes.
+<!-- One-sentence description of what this PR does -->
 
-## Related issue
+## Why
+
+<!-- Context: what problem does this solve, or what feature does it enable? -->
 
 Closes #
 
+## How
+
+<!-- Brief description of the approach taken -->
+
 ## Checklist
 
-- [ ] I have run [`npm run check`](./CONTRIBUTING.md#quality) and all gates pass (lint + typecheck + format + test)
-- [ ] I have updated documentation if needed
-- [ ] I have added tests for new functionality (if applicable)
+- [ ] `npm run check` passes (lint + typecheck + format + test)
+- [ ] Tests added for new functionality
+- [ ] Documentation updated (if applicable)
+- [ ] No new dependencies without justification
+- [ ] Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
+
+## Testing
+
+<!-- How did you verify this works? (manual test steps, new tests, screenshots) -->

@@ -26,9 +26,9 @@ export default defineConfig({
       exclude: ["**/__tests__/**", "**/*.test.ts", "**/*.d.ts", "**/node_modules/**"],
       // Baseline thresholds — raise as coverage improves
       thresholds: {
-        lines: 35,
-        functions: 35,
-        branches: 35,
+        lines: 50,
+        functions: 50,
+        branches: 50,
       },
     },
   },
