@@ -133,17 +133,46 @@ innovator feedback summary          # View angle quality scores
 `;
 }
 
+// ---- Input Validation ----
+
+/** Validate that a project name is safe for filesystem use. */
+function validateProjectName(name: string): string {
+  if (!name || name.trim().length === 0) {
+    throw new Error("Project name cannot be empty");
+  }
+  const trimmed = name.trim();
+  if (trimmed.length > 214) {
+    throw new Error("Project name is too long (max 214 characters)");
+  }
+  if (/[<>:"/\\|?*\x00-\x1f]/.test(trimmed)) {
+    throw new Error("Project name contains invalid characters");
+  }
+  if (trimmed.startsWith(".") || trimmed.startsWith("-")) {
+    throw new Error("Project name cannot start with '.' or '-'");
+  }
+  if (/\.\./.test(trimmed)) {
+    throw new Error("Project name cannot contain path traversal sequences");
+  }
+  if (trimmed !== trimmed.replace(/\s+/g, "-")) {
+    // Allow but normalize spaces to dashes
+  }
+  return trimmed;
+}
+
 // ---- Main ----
 
 async function main() {
   const args = process.argv.slice(2);
-  const projectName = args[0];
+  const rawProjectName = args[0];
 
   console.log(chalk.bold("\n💡 create-innovator\n"));
   console.log(chalk.dim("Scaffold a new Innovator project\n"));
 
+  const projectNameInput = rawProjectName || (await ask("Project name", "my-innovator-project"));
+  const projectName = validateProjectName(projectNameInput);
+
   const config: ScaffoldConfig = {
-    projectName: projectName || (await ask("Project name", "my-innovator-project")),
+    projectName,
     defaultProvider: await ask("Default LLM provider (copilot/openai/anthropic/ollama)", "copilot"),
     setupCopilot: await confirm("Set up GitHub Copilot token guidance?"),
     includePresets: await confirm("Include domain presets?"),
