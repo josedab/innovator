@@ -12,6 +12,7 @@ import {
   getPreferences,
   getDeliveryHistory,
   testChannel,
+  retryFailedDeliveries,
   clearNotifications,
   NotificationChannelSchema,
   NotificationPayloadSchema,
@@ -498,4 +499,103 @@ describe("getChannels with userId", () => {
   it("returns empty for user with no preferences", () => {
     expect(getChannels("unknown")).toHaveLength(0);
   });
+});
+
+describe("retryFailedDeliveries", () => {
+  it("retries previously failed deliveries", async () => {
+    const failFetch = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+    vi.stubGlobal("fetch", failFetch);
+
+    const channel: NotificationChannel = {
+      id: "retry-ch",
+      type: "webhook",
+      config: { url: "http://example.com/retry" },
+      enabled: true,
+    };
+    registerChannel(channel);
+
+    const payload: NotificationPayload = {
+      title: "Retry Test",
+      body: "Body",
+      priority: "low",
+      category: "system",
+      timestamp: new Date().toISOString(),
+    };
+    await sendNotification(payload, [channel]);
+
+    // Now make fetch succeed for retry
+    const successFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    vi.stubGlobal("fetch", successFetch);
+
+    const retried = await retryFailedDeliveries("retry-ch");
+    expect(retried.length).toBeGreaterThan(0);
+    expect(retried[0].status).toBe("sent");
+    expect(retried[0].attempts).toBeGreaterThan(1);
+
+    vi.unstubAllGlobals();
+  }, 30000);
+
+  it("returns empty array when no failed deliveries exist", async () => {
+    const retried = await retryFailedDeliveries();
+    expect(retried).toHaveLength(0);
+  });
+});
+
+describe("testChannel", () => {
+  it("sends a test notification to the channel", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const channel: NotificationChannel = {
+      id: "test-verify",
+      type: "webhook",
+      config: { url: "http://example.com/test" },
+      enabled: true,
+    };
+
+    const result = await testChannel(channel);
+    expect(result.success).toBe(true);
+
+    vi.unstubAllGlobals();
+  });
+
+  it("reports failure when channel endpoint is down", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const channel: NotificationChannel = {
+      id: "test-fail",
+      type: "webhook",
+      config: { url: "http://example.com/down" },
+      enabled: true,
+    };
+
+    const result = await testChannel(channel);
+    expect(result.success).toBe(false);
+
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("sendNotification - all providers fail", () => {
+  it("marks all deliveries as failed when all channels fail", async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new Error("Network error"));
+    vi.stubGlobal("fetch", mockFetch);
+
+    const channels: NotificationChannel[] = [
+      { id: "fail-1", type: "webhook", config: { url: "http://a.com" }, enabled: true },
+      { id: "fail-2", type: "webhook", config: { url: "http://b.com" }, enabled: true },
+    ];
+    const payload: NotificationPayload = {
+      title: "All Fail",
+      body: "Body",
+      priority: "high",
+      category: "system",
+      timestamp: new Date().toISOString(),
+    };
+    const deliveries = await sendNotification(payload, channels);
+    expect(deliveries.every((d) => d.status === "failed")).toBe(true);
+
+    vi.unstubAllGlobals();
+  }, 30000);
 });
