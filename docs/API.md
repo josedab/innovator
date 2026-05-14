@@ -4,6 +4,8 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
 
 > **Client-safe imports:** For React/browser components that need only types and angle definitions (no Node.js dependencies), import from `@innovator/core/types` instead of `@innovator/core`.
 
+> **See also:** [Developer Guide](./DEVELOPER_GUIDE.md) for practical recipes, environment setup, and step-by-step tutorials using these APIs.
+
 ---
 
 ## Table of Contents
@@ -83,9 +85,7 @@ console.log(result.opportunities);
 
 **Error handling:** Retries automatically on JSON parse failures (up to 3 attempts with exponential backoff). Throws if the LLM call fails or the response cannot be parsed after retries.
 
----
-
-### `generateForAngle()`
+> 📖 **Tutorial:** See [Running the Pipeline Programmatically](./DEVELOPER_GUIDE.md#running-the-pipeline-programmatically) for complete usage examples with cancellation and model routing.
 
 Generate innovation ideas for a subject using a specific creativity angle.
 
@@ -252,27 +252,24 @@ function buildCustomAnglePrompt(angle: CustomAngle, subject: string, context: st
 
 Custom angle IDs must match `^[a-z0-9-]+$`. Prompt templates support `{{subject}}` and `{{investigation}}` placeholders.
 
-**Example:**
-
-```typescript
-import { addCustomAngle, generateForAngle, investigate } from "@innovator/core";
-import type { CustomAngle } from "@innovator/core/types";
+> 📖 **Tutorial:** See [Creating Custom Angles](./DEVELOPER_GUIDE.md#creating-custom-angles) for step-by-step registration and angle pack examples.
 
 const ethicsAngle: CustomAngle = {
-  id: "ethics-lens",
-  name: "Ethics Lens",
-  description: "Evaluate through ethical frameworks",
-  promptTemplate: `Analyze {{subject}} for ethical implications.
+id: "ethics-lens",
+name: "Ethics Lens",
+description: "Evaluate through ethical frameworks",
+promptTemplate: `Analyze {{subject}} for ethical implications.
 Context: {{investigation}}
 Respond with JSON: { "angleId": "ethics-lens", "angleName": "Ethics Lens", "ideas": [...], "reasoning": "..." }`,
-  icon: "⚖️",
+icon: "⚖️",
 };
 
 addCustomAngle(ethicsAngle);
 
 const investigation = await investigate("facial recognition");
 const result = await generateForAngle("facial recognition", investigation, "ethics-lens");
-```
+
+````
 
 ---
 
@@ -286,7 +283,7 @@ Send a prompt and wait for the complete response.
 
 ```typescript
 function generateText(options: GenerateOptions): Promise<string>;
-```
+````
 
 ### `generateTextStream()`
 
@@ -457,9 +454,7 @@ function clearPlugins(): void;
 
 Plugin IDs must match `^[a-z0-9-]+$` (may include dots for namespacing, e.g. `myorg.custom-angles`).
 
----
-
-## Presets
+> 📖 **Tutorial:** See [Writing a Plugin](./DEVELOPER_GUIDE.md#writing-a-plugin) for a complete plugin example.
 
 Pre-configured angle sets for common innovation domains:
 
@@ -488,9 +483,56 @@ function querySessions(query: HistoryQuery): SessionRecord[];
 function compareSessions(ids: string[]): object;
 ```
 
----
+### Pagination
 
-## Export
+`querySessions()` supports offset-based pagination via the `HistoryQuery` interface:
+
+```typescript
+interface HistoryQuery {
+  search?: string; // Full-text search across subject and summary
+  tags?: string[]; // Filter by tags
+  fromDate?: string; // ISO 8601 date range start
+  toDate?: string; // ISO 8601 date range end
+  angleId?: string; // Filter by innovation angle
+  limit?: number; // Items per page (default: 50)
+  offset?: number; // Starting position (default: 0)
+}
+```
+
+**Example:**
+
+```typescript
+import { querySessions } from "@innovator/core";
+
+// Page 1 (first 20 items)
+const page1 = querySessions({ limit: 20, offset: 0, tags: ["ai"] });
+
+// Page 2 (next 20 items)
+const page2 = querySessions({ limit: 20, offset: 20, tags: ["ai"] });
+```
+
+**HTTP API (`GET /api/history`):**
+
+```
+GET /api/history?limit=20&offset=0&search=packaging&tags=sustainability&from=2025-01-01
+```
+
+**Response envelope:**
+
+```json
+{
+  "data": [
+    { "id": "sess-1", "subject": "...", "createdAt": "...", ... },
+    { "id": "sess-2", "subject": "...", "createdAt": "...", ... }
+  ],
+  "total": 42
+}
+```
+
+| Field   | Type              | Description                                        |
+| ------- | ----------------- | -------------------------------------------------- |
+| `data`  | `SessionRecord[]` | Array of sessions for the current page             |
+| `total` | `number`          | Total matching sessions (for computing page count) |
 
 Render sessions in multiple output formats:
 
@@ -751,7 +793,7 @@ function runGauntlet(
 | `model`             | `string`          | —       | LLM model override                             |
 | `customAdversaries` | `object[]`        | —       | Add custom adversary personas                  |
 
-**Built-in adversary roles:** `competitor`, `regulator`, `skeptic`, `economist`, `engineer`
+> 📖 **Tutorial:** See [Stress-Testing Ideas with the Gauntlet](./DEVELOPER_GUIDE.md#stress-testing-ideas-with-the-gauntlet) for usage recipes.
 
 **Example:**
 
@@ -988,3 +1030,58 @@ loadPrivacyBudget(dir?)           // Get current budget state
 spendBudget(epsilon, queryType, dir?)  // Spend ε, returns false if exhausted
 getRemainingBudget(dir?)          // Remaining ε before exhaustion
 ```
+
+---
+
+## Rate Limiting
+
+API routes enforce per-IP rate limits via middleware (`apps/web/src/middleware.ts`) and a sliding-window limiter (`apps/web/src/lib/rate-limit.ts`).
+
+### Rate Limits by Endpoint
+
+| Endpoint               | Limit      | Window | Notes                             |
+| ---------------------- | ---------- | ------ | --------------------------------- |
+| Global (all routes)    | 10 req/min | 60 s   | Per-IP sliding window             |
+| `/api/auto`            | 3 req/min  | 60 s   | Stricter — triggers full pipeline |
+| `/api/innovate`        | 5 req/min  | 60 s   | Triggers up to 9 LLM calls        |
+| Concurrent SSE streams | 2 max      | —      | Per-IP simultaneous connections   |
+
+### Response Headers
+
+Every API response includes rate-limit headers:
+
+| Header                  | Description                                  | Example                    |
+| ----------------------- | -------------------------------------------- | -------------------------- |
+| `X-RateLimit-Limit`     | Total requests allowed in the current window | `60`                       |
+| `X-RateLimit-Remaining` | Requests remaining before throttling         | `57`                       |
+| `X-RateLimit-Reset`     | ISO 8601 timestamp when the window resets    | `2025-05-10T12:01:00.000Z` |
+| `X-Request-ID`          | Unique request UUID for tracing              | `a1b2c3d4-...`             |
+
+### Throttled Responses (429)
+
+When rate-limited, the API returns `429 Too Many Requests` with:
+
+| Header             | Description                                  | Example        |
+| ------------------ | -------------------------------------------- | -------------- |
+| `Retry-After`      | Seconds until the rate limit window resets   | `45`           |
+| `X-Request-ID`     | Request UUID for debugging                   | `a1b2c3d4-...` |
+| `X-Quota-Exceeded` | Quota type exceeded (`"burst"` or `"daily"`) | `"burst"`      |
+
+```json
+{
+  "error": "Rate limit exceeded",
+  "retryAfter": 45
+}
+```
+
+### Tier-Based Quotas
+
+When `INNOVATOR_API_KEY` or `INNOVATOR_API_KEYS` is configured, requests are tiered:
+
+| Tier       | Daily Limit         |
+| ---------- | ------------------- |
+| Free       | 100 requests/day    |
+| Pro        | 10,000 requests/day |
+| Enterprise | Unlimited           |
+
+> **Note:** The rate limiter uses an in-memory store. For multi-instance deployments, replace with a shared store (e.g., Redis).
