@@ -1,3 +1,6 @@
+/**
+ * @description Health check endpoint with component-level status report.
+ */
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 import { getHealthReport } from "@innovator/core";
 

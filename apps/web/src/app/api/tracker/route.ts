@@ -1,3 +1,6 @@
+/**
+ * @description Idea fitness tracker dashboard and recent tracked ideas.
+ */
 import { NextResponse } from "next/server";
 import { buildDashboard, loadTrackedIdeas } from "@innovator/core";
 

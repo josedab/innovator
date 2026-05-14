@@ -1,5 +1,6 @@
 /**
- * Portfolio analytics API route.
+ * @description Portfolio analytics — dashboard data and theme clustering.
+ *
  * GET /api/portfolio — returns comprehensive dashboard data
  * POST /api/portfolio — theme clustering, conversion metrics
  */

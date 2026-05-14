@@ -1,3 +1,6 @@
+/**
+ * @description OPML feed subscription file generation.
+ */
 export const runtime = "nodejs";
 
 import { SECURITY_HEADERS } from "@/lib/api-headers";

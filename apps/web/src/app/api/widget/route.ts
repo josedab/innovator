@@ -1,3 +1,6 @@
+/**
+ * @description Embeddable widget JavaScript source endpoint.
+ */
 export const runtime = "nodejs";
 
 import { getWidgetSource } from "@innovator/core";

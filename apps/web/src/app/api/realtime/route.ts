@@ -1,5 +1,6 @@
 /**
- * Real-time collaboration API route.
+ * @description Real-time collaboration with SSE-based presence streaming.
+ *
  * Provides SSE-based fallback for environments without native WebSocket support
  * (e.g., Vercel serverless). For full WebSocket support, use the standalone
  * WebSocket server or a service like Partykit.

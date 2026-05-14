@@ -1,5 +1,6 @@
 /**
- * Plugin Marketplace API route.
+ * @description Plugin marketplace — search, list, install, publish, and review plugins.
+ *
  * GET  /api/marketplace          — Search/list plugins
  * GET  /api/marketplace?id=...   — Get specific plugin
  * POST /api/marketplace          — Install, publish, or review

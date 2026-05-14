@@ -1,5 +1,6 @@
 /**
- * Idea-to-Code scaffold API route.
+ * @description Idea-to-code scaffold generation from innovation ideas.
+ *
  * POST /api/scaffold — generate implementation scaffolding for an idea
  */
 
