@@ -146,6 +146,15 @@ let defaultTenantId: string | undefined;
 /** Register a new tenant configuration. */
 export function registerTenant(config: TenantConfig): void {
   TenantConfigSchema.parse(config);
+
+  // Validate domain uniqueness
+  if (config.customDomain) {
+    const existingTenant = domainIndex.get(config.customDomain);
+    if (existingTenant && existingTenant !== config.tenantId) {
+      throw new Error(`Domain "${config.customDomain}" is already registered to tenant "${existingTenant}"`);
+    }
+  }
+
   tenants.set(config.tenantId, config);
   if (config.customDomain) {
     domainIndex.set(config.customDomain, config.tenantId);
@@ -156,6 +165,14 @@ export function registerTenant(config: TenantConfig): void {
 export function updateTenant(tenantId: string, updates: Partial<TenantConfig>): TenantConfig {
   const existing = tenants.get(tenantId);
   if (!existing) throw new Error(`Tenant not found: ${tenantId}`);
+
+  // Validate domain uniqueness when changing domain
+  if (updates.customDomain && updates.customDomain !== existing.customDomain) {
+    const existingOwner = domainIndex.get(updates.customDomain);
+    if (existingOwner && existingOwner !== tenantId) {
+      throw new Error(`Domain "${updates.customDomain}" is already registered to tenant "${existingOwner}"`);
+    }
+  }
 
   // Remove old domain mapping
   if (existing.customDomain) domainIndex.delete(existing.customDomain);
@@ -259,7 +276,7 @@ export function isFeatureEnabled(tenantId: string, feature: keyof FeatureToggles
   return typeof value === "boolean" ? value : false;
 }
 
-/** Apply terminology mapping to a string. */
+/** Apply terminology mapping to a string using word-boundary matching. */
 export function applyTerminology(tenantId: string, text: string): string {
   const config = tenants.get(tenantId);
   if (!config?.terminology) return text;
@@ -279,11 +296,20 @@ export function applyTerminology(tenantId: string, text: string): string {
     workspace: "Workspace",
   };
 
-  for (const [key, defaultTerm] of Object.entries(defaultTerms)) {
+  // Sort by longest term first to prevent partial replacements
+  const entries = Object.entries(defaultTerms).sort(
+    ([, a], [, b]) => b.length - a.length
+  );
+
+  for (const [key, defaultTerm] of entries) {
     const customTerm = map[key as keyof TerminologyMap];
     if (customTerm && customTerm !== defaultTerm) {
-      result = result.replaceAll(defaultTerm, customTerm);
-      result = result.replaceAll(defaultTerm.toLowerCase(), customTerm.toLowerCase());
+      // Use word-boundary regex to avoid corrupting nested terms
+      const escaped = defaultTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const pattern = new RegExp(`\\b${escaped}\\b`, "g");
+      const patternLower = new RegExp(`\\b${escaped.toLowerCase()}\\b`, "g");
+      result = result.replace(pattern, customTerm);
+      result = result.replace(patternLower, customTerm.toLowerCase());
     }
   }
 
