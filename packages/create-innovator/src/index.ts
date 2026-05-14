@@ -15,6 +15,13 @@ import chalk from "chalk";
 
 // ---- Interactive Prompt Helper ----
 
+/**
+ * Prompt the user with a question on stdin and return their answer.
+ *
+ * @param question     - The question text to display.
+ * @param defaultValue - Optional default used when the user presses Enter without typing.
+ * @returns The user's trimmed answer, or {@link defaultValue} if blank.
+ */
 function ask(question: string, defaultValue?: string): Promise<string> {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const prompt = defaultValue ? `${question} (${defaultValue}): ` : `${question}: `;
@@ -26,6 +33,12 @@ function ask(question: string, defaultValue?: string): Promise<string> {
   });
 }
 
+/**
+ * Prompt the user with a yes/no confirmation question.
+ *
+ * @param question - The question text to display (a `(y/N)` suffix is appended automatically).
+ * @returns `true` if the user answered "y" or "yes", `false` otherwise.
+ */
 async function confirm(question: string): Promise<boolean> {
   const answer = await ask(`${question} (y/N)`);
   return answer.toLowerCase() === "y" || answer.toLowerCase() === "yes";
@@ -41,6 +54,15 @@ interface ScaffoldConfig {
   includeCustomAngles: boolean;
 }
 
+/**
+ * Generate the `.innovator.config.json` content for a new project.
+ *
+ * Produces a JSON string with provider configuration, model preferences,
+ * and the user's chosen default LLM provider.
+ *
+ * @param config - The scaffold configuration collected from user prompts.
+ * @returns Pretty-printed JSON string ready to write to disk.
+ */
 function generateConfig(config: ScaffoldConfig): string {
   return JSON.stringify(
     {
@@ -62,6 +84,14 @@ function generateConfig(config: ScaffoldConfig): string {
   );
 }
 
+/**
+ * Generate a sample custom angle JSON file for reference.
+ *
+ * The generated angle includes a complete prompt template with `{{subject}}`
+ * and `{{investigation}}` placeholders, demonstrating the custom angle format.
+ *
+ * @returns Pretty-printed JSON string for `angles/sample.angle.json`.
+ */
 function generateSampleAngle(): string {
   return JSON.stringify(
     {
@@ -98,6 +128,15 @@ Generate 3-5 innovative ideas based on your custom analysis. Respond with valid 
   );
 }
 
+/**
+ * Generate a starter `README.md` for the scaffolded project.
+ *
+ * Includes a quick-start guide, configuration notes, custom angle instructions,
+ * and common CLI commands.
+ *
+ * @param projectName - The name of the new project (used as the heading).
+ * @returns Markdown string ready to write to disk.
+ */
 function generateReadme(projectName: string): string {
   return `# ${projectName}
 
