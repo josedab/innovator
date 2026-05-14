@@ -427,6 +427,21 @@ describe("benchmark", () => {
       expect(result.meanA).toBeCloseTo(4, 1);
       expect(result.meanB).toBeCloseTo(12, 1);
     });
+
+    it("returns not significant for models not in report", () => {
+      const report = makeReport([5, 5, 5], [8, 8, 8]);
+      const result = computeStatisticalSignificance(report, "X", "Y");
+      expect(result.significant).toBe(false);
+      expect(result.pValue).toBe(1);
+    });
+
+    it("handles seDiff=0 case (identical same-variance groups)", () => {
+      const report = makeReport([5, 5, 5, 5, 5], [5, 5, 5, 5, 5]);
+      const result = computeStatisticalSignificance(report, "A", "B");
+      expect(result.tStatistic).toBe(0);
+      expect(result.pValue).toBe(1);
+      expect(result.significant).toBe(false);
+    });
   });
 
   describe("computeBenchmarkMetrics", () => {
@@ -520,6 +535,111 @@ describe("benchmark", () => {
       const metrics = computeBenchmarkMetrics(report);
       expect(metrics[0].avgTokensPerIdea).toBe(0);
       expect(metrics[0].estimatedCostUsd).toBe(0);
+    });
+
+    it("computes p50 latency correctly with multiple results", () => {
+      const report: BenchmarkReport = {
+        subject: "test",
+        angleIds: ["scamper", "inversion"],
+        models: ["model-a"],
+        results: [
+          {
+            model: "model-a",
+            angleId: "scamper",
+            ideaCount: 2,
+            evaluations: [
+              {
+                ideaTitle: "t",
+                diversity: 5,
+                specificity: 5,
+                actionability: 5,
+                novelty: 5,
+                overallScore: 5,
+                feedback: "f",
+              },
+            ],
+            averageScores: {
+              diversity: 5,
+              specificity: 5,
+              actionability: 5,
+              novelty: 5,
+              overall: 5,
+            },
+            durationMs: 100,
+          },
+          {
+            model: "model-a",
+            angleId: "inversion",
+            ideaCount: 2,
+            evaluations: [
+              {
+                ideaTitle: "t",
+                diversity: 7,
+                specificity: 7,
+                actionability: 7,
+                novelty: 7,
+                overallScore: 7,
+                feedback: "f",
+              },
+            ],
+            averageScores: {
+              diversity: 7,
+              specificity: 7,
+              actionability: 7,
+              novelty: 7,
+              overall: 7,
+            },
+            durationMs: 300,
+          },
+        ],
+        summary: { bestOverall: "model-a", bestByCategory: {}, ranking: [] },
+        createdAt: "2024-01-01",
+      };
+      const metrics = computeBenchmarkMetrics(report);
+      expect(metrics[0].sampleCount).toBe(2);
+      expect(metrics[0].totalDurationMs).toBe(400);
+      // Average quality scores: (5+7)/2 = 6
+      expect(metrics[0].qualityScores.overall).toBe(6);
+    });
+
+    it("handles single evaluation correctly (average = that single value)", () => {
+      const report: BenchmarkReport = {
+        subject: "test",
+        angleIds: ["scamper"],
+        models: ["model-a"],
+        results: [
+          {
+            model: "model-a",
+            angleId: "scamper",
+            ideaCount: 1,
+            evaluations: [
+              {
+                ideaTitle: "Single",
+                diversity: 9,
+                specificity: 8,
+                actionability: 7,
+                novelty: 6,
+                overallScore: 7.5,
+                feedback: "Only one",
+              },
+            ],
+            averageScores: {
+              diversity: 9,
+              specificity: 8,
+              actionability: 7,
+              novelty: 6,
+              overall: 7.5,
+            },
+            durationMs: 200,
+          },
+        ],
+        summary: { bestOverall: "model-a", bestByCategory: {}, ranking: [] },
+        createdAt: "2024-01-01",
+      };
+      const metrics = computeBenchmarkMetrics(report);
+      expect(metrics[0].qualityScores.diversity).toBe(9);
+      expect(metrics[0].qualityScores.overall).toBe(7.5);
+      expect(metrics[0].latencyP50Ms).toBe(200);
     });
   });
 
