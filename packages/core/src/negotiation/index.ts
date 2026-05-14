@@ -167,16 +167,10 @@ Return your response as a JSON object:
     });
   } catch (openErr) {
     const reason = openErr instanceof Error ? openErr.message : "unknown error";
+    console.warn(`[negotiation] Opening generation fell back to template: ${reason}`);
     session.messages.push({
       role: "ai",
       content: `Let's negotiate on "${idea.title}". I see potential in this idea, but let's explore three key areas: feasibility, market fit, and implementation approach. Which would you like to discuss first?`,
-      phase: "opening",
-      timestamp: now,
-      challengeType: "none",
-    });
-    session.messages.push({
-      role: "system",
-      content: `[Opening generation fell back to template: ${reason}]`,
       phase: "opening",
       timestamp: now,
       challengeType: "none",
@@ -290,16 +284,10 @@ Based on this negotiation phase and conversation, respond with JSON:
     }
   } catch (stepErr) {
     const reason = stepErr instanceof Error ? stepErr.message : "unknown error";
+    console.warn(`[negotiation] Negotiation step fell back to template: ${reason}`);
     session.messages.push({
       role: "ai",
       content: `I understand your point. Let's continue exploring this aspect. What specific concerns do you have about the current approach?`,
-      phase: session.phase,
-      timestamp: new Date().toISOString(),
-      challengeType: "none",
-    });
-    session.messages.push({
-      role: "system",
-      content: `[Negotiation step fell back to template: ${reason}]`,
       phase: session.phase,
       timestamp: new Date().toISOString(),
       challengeType: "none",
