@@ -207,4 +207,22 @@ describe("withRetry", () => {
     expect(result).toBe("default");
     expect(fn).toHaveBeenCalledTimes(1);
   });
+
+  it("jitter adds ±10% randomization to delay", async () => {
+    const delays: number[] = [];
+    const fn = vi.fn().mockImplementation(() => {
+      delays.push(Date.now());
+      return Promise.reject(new Error("ECONNRESET"));
+    });
+
+    await expect(
+      withRetry(fn, { maxAttempts: 3, initialDelayMs: 100, backoffMultiplier: 1 })
+    ).rejects.toThrow("ECONNRESET");
+
+    expect(fn).toHaveBeenCalledTimes(3);
+    // Each gap should be 100ms + jitter (0-10ms), so between ~95ms and ~120ms
+    const gap = delays[1] - delays[0];
+    expect(gap).toBeGreaterThanOrEqual(90);
+    expect(gap).toBeLessThan(200);
+  });
 });
