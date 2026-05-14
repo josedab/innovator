@@ -213,11 +213,14 @@ async function createInnovationPR(ideas: InnovationIdea[]): Promise<void> {
   if (createPR === "Create Branch & PR") {
     const terminal = vscode.window.createTerminal("Innovator PR");
     const branchName = `innovation/${Date.now()}`;
+    // Escape shell special characters in user-derived values
+    const safePath = filePath.fsPath.replace(/'/g, "'\\''");
+    const safeTitle = prTitle.replace(/'/g, "'\\''");
     terminal.show();
     terminal.sendText(`git checkout -b ${branchName}`);
-    terminal.sendText(`git add "${filePath.fsPath}"`);
-    terminal.sendText(`git commit -m "${prTitle}"`);
-    terminal.sendText(`gh pr create --title "${prTitle}" --body "See innovation proposal file" --fill`);
+    terminal.sendText(`git add '${safePath}'`);
+    terminal.sendText(`git commit -m '${safeTitle}'`);
+    terminal.sendText(`gh pr create --title '${safeTitle}' --body 'See innovation proposal file' --fill`);
   }
 }
 
