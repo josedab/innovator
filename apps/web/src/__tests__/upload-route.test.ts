@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@innovator/core", () => ({
-  processMultiModalInput: vi.fn(),
+  processExtendedMultiModalInput: vi.fn(),
   analyzeImage: vi.fn(),
   visionToSubject: vi.fn(),
-  validateImage: vi.fn(),
+  validateBase64Image: vi.fn(),
 }));
 
 vi.mock("@/lib/api-headers", () => ({
@@ -13,10 +13,10 @@ vi.mock("@/lib/api-headers", () => ({
 
 import { POST } from "../app/api/upload/route.js";
 import {
-  processMultiModalInput,
+  processExtendedMultiModalInput as processMultiModalInput,
   analyzeImage,
   visionToSubject,
-  validateImage,
+  validateBase64Image as validateImage,
 } from "@innovator/core";
 
 const mockValidateImage = vi.mocked(validateImage);

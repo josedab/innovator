@@ -5,7 +5,7 @@ vi.mock("@innovator/core", () => ({
   getUsage: vi.fn(),
   listPlans: vi.fn(),
   updateTenantPlan: vi.fn(),
-  createTenant: vi.fn(),
+  createSaasTenant: vi.fn(),
 }));
 
 vi.mock("@/lib/api-headers", () => ({
@@ -13,7 +13,7 @@ vi.mock("@/lib/api-headers", () => ({
 }));
 
 import { GET, POST } from "../app/api/billing/route.js";
-import { getTenant, getUsage, listPlans, updateTenantPlan, createTenant } from "@innovator/core";
+import { getTenant, getUsage, listPlans, updateTenantPlan, createSaasTenant as createTenant } from "@innovator/core";
 
 function makeGet(params: Record<string, string> = {}): Request {
   const url = new URL("http://localhost/api/billing");

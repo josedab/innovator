@@ -6,7 +6,7 @@ vi.mock("@innovator/core", () => ({
   trackEvent: vi.fn(),
   getTimeSeries: vi.fn(),
   getActivityHeatmap: vi.fn(),
-  getLeaderboard: vi.fn(),
+  getAnalyticsLeaderboard: vi.fn(),
   generateReport: vi.fn(),
   reportToMarkdown: vi.fn(),
 }));
@@ -26,7 +26,7 @@ import {
   trackEvent,
   getTimeSeries,
   getActivityHeatmap,
-  getLeaderboard,
+  getAnalyticsLeaderboard as getLeaderboard,
   generateReport,
   reportToMarkdown,
 } from "@innovator/core";

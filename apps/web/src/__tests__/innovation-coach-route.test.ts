@@ -20,7 +20,7 @@ const mockGetStreak = vi.fn();
 const mockGetAchievements = vi.fn();
 const mockGetLeaderboard = vi.fn();
 
-vi.mock("../../../../packages/core/src/coaching/innovation-profile-builder", () => ({
+vi.mock("@innovator/core", () => ({
   getInnovationProfileBuilder: vi.fn(() => ({
     buildProfile: mockBuildProfile,
     getProfile: mockGetProfile,
@@ -28,9 +28,6 @@ vi.mock("../../../../packages/core/src/coaching/innovation-profile-builder", () 
     getGrowthTrajectory: mockGetGrowthTrajectory,
     updateProfile: mockUpdateProfile,
   })),
-}));
-
-vi.mock("../../../../packages/core/src/coaching/proactive-coach", () => ({
   getProactiveCoachingEngine: vi.fn(() => ({
     getPreSessionRecommendations: mockGetPreSessionRecommendations,
     getMidSessionNudges: mockGetMidSessionNudges,
@@ -38,9 +35,6 @@ vi.mock("../../../../packages/core/src/coaching/proactive-coach", () => ({
     generateChallenge: mockGenerateChallenge,
     getActiveChallenges: mockGetActiveChallenges,
   })),
-}));
-
-vi.mock("../../../../packages/core/src/coaching/skill-tree", () => ({
   getSkillTreeManager: vi.fn(() => ({
     getSkillTree: mockGetSkillTree,
     awardXP: mockAwardXP,
