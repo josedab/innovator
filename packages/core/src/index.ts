@@ -6378,3 +6378,172 @@ export {
   reportToMarkdown,
 } from "./analytics/advanced.js";
 
+// ---- Moonshot Features ----
+
+/** Adversarial Idea Gauntlet — multi-agent stress-testing for ideas. */
+export {
+  runGauntlet,
+  gauntletToMarkdown,
+  computeSurvivabilityIndex,
+} from "./gauntlet/index.js";
+export {
+  AdversaryRoleSchema,
+  AttackSchema,
+  GauntletResultSchema,
+  GauntletTranscriptEntrySchema,
+  ADVERSARY_DESCRIPTIONS,
+  ADVERSARY_ATTACK_CATEGORIES,
+} from "./gauntlet/index.js";
+export type {
+  AdversaryRole,
+  Attack as GauntletAttack,
+  GauntletConfig,
+  GauntletResult,
+  GauntletProgress,
+  GauntletTranscriptEntry,
+} from "./gauntlet/index.js";
+
+/** Innovation Provenance Ledger — tamper-evident audit trail. */
+export {
+  loadLedger,
+  appendEntry as appendLedgerEntry,
+  recordInvestigation as recordLedgerInvestigation,
+  recordGeneration as recordLedgerGeneration,
+  recordGauntlet as recordLedgerGauntlet,
+  recordHumanDecision as recordLedgerHumanDecision,
+  verifyLedger,
+  getSessionEntries as getLedgerSessionEntries,
+  getActorEntries as getLedgerActorEntries,
+  getEntriesInRange as getLedgerEntriesInRange,
+  exportForActor as exportLedgerForActor,
+  redactActor as redactLedgerActor,
+  ledgerToMarkdown,
+} from "./provenance-ledger/index.js";
+export {
+  LedgerEntryTypeSchema,
+  LedgerEntrySchema,
+  LedgerSchema,
+} from "./provenance-ledger/index.js";
+export type {
+  LedgerEntryType,
+  LedgerEntry,
+  Ledger,
+  LedgerVerification,
+  GdprExport,
+  LedgerConfig,
+} from "./provenance-ledger/index.js";
+
+/** Temporal Innovation Memory — persistent temporal knowledge graph. */
+export {
+  loadTemporalGraph,
+  ingestSession as ingestTemporalSession,
+  detectRecurrences,
+  searchNodes as searchTemporalNodes,
+  getConceptTimeline,
+  getNeighbors as getTemporalNeighbors,
+  queryTemporalMemory,
+  computeVelocity as computeInnovationVelocity,
+  exportGraph as exportTemporalGraph,
+  deleteSessionData as deleteTemporalSessionData,
+  temporalMemoryToMarkdown,
+} from "./temporal-memory/index.js";
+export {
+  TemporalNodeTypeSchema,
+  TemporalNodeSchema,
+  TemporalEdgeTypeSchema,
+  TemporalEdgeSchema,
+  TemporalGraphSchema,
+} from "./temporal-memory/index.js";
+export type {
+  TemporalNodeType,
+  TemporalNode,
+  TemporalEdgeType,
+  TemporalEdge,
+  TemporalGraph,
+  TemporalQuery,
+  TemporalQueryResult,
+  ConceptRecurrence,
+  InnovationVelocity,
+  SessionIngestion,
+} from "./temporal-memory/index.js";
+
+/** Sentinel — Always-On Innovation Agent. */
+export {
+  runSentinel,
+  collectSignals,
+  loadState as loadSentinelState,
+  briefToMarkdown as sentinelBriefToMarkdown,
+  loadBriefs as loadSentinelBriefs,
+} from "./sentinel/index.js";
+export {
+  SignalSourceTypeSchema,
+  SignalSourceSchema,
+  DetectedSignalSchema,
+  OpportunitySchema,
+  DailyBriefSchema,
+  SentinelStateSchema,
+} from "./sentinel/index.js";
+export type {
+  SignalSourceType,
+  SignalSource,
+  DetectedSignal,
+  Opportunity as SentinelOpportunity,
+  DailyBrief,
+  SentinelConfig,
+  SentinelState,
+  SentinelProgress,
+} from "./sentinel/index.js";
+
+/** Idea Genome Sequencer — structural decomposition and similarity. */
+export {
+  sequenceIdea,
+  computeGenomeSimilarity,
+  findSimilar as findSimilarGenomes,
+  recombine as recombineGenomes,
+  loadLibrary as loadGenomeLibrary,
+  getAllGenomes,
+  getGenome,
+  searchGenomes,
+  genomeToMarkdown,
+} from "./genome-sequencer/index.js";
+export {
+  GenomeTraitTypeSchema,
+  GenomeTraitSchema,
+  IdeaGenomeSchema,
+  GenomeLibrarySchema,
+} from "./genome-sequencer/index.js";
+export type {
+  GenomeTraitType,
+  GenomeTrait,
+  IdeaGenome,
+  GenomeSimilarity,
+  RecombinantIdea,
+  GenomeLibrary,
+} from "./genome-sequencer/index.js";
+
+/** Federation DP — differential privacy for innovation pattern sharing. */
+export {
+  laplaceMechanism as federationLaplaceMechanism,
+  laplaceConfidenceInterval as federationLaplaceCI,
+  loadPrivacyBudget as loadFederationPrivacyBudget,
+  spendBudget as spendFederationBudget,
+  getRemainingBudget as getRemainingFederationBudget,
+  extractAnonymizedPatterns,
+  loadSharedPatterns,
+  generateRecommendations as generateFederationRecommendations,
+  detectAntiPatterns as detectFederationAntiPatterns,
+  computeNetworkStats as computeFederationNetworkStats,
+} from "./federation-dp/index.js";
+export {
+  DPConfigSchema,
+  PrivacyBudgetSchema as FederationPrivacyBudgetSchema,
+  AnonymizedPatternSchema,
+  PatternRecommendationSchema,
+} from "./federation-dp/index.js";
+export type {
+  DPConfig,
+  PrivacyBudget as FederationPrivacyBudget,
+  AnonymizedPattern,
+  PatternRecommendation,
+  FederationNetworkStats,
+} from "./federation-dp/index.js";
