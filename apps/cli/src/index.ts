@@ -1847,6 +1847,7 @@ historyCmd
     );
   });
 
+/** Handler: default action — delegates to the `list` subcommand. */
 historyCmd.action(() => {
   historyCmd.commands.find((c) => c.name() === "list")?.parse([], { from: "user" });
 });
@@ -1945,6 +1946,7 @@ presetsCmd
     }
   });
 
+/** Handler: default action — delegates to the `list` subcommand. */
 presetsCmd.action(() => {
   presetsCmd.commands.find((c) => c.name() === "list")?.parse([], { from: "user" });
 });
@@ -2291,6 +2293,7 @@ configCmd
 configCmd
   .command("set-provider <provider>")
   .description("Set the default LLM provider (copilot, openai, anthropic, ollama)")
+  /** Handler: persist the default provider choice to config. */
   .action((provider: string) => {
     const config = loadConfig();
     config.defaultProvider = provider;
@@ -2303,6 +2306,7 @@ configCmd
   .description(
     "Set the preferred model for a pipeline stage (investigation, generation, synthesis)"
   )
+  /** Handler: set the preferred LLM model for a specific pipeline stage. */
   .action((stage: string, model: string) => {
     if (!["investigation", "generation", "synthesis"].includes(stage)) {
       console.error(chalk.red(`Invalid stage. Use: investigation, generation, or synthesis`));
@@ -2319,6 +2323,7 @@ configCmd
 configCmd
   .command("providers")
   .description("List available LLM providers")
+  /** Handler: initialize and display all registered LLM providers. */
   .action(() => {
     const providers = listProviders();
     console.log(chalk.bold("\n🔌 Available Providers\n"));
@@ -2328,6 +2333,7 @@ configCmd
     console.log();
   });
 
+/** Handler: default action — delegates to the `show` subcommand. */
 configCmd.action(() => {
   configCmd.commands.find((c) => c.name() === "show")?.parse([], { from: "user" });
 });
@@ -2335,6 +2341,7 @@ configCmd.action(() => {
 configCmd
   .command("setup-offline")
   .description("Configure Ollama for offline / local-first innovation")
+  /** Handler: detect and configure a local Ollama instance for offline use. */
   .action(async () => {
     console.log(chalk.bold("\n🔌 Offline Mode Setup\n"));
 
@@ -2403,6 +2410,7 @@ program
   .description("Start an interactive refinement session on a completed auto pipeline")
   .argument("<subject>", "The subject to innovate on and refine")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: run an interactive refinement conversation on pipeline results. */
   .action(async (subject: string, opts: { model?: string }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (!validateModelWithLog(opts.model)) return;
@@ -2526,6 +2534,7 @@ program
   .option("--min-similarity <threshold>", "Minimum similarity threshold (0-1)", "0.3")
   .option("--max <count>", "Maximum connections to show", "10")
   .option("-m, --model <model>", "LLM model to use for explanations")
+  /** Handler: discover unexpected connections across past investigations. */
   .action(async (opts: { minSimilarity?: string; max?: string; model?: string }) => {
     if (!validateModelWithLog(opts.model)) return;
 
@@ -2593,6 +2602,7 @@ program
   .command("migrate")
   .description("Migrate file-based data (~/.innovator/) into a SQLite database")
   .option("--db <path>", "SQLite database file path", "~/.innovator/innovator.db")
+  /** Handler: migrate file-based persistence data into a SQLite database. */
   .action(async (opts: { db: string }) => {
     const { createSQLiteStorage } = await import("@innovator/core/storage/sqlite");
     const { migrateFileDataToStorage } = await import("@innovator/core");
@@ -2633,6 +2643,7 @@ marketplace
   .command("search [query]")
   .description("Search the plugin marketplace")
   .option("--category <category>", "Filter by category")
+  /** Handler: search the plugin marketplace with optional category filter. */
   .action(async (query: string | undefined, opts: { category?: string }) => {
     const { searchPlugins } = await import("@innovator/core");
     const results = searchPlugins({ query, category: opts.category as never });
@@ -2653,6 +2664,7 @@ marketplace
 marketplace
   .command("install <pluginId>")
   .description("Install a plugin from the marketplace")
+  /** Handler: install a plugin by ID from the marketplace registry. */
   .action(async (pluginId: string) => {
     const { installMarketplacePlugin } = await import("@innovator/core");
     const result = installMarketplacePlugin(pluginId);
@@ -2672,6 +2684,7 @@ marketplace
   .requiredOption("--source <source>", "npm package or git URL")
   .requiredOption("--version <version>", "Plugin version")
   .requiredOption("--author <author>", "Author name")
+  /** Handler: publish a plugin to the marketplace registry. */
   .action(
     async (opts: {
       name: string;
@@ -2706,6 +2719,7 @@ radar
   .description("Add a subject to the innovation radar")
   .option("--frequency <freq>", "Check frequency: daily, weekly, monthly", "weekly")
   .option("--webhook <url>", "Webhook URL for alerts")
+  /** Handler: add a subject to the innovation radar for periodic monitoring. */
   .action(async (subject: string, opts: { frequency: string; webhook?: string }) => {
     const { createWatch } = await import("@innovator/core");
     const watch = createWatch({
@@ -2722,6 +2736,7 @@ radar
 radar
   .command("list")
   .description("List watched subjects")
+  /** Handler: display all currently watched innovation radar subjects. */
   .action(async () => {
     const { listWatches } = await import("@innovator/core");
     const watches = listWatches();
@@ -2748,6 +2763,7 @@ program
   .option("--impact <impact>", "Potential impact", "High impact innovation")
   .option("--stack <stack>", "Tech stack: typescript, python, go, rust", "typescript")
   .option("--name <name>", "Project name")
+  /** Handler: scaffold a new project from an innovation idea. */
   .action(
     async (opts: {
       title: string;
@@ -2777,6 +2793,7 @@ program
 program
   .command("telemetry")
   .description("View innovation pipeline telemetry and metrics")
+  /** Handler: display pipeline telemetry including spans, latency, and cost. */
   .action(async () => {
     const { buildTelemetryDashboard, getSpans, getQualityTrends } = await import("@innovator/core");
     const dashboard = buildTelemetryDashboard();
@@ -2860,6 +2877,7 @@ contextCmd
   .option("--url <url>", "Base URL (for Confluence)")
   .option("--space <space>", "Space key (for Confluence)")
   .option("--token <token>", "Auth token")
+  /** Handler: register a knowledge source connector (GitHub, Confluence, local). */
   .action(
     async (opts: {
       type: string;
@@ -2903,6 +2921,7 @@ contextCmd
 contextCmd
   .command("list")
   .description("List registered knowledge source connectors")
+  /** Handler: display all registered knowledge source connectors. */
   .action(async () => {
     const { listConnectors } = await import("@innovator/core");
     const connectors = listConnectors();
@@ -2929,6 +2948,7 @@ contextCmd
 contextCmd
   .command("sync <id>")
   .description("Sync a connector to fetch latest documents")
+  /** Handler: trigger a sync for a specific knowledge connector. */
   .action(async (id: string) => {
     const { syncConnector } = await import("@innovator/core");
     const spinner = ora(`Syncing connector ${id}...`).start();
@@ -2950,6 +2970,7 @@ const webhooksCmd = program
 webhooksCmd
   .command("templates")
   .description("List available webhook templates")
+  /** Handler: display available webhook event templates. */
   .action(async () => {
     const { listWebhookTemplates } = await import("@innovator/core");
     const templates = listWebhookTemplates();
@@ -2965,6 +2986,7 @@ webhooksCmd
 webhooksCmd
   .command("list")
   .description("List registered webhooks")
+  /** Handler: display all registered webhook endpoints. */
   .action(async () => {
     const { WebhookManager } = await import("@innovator/core");
     const mgr = new WebhookManager();
@@ -2993,6 +3015,7 @@ monitorCmd
   .option("--competitors <list>", "Comma-separated competitor names")
   .option("--keywords <list>", "Comma-separated keywords")
   .option("--frequency <freq>", "Monitoring frequency: hourly, daily, weekly", "daily")
+  /** Handler: create a competitive monitor for a specific domain. */
   .action(
     async (opts: {
       domain: string;
@@ -3016,6 +3039,7 @@ monitorCmd
 monitorCmd
   .command("list")
   .description("List active monitors")
+  /** Handler: display all active competitive monitors. */
   .action(async () => {
     const { listMonitors } = await import("@innovator/core");
     const monitors = listMonitors();
@@ -3039,6 +3063,7 @@ monitorCmd
   .description("View detected competitive signals")
   .option("--domain <domain>", "Filter by domain")
   .option("--limit <n>", "Maximum signals to show", "20")
+  /** Handler: view detected competitive signals with trend analysis. */
   .action(async (opts: { domain?: string; limit?: string }) => {
     const { getSignals, detectTrends, generateInvestigationSuggestions } =
       await import("@innovator/core");
@@ -3089,6 +3114,7 @@ program
   .description("View provenance and citation chain for ideas")
   .argument("<session-id>", "Session ID to show provenance for")
   .option("--format <format>", "Output format: text, markdown, json-ld", "text")
+  /** Handler: display provenance and citation chain for a session's ideas. */
   .action(async (sessionId: string, opts: { format?: string }) => {
     const {
       getSession,
@@ -3138,6 +3164,7 @@ program
   .option("-m, --model <model>", "LLM model to use")
   .option("--rounds <n>", "Number of wargaming rounds (1-5)", "3")
   .option("--markdown", "Output as Markdown")
+  /** Handler: run adversarial wargaming simulation on an idea. */
   .action(
     async (
       subject: string,
@@ -3188,6 +3215,7 @@ const rubricCmd = program.command("rubric").description("Manage custom scoring r
 rubricCmd
   .command("list")
   .description("List available scoring rubrics")
+  /** Handler: display all available scoring rubrics. */
   .action(() => {
     const rubrics = listRubrics();
     if (rubrics.length === 0) {
@@ -3204,6 +3232,7 @@ rubricCmd
 rubricCmd
   .command("show <id>")
   .description("Show rubric details")
+  /** Handler: display detailed criteria and weights for a specific rubric. */
   .action((id: string) => {
     const rubric = getRubric(id);
     if (!rubric) {
@@ -3226,6 +3255,7 @@ program
   .command("cost-report")
   .description("Generate LLM cost-performance report")
   .option("--markdown", "Output as Markdown")
+  /** Handler: generate and display LLM cost-performance report. */
   .action((opts: { markdown?: boolean }) => {
     const report = generateCostReport();
     if (opts.markdown) {
@@ -3258,6 +3288,7 @@ program
   .requiredOption("--description <desc>", "Idea description")
   .option("-m, --model <model>", "LLM model to use")
   .option("--markdown", "Output as Markdown")
+  /** Handler: map innovation supply chain dependencies for an idea. */
   .action(
     async (
       subject: string,
@@ -3297,6 +3328,7 @@ program
   .argument("<subject>", "Innovation subject")
   .option("-m, --model <model>", "LLM model to use")
   .option("--markdown", "Output as Markdown")
+  /** Handler: analyze optimal execution timing for innovation ideas. */
   .action(async (subject: string, opts: { model?: string; markdown?: boolean }) => {
     if (!validateSubjectWithLog(subject)) return;
     if (opts.model && !validateModelWithLog(opts.model)) return;
@@ -3351,6 +3383,7 @@ ideaCmd
   .command("log <ideaId>")
   .description("Show version history for an idea")
   .option("--branch <name>", "Filter by branch")
+  /** Handler: show version history log for a tracked idea. */
   .action(async (ideaId: string, opts: { branch?: string }) => {
     const { getVersionLog } = await import("@innovator/core");
     const versions = getVersionLog(ideaId, opts.branch);
@@ -3373,6 +3406,7 @@ ideaCmd
 ideaCmd
   .command("branch <versionId> <branchName>")
   .description("Create a branch from a version")
+  /** Handler: create a named branch from an idea version. */
   .action(async (versionId: string, branchName: string) => {
     const { createBranch } = await import("@innovator/core");
     const branch = createBranch(versionId, branchName);
@@ -3392,6 +3426,7 @@ ideaCmd
   .command("diff <fromId> <toId>")
   .description("Semantic diff between two versions")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: compute semantic diff between two idea versions. */
   .action(async (fromId: string, toId: string, opts: { model?: string }) => {
     if (opts.model && !validateModelWithLog(opts.model)) return;
     const { semanticDiff } = await import("@innovator/core");
@@ -3429,6 +3464,7 @@ program
   .command("decode <productDescription>")
   .description("Analyze a product and reverse-engineer its innovation recipe")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: reverse-engineer a product's innovation recipe. */
   .action(async (productDescription: string, opts: { model?: string }) => {
     if (opts.model && !validateModelWithLog(opts.model)) return;
     const { analyzeProduct, recipeToMarkdown } = await import("@innovator/core");
@@ -3471,6 +3507,7 @@ program
   .option("-m, --model <model>", "LLM model to use")
   .option("--no-monte-carlo", "Skip Monte Carlo simulation")
   .option("--iterations <n>", "Monte Carlo iterations", "500")
+  /** Handler: simulate idea diffusion and adoption using Bass model. */
   .action(
     async (
       ideaTitle: string,
@@ -3523,6 +3560,7 @@ program
   .command("classify <subject>")
   .description("Classify subject complexity and generate adaptive execution plan")
   .option("--depth <depth>", "Preferred depth: overview, standard, deep, exhaustive")
+  /** Handler: classify subject complexity and generate execution plan. */
   .action(async (subject: string, opts: { depth?: string }) => {
     const { classifyComplexityHeuristic, generateExecutionPlan } = await import("@innovator/core");
     const spinner = ora("Classifying complexity...").start();
@@ -3572,6 +3610,7 @@ program
   .option("-m, --model <model>", "LLM model to use")
   .option("--personas <n>", "Number of personas", "1000")
   .option("--price <usd>", "Base price in USD")
+  /** Handler: run synthetic market test with AI consumer personas. */
   .action(
     async (
       ideaTitle: string,
@@ -3628,6 +3667,7 @@ program
   .option("--duration <min>", "Session duration in minutes", "30")
   .option("--ideas <n>", "Ideas generated so far", "10")
   .option("--stall <min>", "Minutes since last idea", "2")
+  /** Handler: check cognitive flow state for current innovation session. */
   .action(async (opts: { duration?: string; ideas?: string; stall?: string }) => {
     const { assessFlowState, selectIntervention } = await import("@innovator/core");
     const indicators = {
@@ -3665,6 +3705,7 @@ program
   .argument("[description]", "Idea description")
   .option("-m, --model <model>", "LLM model to use")
   .option("--jurisdictions <list>", "Comma-separated jurisdictions")
+  /** Handler: simulate regulatory compliance across jurisdictions. */
   .action(
     async (
       ideaTitle: string,
@@ -3723,6 +3764,7 @@ const innovMonitorCmd = program
 innovMonitorCmd
   .command("status")
   .description("Show monitor status")
+  /** Handler: show current innovation monitor status. */
   .action(async () => {
     const state = getMonitorState();
     console.log(chalk.bold("Monitor Status:"), chalk.cyan(state.status));
@@ -3733,6 +3775,7 @@ innovMonitorCmd
 innovMonitorCmd
   .command("sources")
   .description("List configured monitor sources")
+  /** Handler: list configured innovation monitor sources. */
   .action(async () => {
     const sources = listMonitorSources();
     if (sources.length === 0) {
@@ -3753,6 +3796,7 @@ innovMonitorCmd
   .description("Generate an innovation digest from recent signals")
   .option("-p, --period <period>", "Digest period (daily/weekly)", "daily")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: generate an innovation digest from recent signals. */
   .action(async (opts: { period: string; model?: string }) => {
     const spinner = ora("Generating innovation digest...").start();
     try {
@@ -3770,6 +3814,7 @@ innovMonitorCmd
   .command("signals")
   .description("Show recent opportunity signals")
   .option("-l, --limit <n>", "Max signals", "10")
+  /** Handler: show recent opportunity signals from the monitor. */
   .action(async (opts: { limit: string }) => {
     const signals = getRecentSignals({ limit: parseInt(opts.limit, 10) });
     if (signals.length === 0) {
@@ -3792,6 +3837,7 @@ program
   .command("nl-innovate <prompt>")
   .description("Run innovation pipeline from a natural language prompt")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: run innovation pipeline from a natural language prompt. */
   .action(async (prompt: string, opts: { model?: string }) => {
     const spinner = ora("Generating execution plan...").start();
     try {
@@ -3836,6 +3882,7 @@ memoryCmd
   .description("Search the memory graph for related past ideas")
   .option("-t, --threshold <n>", "Similarity threshold (0-1)", "0.3")
   .option("-l, --limit <n>", "Max results", "10")
+  /** Handler: search the memory graph for related past ideas. */
   .action(async (query: string, opts: { threshold: string; limit: string }) => {
     const spinner = ora("Searching memory graph...").start();
     try {
@@ -3859,6 +3906,7 @@ memoryCmd
 memoryCmd
   .command("org-dna")
   .description("Generate organizational innovation DNA report")
+  /** Handler: generate organizational innovation DNA report. */
   .action(async () => {
     const spinner = ora("Generating org DNA report...").start();
     try {
@@ -3875,6 +3923,7 @@ memoryCmd
 memoryCmd
   .command("lineage <ideaId>")
   .description("Trace the lineage of an idea through sessions")
+  /** Handler: trace the lineage of an idea through sessions. */
   .action(async (ideaId: string) => {
     const spinner = ora("Tracing idea lineage...").start();
     try {
@@ -3892,6 +3941,7 @@ memoryCmd
 memoryCmd
   .command("convergence")
   .description("Detect convergent thinking across sessions")
+  /** Handler: detect convergent thinking across innovation sessions. */
   .action(async () => {
     const spinner = ora("Detecting convergence patterns...").start();
     try {
@@ -3917,6 +3967,7 @@ const impactCmd = program
 impactCmd
   .command("funnel")
   .description("Show innovation funnel metrics")
+  /** Handler: show innovation funnel metrics. */
   .action(async () => {
     const funnel = getInnovationFunnel();
     console.log(chalk.bold("Innovation Funnel:"));
@@ -3930,6 +3981,7 @@ impactCmd
 impactCmd
   .command("rank")
   .description("Rank ideas by impact score")
+  /** Handler: rank tracked ideas by impact score. */
   .action(async () => {
     const ranked = rankByImpact();
     if (ranked.length === 0) {
@@ -3945,6 +3997,7 @@ impactCmd
   .command("dashboard")
   .description("Generate full impact dashboard")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: generate full impact dashboard with insights. */
   .action(async (opts: { model?: string }) => {
     const spinner = ora("Generating impact dashboard...").start();
     try {
@@ -3965,6 +4018,7 @@ const compRadarCmd = program.command("comp-radar").description("Competitive inte
 compRadarCmd
   .command("competitors")
   .description("List registered competitors")
+  /** Handler: list registered competitors. */
   .action(async () => {
     const competitors = listCompetitors();
     if (competitors.length === 0) {
@@ -3987,6 +4041,7 @@ compRadarCmd
   .description("Run gap analysis against a competitor")
   .option("-c, --capabilities <caps>", "Our capabilities (comma-separated)")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: run gap analysis against a specific competitor. */
   .action(async (competitorId: string, opts: { capabilities?: string; model?: string }) => {
     const spinner = ora("Running gap analysis...").start();
     try {
@@ -4005,6 +4060,7 @@ compRadarCmd
   .command("dashboard")
   .description("Generate competitive radar dashboard")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: generate competitive radar dashboard. */
   .action(async (opts: { model?: string }) => {
     const spinner = ora("Generating radar dashboard...").start();
     try {
@@ -4027,6 +4083,7 @@ program
   .description("Get adaptive pipeline recommendation for a subject")
   .option("-d, --domain <domain>", "Innovation domain")
   .option("-t, --team <teamId>", "Team ID")
+  /** Handler: get adaptive pipeline recommendation for a subject. */
   .action(async (subject: string, opts: { domain?: string; team?: string }) => {
     const spinner = ora("Generating recommendation...").start();
     try {
@@ -4062,6 +4119,7 @@ program
     "cto,end-user,investor,regulator"
   )
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: evaluate an idea from multiple stakeholder personas. */
   .action(async (ideaTitle: string, opts: { personas: string; model?: string }) => {
     const spinner = ora("Running persona evaluation...").start();
     try {
@@ -4087,6 +4145,7 @@ const iacCmd = program
 iacCmd
   .command("init")
   .description("Initialize .innovator/ directory in the current project")
+  /** Handler: initialize .innovator/ directory for Innovation-as-Code. */
   .action(async () => {
     const dir = ".innovator";
     const sessionsDir = `${dir}/sessions`;
@@ -4114,6 +4173,7 @@ iacCmd
   .command("save <subject>")
   .description("Save the latest pipeline result as a session in .innovator/sessions/")
   .option("-t, --tags <tags>", "Comma-separated tags")
+  /** Handler: save latest pipeline result as an IaC session file. */
   .action(async (subject: string, opts: { tags?: string }) => {
     const sessionsDir = ".innovator/sessions";
     if (!existsSync(sessionsDir)) {
@@ -4135,6 +4195,7 @@ iacCmd
 iacCmd
   .command("history")
   .description("List all saved innovation sessions")
+  /** Handler: list all saved Innovation-as-Code sessions. */
   .action(async () => {
     const sessionsDir = ".innovator/sessions";
     if (!existsSync(sessionsDir)) {
@@ -4164,6 +4225,7 @@ iacCmd
 iacCmd
   .command("diff <fileA> <fileB>")
   .description("Diff two innovation sessions")
+  /** Handler: diff two Innovation-as-Code session files. */
   .action(async (fileA: string, fileB: string) => {
     try {
       const dataA = JSON.parse(readFileSync(fileA, "utf-8"));
@@ -4193,6 +4255,7 @@ iacCmd
   .description("Create GitHub Issues from top ideas in a session")
   .option("-n, --top <n>", "Number of top ideas to create issues for", "3")
   .option("--dry-run", "Print issue bodies without creating them")
+  /** Handler: create GitHub Issues from top ideas in a session. */
   .action(async (sessionFile: string, opts: { top: string; dryRun?: boolean }) => {
     try {
       const data = JSON.parse(readFileSync(sessionFile, "utf-8"));
@@ -4234,6 +4297,7 @@ iacCmd
 iacCmd
   .command("validate [sessionFile]")
   .description("Validate a session file or the .innovator/ directory")
+  /** Handler: validate a session file or .innovator/ directory. */
   .action(async (sessionFile?: string) => {
     if (sessionFile) {
       try {
@@ -4283,6 +4347,7 @@ agentCmd
   .option("-s, --strategy <strategy>", "Exploration strategy", "adaptive")
   .option("-m, --model <model>", "LLM model to use")
   .option("--budget <cost>", "Maximum cost in dollars", "5")
+  /** Handler: start an autonomous innovation agent run. */
   .action(
     async (
       subject: string,
@@ -4325,6 +4390,7 @@ agentCmd
 agentCmd
   .command("list")
   .description("List active and completed agent runs")
+  /** Handler: list active and completed autonomous agent runs. */
   .action(() => {
     const runs = listAgentRuns();
     if (runs.length === 0) {
@@ -4344,6 +4410,7 @@ agentCmd
   .command("export <runId>")
   .description("Export an agent run as markdown")
   .option("-o, --output <file>", "Output file path")
+  /** Handler: export an agent run as markdown. */
   .action((runId: string, opts: { output?: string }) => {
     const md = exportRunPortfolio(runId);
     if (!md) {
@@ -4362,6 +4429,7 @@ agentCmd
 agentCmd
   .command("stop <runId>")
   .description("Stop a running agent gracefully")
+  /** Handler: stop a running autonomous agent gracefully. */
   .action((runId: string) => {
     const success = stopAgentRun(runId);
     if (success) {
@@ -4376,6 +4444,7 @@ agentCmd
   .command("resume <runId>")
   .description("Resume an agent from its last checkpoint (re-starts from saved state)")
   .option("-m, --model <model>", "LLM model to use")
+  /** Handler: resume an agent from its last checkpoint. */
   .action(async (runId: string, opts: { model?: string }) => {
     const run = getAgentRun(runId);
     if (!run) {
@@ -4427,6 +4496,7 @@ program
   .description("Check the novelty of an idea against known prior art")
   .option("-d, --description <desc>", "Idea description")
   .option("--domain <domain>", "Domain context for matching")
+  /** Handler: check idea novelty against known prior art. */
   .action(async (ideaTitle: string, opts: { description?: string; domain?: string }) => {
     const spinner = ora("Checking novelty...").start();
     try {
@@ -4452,6 +4522,7 @@ const genomeCmd = program
 genomeCmd
   .command("status")
   .description("Show network status and dashboard")
+  /** Handler: show Innovation Genome Network status and dashboard. */
   .action(() => {
     const nodes = listNodes();
     if (nodes.length === 0) {
@@ -4479,6 +4550,7 @@ genomeCmd
 genomeCmd
   .command("analytics")
   .description("Show genome analytics")
+  /** Handler: show genome analytics for the federation network. */
   .action(() => {
     const allNodes = listNodes();
     if (allNodes.length === 0) {
@@ -4493,6 +4565,7 @@ genomeCmd
   .command("insights")
   .description("Get network insights for a domain")
   .option("-d, --domain <domain>", "Domain hint")
+  /** Handler: get network insights for a specific domain. */
   .action((opts: { domain?: string }) => {
     const allNodes = listNodes();
     if (allNodes.length === 0) {
@@ -4527,6 +4600,7 @@ genomeCmd
   .description("Join a federation network by connecting to a peer endpoint")
   .option("-n, --name <name>", "Display name for this node", "local")
   .option("--public", "Make this node publicly discoverable")
+  /** Handler: join a federation network by connecting to a peer. */
   .action((endpoint: string, opts: { name: string; public?: boolean }) => {
     const allNodes = listNodes();
     let node;
@@ -4545,6 +4619,7 @@ genomeCmd
 genomeCmd
   .command("leave")
   .description("Disconnect from the federation network")
+  /** Handler: disconnect from the federation network. */
   .action(() => {
     const allNodes = listNodes();
     if (allNodes.length === 0) {
@@ -4561,6 +4636,7 @@ program
   .option("-i, --iterations <n>", "Number of iterations", "1000")
   .option("-w, --weeks <n>", "Time horizon in weeks", "52")
   .option("--seed <n>", "Random seed for reproducibility")
+  /** Handler: run Monte Carlo simulation comparing innovation strategies. */
   .action(async (opts: { iterations: string; weeks: string; seed?: string }) => {
     const spinner = ora("Running Monte Carlo simulation...").start();
     try {
