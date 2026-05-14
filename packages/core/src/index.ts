@@ -6276,6 +6276,7 @@ export type {
 /** Coaching — innovation profiles, proactive coaching, skill trees. */
 export {
   InnovationProfileBuilder,
+  getInnovationProfileBuilder,
 } from "./coaching/innovation-profile-builder.js";
 export type {
   InnovationProfileDetailed,
@@ -6284,7 +6285,7 @@ export type {
   TeamComparison as CoachingTeamComparison,
 } from "./coaching/innovation-profile-builder.js";
 
-export { ProactiveCoachingEngine } from "./coaching/proactive-coach.js";
+export { ProactiveCoachingEngine, getProactiveCoachingEngine } from "./coaching/proactive-coach.js";
 export type {
   CoachingRecommendation,
   SessionContext as CoachingSessionContext,
@@ -6336,3 +6337,44 @@ export type {
 
 export { HEALTHCARE_PACK } from "./verticals/healthcare-pack.js";
 export { CLIMATE_PACK } from "./verticals/climate-pack.js";
+
+// ---- Missing exports needed by apps/web API routes ----
+
+/** Multi-modal vision functions for image analysis. */
+export { analyzeImage, visionToSubject } from "./multi-modal/vision.js";
+export { buildMultiModalContext } from "./multi-modal/index.js";
+export { validateImage as validateBase64Image } from "./multi-modal/vision.js";
+
+/** Canvas AI functions. */
+export { autoClusterNodes, suggestConnections, synthesizeCanvas } from "./canvas/ai-canvas.js";
+
+/** Federation cross-org insights. */
+export {
+  checkDataResidencyCompliance,
+  detectIndustryTrends,
+  generateBenchmarks,
+  generateAggregateInsights,
+  getAggregateInsights,
+  setDataResidency as setFederationDataResidency,
+} from "./federation/cross-org-insights.js";
+
+/** RBAC team management — aliased to match web app import names. */
+export {
+  createTeam as createRBACTeam,
+  getTeam as getRBACTeam,
+  listTeams as listRBACTeams,
+  updateTeam as updateRBACTeam,
+  addTeamMember as addRBACTeamMember,
+  removeTeamMember as removeRBACTeamMember,
+  getAdminDashboard,
+  getQuota,
+  setQuotaLimits,
+  getTeamHierarchy,
+} from "./rbac/team-management.js";
+
+/** Reports — aliased to match web app import names. */
+export {
+  generateReport,
+  reportToMarkdown,
+} from "./analytics/advanced.js";
+
