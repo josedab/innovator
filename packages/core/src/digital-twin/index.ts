@@ -246,8 +246,14 @@ Respond in JSON matching this schema:
 }`;
 
   const raw = await withRetry(() => generateText({ prompt, model, serverMode: true, signal }));
-  const parsed = JSON.parse(extractJson(raw));
-  return SimulationResultSchema.parse(parsed);
+  try {
+    const parsed = JSON.parse(extractJson(raw));
+    return SimulationResultSchema.parse(parsed);
+  } catch (parseErr) {
+    throw new Error(
+      `Failed to parse simulation result: ${parseErr instanceof Error ? parseErr.message : "invalid JSON"}`
+    );
+  }
 }
 
 /** Compare multiple strategies against the same ecosystem. */
@@ -276,7 +282,13 @@ Respond in JSON: { "winner": "strategy_id or null", "summary": "string", "tradeo
   const raw = await withRetry(() =>
     generateText({ prompt: comparisonPrompt, model, serverMode: true, signal })
   );
-  const parsed = JSON.parse(extractJson(raw));
+
+  let parsed: { winner?: string; summary?: string; tradeoffs?: string[] };
+  try {
+    parsed = JSON.parse(extractJson(raw));
+  } catch {
+    parsed = { summary: "Strategy comparison generated but response parsing failed.", tradeoffs: [] };
+  }
 
   const comparison: StrategyComparison = {
     ecosystemId: snapshot.id,
