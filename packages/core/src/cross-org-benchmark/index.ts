@@ -366,26 +366,38 @@ function laplace(scale: number): number {
 // ---- Helpers ----
 
 function anonymizeOrgId(orgId: string): string {
-  // Simple hash for anonymization
-  let hash = 0;
+  // Use a more robust hash to reduce collisions
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
   for (let i = 0; i < orgId.length; i++) {
-    const char = orgId.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash |= 0;
+    const ch = orgId.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
   }
-  return `org-${Math.abs(hash).toString(36)}`;
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h2 = Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  const hash = (h2 ^ h1) >>> 0;
+  return `org-${hash.toString(36)}`;
 }
 
 function computePercentile(sortedValues: number[], value: number): number {
   if (sortedValues.length === 0) return 50;
+  // Count values strictly below, plus half of equal values
   const below = sortedValues.filter((v) => v < value).length;
-  return Math.round((below / sortedValues.length) * 100);
+  const equal = sortedValues.filter((v) => v === value).length;
+  return Math.round(((below + equal * 0.5) / sortedValues.length) * 100);
 }
 
 function percentileValue(sortedValues: number[], p: number): number {
   if (sortedValues.length === 0) return 0;
-  const index = Math.ceil((p / 100) * sortedValues.length) - 1;
-  return Math.round((sortedValues[Math.max(0, index)] ?? 0) * 10) / 10;
+  if (sortedValues.length === 1) return Math.round(sortedValues[0] * 10) / 10;
+  // Linear interpolation for accurate percentile
+  const rank = (p / 100) * (sortedValues.length - 1);
+  const lower = Math.floor(rank);
+  const upper = Math.ceil(rank);
+  const fraction = rank - lower;
+  const value = sortedValues[lower] + fraction * (sortedValues[upper] - sortedValues[lower]);
+  return Math.round(value * 10) / 10;
 }
 
 function median(sortedValues: number[]): number {
