@@ -69,12 +69,14 @@ ${currentBranch.summary ? `CURRENT FINDINGS:\n${currentBranch.summary}` : ""}
 Decide the next action. Options:
 - "explore": Continue investigating this branch deeper
 - "branch": Fork into 2-3 related sub-topics for parallel exploration
+- "validate": Run validation on current branch ideas to check feasibility/novelty
+- "refine": Improve existing ideas based on validation feedback
 - "prune": Abandon this branch (low potential)
 - "synthesize": Enough data collected, create final portfolio
 
 Respond with JSON only:
 {
-  "action": "explore" | "branch" | "prune" | "synthesize",
+  "action": "explore" | "branch" | "validate" | "refine" | "prune" | "synthesize",
   "reasoning": "Why this decision...",
   "newSubjects": ["sub-topic 1", "sub-topic 2"]
 }
@@ -124,9 +126,119 @@ Respond with JSON only:
 }
 
 const DecisionResponseSchema = z.object({
-  action: z.enum(["explore", "branch", "prune", "synthesize", "pause"]),
+  action: z.enum(["explore", "branch", "prune", "synthesize", "pause", "validate", "refine"]),
   reasoning: z.string().max(2000),
   newSubjects: z.array(z.string().max(1000)).max(10).default([]),
+});
+
+// ---- Validation & Refinement Prompts ----
+
+function buildValidationPrompt(rootSubject: string, branch: InvestigationBranch): string {
+  const ideaSummaries = branch.ideas.map((i) => ({
+    title: i.title,
+    description: i.description,
+    score: i.score,
+  }));
+
+  return `You are a critical innovation validator reviewing ideas for feasibility and novelty.
+
+ROOT SUBJECT: ${wrapUserInput("SUBJECT", rootSubject)}
+BRANCH: ${wrapUserInput("BRANCH", branch.subject)}
+
+IDEAS TO VALIDATE:
+"""
+${sanitizeLlmOutput(JSON.stringify(ideaSummaries, null, 2))}
+"""
+
+For each idea, assess:
+1. Feasibility (is this implementable with current technology?)
+2. Novelty (is this truly innovative or a rehash?)
+3. Market fit (does this solve a real problem?)
+
+Respond with JSON only:
+{
+  "validations": [
+    {
+      "title": "idea title",
+      "feasibilityScore": 0-100,
+      "noveltyScore": 0-100,
+      "marketFitScore": 0-100,
+      "issues": ["issue 1", "issue 2"],
+      "verdict": "pass" | "refine" | "reject"
+    }
+  ],
+  "overallStrength": 0-100
+}`;
+}
+
+function buildRefinementPrompt(
+  rootSubject: string,
+  branch: InvestigationBranch,
+  validationFeedback: string
+): string {
+  return `You are an innovation refinement specialist. Improve ideas based on validation feedback.
+
+ROOT SUBJECT: ${wrapUserInput("SUBJECT", rootSubject)}
+BRANCH: ${wrapUserInput("BRANCH", branch.subject)}
+
+ORIGINAL IDEAS:
+"""
+${sanitizeLlmOutput(
+  JSON.stringify(
+    branch.ideas.map((i) => ({ title: i.title, description: i.description })),
+    null,
+    2
+  )
+)}
+"""
+
+VALIDATION FEEDBACK:
+"""
+${sanitizeLlmOutput(validationFeedback)}
+"""
+
+Refine the ideas that received "refine" verdict. Drop rejected ideas. Keep passing ideas.
+
+Respond with JSON only:
+{
+  "refinedIdeas": [
+    {
+      "title": "refined title",
+      "description": "improved description",
+      "potentialImpact": "impact statement",
+      "implementationHint": "how to implement",
+      "score": 0-100
+    }
+  ],
+  "refinementNotes": "what was changed and why"
+}`;
+}
+
+const ValidationResponseSchema = z.object({
+  validations: z.array(
+    z.object({
+      title: z.string().max(500),
+      feasibilityScore: z.number().min(0).max(100),
+      noveltyScore: z.number().min(0).max(100),
+      marketFitScore: z.number().min(0).max(100),
+      issues: z.array(z.string().max(500)).max(10),
+      verdict: z.enum(["pass", "refine", "reject"]),
+    })
+  ),
+  overallStrength: z.number().min(0).max(100),
+});
+
+const RefinementResponseSchema = z.object({
+  refinedIdeas: z.array(
+    z.object({
+      title: z.string().max(500),
+      description: z.string().max(5000),
+      potentialImpact: z.string().max(2000),
+      implementationHint: z.string().max(2000),
+      score: z.number().min(0).max(100).optional(),
+    })
+  ),
+  refinementNotes: z.string().max(2000),
 });
 
 const PortfolioResponseSchema = z.object({
@@ -271,6 +383,7 @@ export async function runAutonomousAgent(
       await exploreBranch(branch, model, signal);
     } catch (err) {
       branch.status = "pruned";
+      branch.summary = `Exploration failed: ${err instanceof Error ? err.message : "unknown error"}`;
       continue;
     }
 
@@ -312,13 +425,99 @@ export async function runAutonomousAgent(
             branch.subBranches.push(newBranch.id);
             queue.push(newBranch.id);
           }
+        } else if (parsed.action === "validate" && branch.ideas.length > 0) {
+          run.status = "validating";
+          emitProgress();
+          try {
+            const valPrompt = buildValidationPrompt(subject, branch);
+            const valRaw = await withRetry(
+              async () => generateText({ prompt: valPrompt, model, signal }),
+              { signal }
+            );
+            const valJson = extractJson(valRaw);
+            const valParsed = ValidationResponseSchema.parse(JSON.parse(valJson));
+
+            // Score ideas and mark those needing refinement
+            let needsRefinement = false;
+            for (const v of valParsed.validations) {
+              const idea = branch.ideas.find((i) => i.title === v.title);
+              if (idea) {
+                idea.score = Math.round(
+                  (v.feasibilityScore + v.noveltyScore + v.marketFitScore) / 3
+                );
+              }
+              if (v.verdict === "refine") needsRefinement = true;
+              if (v.verdict === "reject") {
+                const idx = branch.ideas.findIndex((i) => i.title === v.title);
+                if (idx >= 0) branch.ideas.splice(idx, 1);
+              }
+            }
+
+            // Auto-trigger refinement if ideas need it
+            if (needsRefinement) {
+              run.status = "refining";
+              emitProgress();
+              try {
+                const refPrompt = buildRefinementPrompt(
+                  subject,
+                  branch,
+                  JSON.stringify(valParsed.validations)
+                );
+                const refRaw = await withRetry(
+                  async () => generateText({ prompt: refPrompt, model, signal }),
+                  { signal }
+                );
+                const refJson = extractJson(refRaw);
+                const refParsed = RefinementResponseSchema.parse(JSON.parse(refJson));
+
+                branch.ideas = refParsed.refinedIdeas.map((idea) => ({
+                  title: idea.title,
+                  description: idea.description,
+                  potentialImpact: idea.potentialImpact,
+                  implementationHint: idea.implementationHint,
+                  score: idea.score,
+                }));
+              } catch (refErr) {
+                // Refinement failed — keep validated ideas as-is
+                const reason = refErr instanceof Error ? refErr.message : "unknown error";
+                run.decisions.push({
+                  id: randomUUID(),
+                  branchId: branch.id,
+                  action: "explore",
+                  reasoning: `Refinement skipped: ${reason}`,
+                  newSubjects: [],
+                  timestamp: new Date().toISOString(),
+                });
+              }
+            }
+          } catch (valErr) {
+            // Validation failed — continue without scoring
+            const reason = valErr instanceof Error ? valErr.message : "unknown error";
+            run.decisions.push({
+              id: randomUUID(),
+              branchId: branch.id,
+              action: "explore",
+              reasoning: `Validation skipped: ${reason}`,
+              newSubjects: [],
+              timestamp: new Date().toISOString(),
+            });
+          }
         } else if (parsed.action === "synthesize") {
           break;
         } else if (parsed.action === "prune") {
           // Do nothing, move to next in queue
         }
-      } catch {
-        // Decision failed, continue with queue
+      } catch (decisionErr) {
+        // Decision failed — log reason and continue with queue
+        const reason = decisionErr instanceof Error ? decisionErr.message : "unknown error";
+        run.decisions.push({
+          id: randomUUID(),
+          branchId: branch.id,
+          action: "explore",
+          reasoning: `Decision failed: ${reason}`,
+          newSubjects: [],
+          timestamp: new Date().toISOString(),
+        });
       }
 
       run.status = "exploring";

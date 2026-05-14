@@ -9,6 +9,8 @@ export const AgentStatusSchema = z.enum([
   "idle",
   "exploring",
   "branching",
+  "validating",
+  "refining",
   "synthesizing",
   "paused",
   "completed",
@@ -45,7 +47,7 @@ export type InvestigationBranch = z.infer<typeof InvestigationBranchSchema>;
 export const AgentDecisionSchema = z.object({
   id: z.string().max(100),
   branchId: z.string().max(100),
-  action: z.enum(["explore", "branch", "prune", "synthesize", "pause"]),
+  action: z.enum(["explore", "branch", "prune", "synthesize", "pause", "validate", "refine"]),
   reasoning: z.string().max(2000),
   newSubjects: z.array(z.string().max(1000)).max(10),
   timestamp: z.string(),
