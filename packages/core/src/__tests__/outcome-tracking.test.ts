@@ -381,5 +381,51 @@ describe("outcome-tracking", () => {
       expect(dashboard.insights.some((i) => i.includes("ship rate"))).toBe(true);
       expect(dashboard.insights.some((i) => i.includes("revenue impact"))).toBe(true);
     });
+
+    it("groups outcomes correctly by team member in byTeamMember", () => {
+      createOutcome({ ideaTitle: "A", teamMemberId: "alice" });
+      createOutcome({ ideaTitle: "B", teamMemberId: "alice" });
+      createOutcome({ ideaTitle: "C", teamMemberId: "bob" });
+
+      const dashboard = buildROIDashboard();
+      const alice = dashboard.byTeamMember.find((g) => g.groupKey === "alice");
+      const bob = dashboard.byTeamMember.find((g) => g.groupKey === "bob");
+      expect(alice!.totalIdeas).toBe(2);
+      expect(bob!.totalIdeas).toBe(1);
+    });
+
+    it("computes ship rate as 0 for groups with no shipped outcomes", () => {
+      createOutcome({ ideaTitle: "A", angleId: "test-angle" });
+      createOutcome({ ideaTitle: "B", angleId: "test-angle" });
+
+      const dashboard = buildROIDashboard();
+      const group = dashboard.byAngle.find((g) => g.groupKey === "test-angle");
+      expect(group!.shipRate).toBe(0);
+    });
+  });
+
+  describe("listOutcomes - sort order", () => {
+    it("returns outcomes sorted by updatedAt descending", () => {
+      const o1 = createOutcome({ ideaTitle: "First" });
+      const o2 = createOutcome({ ideaTitle: "Second" });
+      // Transition o1 to update its updatedAt timestamp
+      transitionOutcome(o1.id, "validated");
+
+      const list = listOutcomes();
+      expect(list).toHaveLength(2);
+      // o1 was updated more recently due to transition
+      expect(list[0].ideaTitle).toBe("First");
+      expect(list[1].ideaTitle).toBe("Second");
+    });
+
+    it("combines multiple filters", () => {
+      createOutcome({ ideaTitle: "A", angleId: "a1", sessionId: "s1" });
+      createOutcome({ ideaTitle: "B", angleId: "a1", sessionId: "s2" });
+      createOutcome({ ideaTitle: "C", angleId: "a2", sessionId: "s1" });
+
+      const filtered = listOutcomes({ angleId: "a1", sessionId: "s1" });
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].ideaTitle).toBe("A");
+    });
   });
 });
