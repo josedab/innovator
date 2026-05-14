@@ -7,11 +7,14 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "apps/web/src"),
       // Stub mermaid for tests — it's an optional runtime dependency
-      "mermaid": resolve(__dirname, "apps/web/src/__tests__/__mocks__/mermaid.ts"),
+      mermaid: resolve(__dirname, "apps/web/src/__tests__/__mocks__/mermaid.ts"),
     },
   },
   test: {
     globals: true,
+    // Disable file-level parallelism to prevent shared file state conflicts
+    // (marketplace, white-label, and other modules use ~/.innovator/ files)
+    fileParallelism: false,
     // Run tests in both packages and apps workspaces
     include: ["packages/*/src/**/*.test.ts", "apps/*/src/**/*.test.{ts,tsx}"],
     // Use jsdom environment for web app tests (React components need DOM APIs)
