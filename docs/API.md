@@ -36,6 +36,12 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
 - [Artifacts](#artifacts)
 - [Knowledge Graph](#knowledge-graph)
 - [Benchmark](#benchmark)
+- [Adversarial Gauntlet](#adversarial-gauntlet)
+- [Provenance Ledger](#provenance-ledger)
+- [Temporal Memory](#temporal-memory)
+- [Sentinel](#sentinel)
+- [Genome Sequencer](#genome-sequencer)
+- [Federation DP](#federation-dp)
 - [Core Types](#core-types)
 - [Zod Schemas](#zod-schemas)
 
@@ -708,4 +714,277 @@ const parsed = InvestigationSchema.safeParse(untrustedData);
 if (!parsed.success) {
   console.error("Validation failed:", parsed.error.issues);
 }
+```
+
+---
+
+## Adversarial Gauntlet
+
+Stress-test innovation ideas with specialized adversary agents. See [ADR-0016](adr/ADR-0016-llm-as-judge-evaluation.md).
+
+### `runGauntlet()`
+
+Run the full gauntlet against an idea.
+
+```typescript
+function runGauntlet(
+  idea: InnovationIdea,
+  config?: GauntletConfig,
+  onProgress?: (progress: GauntletProgress) => void
+): Promise<GauntletResult>;
+```
+
+**Parameters:**
+
+| Name         | Type                 | Description                                   |
+| ------------ | -------------------- | --------------------------------------------- |
+| `idea`       | `InnovationIdea`     | The idea to stress-test                       |
+| `config`     | `GauntletConfig`     | Optional: adversaries, model, strengthen mode |
+| `onProgress` | `(progress) => void` | Optional SSE-style progress callback          |
+
+**Config options:**
+
+| Field               | Type              | Default | Description                                    |
+| ------------------- | ----------------- | ------- | ---------------------------------------------- |
+| `adversaries`       | `AdversaryRole[]` | All 5   | Which adversary personas to run                |
+| `strengthen`        | `boolean`         | `false` | Generate a revised idea addressing top attacks |
+| `model`             | `string`          | —       | LLM model override                             |
+| `customAdversaries` | `object[]`        | —       | Add custom adversary personas                  |
+
+**Built-in adversary roles:** `competitor`, `regulator`, `skeptic`, `economist`, `engineer`
+
+**Example:**
+
+```typescript
+import { runGauntlet, gauntletToMarkdown } from "@innovator/core";
+
+const result = await runGauntlet(
+  {
+    title: "AI Nutritionist",
+    description: "Personalized meal plans via AI",
+    potentialImpact: "Health outcomes",
+    implementationHint: "Start with dietary guidelines API",
+  },
+  { strengthen: true }
+);
+
+console.log(`Survivability: ${result.survivabilityIndex}/100`);
+console.log(`Attacks: ${result.attacks.length}`);
+console.log(gauntletToMarkdown(result));
+```
+
+### `computeSurvivabilityIndex()`
+
+Compute the weighted survivability score from a set of attacks.
+
+```typescript
+function computeSurvivabilityIndex(attacks: Attack[]): number; // 0–100
+```
+
+---
+
+## Provenance Ledger
+
+Tamper-evident audit trail for AI-assisted innovation decisions. See [ADR-0017](adr/ADR-0017-append-only-hash-chained-ledger.md).
+
+### `appendEntry()`
+
+Append a new entry to the hash-chained ledger.
+
+```typescript
+function appendEntry(
+  params: {
+    type: LedgerEntryType;
+    sessionId: string;
+    actor: string; // "system" for AI, user identifier for humans
+    action: string;
+    subject: string;
+    model?: string;
+    promptHash?: string;
+    reasoning?: string;
+    alternatives?: string[];
+  },
+  config?: LedgerConfig
+): LedgerEntry;
+```
+
+### Convenience Recorders
+
+```typescript
+recordInvestigation(sessionId, subject, model, promptHash, config?)
+recordGeneration(sessionId, subject, angleId, model, promptHash, ideaCount, config?)
+recordGauntlet(sessionId, ideaTitle, survivabilityIndex, attackCount, config?)
+recordHumanDecision(sessionId, actor, type, subject, reasoning, alternatives?, config?)
+```
+
+### `verifyLedger()`
+
+Verify hash-chain integrity. Returns `{ valid: boolean, brokenChainAt?: number }`.
+
+```typescript
+function verifyLedger(config?: LedgerConfig): LedgerVerification;
+```
+
+### GDPR Functions
+
+```typescript
+exportForActor(actor: string, config?): GdprExport;  // Art. 15 right of access
+redactActor(actor: string, config?): number;           // Art. 17 right to erasure
+```
+
+---
+
+## Temporal Memory
+
+Persistent temporal knowledge graph for innovation memory. See [ADR-0019](adr/ADR-0019-temporal-knowledge-graph.md).
+
+### `ingestSession()`
+
+Ingest a completed innovation session, extracting entities and relationships.
+
+```typescript
+function ingestSession(
+  session: SessionIngestion,
+  dir?: string
+): { nodesCreated: number; edgesCreated: number; recurrences: ConceptRecurrence[] };
+```
+
+### `queryTemporalMemory()`
+
+Answer a natural-language temporal query using LLM + graph context.
+
+```typescript
+function queryTemporalMemory(
+  query: TemporalQuery,
+  options?: { model?: string; signal?: AbortSignal; dir?: string }
+): Promise<TemporalQueryResult>;
+```
+
+### `computeVelocity()`
+
+Compute innovation velocity metrics for a time period.
+
+```typescript
+function computeVelocity(graph: TemporalGraph, periodMonths?: number): InnovationVelocity;
+// Returns: { ideasPerMonth, conceptEvolutionRate, outcomeLeadTimeDays, activeConcepts, ... }
+```
+
+### Other Functions
+
+```typescript
+detectRecurrences(graph, minOccurrences?)     // Find concepts recurring across sessions
+searchNodes(graph, query, options?)            // Text search with time/type filters
+getConceptTimeline(graph, conceptLabel)        // Evolution timeline for a concept
+getNeighbors(graph, nodeId, maxHops?)          // Graph traversal
+deleteSessionData(sessionId, dir?)             // GDPR deletion
+```
+
+---
+
+## Sentinel
+
+Always-on innovation signal monitoring agent.
+
+### `runSentinel()`
+
+Execute a monitoring run: collect signals → filter → investigate → generate brief.
+
+```typescript
+function runSentinel(
+  config: SentinelConfig,
+  onProgress?: (progress: SentinelProgress) => void
+): Promise<DailyBrief>;
+```
+
+**Config:**
+
+| Field                | Type             | Default                           | Description                        |
+| -------------------- | ---------------- | --------------------------------- | ---------------------------------- |
+| `sources`            | `SignalSource[]` | —                                 | RSS/URL sources to monitor         |
+| `topics`             | `string[]`       | —                                 | Topics for relevance filtering     |
+| `relevanceThreshold` | `number`         | `0.5`                             | Minimum score to process a signal  |
+| `maxSignalsPerRun`   | `number`         | `5`                               | Max signals to investigate per run |
+| `dailyCostBudget`    | `number`         | —                                 | Max daily LLM cost in USD          |
+| `model`              | `string`         | —                                 | LLM model override                 |
+| `angles`             | `string[]`       | `["cross-domain", "constraints"]` | Angles for idea generation         |
+
+---
+
+## Genome Sequencer
+
+Decomposes ideas into fundamental traits for similarity search and recombination.
+
+### `sequenceIdea()`
+
+Decompose an idea into 7 genome traits via LLM.
+
+```typescript
+function sequenceIdea(
+  idea: InnovationIdea,
+  options?: { sessionId?: string; angleId?: string; model?: string; signal?: AbortSignal }
+): Promise<IdeaGenome>;
+```
+
+**Trait types:** `problem-space`, `solution-mechanism`, `value-proposition`, `target-audience`, `enabling-technology`, `risk-profile`, `competitive-differentiation`
+
+### `findSimilar()`
+
+Find the most similar genomes in the library.
+
+```typescript
+function findSimilar(
+  genome: IdeaGenome,
+  topN?: number,
+  dir?: string
+): Array<GenomeSimilarity & { ideaTitle: string }>;
+```
+
+### `recombine()`
+
+Generate a novel idea by combining the best traits from two genomes.
+
+```typescript
+function recombine(
+  genomeA: IdeaGenome,
+  genomeB: IdeaGenome,
+  options?: { model?: string; signal?: AbortSignal }
+): Promise<RecombinantIdea>;
+```
+
+---
+
+## Federation DP
+
+Differential privacy layer for cross-organization pattern sharing. See [ADR-0018](adr/ADR-0018-differential-privacy-federation.md).
+
+### `extractAnonymizedPatterns()`
+
+Extract patterns from local data with Laplace noise.
+
+```typescript
+function extractAnonymizedPatterns(
+  localData: LocalUsageRecord[],
+  config: DPConfig,
+  dir?: string
+): AnonymizedPattern[];
+```
+
+### `generateRecommendations()`
+
+Generate angle recommendations from federation patterns.
+
+```typescript
+function generateRecommendations(
+  userTopics: string[],
+  userAngles: string[],
+  patterns: AnonymizedPattern[]
+): PatternRecommendation[];
+```
+
+### Privacy Budget
+
+```typescript
+loadPrivacyBudget(dir?)           // Get current budget state
+spendBudget(epsilon, queryType, dir?)  // Spend ε, returns false if exhausted
+getRemainingBudget(dir?)          // Remaining ε before exhaustion
 ```

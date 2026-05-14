@@ -16,6 +16,10 @@ Practical recipes and patterns for working with the Innovator codebase. For setu
 - [Adding a CLI Command](#adding-a-cli-command)
 - [Adding an MCP Tool](#adding-an-mcp-tool)
 - [Working with the Knowledge Graph](#working-with-the-knowledge-graph)
+- [Stress-Testing Ideas with the Gauntlet](#stress-testing-ideas-with-the-gauntlet)
+- [Using the Provenance Ledger](#using-the-provenance-ledger)
+- [Building Innovation Memory](#building-innovation-memory)
+- [Sequencing Idea Genomes](#sequencing-idea-genomes)
 - [Testing Patterns](#testing-patterns)
 - [Common Pitfalls](#common-pitfalls)
 
@@ -109,37 +113,37 @@ cp .env.local.example .env.local
 
 ### Core Variables
 
-| Variable                    | Description                                              | Default                  |
-| --------------------------- | -------------------------------------------------------- | ------------------------ |
-| `INNOVATOR_DEFAULT_MODEL`   | LLM model used when none is specified at runtime         | `gpt-4.1`               |
-| `INNOVATOR_LLM_TIMEOUT_MS`  | Timeout for each LLM request in milliseconds             | `90000`                  |
-| `INNOVATOR_EXTRA_MODELS`    | Comma-separated additional model IDs to allow            | _unset_                  |
+| Variable                   | Description                                      | Default   |
+| -------------------------- | ------------------------------------------------ | --------- |
+| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime | `gpt-4.1` |
+| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for each LLM request in milliseconds     | `90000`   |
+| `INNOVATOR_EXTRA_MODELS`   | Comma-separated additional model IDs to allow    | _unset_   |
 
 ### Authentication & Security
 
-| Variable                    | Description                                              | Default                  |
-| --------------------------- | -------------------------------------------------------- | ------------------------ |
-| `INNOVATOR_API_KEY`         | API key protecting web routes (`X-API-Key` header)       | _unset_ (open access)    |
-| `INNOVATOR_API_KEYS`        | Comma-separated multi-key auth (overrides single key)    | _unset_                  |
-| `INNOVATOR_EMBED_API_KEY`   | API key for the `/api/embed` widget endpoint             | _unset_                  |
-| `INNOVATOR_EMBED_ORIGINS`   | Comma-separated CORS origins for embed endpoint          | `*`                      |
+| Variable                  | Description                                           | Default               |
+| ------------------------- | ----------------------------------------------------- | --------------------- |
+| `INNOVATOR_API_KEY`       | API key protecting web routes (`X-API-Key` header)    | _unset_ (open access) |
+| `INNOVATOR_API_KEYS`      | Comma-separated multi-key auth (overrides single key) | _unset_               |
+| `INNOVATOR_EMBED_API_KEY` | API key for the `/api/embed` widget endpoint          | _unset_               |
+| `INNOVATOR_EMBED_ORIGINS` | Comma-separated CORS origins for embed endpoint       | `*`                   |
 
 ### Alternative LLM Providers
 
-| Variable                    | Description                                              | Default                  |
-| --------------------------- | -------------------------------------------------------- | ------------------------ |
-| `OPENAI_API_KEY`            | Direct OpenAI provider (no Copilot subscription needed)  | _unset_                  |
-| `ANTHROPIC_API_KEY`         | Direct Anthropic provider                                | _unset_                  |
-| `OLLAMA_BASE_URL`           | Local Ollama instance URL                                | `http://localhost:11434` |
+| Variable            | Description                                             | Default                  |
+| ------------------- | ------------------------------------------------------- | ------------------------ |
+| `OPENAI_API_KEY`    | Direct OpenAI provider (no Copilot subscription needed) | _unset_                  |
+| `ANTHROPIC_API_KEY` | Direct Anthropic provider                               | _unset_                  |
+| `OLLAMA_BASE_URL`   | Local Ollama instance URL                               | `http://localhost:11434` |
 
 ### CI & Infrastructure
 
-| Variable                    | Description                                              | Default                  |
-| --------------------------- | -------------------------------------------------------- | ------------------------ |
-| `GH_TOKEN`                  | GitHub token for Copilot auth in CI/Docker               | _unset_                  |
-| `PORT`                      | Dev server port                                          | `3000`                   |
-| `MCP_PORT`                  | MCP server SSE transport port                            | `3100`                   |
-| `PLAYWRIGHT_BASE_URL`       | Base URL for E2E tests                                   | `http://localhost:3000`  |
+| Variable              | Description                                | Default                 |
+| --------------------- | ------------------------------------------ | ----------------------- |
+| `GH_TOKEN`            | GitHub token for Copilot auth in CI/Docker | _unset_                 |
+| `PORT`                | Dev server port                            | `3000`                  |
+| `MCP_PORT`            | MCP server SSE transport port              | `3100`                  |
+| `PLAYWRIGHT_BASE_URL` | Base URL for E2E tests                     | `http://localhost:3000` |
 
 > **Full reference:** See [`.env.local.example`](../.env.local.example) for all variables with inline docs, and [Configuration docs](../website/docs/configuration.md) for detailed usage examples.
 
@@ -418,6 +422,176 @@ console.log(`Graph: ${stats.nodes} nodes, ${stats.edges} edges`);
 
 ---
 
+## Stress-Testing Ideas with the Gauntlet
+
+The Adversarial Gauntlet runs 5 specialized adversary agents against an idea and produces a Survivability Index (0–100).
+
+```typescript
+import { runGauntlet, gauntletToMarkdown } from "@innovator/core";
+
+// Basic gauntlet run
+const result = await runGauntlet({
+  title: "AI-powered code review",
+  description: "Automated code review using LLMs that understands context and team conventions",
+  potentialImpact: "50% faster review cycles",
+  implementationHint: "Start with PR diff analysis",
+});
+
+console.log(`Survivability: ${result.survivabilityIndex}/100`);
+console.log(`Attacks: ${result.attacks.length}`);
+
+// With strengthening — generates a revised idea addressing top attacks
+const strengthened = await runGauntlet(
+  {
+    title: "AI code review",
+    description: "...",
+    potentialImpact: "...",
+    implementationHint: "...",
+  },
+  { strengthen: true, adversaries: ["skeptic", "engineer", "economist"] }
+);
+
+if (strengthened.strengthenedIdea) {
+  console.log(`Revised: ${strengthened.strengthenedIdea.title}`);
+  console.log(`New score: ${strengthened.strengthenedIdea.revisedSurvivabilityIndex}/100`);
+}
+
+// Export as Markdown report
+console.log(gauntletToMarkdown(result));
+```
+
+---
+
+## Using the Provenance Ledger
+
+The provenance ledger records every AI action and human decision in a tamper-evident hash chain.
+
+```typescript
+import {
+  recordInvestigation,
+  recordGeneration,
+  recordHumanDecision,
+  verifyLedger,
+  getSessionEntries,
+  exportForActor,
+  ledgerToMarkdown,
+} from "@innovator/core";
+
+// Record AI actions (typically called by pipeline internals)
+recordInvestigation("session-123", "sustainable energy", "gpt-5", "abc123");
+recordGeneration("session-123", "sustainable energy", "scamper", "gpt-5", "def456", 4);
+
+// Record human decisions
+recordHumanDecision(
+  "session-123",
+  "alice@company.com",
+  "approval",
+  "Solar panel idea",
+  "Strong market fit"
+);
+
+// Verify chain integrity
+const check = verifyLedger();
+console.log(`Valid: ${check.valid}, Entries: ${check.totalEntries}`);
+
+// View session audit trail
+const entries = getSessionEntries("session-123");
+console.log(ledgerToMarkdown(entries));
+
+// GDPR export (Art. 15)
+const exported = exportForActor("alice@company.com");
+```
+
+---
+
+## Building Innovation Memory
+
+The temporal memory module tracks concept evolution across sessions.
+
+```typescript
+import {
+  ingestSession,
+  queryTemporalMemory,
+  detectRecurrences,
+  computeVelocity,
+  loadTemporalGraph,
+} from "@innovator/core";
+
+// Ingest a completed session
+const result = ingestSession({
+  sessionId: "session-456",
+  subject: "AI in healthcare",
+  investigation: {
+    summary: "Healthcare AI is transforming diagnostics...",
+    keyAspects: [{ title: "Diagnostic AI", description: "ML-based image analysis" }],
+    challenges: ["Regulatory approval", "Data privacy"],
+    opportunities: ["Early detection", "Cost reduction"],
+  },
+  ideas: [
+    {
+      title: "AI triage system",
+      description: "Automated patient triage",
+      angleId: "first-principles",
+    },
+  ],
+  themes: ["patient safety", "efficiency"],
+  timestamp: new Date().toISOString(),
+});
+
+console.log(`Created ${result.nodesCreated} nodes, ${result.edgesCreated} edges`);
+console.log(`Recurrences: ${result.recurrences.map((r) => r.concept).join(", ")}`);
+
+// Natural language query
+const answer = await queryTemporalMemory({
+  question: "How has our thinking about AI in healthcare evolved?",
+  timeRange: { from: "2025-01-01", to: "2026-05-01" },
+});
+console.log(answer.narrative);
+
+// Innovation velocity
+const graph = loadTemporalGraph();
+const velocity = computeVelocity(graph, 3);
+console.log(`${velocity.ideasPerMonth} ideas/month, ${velocity.activeConcepts} active concepts`);
+```
+
+---
+
+## Sequencing Idea Genomes
+
+The genome sequencer decomposes ideas into structural traits for similarity search and recombination.
+
+```typescript
+import { sequenceIdea, findSimilar, recombine, genomeToMarkdown } from "@innovator/core";
+
+// Sequence an idea
+const genome = await sequenceIdea({
+  title: "AI-driven supply chain optimization",
+  description: "ML models predict demand and optimize routing in real-time",
+  potentialImpact: "30% logistics cost reduction",
+  implementationHint: "Start with demand forecasting module",
+});
+
+console.log(genomeToMarkdown(genome));
+// Output: 7 traits (problem-space, solution-mechanism, value-proposition, ...)
+
+// Find similar ideas in the library
+const similar = findSimilar(genome, 5);
+for (const match of similar) {
+  console.log(`${match.ideaTitle}: ${Math.round(match.overallSimilarity * 100)}% similar`);
+}
+
+// Recombine two genomes into a novel idea
+if (similar.length > 0) {
+  const otherGenome = getGenome(similar[0].genomeB);
+  if (otherGenome) {
+    const recombinant = await recombine(genome, otherGenome);
+    console.log(`New idea: ${recombinant.title} (novelty: ${recombinant.noveltyScore})`);
+  }
+}
+```
+
+---
+
 ## Testing Patterns
 
 ### Unit test structure
@@ -445,17 +619,15 @@ describe("getAngleById", () => {
 import { vi } from "vitest";
 
 vi.mock("../copilot/client.js", () => ({
-  generateText: vi
-    .fn()
-    .mockResolvedValue(
-      JSON.stringify({
-        summary: "Test",
-        keyAspects: [],
-        currentState: "",
-        challenges: [],
-        opportunities: [],
-      })
-    ),
+  generateText: vi.fn().mockResolvedValue(
+    JSON.stringify({
+      summary: "Test",
+      keyAspects: [],
+      currentState: "",
+      challenges: [],
+      opportunities: [],
+    })
+  ),
   extractJson: vi.fn((raw: string) => raw),
 }));
 ```
