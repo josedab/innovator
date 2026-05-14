@@ -91,6 +91,12 @@ export class InnovatorBot {
   }
 }
 
+/**
+ * Map a pipeline stage name to its corresponding emoji for chat display.
+ *
+ * @param stage - The pipeline stage identifier (e.g., "investigating", "generating").
+ * @returns A single emoji character representing the stage.
+ */
 function getStageEmoji(stage: string): string {
   switch (stage) {
     case "investigating":
@@ -108,6 +114,12 @@ function getStageEmoji(stage: string): string {
   }
 }
 
+/**
+ * Format a pipeline progress update into a human-readable status message.
+ *
+ * @param progress - The current pipeline progress snapshot.
+ * @returns A short status string describing the current stage.
+ */
 function formatStage(progress: PipelineProgress): string {
   switch (progress.stage) {
     case "investigating":
@@ -126,6 +138,16 @@ function formatStage(progress: PipelineProgress): string {
 // Platform message length limits (conservative to account for formatting overhead)
 const MAX_MESSAGE_LENGTH = 3500; // Slack: 4000, Discord: 2000, Teams: 28KB — use conservative limit
 
+/**
+ * Format completed pipeline results into a summary message for chat platforms.
+ *
+ * Includes the top 5 ideas, cross-cutting themes, and a strategic recommendation.
+ * Output is truncated to {@link MAX_MESSAGE_LENGTH} to respect platform limits.
+ *
+ * @param subject - The original innovation subject.
+ * @param result  - The completed pipeline progress containing synthesis and angle results.
+ * @returns A formatted markdown-style summary string.
+ */
 function formatResults(subject: string, result: PipelineProgress): string {
   const lines: string[] = [`✅ *Innovation Results for: ${subject}*`, ""];
 
