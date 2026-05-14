@@ -373,9 +373,132 @@ interface LLMProvider {
 - **AnthropicProvider** — Direct Anthropic API via `@anthropic-ai/sdk`
 - **OllamaProvider** — Local inference via Ollama REST API
 
+## PostgreSQL Database
+
+When running with `docker-compose`, Innovator uses PostgreSQL 16 for persistent storage. The connection is configured via the `DATABASE_URL` environment variable.
+
+### Schema Overview
+
+Migrations are defined in `packages/core/src/storage/drivers/index.ts` (`CORE_MIGRATIONS` array) and applied automatically by `PostgreSQLDriver.runMigrations()`. Applied migrations are tracked in the `_innovator_migrations` system table.
+
+| Migration                            | Tables Created                                                  | Purpose                                             |
+| ------------------------------------ | --------------------------------------------------------------- | --------------------------------------------------- |
+| 1 — `create-core-tables`             | `sessions`, `workspaces`, `analytics_events`, `knowledge_graph` | Core innovation sessions and workspace data         |
+| 2 — `create-api-gateway-tables`      | `api_keys`, `usage_records`, `webhooks`                         | API authentication, rate limiting, webhook delivery |
+| 3 — `create-collaboration-tables`    | `collaborative_sessions`                                        | Real-time multi-user brainstorming                  |
+| 4 — `create-decision-journal-tables` | `decisions`                                                     | Decision journaling for idea triage                 |
+| 5 — `create-tournament-tables`       | `tournaments`                                                   | Idea tournament brackets                            |
+| 6 — `create-schedule-tables`         | `schedules`, `schedule_runs`                                    | Scheduled task execution and logs                   |
+
+### Local Development Setup
+
+```bash
+# 1. Set required passwords in .env (or export them)
+echo 'POSTGRES_PASSWORD=changeme' >> .env
+echo 'PGADMIN_PASSWORD=changeme' >> .env
+
+# 2. Start PostgreSQL + pgAdmin
+docker compose up -d postgres pgadmin
+
+# 3. Verify Postgres is healthy
+docker compose exec postgres pg_isready -U innovator
+```
+
+- **PostgreSQL** is available at `localhost:5432` (user: `innovator`, db: `innovator`)
+- **pgAdmin** web UI is at `http://localhost:5050` (email: `admin@innovator.dev`)
+
+### Running Migrations
+
+Migrations run automatically when the app connects via `PostgreSQLDriver`. To run the full stack with migrations:
+
+```bash
+# Start all services (Postgres + app) — migrations run on app startup
+docker compose up -d
+
+# Or run just the app against an existing Postgres instance
+DATABASE_URL=postgresql://innovator:changeme@localhost:5432/innovator npm run dev
+```
+
+### Connection Configuration
+
+| Variable            | Default      | Description                        |
+| ------------------- | ------------ | ---------------------------------- |
+| `DATABASE_URL`      | —            | Full PostgreSQL connection string  |
+| `POSTGRES_USER`     | `innovator`  | Database user (docker-compose)     |
+| `POSTGRES_PASSWORD` | _(required)_ | Database password (docker-compose) |
+
+The PostgreSQL driver uses connection pooling (max 20 connections) and supports transaction-based migration rollback on failure.
+
 ## Full Documentation
 
 See the [Docusaurus docs site](https://github.com/josedab/innovator/blob/main/website/docs/architecture.md) for detailed architecture documentation.
+
+## Production Deployment
+
+### Docker Deployment
+
+The included `Dockerfile` builds a production-ready image from `node:20-slim` with the GitHub CLI pre-installed for Copilot SDK authentication.
+
+```bash
+# Build the production image
+docker build -t innovator .
+
+# Run with required environment variables
+docker run -d \
+  -p 3000:3000 \
+  -e GH_TOKEN="$GH_TOKEN" \
+  -e INNOVATOR_API_KEY="$INNOVATOR_API_KEY" \
+  -e DATABASE_URL="postgresql://user:pass@db-host:5432/innovator" \
+  innovator
+```
+
+For a full stack (app + Postgres + pgAdmin):
+
+```bash
+# Configure .env with required secrets
+cp .env.local.example .env
+# Edit .env: set POSTGRES_PASSWORD, PGADMIN_PASSWORD, GH_TOKEN, INNOVATOR_API_KEY
+
+docker compose up -d
+```
+
+### Cloud Deployment
+
+| Platform                    | Strategy                                       | Notes                                                                                  |
+| --------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Vercel**                  | `vercel.json` included; serverless Next.js     | No Postgres or GitHub CLI; use `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` as LLM provider |
+| **AWS ECS / GCP Cloud Run** | Deploy the Docker image as a container service | Attach a managed Postgres (RDS/Cloud SQL) via `DATABASE_URL`                           |
+| **Railway / Render**        | Connect repo; auto-detects `Dockerfile`        | Add Postgres plugin and set `DATABASE_URL` automatically                               |
+| **Self-hosted**             | `docker compose up -d` on any Linux host       | Use a reverse proxy (nginx/Caddy) for TLS termination                                  |
+
+### Environment Configuration
+
+All production instances require these variables:
+
+| Variable                   | Required               | Description                                                                      |
+| -------------------------- | ---------------------- | -------------------------------------------------------------------------------- |
+| `GH_TOKEN`                 | Yes (Copilot provider) | GitHub token for Copilot SDK auth; or use `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` |
+| `INNOVATOR_API_KEY`        | Recommended            | Protects API routes; without it, all routes are open                             |
+| `DATABASE_URL`             | For persistence        | PostgreSQL connection string; without it, data is ephemeral                      |
+| `INNOVATOR_DEFAULT_MODEL`  | No                     | Default: `gpt-4.1`                                                               |
+| `INNOVATOR_LLM_TIMEOUT_MS` | No                     | Default: `90000` (90s)                                                           |
+| `PORT`                     | No                     | Default: `3000`                                                                  |
+
+### Scaling Considerations
+
+- **Stateless app tier** — The Next.js app holds no in-process state; scale horizontally behind a load balancer.
+- **Database** — Use a managed Postgres instance with connection pooling (e.g., PgBouncer) for >10 app replicas.
+- **LLM rate limits** — The pipeline's `MAX_CONCURRENCY=2` limits parallel LLM calls per request. With multiple replicas, total concurrency = `2 × replicas`. Monitor provider rate limits accordingly.
+- **SSE connections** — Each `/api/auto` or `/api/pipeline` request holds an open SSE connection for the pipeline duration (~30–120s). Ensure your load balancer supports long-lived HTTP connections and does not apply aggressive idle timeouts.
+- **Body size** — Middleware enforces a 100 KB request body limit. No additional proxy configuration is needed for typical payloads.
+
+### Operational Best Practices
+
+- **Health check** — `GET /` returns the web UI; use it as a basic liveness probe.
+- **Secrets** — Never commit `.env` files. Use platform-native secret managers (AWS Secrets Manager, GCP Secret Manager, Vercel env vars).
+- **Logging** — The app logs to stdout/stderr. Collect logs via your platform's logging pipeline (CloudWatch, Cloud Logging, etc.).
+- **Backups** — Enable automated backups on your managed Postgres instance. The `pgdata` Docker volume is not backed up by default.
+- **Updates** — Pull the latest image, run `docker compose up -d`. Migrations run automatically on startup.
 
 ## Architecture Decision Records
 
