@@ -7064,6 +7064,35 @@ export {
   detectAntiPatterns as detectFederationAntiPatterns,
   computeNetworkStats as computeFederationNetworkStats,
 } from "./federation-dp/index.js";
+
+/** Cross-Organization Innovation Network — org registration, trend aggregation, challenges. */
+export {
+  registerOrganization,
+  getOrganization,
+  listOrganizations,
+  updatePrivacySettings,
+  suspendOrganization,
+  subscribeToTopic,
+  unsubscribeFromTopic,
+  listSubscriptions,
+  contributePatterns,
+  aggregateTrends,
+  getNetworkTrends,
+  createChallenge as createNetworkChallenge,
+  submitToChallenge,
+  scoreSubmission,
+  startJudging,
+  finalizeChallenge,
+  getChallenge,
+  listChallenges,
+  clearNetworkState,
+} from "./federation-dp/network.js";
+export type {
+  OrgRegistration,
+  TopicSubscription,
+  TrendDataPoint,
+  Challenge as NetworkChallenge,
+} from "./federation-dp/network.js";
 export {
   DPConfigSchema,
   PrivacyBudgetSchema as FederationPrivacyBudgetSchema,
