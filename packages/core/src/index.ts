@@ -968,6 +968,40 @@ export {
 } from "./offline/index.js";
 export type { OllamaStatus, OfflineStatus, RecommendedModel } from "./offline/index.js";
 
+/** Offline Vault — sync queue, CRDT merge, encryption, secure export/import. */
+export {
+  setNodeId,
+  getNodeId,
+  queueSyncOperation,
+  getQueuedOperations,
+  getSyncQueue,
+  markSynced,
+  markFailed,
+  retryFailedOperations,
+  purgeSyncedOperations,
+  compareTimestamps,
+  crdtSet,
+  crdtDelete,
+  crdtGet,
+  crdtMerge,
+  getCRDTDocument,
+  listCRDTDocuments,
+  encryptData,
+  decryptData,
+  exportVault,
+  importVault,
+  clearVaultState,
+} from "./offline/vault.js";
+export type {
+  SyncOperation as VaultSyncOperation,
+  CRDTTimestamp,
+  CRDTEntry,
+  CRDTDocument,
+  ConflictResolution,
+  VaultExport,
+  EncryptionConfig,
+} from "./offline/vault.js";
+
 /** RAG / knowledge grounding — document loading, chunking, embedding, similarity search, and source connectors. */
 export {
   KnowledgeBase,
