@@ -4874,6 +4874,34 @@ export type {
   TriggerCallback,
 } from "./triggers/index.js";
 
+/** Context-Aware Signal Collectors — GitHub, Slack, Calendar signal collection and pattern detection. */
+export {
+  GitHubIssuesCollector,
+  GitHubPRsCollector,
+  GitHubDiscussionsCollector,
+  SlackMessagesCollector,
+  SlackReactionsCollector,
+  CalendarCollector,
+  classifySignals,
+  detectPatternsHeuristic,
+  formatNotifications,
+  getStoredTriggers,
+  dismissTrigger,
+  markTriggerActedOn,
+  getPendingTriggers,
+  clearTriggerState,
+} from "./triggers/signal-collectors.js";
+export type {
+  SignalSource as ContextSignalSource,
+  Signal as TriggerContextSignal,
+  InnovationTrigger,
+  TriggerThreshold,
+  NotificationChannel as TriggerNotificationChannel,
+  NotificationConfig as TriggerNotificationConfig,
+  SignalCollector,
+  TriggerNotification,
+} from "./triggers/signal-collectors.js";
+
 /** Structured innovation report generation — templates, section generators, and renderers. */
 export {
   ReportSectionIdSchema,
