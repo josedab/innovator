@@ -226,6 +226,7 @@ import type { AngleId, Investigation } from "@innovator/core/types";
 
 ## Further Reading
 
+- [Feature Module Catalog](../../website/docs/guides/feature-catalog.md) — Complete index of all 217 modules organized by category
 - [API Reference](../../docs/API.md) — Full function signatures and parameter tables
 - [Developer Guide](../../docs/DEVELOPER_GUIDE.md) — Recipes and tutorials
 - [Architecture Decision Records](../../docs/adr/) — Design rationale

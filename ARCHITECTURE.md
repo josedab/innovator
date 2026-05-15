@@ -206,6 +206,8 @@ graph LR
 | `apps/web/src/app/api/`                | Next.js API route handlers                                    |
 | `apps/cli/src/`                        | Commander.js CLI entry point                                  |
 
+> **Note:** `packages/core/src/` contains 217 module directories. The table above lists the most commonly referenced ones. For the complete module index organized by category (Simulation, Collaboration, AI/ML, etc.), see the [Feature Module Catalog](website/docs/guides/feature-catalog.md).
+
 ## Moonshot Modules
 
 Six advanced modules extend the core innovation pipeline with intelligence, memory, and quality assurance capabilities:
