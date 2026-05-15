@@ -43,9 +43,13 @@ export type AngleId = (typeof ANGLE_IDS)[number];
 
 /** Metadata for a single innovation angle. */
 export interface AngleDefinition {
+  /** Unique identifier for this angle (e.g., `"scamper"`, `"first-principles"`). */
   id: AngleId;
+  /** Human-readable display name. */
   name: string;
+  /** Brief description of the angle's approach. */
   shortDescription: string;
+  /** Emoji icon for UI display. */
   icon: string;
 }
 
@@ -122,14 +126,23 @@ export type PipelineStage = "investigating" | "generating" | "synthesizing" | "c
 
 /** Progress snapshot emitted during the auto-mode pipeline for each stage transition. */
 export interface PipelineProgress {
+  /** Current pipeline stage. */
   stage: PipelineStage;
+  /** Angle currently being processed (if in "generating" stage). */
   currentAngle?: string;
+  /** IDs of angles that have finished generating. */
   completedAngles: string[];
+  /** Total number of angles to process. */
   totalAngles: number;
+  /** Investigation result (available after "investigating" completes). */
   investigation?: Investigation;
+  /** Accumulated angle results as each angle completes. */
   angleResults: AngleResult[];
+  /** Angles that failed during generation. */
   failedAngles?: { angleId: string; error: string }[];
+  /** Final synthesis (available after "synthesizing" completes). */
   synthesis?: Synthesis;
+  /** Error message if stage is "error". */
   error?: string;
   /** Partial idea being streamed in real-time (before full angle result is available). */
   partialIdea?: {
@@ -147,14 +160,21 @@ export interface PipelineProgress {
 
 /** A custom innovation angle defined by the user with a prompt template. */
 export interface CustomAngle {
+  /** Unique identifier (lowercase alphanumeric with hyphens). */
   id: string;
+  /** Human-readable display name. */
   name: string;
+  /** Brief description of the angle's approach. */
   description: string;
   /** Prompt template with {{subject}} and {{investigation}} placeholders. */
   promptTemplate: string;
+  /** Emoji icon for UI display. */
   icon?: string;
+  /** Author of the custom angle. */
   author?: string;
+  /** Semver version string. */
   version?: string;
+  /** Categorization tags for discovery and filtering. */
   tags?: string[];
 }
 
@@ -211,9 +231,13 @@ export interface AutoRequest {
 
 /** Base interface all plugins must implement. */
 export interface PluginBase {
+  /** Unique plugin identifier (used for registry lookups). */
   id: string;
+  /** Human-readable plugin name. */
   name: string;
+  /** Semver version string. */
   version: string;
+  /** Optional description shown in plugin listings. */
   description?: string;
 }
 
@@ -225,8 +249,11 @@ export interface AnglePlugin extends PluginBase {
 
 /** Export format configuration. */
 export interface ExportFormat {
+  /** Format identifier (e.g., `"markdown"`, `"json"`). */
   id: string;
+  /** Human-readable format name. */
   name: string;
+  /** File extension including the dot (e.g., `".md"`). */
   extension: string;
 }
 
@@ -239,10 +266,15 @@ export interface ExporterPlugin extends PluginBase {
 
 /** Data passed to exporter plugins. */
 export interface ExportData {
+  /** The innovation subject being exported. */
   subject: string;
+  /** Investigation results (if available). */
   investigation?: Investigation;
+  /** Per-angle idea results. */
   angleResults: AngleResult[];
+  /** Synthesized top ideas and recommendation. */
   synthesis?: Synthesis;
+  /** Arbitrary metadata attached by the caller. */
   metadata?: Record<string, unknown>;
 }
 
@@ -257,11 +289,17 @@ export type InnovatorPlugin = AnglePlugin | ExporterPlugin | VisualizerPlugin;
 
 /** Plugin manifest for discovery and loading. */
 export interface PluginManifest {
+  /** Unique plugin identifier. */
   id: string;
+  /** Human-readable plugin name. */
   name: string;
+  /** Semver version string. */
   version: string;
+  /** Plugin category determining available capabilities. */
   type: "angle" | "exporter" | "visualizer";
+  /** Optional description shown in plugin listings. */
   description?: string;
+  /** Entry point file path or npm package name. */
   main: string;
 }
 
@@ -269,17 +307,25 @@ export interface PluginManifest {
 
 /** API key metadata for programmatic access. */
 export interface ApiKeyInfo {
+  /** Unique key identifier. */
   id: string;
+  /** Human-readable label for the key. */
   name: string;
+  /** First characters of the key for identification (e.g., `"sk-abc..."`). */
   prefix: string;
+  /** ISO 8601 timestamp when the key was created. */
   createdAt: string;
+  /** ISO 8601 timestamp of the last API call using this key. */
   lastUsedAt?: string;
 }
 
 /** Rate limit information returned in API responses. */
 export interface RateLimitInfo {
+  /** Maximum requests allowed in the current window. */
   limit: number;
+  /** Remaining requests in the current window. */
   remaining: number;
+  /** ISO 8601 timestamp when the rate limit window resets. */
   resetAt: string;
 }
 
@@ -287,15 +333,23 @@ export interface RateLimitInfo {
 
 /** A domain preset with pre-selected angles and customized prompts. */
 export interface Preset {
+  /** Unique preset identifier. */
   id: string;
+  /** Human-readable preset name. */
   name: string;
+  /** Description of what this preset is optimized for. */
   description: string;
+  /** Emoji icon for UI display. */
   icon: string;
+  /** Grouping category (e.g., `"product"`, `"sustainability"`). */
   category: string;
+  /** Example subject to help users understand the preset's scope. */
   suggestedSubject: string;
+  /** Pre-selected angles activated by this preset. */
   selectedAngles: AngleId[];
   /** Optional custom prompt hints injected into investigation. */
   contextHints?: string;
+  /** Categorization tags for filtering. */
   tags?: string[];
 }
 
@@ -303,26 +357,43 @@ export interface Preset {
 
 /** A stored innovation session with all pipeline results. */
 export interface SessionRecord {
+  /** Unique session identifier. */
   id: string;
+  /** The innovation subject. */
   subject: string;
+  /** ISO 8601 timestamp when the session was created. */
   createdAt: string;
+  /** ISO 8601 timestamp when the session was last modified. */
   updatedAt: string;
+  /** Investigation results (if pipeline reached this stage). */
   investigation?: Investigation;
+  /** Per-angle idea results. */
   angleResults: AngleResult[];
+  /** Synthesized top ideas and recommendation. */
   synthesis?: Synthesis;
+  /** User-defined tags for categorization. */
   tags: string[];
+  /** Free-form user notes attached to the session. */
   notes?: string;
+  /** Preset used to run this session (if any). */
   presetId?: string;
 }
 
 /** Search/filter options for querying session history. */
 export interface HistoryQuery {
+  /** Full-text search across subject and idea content. */
   search?: string;
+  /** Filter to sessions containing all specified tags. */
   tags?: string[];
+  /** ISO 8601 lower bound for creation date. */
   fromDate?: string;
+  /** ISO 8601 upper bound for creation date. */
   toDate?: string;
+  /** Filter to sessions that used a specific angle. */
   angleId?: string;
+  /** Maximum number of results to return. */
   limit?: number;
+  /** Number of results to skip (for pagination). */
   offset?: number;
 }
 
@@ -333,27 +404,41 @@ export type PipelineModelStage = "investigation" | "generation" | "synthesis";
 
 /** Model capability metadata for smart routing. */
 export interface ModelCapability {
+  /** LLM model identifier string. */
   modelId: string;
+  /** Human-readable model name. */
   displayName: string;
+  /** Pipeline stages this model excels at. */
   strengths: PipelineModelStage[];
+  /** Relative cost tier for budget-aware routing. */
   costTier: "low" | "medium" | "high";
+  /** Relative speed tier for latency-aware routing. */
   speedTier: "fast" | "medium" | "slow";
+  /** Relative quality tier for output fidelity. */
   qualityTier: "standard" | "high" | "premium";
 }
 
 /** Per-stage model configuration for the pipeline. */
 export interface ModelRouting {
+  /** Model to use for the investigation stage. */
   investigation?: string;
+  /** Model to use for the idea generation stage. */
   generation?: string;
+  /** Model to use for the synthesis stage. */
   synthesis?: string;
 }
 
 /** Result of comparing the same angle across multiple models. */
 export interface ModelComparisonResult {
+  /** The angle that was compared. */
   angleId: string;
+  /** Per-model results with timing data. */
   results: Array<{
+    /** Model identifier used for this run. */
     model: string;
+    /** The angle result produced by this model. */
     angleResult: AngleResult;
+    /** Wall-clock duration in milliseconds. */
     durationMs: number;
   }>;
 }
@@ -362,15 +447,25 @@ export interface ModelComparisonResult {
 
 /** A collaborative ideation session. */
 export interface CollaborativeSession {
+  /** Unique session identifier. */
   id: string;
+  /** Short join code participants use to enter the session. */
   roomCode: string;
+  /** The innovation subject being brainstormed. */
   subject: string;
+  /** User ID of the session host. */
   hostUserId: string;
+  /** ISO 8601 timestamp when the session was created. */
   createdAt: string;
+  /** Current session lifecycle state. */
   status: "waiting" | "active" | "completed";
+  /** All participants including the host. */
   participants: SessionParticipant[];
+  /** Map of userId → assigned angle IDs. */
   angleAssignments: Record<string, AngleId[]>;
+  /** Ideas submitted during the session. */
   ideas: CollaborativeIdea[];
+  /** Map of ideaId → array of voter userIds. */
   votes: Record<string, string[]>;
 }
 
