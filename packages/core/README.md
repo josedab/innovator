@@ -2,6 +2,8 @@
 
 Shared innovation engine for the Innovator project. Provides types, prompt templates, Copilot SDK client management, and the full investigation → generation → synthesis pipeline.
 
+All business logic lives here — consumers (`apps/web`, `apps/cli`, `packages/mcp-server`, `packages/bot`) are thin adapters.
+
 ## Installation
 
 This is a private workspace package. It is consumed via npm workspaces:
@@ -10,6 +12,111 @@ This is a private workspace package. It is consumed via npm workspaces:
 // In your app's package.json
 { "dependencies": { "@innovator/core": "*" } }
 ```
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                  Consumers                       │
+│  apps/web  ·  apps/cli  ·  mcp-server  ·  bot  │
+└─────────────────┬───────────────────────────────┘
+                  │ imports @innovator/core
+┌─────────────────▼───────────────────────────────┐
+│              @innovator/core                     │
+│                                                  │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
+│  │ Pipeline │  │  Angles  │  │ Copilot Client│  │
+│  │ Engine   │──│ Registry │──│ (LLM Gateway) │  │
+│  └────┬─────┘  └──────────┘  └───────────────┘  │
+│       │                                          │
+│  ┌────▼──────────────────────────────────────┐   │
+│  │         Module Ecosystem                   │   │
+│  │  gauntlet · genome-sequencer · sentinel   │   │
+│  │  provenance-ledger · temporal-memory      │   │
+│  │  federation-dp · evolution · scoring ...   │   │
+│  └────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────┘
+```
+
+## Module Map
+
+Every module follows the same file structure convention:
+
+```
+packages/core/src/<module>/
+├── index.ts          # Barrel exports
+├── types.ts          # Zod schemas and TypeScript types
+├── <module>.ts       # Main implementation
+└── __tests__/        # Module-specific tests
+```
+
+### Core Modules
+
+| Module                  | Directory     | Description                                                             |
+| ----------------------- | ------------- | ----------------------------------------------------------------------- |
+| **Innovation Pipeline** | `innovation/` | Investigation, angle generation, synthesis, auto pipeline               |
+| **Copilot Client**      | `copilot/`    | LLM gateway — `generateText()`, `generateTextStream()`, `extractJson()` |
+| **Prompts**             | `prompts/`    | Prompt builders and sanitization (`wrapUserInput`, `sanitizeLlmOutput`) |
+| **Angles**              | `innovation/` | 8 built-in angles + custom angle CRUD                                   |
+| **Providers**           | `providers/`  | Alternative LLM providers (OpenAI, Anthropic, Ollama)                   |
+| **Models**              | `models/`     | Model registry and validation                                           |
+
+### Moonshot Modules
+
+| Module                   | Directory            | Description                                                           |
+| ------------------------ | -------------------- | --------------------------------------------------------------------- |
+| **Adversarial Gauntlet** | `gauntlet/`          | Multi-agent stress-testing with 5 adversary personas                  |
+| **Provenance Ledger**    | `provenance-ledger/` | Tamper-evident append-only audit trail with SHA-256 hash chaining     |
+| **Temporal Memory**      | `temporal-memory/`   | Persistent knowledge graph tracking concept evolution across sessions |
+| **Sentinel**             | `sentinel/`          | Signal monitoring agent with RSS/Atom feeds and daily briefs          |
+| **Genome Sequencer**     | `genome-sequencer/`  | Decomposes ideas into 7 genome traits with similarity search          |
+| **Federation DP**        | `federation-dp/`     | Differential privacy for cross-organization pattern sharing           |
+| **Evolution**            | `evolution/`         | Genetic algorithm evolution of ideas                                  |
+| **Debate**               | `debate/`            | Structured multi-perspective debate engine                            |
+
+### Analysis & Intelligence
+
+| Module               | Directory           | Description                          |
+| -------------------- | ------------------- | ------------------------------------ |
+| **Scoring**          | `scoring/`          | Idea scoring and ranking             |
+| **Benchmark**        | `benchmark/`        | Multi-model performance comparison   |
+| **Hypothesis**       | `hypothesis/`       | Hypothesis-driven innovation framing |
+| **Red Team**         | `redteam/`          | Adversarial perspective analysis     |
+| **Competitive**      | `competitive/`      | Competitive landscape analysis       |
+| **Impact Simulator** | `impact-simulator/` | Potential impact simulation          |
+| **Quality Gate**     | `quality-gate/`     | Automated LLM output quality checks  |
+
+### Data & Knowledge
+
+| Module              | Directory          | Description                                    |
+| ------------------- | ------------------ | ---------------------------------------------- |
+| **Knowledge Graph** | `knowledge-graph/` | Persistent graph of concepts and relationships |
+| **RAG**             | `rag/`             | Retrieval-augmented generation                 |
+| **Memory**          | `memory/`          | Cross-session persistent memory                |
+| **Serendipity**     | `serendipity/`     | Cross-session unexpected connection discovery  |
+| **Diff**            | `diff/`            | Investigation snapshot comparison              |
+
+### Output & Export
+
+| Module        | Directory    | Description                             |
+| ------------- | ------------ | --------------------------------------- |
+| **Artifacts** | `artifacts/` | PRD, tech spec, user story generation   |
+| **Export**    | `export/`    | Markdown, JSON, GitHub Issue export     |
+| **Playbook**  | `playbook/`  | Reusable innovation playbook creation   |
+| **Audience**  | `audience/`  | Audience-adaptive output transformation |
+| **i18n**      | `i18n/`      | Multi-language support                  |
+
+### Platform & Infrastructure
+
+| Module          | Directory      | Description                             |
+| --------------- | -------------- | --------------------------------------- |
+| **Plugins**     | `plugins/`     | Plugin registration and lifecycle       |
+| **Presets**     | `presets/`     | Pipeline presets by category            |
+| **History**     | `history/`     | Session history persistence             |
+| **Events**      | `events/`      | Event bus and webhook delivery          |
+| **Cost**        | `cost/`        | LLM cost tracking and budget management |
+| **Metering**    | `metering/`    | API usage metering                      |
+| **Observatory** | `observatory/` | Prompt call monitoring and debugging    |
 
 ## Public API
 
@@ -116,6 +223,12 @@ For React client components that only need types and angle definitions (no Node.
 import { ANGLES, getAngleById } from "@innovator/core/types";
 import type { AngleId, Investigation } from "@innovator/core/types";
 ```
+
+## Further Reading
+
+- [API Reference](../../docs/API.md) — Full function signatures and parameter tables
+- [Developer Guide](../../docs/DEVELOPER_GUIDE.md) — Recipes and tutorials
+- [Architecture Decision Records](../../docs/adr/) — Design rationale
 
 ## Building
 
