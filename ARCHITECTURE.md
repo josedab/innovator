@@ -379,16 +379,216 @@ When running with `docker-compose`, Innovator uses PostgreSQL 16 for persistent 
 
 ### Schema Overview
 
-Migrations are defined in `packages/core/src/storage/drivers/index.ts` (`CORE_MIGRATIONS` array) and applied automatically by `PostgreSQLDriver.runMigrations()`. Applied migrations are tracked in the `_innovator_migrations` system table.
+Migrations are defined in `packages/core/src/storage/drivers/index.ts` (`CORE_MIGRATIONS` array) and `packages/core/src/workspace-persistence/index.ts` (`PROJECT_MIGRATIONS` array). They are applied automatically by `PostgreSQLDriver.runMigrations()`. Applied migrations are tracked in the `_innovator_migrations` system table.
 
-| Migration                            | Tables Created                                                  | Purpose                                             |
-| ------------------------------------ | --------------------------------------------------------------- | --------------------------------------------------- |
-| 1 — `create-core-tables`             | `sessions`, `workspaces`, `analytics_events`, `knowledge_graph` | Core innovation sessions and workspace data         |
-| 2 — `create-api-gateway-tables`      | `api_keys`, `usage_records`, `webhooks`                         | API authentication, rate limiting, webhook delivery |
-| 3 — `create-collaboration-tables`    | `collaborative_sessions`                                        | Real-time multi-user brainstorming                  |
-| 4 — `create-decision-journal-tables` | `decisions`                                                     | Decision journaling for idea triage                 |
-| 5 — `create-tournament-tables`       | `tournaments`                                                   | Idea tournament brackets                            |
-| 6 — `create-schedule-tables`         | `schedules`, `schedule_runs`                                    | Scheduled task execution and logs                   |
+| Migration                            | Tables Created                                                                  | Purpose                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------- | --------------------------------------------------- |
+| 1 — `create-core-tables`             | `sessions`, `workspaces`, `analytics_events`, `knowledge_graph`                 | Core innovation sessions and workspace data         |
+| 2 — `create-api-gateway-tables`      | `api_keys`, `usage_records`, `webhooks`                                         | API authentication, rate limiting, webhook delivery |
+| 3 — `create-collaboration-tables`    | `collaborative_sessions`                                                        | Real-time multi-user brainstorming                  |
+| 4 — `create-decision-journal-tables` | `decisions`                                                                     | Decision journaling for idea triage                 |
+| 5 — `create-tournament-tables`       | `tournaments`                                                                   | Idea tournament brackets                            |
+| 6 — `create-schedule-tables`         | `schedules`, `schedule_runs`                                                    | Scheduled task execution and logs                   |
+| 100 — `create-innovation-projects`   | `innovation_projects`, `project_sessions`, `project_snapshots`, `team_contexts` | Multi-session project management and team context   |
+
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    %% ── Core tables (Migration 1) ──
+    sessions {
+        TEXT id PK
+        TEXT subject
+        TEXT model
+        TEXT angles
+        TEXT investigation
+        TEXT results
+        TEXT synthesis
+        TEXT scores
+        TEXT tags
+        TEXT notes
+        TEXT created_at
+        TEXT updated_at
+    }
+
+    workspaces {
+        TEXT id PK
+        TEXT name
+        TEXT description
+        TEXT members
+        TEXT presets
+        TEXT angles
+        TEXT sessions
+        TEXT created_at
+        TEXT updated_at
+    }
+
+    analytics_events {
+        TEXT id PK
+        TEXT type
+        TEXT data
+        TEXT timestamp
+    }
+
+    knowledge_graph {
+        TEXT id PK
+        TEXT data
+        TEXT updated_at
+    }
+
+    %% ── API Gateway tables (Migration 2) ──
+    api_keys {
+        TEXT id PK
+        TEXT name
+        TEXT key_value UK
+        TEXT tier
+        INTEGER rate_limit
+        INTEGER enabled
+        TEXT created_at
+        TEXT updated_at
+    }
+
+    usage_records {
+        TEXT id PK
+        TEXT key_id FK
+        TEXT endpoint
+        INTEGER tokens
+        REAL cost_usd
+        TEXT timestamp
+    }
+
+    webhooks {
+        TEXT key_id PK_FK
+        TEXT url PK
+    }
+
+    api_keys ||--o{ usage_records : "tracks usage"
+    api_keys ||--o{ webhooks : "delivers to"
+
+    %% ── Collaboration (Migration 3) ──
+    collaborative_sessions {
+        TEXT id PK
+        TEXT room_code UK
+        TEXT host
+        TEXT data
+        TEXT created_at
+        TEXT updated_at
+    }
+
+    %% ── Decision Journal (Migration 4) ──
+    decisions {
+        TEXT id PK
+        TEXT idea_title
+        TEXT idea_id
+        TEXT angle_id
+        TEXT session_id
+        TEXT subject
+        TEXT status
+        TEXT rationale
+        TEXT history
+        TEXT tags
+        TEXT revisit_reminders
+        TEXT outcome
+        TEXT decided_by
+        TEXT created_at
+        TEXT updated_at
+    }
+
+    sessions ||--o{ decisions : "records decisions"
+
+    %% ── Tournaments (Migration 5) ──
+    tournaments {
+        TEXT id PK
+        TEXT name
+        TEXT description
+        TEXT format
+        TEXT state
+        TEXT participants
+        TEXT matches
+        INTEGER current_round
+        INTEGER total_rounds
+        TEXT winner_id
+        TEXT created_at
+        TEXT updated_at
+    }
+
+    %% ── Schedules (Migration 6) ──
+    schedules {
+        TEXT id PK
+        TEXT name
+        TEXT description
+        TEXT cron_expression
+        TEXT timezone
+        TEXT action
+        TEXT status
+        TEXT delivery
+        INTEGER max_runs
+        INTEGER run_count
+        TEXT last_run_at
+        TEXT next_run_at
+        TEXT created_at
+        TEXT updated_at
+    }
+
+    schedule_runs {
+        TEXT id PK
+        TEXT schedule_id FK
+        TEXT started_at
+        TEXT completed_at
+        TEXT status
+        TEXT result_summary
+        TEXT error
+        INTEGER duration_ms
+    }
+
+    schedules ||--o{ schedule_runs : "produces"
+
+    %% ── Innovation Projects (Migration 100) ──
+    innovation_projects {
+        TEXT id PK
+        TEXT name
+        TEXT description
+        TEXT owner_id
+        TEXT team_members
+        TEXT status
+        TEXT settings
+        TEXT created_at
+        TEXT updated_at
+    }
+
+    project_sessions {
+        TEXT id PK
+        TEXT project_id FK
+        TEXT subject
+        TEXT investigation
+        TEXT angle_results
+        TEXT synthesis
+        TEXT scores
+        TEXT notes
+        TEXT created_at
+    }
+
+    project_snapshots {
+        TEXT id PK
+        TEXT project_id FK
+        TEXT timestamp
+        INTEGER session_count
+        TEXT top_ideas
+        TEXT summary
+    }
+
+    team_contexts {
+        TEXT project_id PK_FK
+        TEXT shared_insights
+        TEXT pinned_ideas
+        TEXT tags
+        TEXT custom_angles
+    }
+
+    innovation_projects ||--o{ project_sessions : "contains"
+    innovation_projects ||--o{ project_snapshots : "snapshots"
+    innovation_projects ||--|| team_contexts : "has context"
+```
 
 ### Local Development Setup
 
