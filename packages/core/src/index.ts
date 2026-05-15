@@ -913,6 +913,21 @@ export {
 } from "./i18n/index.js";
 export type { UITranslations, CulturalContext } from "./i18n/index.js";
 
+/** Extended i18n — 15 languages, RTL support, framework emphasis, artifact templates. */
+export {
+  EXTENDED_LANGUAGES,
+  isRTL,
+  getDirectionStyles,
+  getLocalizedFramework,
+  localizePromptExtended,
+  getLocalizedArtifactTemplate,
+  formatLocalizedReport,
+  detectExtendedLanguage,
+  listExtendedLanguages,
+  getExtendedLanguageConfig,
+} from "./i18n/extended.js";
+export type { ExtendedLanguage, ExtendedLanguageConfig } from "./i18n/extended.js";
+
 /** Idea fitness tracker — track ideas through external platforms (Jira, Linear, GitHub) with status sync. */
 export {
   trackIdea,
