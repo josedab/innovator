@@ -12,6 +12,46 @@ For the full changelog, see the [`CHANGELOG.md`](https://github.com/josedab/inno
 
 ---
 
+## [0.3.0] — 2026-05-14
+
+### Moonshot Modules
+
+Six advanced modules extending the core innovation engine:
+
+- **Adversarial Idea Gauntlet** — Multi-agent stress-testing with 5 adversary personas (Competitor, Regulator, Skeptic, Economist, Engineer), Survivability Index scoring (0–100), and optional Strengthen mode
+- **Innovation Provenance Ledger** — Tamper-evident append-only audit trail with SHA-256 hash chaining, GDPR Art. 15 export and Art. 17 erasure support
+- **Temporal Innovation Memory** — Persistent temporal knowledge graph tracking concept evolution, idea genealogy, and outcome causality across sessions
+- **Sentinel: Always-On Innovation Agent** — Signal monitoring agent collecting RSS/Atom feeds, scoring relevance, and generating daily opportunity briefs with cost budget enforcement
+- **Idea Genome Sequencer** — Decomposes ideas into 7 genome traits with Jaccard similarity search and LLM-powered recombination
+- **Federation DP** — Differential privacy layer for cross-organization pattern sharing using Laplace mechanism with privacy budget tracking
+
+### Web App UX
+
+- **Global Navigation** — Collapsible sidebar with 21 pages grouped into Create/Explore/Analyze/Tools, mobile hamburger menu
+- **Dark Mode Toggle** — Light/dark/system theme switcher persisted to localStorage
+- **Session Persistence** — Auto-saves results to localStorage with recent sessions list and restore capability
+- **Results Action Bar** — Sticky export toolbar with Copy Markdown, Copy JSON, Download .md, and Download .json
+- **Copy-to-Clipboard** — Reusable `CopyButton` for investigation summary, synthesis, and idea cards
+- **Elapsed Timer** — Progress indication with elapsed time during loading states
+- **Onboarding Wizard** — First-run experience with role selection and preset angles
+- **Improved Error Messages** — Context-aware parsing for rate limits, timeouts, auth failures, and network errors
+
+### Documentation
+
+- 10 new Architecture Decision Records (ADR-0013 through ADR-0022)
+- Updated API Reference with full moonshot module documentation
+- Updated Developer Guide with 4 new recipe sections
+- Root AGENTS.md for AI-assisted development
+
+### Developer Experience
+
+- Shared test factories for typed test data builders
+- Coverage thresholds raised from 35% to 50%
+- ESLint `--cache` for faster pre-commit linting
+- Resolved 6 high-severity npm vulnerabilities
+
+---
+
 ## [0.2.0] — 2025-05-10
 
 ### Packages & Integrations
