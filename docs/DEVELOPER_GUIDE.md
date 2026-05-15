@@ -21,6 +21,7 @@ Practical recipes and patterns for working with the Innovator codebase. For setu
 - [Building Innovation Memory](#building-innovation-memory)
 - [Sequencing Idea Genomes](#sequencing-idea-genomes)
 - [Working with Storage & Database](#working-with-storage--database)
+- [Examples](#examples)
 - [Testing Patterns](#testing-patterns)
 - [Common Pitfalls](#common-pitfalls)
 
@@ -707,6 +708,28 @@ await storage.initialize();
 // ... run assertions against storage ...
 await storage.close();
 ```
+
+---
+
+## Examples
+
+The [`examples/`](../examples/) directory contains 5 standalone scripts demonstrating common `@innovator/core` usage patterns:
+
+| Script                   | What It Shows                                              |
+| ------------------------ | ---------------------------------------------------------- |
+| `basic-usage.ts`         | Investigation → generation → synthesis pipeline            |
+| `custom-angles.ts`       | Registering and using custom innovation angles             |
+| `with-budget.ts`         | Cost tracking and budget management                        |
+| `debate-and-redteam.ts`  | Structured debate engine and adversarial red team analysis |
+| `portfolio-lifecycle.ts` | Full idea lifecycle from ideation to shipped               |
+
+```bash
+# Run any example with tsx
+npx tsx examples/basic-usage.ts
+npx tsx examples/basic-usage.ts "quantum computing"
+```
+
+See the full [Examples README](../examples/README.md) for prerequisites and detailed descriptions.
 
 ---
 
