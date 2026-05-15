@@ -585,6 +585,8 @@ export function clearSaasData(): void {
   tenants.clear();
   usage.clear();
   apiKeys.clear();
+  workspaces.clear();
+  sharedResults.clear();
 }
 
 /**
@@ -602,4 +604,182 @@ export function getPlan(planId: PlanId): PlanDefinition {
  */
 export function listPlans(): PlanDefinition[] {
   return Object.values(PLANS);
+}
+
+// ---- Team Workspaces ----
+
+/** Zod schema for validating workspace records. */
+export const WorkspaceSchema = z.object({
+  id: z.string().max(200),
+  tenantId: z.string().max(200),
+  name: z.string().max(200),
+  slug: z.string().max(100).regex(/^[a-z0-9-]+$/),
+  description: z.string().max(2000).optional(),
+  members: z.array(
+    z.object({
+      userId: z.string().max(200),
+      role: z.enum(["owner", "admin", "member", "viewer"]),
+      joinedAt: z.string(),
+    })
+  ).max(200),
+  settings: z.object({
+    defaultAngles: z.array(z.string().max(100)).max(10).optional(),
+    defaultModel: z.string().max(100).optional(),
+    sharedKnowledgeGraph: z.boolean().default(true),
+    autoShareResults: z.boolean().default(false),
+  }),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type Workspace = z.infer<typeof WorkspaceSchema>;
+
+const workspaces = new Map<string, Workspace>();
+
+export function createWorkspace(input: {
+  tenantId: string;
+  name: string;
+  slug: string;
+  ownerId: string;
+  description?: string;
+}): Workspace {
+  if (Array.from(workspaces.values()).some((w) => w.slug === input.slug && w.tenantId === input.tenantId)) {
+    throw new Error(`Workspace slug "${input.slug}" already exists in this tenant`);
+  }
+
+  const now = new Date().toISOString();
+  const workspace: Workspace = {
+    id: randomUUID(),
+    tenantId: input.tenantId,
+    name: input.name,
+    slug: input.slug,
+    description: input.description,
+    members: [{ userId: input.ownerId, role: "owner", joinedAt: now }],
+    settings: {
+      sharedKnowledgeGraph: true,
+      autoShareResults: false,
+    },
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  workspaces.set(workspace.id, workspace);
+  return workspace;
+}
+
+export function getWorkspace(id: string): Workspace | undefined {
+  return workspaces.get(id);
+}
+
+export function listTenantWorkspaces(tenantId: string): Workspace[] {
+  return Array.from(workspaces.values()).filter((w) => w.tenantId === tenantId);
+}
+
+export function addWorkspaceMember(
+  workspaceId: string,
+  userId: string,
+  role: "admin" | "member" | "viewer" = "member"
+): Workspace | undefined {
+  const ws = workspaces.get(workspaceId);
+  if (!ws) return undefined;
+  if (ws.members.some((m) => m.userId === userId)) return ws;
+
+  ws.members.push({ userId, role, joinedAt: new Date().toISOString() });
+  ws.updatedAt = new Date().toISOString();
+  return ws;
+}
+
+export function removeWorkspaceMember(
+  workspaceId: string,
+  userId: string
+): boolean {
+  const ws = workspaces.get(workspaceId);
+  if (!ws) return false;
+
+  const ownerCount = ws.members.filter((m) => m.role === "owner").length;
+  const member = ws.members.find((m) => m.userId === userId);
+  if (member?.role === "owner" && ownerCount <= 1) {
+    throw new Error("Cannot remove the last owner of a workspace");
+  }
+
+  ws.members = ws.members.filter((m) => m.userId !== userId);
+  ws.updatedAt = new Date().toISOString();
+  return true;
+}
+
+// ---- Shareable Result URLs ----
+
+/** Zod schema for shareable result records. */
+export const SharedResultSchema = z.object({
+  id: z.string().max(200),
+  hash: z.string().max(64),
+  tenantId: z.string().max(200).optional(),
+  workspaceId: z.string().max(200).optional(),
+  createdBy: z.string().max(200),
+  title: z.string().max(500),
+  resultType: z.enum(["investigation", "pipeline", "session", "portfolio"]),
+  resultData: z.unknown(),
+  visibility: z.enum(["public", "team", "private"]).default("public"),
+  expiresAt: z.string().optional(),
+  viewCount: z.number().int().min(0).default(0),
+  createdAt: z.string(),
+});
+export type SharedResult = z.infer<typeof SharedResultSchema>;
+
+const sharedResults = new Map<string, SharedResult>();
+
+function generateShareHash(): string {
+  return randomUUID().replace(/-/g, "").slice(0, 12);
+}
+
+export function createSharedResult(input: {
+  createdBy: string;
+  title: string;
+  resultType: SharedResult["resultType"];
+  resultData: unknown;
+  tenantId?: string;
+  workspaceId?: string;
+  visibility?: SharedResult["visibility"];
+  expiresInDays?: number;
+}): SharedResult {
+  const hash = generateShareHash();
+  const now = new Date().toISOString();
+
+  const result: SharedResult = {
+    id: randomUUID(),
+    hash,
+    tenantId: input.tenantId,
+    workspaceId: input.workspaceId,
+    createdBy: input.createdBy,
+    title: input.title,
+    resultType: input.resultType,
+    resultData: input.resultData,
+    visibility: input.visibility ?? "public",
+    expiresAt: input.expiresInDays
+      ? new Date(Date.now() + input.expiresInDays * 86400000).toISOString()
+      : undefined,
+    viewCount: 0,
+    createdAt: now,
+  };
+
+  sharedResults.set(hash, result);
+  return result;
+}
+
+export function getSharedResult(hash: string): SharedResult | undefined {
+  const result = sharedResults.get(hash);
+  if (!result) return undefined;
+
+  if (result.expiresAt && new Date(result.expiresAt) < new Date()) {
+    sharedResults.delete(hash);
+    return undefined;
+  }
+
+  result.viewCount++;
+  return result;
+}
+
+export function listSharedResults(createdBy: string): SharedResult[] {
+  return Array.from(sharedResults.values())
+    .filter((r) => r.createdBy === createdBy)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
