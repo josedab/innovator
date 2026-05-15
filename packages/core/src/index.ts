@@ -587,6 +587,29 @@ export type {
   BranchDiffView,
 } from "./replay/index.js";
 
+/** Replay Events — structured event emission, deterministic replay, scoring overlays. */
+export {
+  emitReplayEvent,
+  onReplayEvent,
+  getReplayEvents,
+  clearReplayEvents,
+  createReplaySession,
+  advanceReplaySession,
+  pauseReplaySession,
+  resumeReplaySession,
+  setReplaySpeed,
+  seekReplaySession,
+  buildScoringOverlay,
+  scoringOverlayToMarkdown,
+} from "./replay/replay-events.js";
+export type {
+  ReplayEventType,
+  ReplayEvent as ReplayPipelineEvent,
+  ReplaySpeed,
+  ReplaySession as ReplayPipelineSession,
+  ScoringOverlay,
+} from "./replay/replay-events.js";
+
 /** Replay Decisions — decision-point recording, branching, and session tree visualization. */
 export {
   recordDecisionPoint,
