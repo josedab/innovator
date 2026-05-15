@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // ---- Stakeholder Roles ----
 
+/** Validates organizational roles used in stakeholder simulations (e.g., ceo, cto, end-user, regulator). */
 export const StakeholderRoleSchema = z.enum([
   "ceo",
   "cto",
@@ -17,8 +18,14 @@ export const StakeholderRoleSchema = z.enum([
   "customer-success",
 ]);
 
+/** An organizational role used as a simulated stakeholder persona. @see StakeholderRoleSchema */
 export type StakeholderRole = z.infer<typeof StakeholderRoleSchema>;
 
+/**
+ * Predefined profiles for each stakeholder role, including their title, key priorities,
+ * risk tolerance level, and characteristic perspective used to shape simulated reactions.
+ * @see StakeholderRole
+ */
 export const STAKEHOLDER_PROFILES: Record<
   StakeholderRole,
   {
@@ -109,6 +116,10 @@ export const STAKEHOLDER_PROFILES: Record<
 
 // ---- Stakeholder Reaction ----
 
+/**
+ * Validates a simulated stakeholder reaction, including sentiment, support score,
+ * key questions, conditions for approval, and political implications.
+ */
 export const SimStakeholderReactionSchema = z.object({
   role: StakeholderRoleSchema,
   sentiment: z.enum(["strongly-support", "support", "neutral", "concerned", "opposed"]),
@@ -119,10 +130,12 @@ export const SimStakeholderReactionSchema = z.object({
   politicalImplications: z.string().max(2000),
 });
 
+/** A simulated stakeholder's reaction to an idea, with sentiment and political analysis. */
 export type SimStakeholderReaction = z.infer<typeof SimStakeholderReactionSchema>;
 
 // ---- Debate Turn ----
 
+/** Validates a single turn in a simulated stakeholder debate, including stance and optional response target. */
 export const DebateTurnSchema = z.object({
   role: StakeholderRoleSchema,
   statement: z.string().max(2000),
@@ -130,10 +143,15 @@ export const DebateTurnSchema = z.object({
   stance: z.enum(["support", "oppose", "negotiate", "redirect"]),
 });
 
+/** A single statement in a multi-stakeholder debate simulation. @see DebateTurnSchema */
 export type DebateTurn = z.infer<typeof DebateTurnSchema>;
 
 // ---- Simulation Result ----
 
+/**
+ * Validates the full stakeholder simulation result, including individual reactions,
+ * debate transcript, coalition analysis, and a political feasibility score (0–1).
+ */
 export const StakeholderSimResultSchema = z.object({
   ideaTitle: z.string().max(500),
   ideaDescription: z.string().max(5000),
@@ -146,10 +164,12 @@ export const StakeholderSimResultSchema = z.object({
   recommendation: z.string().max(3000),
 });
 
+/** Complete result of a stakeholder simulation with reactions, debate, and feasibility analysis. */
 export type StakeholderSimResult = z.infer<typeof StakeholderSimResultSchema>;
 
 // ---- Config ----
 
+/** Configuration options for stakeholder simulation, including role selection and debate depth. */
 export interface StakeholderSimConfig {
   roles?: StakeholderRole[];
   debateRounds?: number;
@@ -158,6 +178,7 @@ export interface StakeholderSimConfig {
   onProgress?: (progress: StakeholderSimProgress) => void;
 }
 
+/** Progress state emitted during stakeholder simulation via {@link StakeholderSimConfig.onProgress}. */
 export interface StakeholderSimProgress {
   stage: "reacting" | "debating" | "analyzing" | "complete";
   completedReactions: number;

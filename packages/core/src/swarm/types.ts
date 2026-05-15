@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // ---- Agent Personality ----
 
+/** Validates an agent personality type used in swarm intelligence sessions. */
 export const AgentPersonalitySchema = z.enum([
   "risk-taker",
   "pragmatist",
@@ -16,8 +17,14 @@ export const AgentPersonalitySchema = z.enum([
   "synthesizer",
 ]);
 
+/** A swarm agent's behavioral archetype that shapes how it explores and evaluates ideas. */
 export type AgentPersonality = z.infer<typeof AgentPersonalitySchema>;
 
+/**
+ * Human-readable descriptions of each agent personality, used in prompts
+ * and UI to explain an agent's role within the swarm.
+ * @see AgentPersonality
+ */
 export const PERSONALITY_DESCRIPTIONS: Record<AgentPersonality, string> = {
   "risk-taker": "Pushes boundaries, favors bold moonshot ideas with high upside even if risky.",
   pragmatist: "Focuses on feasibility, market fit, and incremental improvement paths.",
@@ -36,6 +43,7 @@ export const PERSONALITY_DESCRIPTIONS: Record<AgentPersonality, string> = {
 
 // ---- Agent Status ----
 
+/** Validates the lifecycle status of an agent within a swarm session. */
 export const SwarmAgentStatusSchema = z.enum([
   "idle",
   "exploring",
@@ -45,10 +53,16 @@ export const SwarmAgentStatusSchema = z.enum([
   "failed",
 ]);
 
+/** Current lifecycle status of a swarm agent (idle → exploring → sharing → converging → completed/failed). */
 export type SwarmAgentStatus = z.infer<typeof SwarmAgentStatusSchema>;
 
 // ---- Blackboard ----
 
+/**
+ * Validates a single entry on the shared blackboard, representing an idea posted
+ * by an agent along with its metadata, confidence level, and peer reactions.
+ * @see BlackboardSchema
+ */
 export const BlackboardEntrySchema = z.object({
   id: z.string(),
   agentId: z.string(),
@@ -71,18 +85,25 @@ export const BlackboardEntrySchema = z.object({
     .default([]),
 });
 
+/** An idea posted to the shared blackboard by a swarm agent, including peer reactions. */
 export type BlackboardEntry = z.infer<typeof BlackboardEntrySchema>;
 
+/**
+ * Validates the shared blackboard—the central communication hub in the swarm's
+ * blackboard architecture, tracking all entries, convergence, and dominant themes.
+ */
 export const BlackboardSchema = z.object({
   entries: z.array(BlackboardEntrySchema),
   convergenceScore: z.number().min(0).max(1),
   dominantThemes: z.array(z.string().max(500)).max(20),
 });
 
+/** The shared communication surface where agents post, react to, and converge on ideas. */
 export type Blackboard = z.infer<typeof BlackboardSchema>;
 
 // ---- Swarm Agent ----
 
+/** Validates a swarm agent's state, including its personality, status, and discoveries. */
 export const SwarmAgentSchema = z.object({
   id: z.string(),
   personality: AgentPersonalitySchema,
@@ -92,10 +113,15 @@ export const SwarmAgentSchema = z.object({
   iterationsCompleted: z.number().int().min(0),
 });
 
+/** An individual agent participating in the swarm, with its assigned personality and current state. */
 export type SwarmAgent = z.infer<typeof SwarmAgentSchema>;
 
 // ---- Swarm Config ----
 
+/**
+ * Configuration options for launching a swarm intelligence session.
+ * Controls agent count, iteration limits, convergence behavior, and progress reporting.
+ */
 export interface SwarmConfig {
   agentCount?: number;
   personalities?: AgentPersonality[];
@@ -108,6 +134,7 @@ export interface SwarmConfig {
 
 // ---- Swarm Progress ----
 
+/** Validates the high-level stage of a swarm session's lifecycle. */
 export const SwarmStageSchema = z.enum([
   "initializing",
   "exploring",
@@ -118,8 +145,10 @@ export const SwarmStageSchema = z.enum([
   "error",
 ]);
 
+/** The current high-level stage of the swarm session (initializing → exploring → converging → complete). */
 export type SwarmStage = z.infer<typeof SwarmStageSchema>;
 
+/** Real-time progress snapshot emitted during a swarm session via the `onProgress` callback. */
 export interface SwarmProgress {
   stage: SwarmStage;
   iteration: number;
@@ -132,6 +161,10 @@ export interface SwarmProgress {
 
 // ---- Swarm Result ----
 
+/**
+ * Validates a converged idea produced by the swarm, including its origin agents,
+ * confidence score, endorsements, challenges, and evolution path across iterations.
+ */
 export const SwarmIdeaSchema = z.object({
   title: z.string().max(500),
   description: z.string().max(5000),
@@ -144,8 +177,13 @@ export const SwarmIdeaSchema = z.object({
   evolutionPath: z.array(z.string().max(500)).max(20),
 });
 
+/** A final idea produced by the swarm after multi-agent exploration and convergence. */
 export type SwarmIdea = z.infer<typeof SwarmIdeaSchema>;
 
+/**
+ * Validates the complete output of a swarm session, including all converged ideas,
+ * per-agent contribution stats, dominant themes, and emergent insights.
+ */
 export const SwarmResultSchema = z.object({
   ideas: z.array(SwarmIdeaSchema).max(50),
   totalIterations: z.number().int().min(0),
@@ -163,4 +201,5 @@ export const SwarmResultSchema = z.object({
   emergentInsights: z.array(z.string().max(2000)).max(10),
 });
 
+/** The complete output of a swarm intelligence session, including ideas and agent contributions. */
 export type SwarmResult = z.infer<typeof SwarmResultSchema>;

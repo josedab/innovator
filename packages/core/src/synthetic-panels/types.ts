@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // ---- Persona Archetypes ----
 
+/** Validates a synthetic user persona archetype used in panel evaluations. */
 export const PersonaArchetypeSchema = z.enum([
   "early-adopter",
   "enterprise-buyer",
@@ -17,8 +18,14 @@ export const PersonaArchetypeSchema = z.enum([
   "casual-consumer",
 ]);
 
+/** A user archetype that defines a synthetic persona's behavioral profile and evaluation lens. */
 export type PersonaArchetype = z.infer<typeof PersonaArchetypeSchema>;
 
+/**
+ * Detailed profiles for each persona archetype, including a description,
+ * prioritized concerns, and characteristic objection style.
+ * @see PersonaArchetype
+ */
 export const ARCHETYPE_PROFILES: Record<
   PersonaArchetype,
   { description: string; priorities: string[]; objectionStyle: string }
@@ -87,6 +94,11 @@ export const ARCHETYPE_PROFILES: Record<
 
 // ---- Synthetic Persona ----
 
+/**
+ * Validates a synthetic persona, including demographics, motivations, frustrations,
+ * and decision criteria that shape how the persona evaluates ideas.
+ * @see PersonaArchetypeSchema
+ */
 export const SyntheticPersonaSchema = z.object({
   id: z.string(),
   name: z.string().max(200),
@@ -102,10 +114,15 @@ export const SyntheticPersonaSchema = z.object({
   decisionCriteria: z.array(z.string().max(500)).max(10),
 });
 
+/** A fully-realized synthetic user persona with demographics, motivations, and decision criteria. */
 export type SyntheticPersona = z.infer<typeof SyntheticPersonaSchema>;
 
 // ---- Evaluation ----
 
+/**
+ * Validates a single persona's evaluation of an idea, including verdict, score,
+ * reasoning, objections, purchase intent, and willingness-to-pay range.
+ */
 export const PersonaEvaluationSchema = z.object({
   personaId: z.string(),
   personaName: z.string().max(200),
@@ -119,10 +136,12 @@ export const PersonaEvaluationSchema = z.object({
   willingnessToPayRange: z.string().max(200).optional(),
 });
 
+/** A persona's scored evaluation of an idea, including verdict, objections, and purchase intent. */
 export type PersonaEvaluation = z.infer<typeof PersonaEvaluationSchema>;
 
 // ---- Panel Debate ----
 
+/** Validates a single statement in the panel debate, tracking which persona spoke and their sentiment. */
 export const PanelDebateEntrySchema = z.object({
   personaId: z.string(),
   personaName: z.string().max(200),
@@ -132,10 +151,15 @@ export const PanelDebateEntrySchema = z.object({
   sentiment: z.enum(["agree", "disagree", "nuance", "question"]),
 });
 
+/** A single statement made by a persona during the panel debate. */
 export type PanelDebateEntry = z.infer<typeof PanelDebateEntrySchema>;
 
 // ---- Consensus ----
 
+/**
+ * Validates the panel's consensus outcome, including overall score, verdict,
+ * consensus strength, top objections/strengths, and an optional vote breakdown.
+ */
 export const PanelConsensusSchema = z.object({
   overallScore: z.number().min(0).max(10),
   verdict: z.enum(["strong-yes", "yes", "mixed", "no", "strong-no"]),
@@ -154,10 +178,15 @@ export const PanelConsensusSchema = z.object({
     .optional(),
 });
 
+/** The panel's aggregated consensus on an idea, with verdict, score, and vote breakdown. */
 export type PanelConsensus = z.infer<typeof PanelConsensusSchema>;
 
 // ---- Panel Result ----
 
+/**
+ * Validates the complete result of a synthetic panel session—personas, individual
+ * evaluations, debate transcript, and final consensus.
+ */
 export const PanelResultSchema = z.object({
   ideaTitle: z.string().max(500),
   ideaDescription: z.string().max(5000),
@@ -167,10 +196,15 @@ export const PanelResultSchema = z.object({
   consensus: PanelConsensusSchema,
 });
 
+/** The complete output of a synthetic panel session, from personas through consensus. */
 export type PanelResult = z.infer<typeof PanelResultSchema>;
 
 // ---- Panel Config ----
 
+/**
+ * Configuration options for launching a synthetic panel evaluation.
+ * Controls archetype selection, panel size, debate behavior, and progress reporting.
+ */
 export interface PanelConfig {
   archetypes?: PersonaArchetype[];
   panelSize?: number;
@@ -181,6 +215,7 @@ export interface PanelConfig {
   onProgress?: (progress: PanelProgress) => void;
 }
 
+/** Real-time progress snapshot emitted during a panel session via the `onProgress` callback. */
 export interface PanelProgress {
   stage: "generating-personas" | "evaluating" | "debating" | "consensus" | "complete";
   completedEvaluations: number;
@@ -190,6 +225,10 @@ export interface PanelProgress {
 
 // ---- Inter-Rater Agreement ----
 
+/**
+ * Validates inter-rater agreement statistics for a panel, using Fleiss' kappa,
+ * pairwise agreement, score variance, and a confidence interval.
+ */
 export const InterRaterAgreementSchema = z.object({
   fleissKappa: z.number().min(-1).max(1),
   agreementLevel: z.enum(["poor", "slight", "fair", "moderate", "substantial", "almost-perfect"]),
@@ -203,4 +242,5 @@ export const InterRaterAgreementSchema = z.object({
   }),
 });
 
+/** Statistical measures of agreement between panel personas' evaluations. */
 export type InterRaterAgreement = z.infer<typeof InterRaterAgreementSchema>;
