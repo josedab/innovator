@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // ---- Biological Functions ----
 
+/** Validates the biological function category used to classify organism strategies. */
 export const BiologicalFunctionSchema = z.enum([
   "energy-capture",
   "material-transport",
@@ -21,10 +22,16 @@ export const BiologicalFunctionSchema = z.enum([
   "navigation",
 ]);
 
+/** A biological function category (e.g. energy capture, self-repair, locomotion). */
 export type BiologicalFunction = z.infer<typeof BiologicalFunctionSchema>;
 
 // ---- Taxonomy Entry ----
 
+/**
+ * Validates a biomimicry taxonomy entry linking an organism's biological strategy
+ * to its mechanism, technical analogy, and known real-world applications.
+ * @see BiologicalFunctionSchema
+ */
 export const BiomimicryEntrySchema = z.object({
   id: z.string(),
   organism: z.string().max(200),
@@ -37,10 +44,15 @@ export const BiomimicryEntrySchema = z.object({
   tags: z.array(z.string().max(100)).max(20),
 });
 
+/** A catalogued organism strategy with its biological mechanism and technical analogy. */
 export type BiomimicryEntry = z.infer<typeof BiomimicryEntrySchema>;
 
 // ---- Transfer Result ----
 
+/**
+ * Validates the result of transferring a biological strategy to a technical application.
+ * Scores transferability, feasibility, and novelty, and outlines an implementation path.
+ */
 export const BiomimicryTransferSchema = z.object({
   entryId: z.string(),
   organism: z.string().max(200),
@@ -54,10 +66,15 @@ export const BiomimicryTransferSchema = z.object({
   potentialImpact: z.string().max(2000),
 });
 
+/** Scored result of applying a biological strategy to a technical problem domain. */
 export type BiomimicryTransfer = z.infer<typeof BiomimicryTransferSchema>;
 
 // ---- Biomimicry Innovation Result ----
 
+/**
+ * Validates the complete biomimicry analysis result for a given subject.
+ * Aggregates matched taxonomy entries, transfer results, and a synthesis narrative.
+ */
 export const BiomimicryResultSchema = z.object({
   subject: z.string().max(2000),
   matchedEntries: z.array(BiomimicryEntrySchema).max(20),
@@ -66,10 +83,12 @@ export const BiomimicryResultSchema = z.object({
   topInspiration: z.string().max(2000),
 });
 
+/** Full biomimicry analysis with matched organisms, transfers, and synthesis narrative. */
 export type BiomimicryResult = z.infer<typeof BiomimicryResultSchema>;
 
 // ---- Config ----
 
+/** Configuration options for biomimicry analysis. */
 export interface BiomimicryConfig {
   functions?: BiologicalFunction[];
   maxTransfers?: number;
@@ -78,6 +97,7 @@ export interface BiomimicryConfig {
   onProgress?: (progress: BiomimicryProgress) => void;
 }
 
+/** Progress report emitted during biomimicry matching, transfer, and synthesis. */
 export interface BiomimicryProgress {
   stage: "matching" | "transferring" | "synthesizing" | "complete";
   completedTransfers: number;
