@@ -6710,6 +6710,24 @@ export type {
   WebhookDelivery as WebhookDeliveryRecord,
 } from "./api-gateway/webhooks.js";
 
+/** API Gateway middleware — authentication, rate limiting, request validation, CORS. */
+export {
+  authenticateRequest,
+  checkRateLimits,
+  checkSlidingWindow,
+  clearSlidingWindows,
+  validateRequestBody,
+  getCorsHeaders,
+  processGatewayRequest,
+  recordGatewayCompletion,
+} from "./api-gateway/middleware.js";
+export type {
+  MiddlewareResult,
+  CorsConfig,
+  GatewayRequest,
+  GatewayResponse,
+} from "./api-gateway/middleware.js";
+
 /** Integrations — Jira, Linear, Slack, Confluence, Notion. */
 export { JiraIntegration } from "./integrations/jira.js";
 export { LinearIntegration } from "./integrations/linear.js";
