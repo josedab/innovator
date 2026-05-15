@@ -406,6 +406,108 @@ describe("executeDAG", () => {
 
     expect(state.status).toBe("cancelled");
   });
+
+  it("enforces maxConcurrency with many independent nodes", async () => {
+    let maxConcurrent = 0;
+    let currentConcurrent = 0;
+
+    const executor = vi.fn().mockImplementation(async () => {
+      currentConcurrent++;
+      maxConcurrent = Math.max(maxConcurrent, currentConcurrent);
+      await new Promise((r) => setTimeout(r, 20));
+      currentConcurrent--;
+      return {};
+    });
+
+    // 6 independent nodes, maxConcurrency of 2
+    const wf = makeWorkflow(
+      Array.from({ length: 6 }, (_, i) =>
+        makeNode({ id: `n${i}`, type: "investigate", name: `N${i}` })
+      )
+    );
+
+    await executeDAG(wf, { executor, maxConcurrency: 2 });
+
+    expect(maxConcurrent).toBeLessThanOrEqual(2);
+    expect(executor).toHaveBeenCalledTimes(6);
+  });
+
+  it("marks workflow as failed when a node fails and blocks dependents", async () => {
+    const executor = vi
+      .fn()
+      .mockImplementation(async (node: DAGNode) => {
+        if (node.id === "fail") throw new Error("Node failure");
+        return {};
+      });
+
+    const wf = makeWorkflow([
+      makeNode({ id: "ok", type: "investigate", name: "OK" }),
+      makeNode({ id: "fail", type: "generate", name: "Fail" }),
+      makeNode({ id: "after-fail", type: "score", name: "After", dependsOn: ["fail"] }),
+    ]);
+
+    const state = await executeDAG(wf, { executor });
+
+    expect(state.status).toBe("failed");
+    expect(state.nodeResults.get("fail")?.status).toBe("failed");
+    expect(state.nodeResults.get("ok")?.status).toBe("completed");
+    // after-fail should remain pending since its dependency failed
+    expect(state.nodeResults.get("after-fail")?.status).toBe("pending");
+  });
+
+  it("validates cycle detection at runtime via executeDAG", async () => {
+    const wf = makeWorkflow([
+      makeNode({ id: "a", type: "investigate", name: "A", dependsOn: ["b"] }),
+      makeNode({ id: "b", type: "generate", name: "B", dependsOn: ["a"] }),
+    ]);
+
+    await expect(executeDAG(wf)).rejects.toThrow(/[Cc]ircular/);
+  });
+
+  it("passes workflow variables into execution context", async () => {
+    let capturedCtx: Record<string, unknown> = {};
+    const executor = vi.fn().mockImplementation(async (_node: DAGNode, ctx: Record<string, unknown>) => {
+      capturedCtx = { ...ctx };
+      return {};
+    });
+
+    const wf = makeWorkflow(
+      [makeNode({ id: "a", type: "investigate", name: "A" })],
+      { variables: { myVar: "hello" } }
+    );
+
+    await executeDAG(wf, { executor, context: { extra: "world" } });
+
+    expect(capturedCtx.myVar).toBe("hello");
+    expect(capturedCtx.extra).toBe("world");
+  });
+
+  it("records duration on completed nodes", async () => {
+    const executor = vi.fn().mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+      return {};
+    });
+
+    const wf = makeWorkflow([makeNode({ id: "a", type: "investigate", name: "A" })]);
+    const state = await executeDAG(wf, { executor });
+
+    const result = state.nodeResults.get("a")!;
+    expect(result.duration).toBeGreaterThanOrEqual(0);
+    expect(result.startedAt).toBeTruthy();
+    expect(result.completedAt).toBeTruthy();
+  });
+
+  it("sets completedAt on the workflow state", async () => {
+    const executor = vi.fn().mockResolvedValue({});
+    const wf = makeWorkflow([makeNode({ id: "a", type: "investigate", name: "A" })]);
+
+    const state = await executeDAG(wf, { executor });
+
+    expect(state.completedAt).toBeTruthy();
+    expect(new Date(state.completedAt!).getTime()).toBeGreaterThanOrEqual(
+      new Date(state.startedAt).getTime()
+    );
+  });
 });
 
 // ---- evaluateCondition (tested via executeDAG) ----
