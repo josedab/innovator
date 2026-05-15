@@ -12,6 +12,16 @@ services:
       - INNOVATOR_LLM_TIMEOUT_MS=${INNOVATOR_LLM_TIMEOUT_MS:-90000} # Request timeout (ms)
       - GH_TOKEN=${GH_TOKEN} # GitHub token for Copilot SDK auth
       - DATABASE_URL=postgresql://${POSTGRES_USER:-innovator}:${POSTGRES_PASSWORD}@postgres:5432/innovator
+      # SaaS / Stripe billing (optional — required only if billing features are enabled)
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-} # Stripe secret API key
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-} # Stripe webhook signing secret
+      - STRIPE_PRICE_PRO=${STRIPE_PRICE_PRO:-price_pro_monthly}
+      - STRIPE_PRICE_TEAM=${STRIPE_PRICE_TEAM:-price_team_monthly}
+      - STRIPE_PRICE_ENTERPRISE=${STRIPE_PRICE_ENTERPRISE:-price_enterprise_monthly}
+      # SaaS / GitHub OAuth (optional — required only if OAuth login is enabled)
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-} # GitHub OAuth App client ID
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-} # GitHub OAuth App client secret
+      - GITHUB_REDIRECT_URI=${GITHUB_REDIRECT_URI:-http://localhost:3000/api/auth/callback}
     depends_on:
       postgres:
         condition: service_healthy
