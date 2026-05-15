@@ -65,24 +65,28 @@ describe("SessionComparison", () => {
 
   it("renders initial prompt with Compare Sessions button", () => {
     render(<SessionComparison sessionIds={["s1", "s2"]} />);
-    expect(screen.getByText("Session Comparison Matrix")).toBeTruthy();
-    expect(screen.getByText(/Compare 2 sessions/)).toBeTruthy();
-    expect(screen.getByText("Compare Sessions")).toBeTruthy();
+    expect(screen.getByText("Session Comparison Matrix").textContent).toBe(
+      "Session Comparison Matrix"
+    );
+    expect(screen.getByText(/Compare 2 sessions/).textContent).toContain("Compare 2 sessions");
+    expect(screen.getByText("Compare Sessions").textContent).toBe("Compare Sessions");
   });
 
   it("shows session count in prompt", () => {
     render(<SessionComparison sessionIds={["s1", "s2", "s3"]} />);
-    expect(screen.getByText(/Compare 3 sessions/)).toBeTruthy();
+    expect(screen.getByText(/Compare 3 sessions/).textContent).toContain("Compare 3 sessions");
   });
 
   // --- 2-session comparison ---
 
-  it("renders comparison with diff highlights", async () => {
+  it("renders comparison with session subjects", async () => {
     global.fetch = mockFetch(baseResult);
     render(<SessionComparison sessionIds={["s1", "s2"]} />);
     fireEvent.click(screen.getByText("Compare Sessions"));
 
-    await waitFor(() => expect(screen.getByText("Session Comparison")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText("Session Comparison").textContent).toBe("Session Comparison")
+    );
     expect(screen.getAllByText("AI Tools").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Healthcare").length).toBeGreaterThan(0);
   });
@@ -94,10 +98,11 @@ describe("SessionComparison", () => {
     render(<SessionComparison sessionIds={["s1", "s2"]} />);
     fireEvent.click(screen.getByText("Compare Sessions"));
 
-    await waitFor(() => expect(screen.getByText("Session Comparison")).toBeTruthy());
-    // Switch to overlaps tab
+    await waitFor(() =>
+      expect(screen.getByText("Session Comparison").textContent).toBe("Session Comparison")
+    );
     fireEvent.click(screen.getByText(/Overlaps/));
-    expect(screen.getByText("72% similar")).toBeTruthy();
+    expect(screen.getByText("72% similar").textContent).toBe("72% similar");
   });
 
   // --- Shared themes highlight ---
@@ -107,29 +112,31 @@ describe("SessionComparison", () => {
     const { container } = render(<SessionComparison sessionIds={["s1", "s2"]} />);
     fireEvent.click(screen.getByText("Compare Sessions"));
 
-    await waitFor(() => expect(screen.getByText("Shared Themes")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText("Shared Themes").textContent).toBe("Shared Themes")
+    );
     expect(screen.getAllByText("ML").length).toBeGreaterThan(0);
-    // Shared theme should have green styling
     const sharedBadge = container.querySelector('[class*="bg-green-100"]');
     expect(sharedBadge).not.toBeNull();
+    expect(sharedBadge!.className).toContain("bg-green-100");
   });
 
   // --- Tab switching ---
 
-  it("switches between tabs", async () => {
+  it("switches between tabs with correct content", async () => {
     global.fetch = mockFetch(baseResult);
     render(<SessionComparison sessionIds={["s1", "s2"]} />);
     fireEvent.click(screen.getByText("Compare Sessions"));
 
-    await waitFor(() => expect(screen.getByText("Overview")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Overview").textContent).toBe("Overview"));
 
-    // Overlaps tab
+    // Overlaps tab shows ML Pipeline
     fireEvent.click(screen.getByText(/Overlaps/));
-    expect(screen.getByText("ML Pipeline")).toBeTruthy();
+    expect(screen.getByText("ML Pipeline").textContent).toBe("ML Pipeline");
 
-    // Angles tab
+    // Angles tab shows tech-trends
     fireEvent.click(screen.getByText("Angles"));
-    expect(screen.getByText("tech-trends")).toBeTruthy();
+    expect(screen.getByText("tech-trends").textContent).toBe("tech-trends");
 
     // Timeline tab
     fireEvent.click(screen.getByText("Timeline"));
@@ -138,14 +145,16 @@ describe("SessionComparison", () => {
 
   // --- Score delta table ---
 
-  it("renders score summary table with feasibility colors", async () => {
+  it("renders score summary table with feasibility classification", async () => {
     global.fetch = mockFetch(baseResult);
     render(<SessionComparison sessionIds={["s1", "s2"]} />);
     fireEvent.click(screen.getByText("Compare Sessions"));
 
-    await waitFor(() => expect(screen.getByText("Score Summary")).toBeTruthy());
-    expect(screen.getByText("high")).toBeTruthy();
-    expect(screen.getByText("medium")).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByText("Score Summary").textContent).toBe("Score Summary")
+    );
+    expect(screen.getByText("high").textContent).toBe("high");
+    expect(screen.getByText("medium").textContent).toBe("medium");
   });
 
   // --- No overlaps ---
@@ -156,9 +165,13 @@ describe("SessionComparison", () => {
     render(<SessionComparison sessionIds={["s1", "s2"]} />);
     fireEvent.click(screen.getByText("Compare Sessions"));
 
-    await waitFor(() => expect(screen.getByText("Session Comparison")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText("Session Comparison").textContent).toBe("Session Comparison")
+    );
     fireEvent.click(screen.getByText(/Overlaps/));
-    expect(screen.getByText("No significant idea overlaps found.")).toBeTruthy();
+    expect(screen.getByText("No significant idea overlaps found.").textContent).toBe(
+      "No significant idea overlaps found."
+    );
   });
 
   // --- Error state ---
@@ -171,8 +184,8 @@ describe("SessionComparison", () => {
     render(<SessionComparison sessionIds={["s1", "s2"]} />);
     fireEvent.click(screen.getByText("Compare Sessions"));
 
-    await waitFor(() => expect(screen.getByText("Retry")).toBeTruthy());
-    expect(screen.getByText("Server error")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("Retry").textContent).toBe("Retry"));
+    expect(screen.getByText("Server error").textContent).toBe("Server error");
   });
 
   // --- Loading state ---
@@ -182,7 +195,9 @@ describe("SessionComparison", () => {
     render(<SessionComparison sessionIds={["s1", "s2"]} />);
     fireEvent.click(screen.getByText("Compare Sessions"));
 
-    await waitFor(() => expect(screen.getByText(/Comparing 2 sessions/)).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText(/Comparing 2 sessions/).textContent).toContain("Comparing 2 sessions")
+    );
   });
 
   // --- Close button ---
@@ -193,9 +208,11 @@ describe("SessionComparison", () => {
     render(<SessionComparison sessionIds={["s1", "s2"]} onClose={onClose} />);
     fireEvent.click(screen.getByText("Compare Sessions"));
 
-    await waitFor(() => expect(screen.getByText("Session Comparison")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText("Session Comparison").textContent).toBe("Session Comparison")
+    );
     fireEvent.click(screen.getByText("✕"));
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   // --- Angle comparison grid ---
@@ -205,9 +222,10 @@ describe("SessionComparison", () => {
     render(<SessionComparison sessionIds={["s1", "s2"]} />);
     fireEvent.click(screen.getByText("Compare Sessions"));
 
-    await waitFor(() => expect(screen.getByText("Session Comparison")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText("Session Comparison").textContent).toBe("Session Comparison")
+    );
     fireEvent.click(screen.getByText("Angles"));
-    // market-gap only has s1, so one column should show ✅ and other —
-    expect(screen.getByText("market-gap")).toBeTruthy();
+    expect(screen.getByText("market-gap").textContent).toBe("market-gap");
   });
 });

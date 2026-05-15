@@ -69,21 +69,21 @@ describe("DebateArena", () => {
   describe("initial state", () => {
     it("renders start screen with idea count", () => {
       render(<DebateArena ideas={mockIdeas} />);
-      expect(screen.getByText("Debate Arena")).toBeTruthy();
-      expect(screen.getByText(/Analyze 2 ideas/)).toBeTruthy();
-      expect(screen.getByText("Start Debate")).toBeTruthy();
+      expect(screen.getByText("Debate Arena").textContent).toBe("Debate Arena");
+      expect(screen.getByText(/Analyze 2 ideas/).textContent).toContain("Analyze 2 ideas");
+      expect(screen.getByText("Start Debate").textContent).toBe("Start Debate");
     });
 
     it("shows singular text for single idea", () => {
       render(<DebateArena ideas={[mockIdeas[0]]} />);
-      expect(screen.getByText(/Analyze 1 idea /)).toBeTruthy();
+      expect(screen.getByText(/Analyze 1 idea /).textContent).toContain("Analyze 1 idea");
     });
 
     it("shows cancel button when onClose is provided", () => {
       const onClose = vi.fn();
       render(<DebateArena ideas={mockIdeas} onClose={onClose} />);
       const cancelBtn = screen.getByText("Cancel");
-      expect(cancelBtn).toBeTruthy();
+      expect(cancelBtn.textContent).toBe("Cancel");
       fireEvent.click(cancelBtn);
       expect(onClose).toHaveBeenCalledTimes(1);
     });
@@ -102,7 +102,9 @@ describe("DebateArena", () => {
       render(<DebateArena ideas={mockIdeas} />);
       fireEvent.click(screen.getByText("Start Debate"));
 
-      expect(screen.getByText(/Running debate analysis/)).toBeTruthy();
+      expect(screen.getByText(/Running debate analysis/).textContent).toContain(
+        "Running debate analysis"
+      );
     });
   });
 
@@ -116,9 +118,9 @@ describe("DebateArena", () => {
       fireEvent.click(screen.getByText("Start Debate"));
 
       await waitFor(() => {
-        expect(screen.getByText("Network error")).toBeTruthy();
+        expect(screen.getByText("Network error").textContent).toBe("Network error");
       });
-      expect(screen.getByText("Retry")).toBeTruthy();
+      expect(screen.getByText("Retry").textContent).toBe("Retry");
     });
 
     it("shows error for non-ok response", async () => {
@@ -132,7 +134,7 @@ describe("DebateArena", () => {
       fireEvent.click(screen.getByText("Start Debate"));
 
       await waitFor(() => {
-        expect(screen.getByText("Server error")).toBeTruthy();
+        expect(screen.getByText("Server error").textContent).toBe("Server error");
       });
     });
   });
@@ -148,38 +150,38 @@ describe("DebateArena", () => {
       fireEvent.click(screen.getByText("Start Debate"));
 
       await waitFor(() => {
-        expect(screen.getByText(/Debate: Solar Paint/)).toBeTruthy();
+        expect(screen.getByText(/Debate: Solar Paint/).textContent).toContain("Solar Paint");
       });
     }
 
     it("displays debate title with idea name", async () => {
       await renderWithResults();
-      expect(screen.getByText(/Debate: Solar Paint/)).toBeTruthy();
+      expect(screen.getByText(/Debate: Solar Paint/).textContent).toContain("Solar Paint");
     });
 
     it("renders round accordions", async () => {
       await renderWithResults();
-      expect(screen.getByText("Round 1")).toBeTruthy();
-      expect(screen.getByText("Round 2")).toBeTruthy();
+      expect(screen.getByText("Round 1").textContent).toBe("Round 1");
+      expect(screen.getByText("Round 2").textContent).toBe("Round 2");
     });
 
     it("shows verdict with winner badge", async () => {
       await renderWithResults();
-      expect(screen.getByText("Verdict")).toBeTruthy();
-      expect(screen.getByText("nuanced")).toBeTruthy();
-      expect(screen.getByText("72% confidence")).toBeTruthy();
+      expect(screen.getByText("Verdict").textContent).toBe("Verdict");
+      expect(screen.getByText("nuanced").textContent).toBe("nuanced");
+      expect(screen.getByText("72% confidence").textContent).toBe("72% confidence");
     });
 
     it("displays quality scores", async () => {
       await renderWithResults();
-      expect(screen.getByText("Quality Scores")).toBeTruthy();
+      expect(screen.getByText("Quality Scores").textContent).toBe("Quality Scores");
       expect(screen.getAllByText("7/10").length).toBeGreaterThanOrEqual(1);
     });
 
     it("shows conditions list in verdict", async () => {
       await renderWithResults();
-      expect(screen.getByText("R&D investment")).toBeTruthy();
-      expect(screen.getByText("Policy support")).toBeTruthy();
+      expect(screen.getByText("R&D investment").textContent).toBe("R&D investment");
+      expect(screen.getByText("Policy support").textContent).toBe("Policy support");
     });
   });
 
@@ -194,7 +196,7 @@ describe("DebateArena", () => {
       fireEvent.click(screen.getByText("Start Debate"));
 
       await waitFor(() => {
-        expect(screen.getByText(/Debate: Solar Paint/)).toBeTruthy();
+        expect(screen.getByText(/Debate: Solar Paint/).textContent).toContain("Solar Paint");
       });
 
       // First round should be auto-expanded (expandedRound=0)
@@ -229,7 +231,7 @@ describe("DebateArena", () => {
       fireEvent.click(screen.getByText("Start Debate"));
 
       await waitFor(() => {
-        expect(screen.getByText(/Debate: Solar Paint/)).toBeTruthy();
+        expect(screen.getByText(/Debate: Solar Paint/).textContent).toContain("Solar Paint");
       });
     }
 
@@ -237,8 +239,8 @@ describe("DebateArena", () => {
       await renderWithResultsAndExpand();
       const forkBtns = screen.getAllByLabelText("Fork argument");
       fireEvent.click(forkBtns[0]);
-      expect(screen.getByText(/Forking from/)).toBeTruthy();
-      expect(screen.getByPlaceholderText(/Add your branching argument/)).toBeTruthy();
+      expect(screen.getByText(/Forking from/).textContent).toContain("Forking from");
+      expect(screen.getByPlaceholderText(/Add your branching argument/)).not.toBeNull();
     });
 
     it("submits a forked argument", async () => {
@@ -250,15 +252,15 @@ describe("DebateArena", () => {
       fireEvent.change(textarea, { target: { value: "My counter-point" } });
       fireEvent.click(screen.getByText("Fork"));
 
-      expect(screen.getByText("Forked Branch")).toBeTruthy();
-      expect(screen.getByText("My counter-point")).toBeTruthy();
+      expect(screen.getByText("Forked Branch").textContent).toBe("Forked Branch");
+      expect(screen.getByText("My counter-point").textContent).toBe("My counter-point");
     });
 
     it("cancels fork dialog", async () => {
       await renderWithResultsAndExpand();
       const forkBtns = screen.getAllByLabelText("Fork argument");
       fireEvent.click(forkBtns[0]);
-      expect(screen.getByText(/Forking from/)).toBeTruthy();
+      expect(screen.getByText(/Forking from/).textContent).toContain("Forking from");
 
       // Click cancel in the fork dialog
       const cancelBtns = screen.getAllByText("Cancel");
@@ -278,7 +280,7 @@ describe("DebateArena", () => {
       fireEvent.click(screen.getByText("Start Debate"));
 
       await waitFor(() => {
-        expect(screen.getByText("Add Argument")).toBeTruthy();
+        expect(screen.getByText("Add Argument").textContent).toBe("Add Argument");
       });
     }
 
@@ -287,7 +289,9 @@ describe("DebateArena", () => {
       const input = screen.getByPlaceholderText("Type your argument…");
       fireEvent.change(input, { target: { value: "My custom pro argument" } });
       fireEvent.click(screen.getByText("Add"));
-      expect(screen.getByText("My custom pro argument")).toBeTruthy();
+      expect(screen.getByText("My custom pro argument").textContent).toContain(
+        "My custom pro argument"
+      );
     });
 
     it("adds a custom con argument", async () => {
@@ -297,7 +301,7 @@ describe("DebateArena", () => {
       const input = screen.getByPlaceholderText("Type your argument…");
       fireEvent.change(input, { target: { value: "My con argument" } });
       fireEvent.click(screen.getByText("Add"));
-      expect(screen.getByText("My con argument")).toBeTruthy();
+      expect(screen.getByText("My con argument").textContent).toContain("My con argument");
     });
 
     it("submits on Enter key", async () => {
@@ -305,7 +309,7 @@ describe("DebateArena", () => {
       const input = screen.getByPlaceholderText("Type your argument…");
       fireEvent.change(input, { target: { value: "Enter-submitted" } });
       fireEvent.keyDown(input, { key: "Enter" });
-      expect(screen.getByText("Enter-submitted")).toBeTruthy();
+      expect(screen.getByText("Enter-submitted").textContent).toContain("Enter-submitted");
     });
 
     it("does not add empty argument", async () => {
