@@ -5096,6 +5096,33 @@ export type {
   RadarEntry,
 } from "./competitive-radar/index.js";
 
+/** Intelligence Briefs — automated weekly/daily intelligence reports with patent monitoring and market signals. */
+export {
+  addPatent,
+  listPatents,
+  removePatent,
+  addMarketSignal,
+  listMarketSignals,
+  removeMarketSignal,
+  generateIntelligenceBrief,
+  getIntelligenceBrief,
+  listIntelligenceBriefs,
+  intelligenceBriefToMarkdown,
+  clearIntelligenceData,
+  PatentEntrySchema,
+  MarketSignalSchema as IntelMarketSignalSchema,
+  IntelligenceBriefSchema,
+  BriefSectionSchema,
+} from "./competitive-radar/intelligence-brief.js";
+export type {
+  PatentEntry,
+  PatentStatus,
+  MarketSignal as IntelMarketSignal,
+  MarketSignalType,
+  IntelligenceBrief,
+  BriefSection,
+} from "./competitive-radar/intelligence-brief.js";
+
 /** ROI Calculator & Business Case Generator — NPV/IRR, resource allocation, and executive documents. */
 export {
   calculateNPV,
