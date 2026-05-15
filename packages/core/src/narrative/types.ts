@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // ---- Audience Profiles ----
 
+/** Validates the target audience for a narrative (e.g., investor, executive, customer). */
 export const AudienceTypeSchema = z.enum([
   "investor",
   "executive",
@@ -13,8 +14,14 @@ export const AudienceTypeSchema = z.enum([
   "general-public",
 ]);
 
+/** Target audience identifier for narrative generation. @see AudienceTypeSchema */
 export type AudienceType = z.infer<typeof AudienceTypeSchema>;
 
+/**
+ * Predefined audience profiles mapping each audience type to its preferred tone,
+ * content focus areas, and maximum narrative length.
+ * @see AudienceType
+ */
 export const AUDIENCE_PROFILES: Record<
   AudienceType,
   { tone: string; focus: string; maxLength: string }
@@ -63,6 +70,7 @@ export const AUDIENCE_PROFILES: Record<
 
 // ---- Narrative Formats ----
 
+/** Validates the output format for a narrative (e.g., pitch-deck-script, executive-memo, press-release). */
 export const NarrativeFormatSchema = z.enum([
   "pitch-deck-script",
   "executive-memo",
@@ -76,10 +84,12 @@ export const NarrativeFormatSchema = z.enum([
   "one-pager",
 ]);
 
+/** Output format for a generated narrative. @see NarrativeFormatSchema */
 export type NarrativeFormat = z.infer<typeof NarrativeFormatSchema>;
 
 // ---- Narrative Archetypes ----
 
+/** Validates the story archetype used to structure a narrative (e.g., hero-journey, problem-solution). */
 export const NarrativeArchetypeSchema = z.enum([
   "hero-journey",
   "problem-solution",
@@ -90,8 +100,14 @@ export const NarrativeArchetypeSchema = z.enum([
   "data-revelation",
 ]);
 
+/** Story archetype that determines the narrative's structural flow. @see NarrativeArchetypeSchema */
 export type NarrativeArchetype = z.infer<typeof NarrativeArchetypeSchema>;
 
+/**
+ * Section headings for each story archetype, defining the structural
+ * progression of the narrative (e.g., challenge → discovery → breakthrough → transformation).
+ * @see NarrativeArchetype
+ */
 export const ARCHETYPE_STRUCTURES: Record<NarrativeArchetype, string[]> = {
   "hero-journey": [
     "The challenge we face",
@@ -139,6 +155,13 @@ export const ARCHETYPE_STRUCTURES: Record<NarrativeArchetype, string[]> = {
 
 // ---- Generated Narrative ----
 
+/**
+ * Validates a generated narrative including its content, structure, audience targeting,
+ * and metadata such as key messages and estimated read time.
+ * @see AudienceTypeSchema
+ * @see NarrativeFormatSchema
+ * @see NarrativeArchetypeSchema
+ */
 export const NarrativeSchema = z.object({
   id: z.string(),
   ideaTitle: z.string().max(500),
@@ -160,10 +183,12 @@ export const NarrativeSchema = z.object({
   estimatedReadTime: z.string().max(50),
 });
 
+/** A single generated narrative tailored to a specific audience, format, and archetype. */
 export type Narrative = z.infer<typeof NarrativeSchema>;
 
 // ---- Narrative Bundle ----
 
+/** Validates a bundle of narratives generated for the same idea across multiple audiences/formats. */
 export const NarrativeBundleSchema = z.object({
   ideaTitle: z.string().max(500),
   ideaDescription: z.string().max(5000),
@@ -171,10 +196,12 @@ export const NarrativeBundleSchema = z.object({
   generatedAt: z.string(),
 });
 
+/** A collection of narratives generated for a single idea, with source metadata. */
 export type NarrativeBundle = z.infer<typeof NarrativeBundleSchema>;
 
 // ---- Config ----
 
+/** Configuration options for narrative generation, including audience/format selection and progress tracking. */
 export interface NarrativeConfig {
   audiences?: AudienceType[];
   formats?: NarrativeFormat[];
@@ -184,6 +211,7 @@ export interface NarrativeConfig {
   onProgress?: (progress: NarrativeProgress) => void;
 }
 
+/** Progress state emitted during narrative generation via {@link NarrativeConfig.onProgress}. */
 export interface NarrativeProgress {
   stage: "generating" | "complete";
   completedNarratives: number;
