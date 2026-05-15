@@ -2532,6 +2532,40 @@ export type {
   UserManagementEntry,
 } from "./rbac/index.js";
 
+/** SOC 2 Readiness & Enterprise Compliance Policies. */
+export {
+  initSOC2Tracker,
+  getSOC2Readiness,
+  updateSOC2Control,
+  setDataResidencyPolicy,
+  getDataResidencyPolicy,
+  setRetentionPolicy,
+  getRetentionPolicy,
+  setIPPolicy,
+  getIPPolicy,
+  checkIPAccess,
+  setDLPPolicy,
+  getDLPPolicy,
+  scanForDLPViolations,
+  setBrandingConfig as setEnterpriseBrandingConfig,
+  getBrandingConfig as getEnterpriseBrandingConfig,
+} from "./rbac/index.js";
+export type {
+  SOC2Category,
+  SOC2ControlStatus,
+  SOC2Control,
+  SOC2Readiness,
+  DataResidencyRegion,
+  DataResidencyPolicy,
+  RetentionPolicy,
+  IPRule,
+  IPPolicy,
+  DLPRuleType,
+  DLPRule,
+  DLPPolicy,
+  BrandingConfig as EnterpriseBrandingConfig,
+} from "./rbac/index.js";
+
 /** SCIM Provisioning & Data Residency — SCIM 2.0 user/group lifecycle and data residency controls. */
 export {
   scimCreateUser,
@@ -4078,6 +4112,32 @@ export {
   PATENT_SCAN_DSL,
 } from "./orchestration/index.js";
 
+/** Visual Workflow Editor — DAG editor schemas, templates, and approval gates. */
+export {
+  NodePositionSchema,
+  VisualNodeTypeSchema,
+  ApprovalGateSchema,
+  ConditionalBranchSchema,
+  LoopConfigSchema,
+  VisualDAGNodeSchema,
+  VisualEdgeSchema,
+  VisualWorkflowSchema,
+  VisualWorkflowTemplateSchema,
+  VISUAL_TEMPLATES,
+  getVisualTemplate,
+  listVisualTemplates,
+} from "./orchestration/index.js";
+export type {
+  NodePosition,
+  VisualNodeType,
+  ApprovalGate,
+  ConditionalBranch,
+  LoopConfig,
+  VisualDAGNode,
+  VisualEdge,
+  VisualWorkflow,
+  VisualWorkflowTemplate,
+} from "./orchestration/index.js";
 /** Hosted Playground / SaaS — session management, usage limits, shareable URLs. */
 export {
   createPlaygroundSession,
@@ -5970,6 +6030,21 @@ export {
   listPlans,
 } from "./saas/index.js";
 
+/** SaaS Workspaces and Shareable Results. */
+export {
+  createWorkspace as createSaasWorkspace,
+  getWorkspace as getSaasWorkspace,
+  listTenantWorkspaces,
+  addWorkspaceMember,
+  removeWorkspaceMember,
+  createSharedResult,
+  getSharedResult,
+  listSharedResults,
+  WorkspaceSchema as SaasWorkspaceSchema,
+  SharedResultSchema,
+} from "./saas/index.js";
+export type { Workspace as SaasWorkspace, SharedResult } from "./saas/index.js";
+
 /** SaaS Auth — GitHub OAuth, session tokens, Stripe billing, storage adapters. */
 export {
   type GitHubUser,
@@ -6519,3 +6594,108 @@ export type {
   PatternRecommendation,
   FederationNetworkStats,
 } from "./federation-dp/index.js";
+
+
+// ---- Copilot Agent ----
+export {
+  runCopilotAgentCycle,
+  respondToProposal,
+  formatProposalForDelivery,
+  agentRunToMarkdown,
+  loadRun as loadCopilotAgentRun,
+  listRuns as listCopilotAgentRuns,
+} from "./copilot-agent/index.js";
+export {
+  CopilotAgentStateSchema,
+  MonitoringSourceTypeSchema,
+  MonitoringSourceSchema,
+  DetectedChangeSchema as CopilotDetectedChangeSchema,
+  ProposalStatusSchema,
+  ProposalSchema as CopilotProposalSchema,
+  DeliveryChannelSchema as CopilotDeliveryChannelSchema,
+  DeliveryConfigSchema,
+  CopilotAgentRunSchema,
+} from "./copilot-agent/index.js";
+export type {
+  CopilotAgentState,
+  MonitoringSourceType,
+  MonitoringSource,
+  DetectedChange as CopilotDetectedChange,
+  ProposalStatus,
+  Proposal as CopilotProposal,
+  DeliveryChannel as CopilotDeliveryChannel,
+  DeliveryConfig,
+  CopilotAgentRun,
+  CopilotAgentProgress,
+  CopilotAgentConfig as CopilotAgentRunConfig,
+} from "./copilot-agent/index.js";
+
+// ---- Innovation Memory & Learning Loop ----
+export {
+  loadMemoryGraph,
+  ingestConcepts,
+  trackEvent as trackInnovationEvent,
+  loadEvents as loadInnovationEvents,
+  computeDomainProfile as computeMemoryDomainProfile,
+  generatePreSessionRecommendations,
+  generateMidSessionNudges,
+  findRelatedConcepts,
+  getMemoryStats,
+} from "./innovation-memory/index.js";
+export {
+  MemoryNodeTypeSchema as InnovationMemoryNodeTypeSchema,
+  MemoryNodeSchema as InnovationMemoryNodeSchema,
+  MemoryEdgeTypeSchema as InnovationMemoryEdgeTypeSchema,
+  MemoryEdgeSchema as InnovationMemoryEdgeSchema,
+  MemoryGraphSchema as InnovationMemoryGraphSchema,
+  RecommendationTypeSchema,
+  MemoryRecommendationSchema,
+  InnovationEventTypeSchema as InnovationMemoryEventTypeSchema,
+  InnovationEventSchema as InnovationMemoryEventSchema,
+  DomainProfileSchema as InnovationMemoryDomainProfileSchema,
+} from "./innovation-memory/index.js";
+export type {
+  MemoryNodeType as InnovationMemoryNodeType,
+  MemoryNode as InnovationMemoryNode,
+  MemoryEdgeType as InnovationMemoryEdgeType,
+  MemoryEdge as InnovationMemoryEdge,
+  MemoryGraph as InnovationMemoryGraph,
+  RecommendationType,
+  MemoryRecommendation,
+  InnovationEventType as InnovationMemoryEventType,
+  InnovationEvent as InnovationMemoryEvent,
+  DomainProfile as InnovationMemoryDomainProfile,
+} from "./innovation-memory/index.js";
+
+// ---- Idea-to-Implementation Bridge ----
+export {
+  generatePRD,
+  generateTechSpec,
+  generateImplementationPlan as generateBridgeImplementationPlan,
+  runBridgePipeline,
+  bridgePipelineToMarkdown,
+} from "./idea-bridge/index.js";
+export {
+  BridgeStageSchema,
+  UserStorySchema,
+  PRDSchema,
+  TechSpecSchema,
+  ImplementationTaskSchema as BridgeImplementationTaskSchema,
+  ImplementationPlanSchema as BridgeImplementationPlanSchema,
+  IssueProviderSchema,
+  CreatedIssueSchema,
+  BridgePipelineSchema,
+} from "./idea-bridge/index.js";
+export type {
+  BridgeStage,
+  UserStory,
+  PRD,
+  TechSpec,
+  ImplementationTask as BridgeImplementationTask,
+  ImplementationPlan as BridgeImplementationPlan,
+  IssueProvider,
+  CreatedIssue,
+  BridgePipeline,
+  BridgeConfig,
+  BridgeProgress,
+} from "./idea-bridge/index.js";
