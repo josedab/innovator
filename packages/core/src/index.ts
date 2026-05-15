@@ -1268,6 +1268,29 @@ export type {
   TornadoChartData,
 } from "./simulation/index.js";
 
+/** Portfolio Monte Carlo Simulation — multi-idea portfolio optimization with probability distributions. */
+export {
+  sampleDistribution,
+  runPortfolioSimulation,
+  portfolioSimToMarkdown,
+  DistributionTypeSchema,
+  DistributionSchema,
+  PortfolioIdeaSchema,
+  PortfolioSimConfigSchema,
+  IdeaAllocationSchema,
+  FrontierPointSchema,
+  PortfolioSimResultSchema,
+} from "./simulation/index.js";
+export type {
+  DistributionType,
+  Distribution,
+  PortfolioIdea,
+  PortfolioSimConfig,
+  IdeaAllocation,
+  FrontierPoint,
+  PortfolioSimResult,
+} from "./simulation/index.js";
+
 /** Gallery — idea marketplace with publishing, upvoting, forking, and featured collections. */
 export {
   publishToGallery,
@@ -6594,7 +6617,6 @@ export type {
   PatternRecommendation,
   FederationNetworkStats,
 } from "./federation-dp/index.js";
-
 
 // ---- Copilot Agent ----
 export {

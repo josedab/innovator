@@ -72,3 +72,26 @@ export type {
   FanChartPoint,
   TornadoChartData,
 } from "./monte-carlo.js";
+
+// Portfolio Simulation
+export {
+  sampleDistribution,
+  runPortfolioSimulation,
+  portfolioSimToMarkdown,
+  DistributionTypeSchema,
+  DistributionSchema,
+  PortfolioIdeaSchema,
+  PortfolioSimConfigSchema,
+  IdeaAllocationSchema,
+  FrontierPointSchema,
+  PortfolioSimResultSchema,
+} from "./portfolio-simulation.js";
+export type {
+  DistributionType,
+  Distribution,
+  PortfolioIdea,
+  PortfolioSimConfig,
+  IdeaAllocation,
+  FrontierPoint,
+  PortfolioSimResult,
+} from "./portfolio-simulation.js";
