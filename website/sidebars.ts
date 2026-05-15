@@ -32,6 +32,8 @@ const sidebars: SidebarsConfig = {
         "guides/testing",
         "guides/github-action",
         "guides/sdk",
+        "guides/troubleshooting-guide",
+        "guides/examples",
       ],
     },
     "api-reference",
