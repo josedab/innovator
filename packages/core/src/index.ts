@@ -3316,6 +3316,38 @@ export type {
   IdeaStatus as ImpactIdeaStatus,
 } from "./impact-tracker/index.js";
 
+/** Impact Tracker Integrations — Jira/Linear/GitHub connectors with ROI attribution. */
+export {
+  registerIntegration as registerImpactIntegration,
+  getIntegration,
+  listIntegrations as listImpactIntegrations,
+  updateIntegration,
+  removeIntegration as removeImpactIntegration,
+  linkItem,
+  updateLinkedItemStatus,
+  getLinkedItems,
+  getLinkedItemsByIntegration,
+  syncIntegration,
+  computeROI,
+  getROIMetric,
+  listROIMetrics,
+  generateROISummary,
+  roiSummaryToMarkdown,
+  clearIntegrationData,
+  IntegrationConfigSchema as ImpactIntegrationConfigSchema,
+  LinkedItemSchema,
+  ROIMetricSchema,
+  ROISummarySchema,
+} from "./impact-tracker/integrations.js";
+export type {
+  IntegrationType,
+  IntegrationConfig as ImpactIntegrationConfig,
+  LinkedItem,
+  LinkedItemStatus,
+  ROIMetric,
+  ROISummary as ImpactROISummary,
+} from "./impact-tracker/integrations.js";
+
 /** Angle Studio — visual pipeline editor for angle composition. */
 export {
   createPipeline as createStudioPipeline,
