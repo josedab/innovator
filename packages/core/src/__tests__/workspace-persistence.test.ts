@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   InMemoryProjectStore,
+  PostgresProjectStore,
   createProject,
   getProject,
   listProjects,
@@ -10,9 +11,13 @@ import {
   removeTeamMember,
   createSnapshot,
   exportProject,
+  archiveProject,
+  importProject,
+  getProjectTimeline,
   setProjectStore,
   InnovationProjectSchema,
 } from "../workspace-persistence/index.js";
+import type { DatabaseDriver } from "../storage/drivers/types.js";
 
 let store: InstanceType<typeof InMemoryProjectStore>;
 
@@ -200,11 +205,189 @@ describe("exportProject", () => {
     const project = await createProject("Export Proj", "desc", "user-1");
     const exported = await exportProject(project.id);
     expect(typeof exported).toBe("string");
-    expect(() => JSON.parse(exported!)).not.toThrow();
+    const parsed = JSON.parse(exported!);
+    expect(parsed.project.name).toBe("Export Proj");
+    expect(parsed.sessions).toEqual([]);
   });
 
   it("returns undefined for non-existent project", async () => {
     const exported = await exportProject("nonexistent");
     expect(exported).toBeUndefined();
+  });
+
+  it("exports a project as markdown format", async () => {
+    const project = await createProject("Markdown Proj", "A markdown description", "user-1");
+    await addSessionToProject(project.id, {
+      subject: "First session",
+      notes: "Some notes",
+    });
+    const exported = await exportProject(project.id, "markdown");
+    expect(typeof exported).toBe("string");
+    expect(exported).toContain("# Markdown Proj");
+    expect(exported).toContain("A markdown description");
+    expect(exported).toContain("**Status:** active");
+    expect(exported).toContain("**Owner:** user-1");
+    expect(exported).toContain("First session");
+    expect(exported).toContain("Some notes");
+  });
+});
+
+describe("archiveProject", () => {
+  it("archives an active project", async () => {
+    const project = await createProject("Archive Me", "desc", "user-1");
+    const archived = await archiveProject(project.id);
+    expect(archived).toBeDefined();
+    expect(archived!.status).toBe("archived");
+  });
+
+  it("returns undefined for non-existent project", async () => {
+    const result = await archiveProject("nonexistent");
+    expect(result).toBeUndefined();
+  });
+});
+
+describe("importProject", () => {
+  it("imports a project from JSON", async () => {
+    const project = await createProject("Import Me", "desc", "user-1");
+    const exported = await exportProject(project.id);
+    const imported = await importProject(exported!);
+    expect(imported).toBeDefined();
+    expect(imported!.name).toBe("Import Me");
+    // Should have a new ID
+    expect(imported!.id).not.toBe(project.id);
+  });
+
+  it("returns undefined for invalid JSON", async () => {
+    const result = await importProject("not json");
+    expect(result).toBeUndefined();
+  });
+});
+
+describe("getProjectTimeline", () => {
+  it("returns timeline entries sorted by timestamp descending", async () => {
+    const project = await createProject("Timeline Proj", "desc", "user-1");
+    await addSessionToProject(project.id, { subject: "Session 1" });
+    await createSnapshot(project.id);
+
+    const timeline = await getProjectTimeline(project.id);
+    expect(timeline.length).toBeGreaterThanOrEqual(3);
+    expect(timeline.some((e) => e.type === "project_created")).toBe(true);
+    expect(timeline.some((e) => e.type === "session_added")).toBe(true);
+    expect(timeline.some((e) => e.type === "snapshot_created")).toBe(true);
+  });
+
+  it("returns empty for non-existent project", async () => {
+    const timeline = await getProjectTimeline("nonexistent");
+    expect(timeline).toEqual([]);
+  });
+});
+
+describe("team context", () => {
+  it("creates and retrieves team context", async () => {
+    const project = await createProject("Team Ctx", "desc", "user-1");
+    const ctx = await store.updateTeamContext(project.id, {
+      sharedInsights: ["insight 1"],
+      tags: ["tag1", "tag2"],
+      pinnedIdeas: ["idea1"],
+      customAngles: ["angle1"],
+    });
+    expect(ctx.projectId).toBe(project.id);
+    expect(ctx.sharedInsights).toEqual(["insight 1"]);
+    expect(ctx.tags).toEqual(["tag1", "tag2"]);
+
+    const retrieved = await store.getTeamContext(project.id);
+    expect(retrieved).toBeDefined();
+    expect(retrieved!.sharedInsights).toEqual(["insight 1"]);
+  });
+
+  it("updates existing team context", async () => {
+    const project = await createProject("Team Ctx 2", "desc", "user-1");
+    await store.updateTeamContext(project.id, { tags: ["tag1"] });
+    await store.updateTeamContext(project.id, { tags: ["tag1", "tag2"] });
+
+    const ctx = await store.getTeamContext(project.id);
+    expect(ctx!.tags).toEqual(["tag1", "tag2"]);
+  });
+
+  it("returns undefined for project without context", async () => {
+    const ctx = await store.getTeamContext("nonexistent-proj-id");
+    expect(ctx).toBeUndefined();
+  });
+});
+
+describe("PostgresProjectStore", () => {
+  function createMockDriver(): DatabaseDriver {
+    return {
+      name: "mock",
+      type: "postgresql",
+      connect: async () => {},
+      disconnect: async () => {},
+      isConnected: () => true,
+      insert: async () => "id",
+      query: async () => [],
+      queryOne: async () => undefined,
+      update: async () => 0,
+      delete: async () => 0,
+      beginTransaction: async () => {},
+      commitTransaction: async () => {},
+      rollbackTransaction: async () => {},
+      rawQuery: async () => [],
+      rawExec: async () => {},
+      getMigrationStatus: async () => ({
+        currentVersion: 0,
+        pendingMigrations: [],
+        appliedMigrations: [],
+      }),
+      runMigrations: async () => {},
+      rollbackMigration: async () => {},
+    };
+  }
+
+  it("creates a project via driver insert", async () => {
+    const driver = createMockDriver();
+    const pgStore = new PostgresProjectStore(driver);
+    const now = new Date().toISOString();
+    const project = {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      name: "Test",
+      description: "desc",
+      ownerId: "user-1",
+      teamMembers: [],
+      status: "active" as const,
+      settings: {},
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const result = await pgStore.createProject(project);
+    expect(result).toEqual(project);
+  });
+
+  it("returns undefined for non-existent project", async () => {
+    const driver = createMockDriver();
+    const pgStore = new PostgresProjectStore(driver);
+    const result = await pgStore.getProject("nonexistent");
+    expect(result).toBeUndefined();
+  });
+
+  it("returns undefined when update affects 0 rows", async () => {
+    const driver = createMockDriver();
+    const pgStore = new PostgresProjectStore(driver);
+    const result = await pgStore.updateProject("nonexistent", { name: "New" });
+    expect(result).toBeUndefined();
+  });
+
+  it("returns false for deleting non-existent project", async () => {
+    const driver = createMockDriver();
+    const pgStore = new PostgresProjectStore(driver);
+    const result = await pgStore.deleteProject("nonexistent");
+    expect(result).toBe(false);
+  });
+
+  it("returns empty team context for non-existent project", async () => {
+    const driver = createMockDriver();
+    const pgStore = new PostgresProjectStore(driver);
+    const result = await pgStore.getTeamContext("nonexistent");
+    expect(result).toBeUndefined();
   });
 });
