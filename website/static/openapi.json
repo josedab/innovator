@@ -1,0 +1,859 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Innovator API",
+    "version": "1.0.0",
+    "description": "AI-Powered Innovation Engine API"
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    },
+    "schemas": {
+      "Investigation": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string",
+            "description": "Brief summary of the investigation"
+          },
+          "currentState": {
+            "type": "string",
+            "description": "Current state of the subject area"
+          },
+          "keyAspects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["title", "description"]
+            }
+          },
+          "challenges": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "opportunities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["summary", "currentState", "keyAspects", "challenges", "opportunities"]
+      },
+      "AngleResult": {
+        "type": "object",
+        "properties": {
+          "angleId": {
+            "type": "string",
+            "description": "Angle identifier"
+          },
+          "angleName": {
+            "type": "string",
+            "description": "Human-readable angle name"
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "How the angle was applied"
+          },
+          "ideas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Idea"
+            }
+          }
+        },
+        "required": ["angleId", "angleName", "reasoning", "ideas"]
+      },
+      "Idea": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "potentialImpact": {
+            "type": "string"
+          },
+          "implementationHint": {
+            "type": "string"
+          }
+        },
+        "required": ["title", "description", "potentialImpact", "implementationHint"]
+      },
+      "Synthesis": {
+        "type": "object",
+        "properties": {
+          "topIdeas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "sourceAngle": {
+                  "type": "string"
+                },
+                "potentialImpact": {
+                  "type": "string"
+                },
+                "feasibility": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high"]
+                }
+              },
+              "required": ["title", "description", "sourceAngle", "potentialImpact", "feasibility"]
+            }
+          },
+          "themes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recommendation": {
+            "type": "string"
+          }
+        },
+        "required": ["topIdeas", "themes", "recommendation"]
+      },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique API key identifier"
+          },
+          "key": {
+            "type": "string",
+            "description": "The API key value (only returned on creation)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name"
+          },
+          "tier": {
+            "type": "string",
+            "enum": ["free", "pro", "team", "enterprise"]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "key", "name", "enabled", "createdAt"]
+      },
+      "ApiKeySummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string",
+            "enum": ["free", "pro", "team", "enterprise"]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "usage": {
+            "type": "object",
+            "description": "Usage summary for the last 30 days"
+          }
+        },
+        "required": ["id", "name", "enabled", "createdAt"]
+      },
+      "WebhookSubscription": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique subscription identifier"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Webhook delivery URL"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "pipeline.complete",
+                "investigation.complete",
+                "usage.limit.warning",
+                "usage.limit.reached",
+                "idea.scored",
+                "experiment.complete"
+              ]
+            },
+            "description": "Subscribed event types"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "url", "events", "enabled", "createdAt"]
+      },
+      "Plugin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Plugin identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Plugin display name"
+          },
+          "type": {
+            "type": "string",
+            "description": "Plugin type (e.g., angle, export, provider)"
+          },
+          "version": {
+            "type": "string",
+            "description": "Plugin version"
+          },
+          "description": {
+            "type": "string",
+            "description": "Plugin description"
+          }
+        },
+        "required": ["id", "name", "type"]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "code": {
+            "type": "string",
+            "description": "Error code"
+          }
+        },
+        "required": ["error"]
+      }
+    }
+  },
+  "paths": {
+    "/investigate": {
+      "post": {
+        "summary": "Investigate a subject",
+        "description": "Analyze a subject to identify key aspects, challenges, and opportunities for innovation.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["subject"],
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "The subject to investigate"
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "LLM model override"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Investigation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Investigation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — invalid or missing API key"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/innovate": {
+      "post": {
+        "summary": "Generate innovation ideas",
+        "description": "Generate innovation ideas for a subject using specified creativity angles.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["subject", "investigation", "angles"],
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "description": "The subject to innovate on"
+                  },
+                  "investigation": {
+                    "$ref": "#/components/schemas/Investigation"
+                  },
+                  "angles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Array of angle IDs to use"
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "LLM model override"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Innovation results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AngleResult"
+                      }
+                    }
+                  },
+                  "required": ["results"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — invalid or missing API key"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/auto": {
+      "post": {
+        "summary": "Run full innovation pipeline with streaming",
+        "description": "Run the complete pipeline (investigate → generate → synthesize) with SSE streaming progress updates.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["subject"],
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "The subject for the full pipeline"
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "LLM model override"
+                  },
+                  "stream": {
+                    "type": "boolean",
+                    "description": "Whether to stream results via SSE (default: true). Set to false for a single JSON response.",
+                    "default": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SSE stream of pipeline progress events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "description": "Server-Sent Events stream. Each event is a JSON object with stage, data, and progress fields.",
+                  "properties": {
+                    "stage": {
+                      "type": "string",
+                      "enum": ["investigating", "generating", "synthesizing", "complete", "error"]
+                    },
+                    "investigation": {
+                      "$ref": "#/components/schemas/Investigation"
+                    },
+                    "angleResults": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AngleResult"
+                      }
+                    },
+                    "synthesis": {
+                      "$ref": "#/components/schemas/Synthesis"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — invalid or missing API key"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/keys": {
+      "post": {
+        "summary": "Create a new API key",
+        "description": "Create a new API key for authenticating with the v1 API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Human-readable name for the API key"
+                  },
+                  "tier": {
+                    "type": "string",
+                    "description": "Billing tier for the key",
+                    "enum": ["free", "pro", "team", "enterprise"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKey"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List all API keys",
+        "description": "List all API keys and their usage summaries.",
+        "responses": {
+          "200": {
+            "description": "List of API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "keys": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiKeySummary"
+                      }
+                    }
+                  },
+                  "required": ["keys"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Revoke an API key",
+        "description": "Revoke an existing API key by its ID.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "ID of the API key to revoke"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Key revoked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing key ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks": {
+      "post": {
+        "summary": "Register a webhook subscription",
+        "description": "Create a new webhook subscription to receive event notifications.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["url", "events"],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2000,
+                    "description": "HTTPS URL to receive webhook POST requests"
+                  },
+                  "events": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "pipeline.complete",
+                        "investigation.complete",
+                        "usage.limit.warning",
+                        "usage.limit.reached",
+                        "idea.scored",
+                        "experiment.complete"
+                      ]
+                    },
+                    "description": "Event types to subscribe to"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Webhook subscription created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/WebhookSubscription"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — invalid or missing API key"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      },
+      "get": {
+        "summary": "List webhook subscriptions",
+        "description": "List all webhook subscriptions for the authenticated API key.",
+        "responses": {
+          "200": {
+            "description": "List of webhook subscriptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WebhookSubscription"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — invalid or missing API key"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a webhook subscription",
+        "description": "Delete an existing webhook subscription by its ID.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "ID of the webhook subscription to delete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "deleted": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — invalid or missing API key"
+          },
+          "404": {
+            "description": "Webhook not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plugins": {
+      "get": {
+        "summary": "List registered plugins",
+        "description": "List all registered plugins. Requires API key authentication.",
+        "responses": {
+          "200": {
+            "description": "List of plugins",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Plugin"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — invalid or missing API key"
+          }
+        }
+      }
+    },
+    "/openapi": {
+      "get": {
+        "summary": "Get OpenAPI specification",
+        "description": "Retrieve the OpenAPI specification for the v1 API in JSON format.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OpenAPI specification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "OpenAPI 3.1.0 specification document"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
