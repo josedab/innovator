@@ -403,6 +403,50 @@ If the `tuned` variant consistently outperforms `default`, the learned weights a
 
 ## Multi-Language Support (i18n)
 
+## Moonshot Modules
+
+v0.3.0 introduced six advanced modules that extend the core pipeline with intelligence, memory, and quality assurance capabilities.
+
+### ⚔️ Adversarial Idea Gauntlet
+
+The **gauntlet** subjects an idea to attack from 5 specialized adversary personas — Competitor, Regulator, Skeptic, Economist, and Engineer. Each adversary challenges the idea from their domain expertise. The result is a **Survivability Index** (0–100) and a detailed attack log. An optional **Strengthen mode** generates a revised idea addressing the top attacks.
+
+Key functions: `runGauntlet()`, `gauntletToMarkdown()`, `computeSurvivabilityIndex()`
+
+### 📋 Innovation Provenance Ledger
+
+A tamper-evident, append-only audit trail that records every AI action and human decision using **SHA-256 hash chaining**. Each entry links to the previous via cryptographic hash, making tampering detectable. Built-in GDPR support includes Art. 15 data export and Art. 17 erasure.
+
+Key functions: `recordInvestigation()`, `recordHumanDecision()`, `verifyLedger()`, `exportForActor()`
+
+### 🧠 Temporal Innovation Memory
+
+A persistent temporal knowledge graph that tracks how concepts evolve across innovation sessions. It detects **recurring themes**, computes **innovation velocity** (ideas per month, active concepts), and answers natural language queries about your innovation history.
+
+Key functions: `ingestSession()`, `queryTemporalMemory()`, `computeVelocity()`, `detectRecurrences()`
+
+### 📡 Sentinel: Always-On Innovation Agent
+
+An autonomous signal monitoring agent that continuously scans **RSS/Atom feeds** for topics you care about, scores relevance via LLM, and generates innovation opportunities through the pipeline. Produces daily briefs with configurable cost budget enforcement.
+
+Key functions: `runSentinel()`, `loadBriefs()`
+
+### 🧬 Idea Genome Sequencer
+
+Decomposes ideas into **7 structural genome traits**: problem-space, solution-mechanism, value-proposition, target-audience, enabling-technology, risk-profile, and competitive-differentiation. Enables **Jaccard similarity search** across your idea library and **LLM-powered recombination** to breed novel ideas from existing ones.
+
+Key functions: `sequenceIdea()`, `findSimilar()`, `recombine()`, `genomeToMarkdown()`
+
+### 🔒 Federation DP (Differential Privacy)
+
+Enables cross-organization pattern sharing without revealing proprietary data. Uses the **Laplace mechanism** to add calibrated noise to shared patterns, with a privacy budget (epsilon) that tracks cumulative exposure. Includes a pattern recommendation engine and anti-pattern detection.
+
+Key functions: `laplaceMechanism()`, `spendBudget()`, `recommendPatterns()`
+
+---
+
+## Multi-Language Support (i18n)
+
 Innovator supports generating investigations and innovations in multiple languages. The system detects the language of your input automatically and instructs the LLM to respond in that language.
 
 ### Supported Languages
