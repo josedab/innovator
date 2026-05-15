@@ -2724,6 +2724,38 @@ export type {
   TemplateBundle,
 } from "./marketplace/index.js";
 
+/** Marketplace Reputation & Discovery — reputation system, prompt packs, and curated collections. */
+export {
+  getReputation,
+  updateReputation,
+  listTopCreators,
+  addReview as addMarketplaceReview,
+  getItemReviews,
+  markReviewHelpful,
+  publishPromptPack,
+  getPromptPack,
+  searchPromptPacks,
+  downloadPromptPack,
+  createCollection as createCuratedCollection,
+  getCollection as getCuratedCollection,
+  listCollections as listCuratedCollections,
+  addToCollection,
+  viewCollection,
+  clearMarketplaceExtData,
+  CreatorReputationSchema,
+  ReviewSchema as MarketplaceReviewSchema,
+  PromptPackSchema,
+  CuratedCollectionSchema,
+  ReputationLevelSchema,
+} from "./marketplace/reputation.js";
+export type {
+  CreatorReputation,
+  Review as MarketplaceReview,
+  PromptPack,
+  CuratedCollection,
+  ReputationLevel,
+} from "./marketplace/reputation.js";
+
 /** Innovation Embeddings & Semantic Search — TF-IDF vector search, similarity clustering, and cross-investigation discovery. */
 export {
   indexDocument,
