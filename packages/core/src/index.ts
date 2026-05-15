@@ -6746,6 +6746,22 @@ export {
   clearBillingState,
   PRICING_PLANS,
 } from "./api-gateway/billing.js";
+
+/** Developer portal — Swagger UI config, quickstart guides, onboarding flows. */
+export {
+  getPortalConfig,
+  getSwaggerUiConfig,
+  getQuickstartGuides,
+  getQuickstartGuide,
+  filterGuides,
+  getOnboardingSteps,
+  getDeveloperPortalPage,
+} from "./api-gateway/developer-portal.js";
+export type {
+  QuickstartGuide,
+  PortalConfig,
+  OnboardingStep,
+} from "./api-gateway/developer-portal.js";
 export type {
   Subscription,
   SubscriptionStatus,
