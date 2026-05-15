@@ -3,32 +3,42 @@ import { HEALTHCARE_PACK } from "../verticals/healthcare-pack.js";
 
 describe("HEALTHCARE_PACK", () => {
   it("has required top-level fields", () => {
-    expect(HEALTHCARE_PACK.id).toBe("healthcare");
-    expect(HEALTHCARE_PACK.name).toBeDefined();
-    expect(HEALTHCARE_PACK.version).toBeDefined();
-    expect(HEALTHCARE_PACK.description).toBeDefined();
-    expect(HEALTHCARE_PACK.author).toBeDefined();
+    expect(HEALTHCARE_PACK).toMatchObject({
+      id: "healthcare",
+      version: "1.0.0",
+      author: "Innovator Core Team",
+    });
+    expect(HEALTHCARE_PACK.name).toBe("Healthcare & Life Sciences");
+    expect(HEALTHCARE_PACK.description.length).toBeGreaterThan(10);
   });
 
   it("has domain angles with valid structure", () => {
     expect(HEALTHCARE_PACK.domainAngles.length).toBeGreaterThan(0);
     for (const angle of HEALTHCARE_PACK.domainAngles) {
-      expect(angle.id).toBeDefined();
-      expect(angle.name).toBeDefined();
-      expect(angle.description).toBeDefined();
-      expect(angle.promptContext).toBeDefined();
+      expect(angle).toMatchObject({
+        id: expect.any(String),
+        name: expect.any(String),
+        description: expect.any(String),
+        promptContext: expect.any(String),
+      });
+      expect(angle.id.length).toBeGreaterThan(0);
+      expect(angle.name.length).toBeGreaterThan(0);
+      expect(angle.description.length).toBeGreaterThan(0);
+      expect(angle.promptContext.length).toBeGreaterThan(0);
     }
   });
 
   it("includes patient-safety domain angle", () => {
     const patientSafety = HEALTHCARE_PACK.domainAngles.find((a) => a.id === "patient-safety");
-    expect(patientSafety).toBeDefined();
-    expect(patientSafety!.name).toBe("Patient Safety");
+    expect(patientSafety).toMatchObject({
+      id: "patient-safety",
+      name: "Patient Safety",
+    });
   });
 
   it("includes digital-health domain angle", () => {
     const dh = HEALTHCARE_PACK.domainAngles.find((a) => a.id === "digital-health");
-    expect(dh).toBeDefined();
+    expect(dh).toMatchObject({ id: "digital-health" });
   });
 
   it("has evaluation rubrics with criteria", () => {
@@ -36,12 +46,21 @@ describe("HEALTHCARE_PACK", () => {
     const rubric = HEALTHCARE_PACK.evaluationRubrics[0];
     expect(rubric.criteria.length).toBeGreaterThan(0);
     expect(rubric.passingScore).toBeGreaterThan(0);
+    for (const criterion of rubric.criteria) {
+      expect(criterion).toMatchObject({
+        name: expect.any(String),
+        weight: expect.any(Number),
+      });
+    }
   });
 
   it("rubric has patient safety criterion", () => {
     const rubric = HEALTHCARE_PACK.evaluationRubrics[0];
     const safetyC = rubric.criteria.find((c) => c.name === "Patient Safety Impact");
-    expect(safetyC).toBeDefined();
+    expect(safetyC).toMatchObject({
+      name: "Patient Safety Impact",
+      weight: expect.any(Number),
+    });
     expect(safetyC!.weight).toBeGreaterThan(0);
   });
 
@@ -54,30 +73,38 @@ describe("HEALTHCARE_PACK", () => {
   it("has compliance rules including HIPAA", () => {
     expect(HEALTHCARE_PACK.complianceRules.length).toBeGreaterThan(0);
     const hipaa = HEALTHCARE_PACK.complianceRules.find((r) => r.id === "hipaa-phi");
-    expect(hipaa).toBeDefined();
+    expect(hipaa).toMatchObject({
+      id: "hipaa-phi",
+      severity: "critical",
+    });
     expect(hipaa!.regulation).toContain("HIPAA");
-    expect(hipaa!.severity).toBe("critical");
   });
 
   it("has FDA device classification compliance rule", () => {
     const fda = HEALTHCARE_PACK.complianceRules.find((r) => r.id === "fda-device-class");
-    expect(fda).toBeDefined();
-    expect(fda!.severity).toBe("critical");
+    expect(fda).toMatchObject({
+      id: "fda-device-class",
+      severity: "critical",
+    });
   });
 
   it("has a comprehensive glossary with healthcare terms", () => {
     const glossary = HEALTHCARE_PACK.glossary;
     expect(Object.keys(glossary).length).toBeGreaterThan(10);
-    expect(glossary["PHI"]).toBeDefined();
-    expect(glossary["EHR"]).toBeDefined();
-    expect(glossary["FHIR"]).toBeDefined();
-    expect(glossary["SaMD"]).toBeDefined();
+    for (const term of ["PHI", "EHR", "FHIR", "SaMD"]) {
+      expect(glossary[term]).toEqual(expect.any(String));
+      expect(glossary[term].length).toBeGreaterThan(0);
+    }
   });
 
   it("has example sessions", () => {
     expect(HEALTHCARE_PACK.exampleSessions.length).toBeGreaterThan(0);
     for (const session of HEALTHCARE_PACK.exampleSessions) {
-      expect(session.subject).toBeDefined();
+      expect(session).toMatchObject({
+        subject: expect.any(String),
+        expectedAngles: expect.any(Array),
+        sampleInsights: expect.any(Array),
+      });
       expect(session.expectedAngles.length).toBeGreaterThan(0);
       expect(session.sampleInsights.length).toBeGreaterThan(0);
     }
@@ -88,10 +115,21 @@ describe("HEALTHCARE_PACK", () => {
   });
 
   it("has metadata with tags, icon, and color", () => {
-    expect(HEALTHCARE_PACK.metadata.tags.length).toBeGreaterThan(0);
+    expect(HEALTHCARE_PACK.metadata).toMatchObject({
+      icon: "🏥",
+    });
     expect(HEALTHCARE_PACK.metadata.tags).toContain("healthcare");
     expect(HEALTHCARE_PACK.metadata.tags).toContain("HIPAA");
-    expect(HEALTHCARE_PACK.metadata.icon).toBe("🏥");
-    expect(HEALTHCARE_PACK.metadata.color).toBeDefined();
+    expect(HEALTHCARE_PACK.metadata.color).toEqual(expect.any(String));
+  });
+
+  it("all domain angle IDs are unique", () => {
+    const ids = HEALTHCARE_PACK.domainAngles.map((a) => a.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("all compliance rule IDs are unique", () => {
+    const ids = HEALTHCARE_PACK.complianceRules.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
