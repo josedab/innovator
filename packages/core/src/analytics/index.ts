@@ -375,3 +375,11 @@ export {
   generateReport,
   reportToMarkdown,
 } from "./advanced.js";
+
+export {
+  ExecutiveReportSchema,
+  FunnelStageSchema,
+  generateExecutiveReport,
+  executiveReportToMarkdown,
+} from "./executive-report.js";
+export type { ExecutiveReport, FunnelStage } from "./executive-report.js";
