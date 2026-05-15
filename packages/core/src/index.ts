@@ -4192,6 +4192,31 @@ export type {
   MeetingConnectorConfig,
 } from "./meeting-intelligence/index.js";
 
+/** Live Meeting Copilot — real-time innovation moment detection and knowledge graph suggestions. */
+export {
+  startLiveSession,
+  getLiveSession,
+  listLiveSessions,
+  feedTranscriptSegment,
+  endLiveSession,
+  pauseLiveSession,
+  resumeLiveSession,
+  registerKnownIdeas,
+  clearKnownIdeas,
+  liveSessionToMarkdown,
+  clearLiveSessions,
+  InnovationMomentTypeSchema,
+  InnovationMomentSchema,
+  LiveSuggestionSchema,
+  LiveSessionSchema,
+} from "./meeting-intelligence/live-copilot.js";
+export type {
+  InnovationMomentType,
+  InnovationMoment,
+  LiveSuggestion,
+  LiveSession,
+} from "./meeting-intelligence/live-copilot.js";
+
 /** Innovation Orchestration as Code — declarative YAML config, plan/apply/drift engine. */
 export {
   parseOrchestrationConfig,
