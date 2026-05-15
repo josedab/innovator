@@ -6788,11 +6788,15 @@ export type {
   PricingPlan,
 } from "./api-gateway/billing.js";
 
-/** Integrations — Jira, Linear, Slack, Confluence, Notion. */
+/** Jira integration — syncs innovation ideas and investigations with Jira issues and projects. */
 export { JiraIntegration } from "./integrations/jira.js";
+/** Linear integration — syncs innovation ideas and investigations with Linear issues and projects. */
 export { LinearIntegration } from "./integrations/linear.js";
+/** Slack integration — posts innovation results and notifications to Slack channels. */
 export { SlackIntegration } from "./integrations/slack.js";
+/** Confluence integration — publishes innovation reports and playbooks to Confluence pages. */
 export { ConfluenceIntegration } from "./integrations/confluence.js";
+/** Notion integration — syncs innovation data with Notion databases and pages. */
 export { NotionIntegration } from "./integrations/notion.js";
 
 /** Knowledge Graph — entity extraction and graph visualization. */
