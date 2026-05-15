@@ -3611,6 +3611,21 @@ export {
 } from "./team-dna/index.js";
 export type { MemberProfile, BlindSpot, TeamDNA, MemberActivity } from "./team-dna/index.js";
 
+/** Team DNA Coaching — coaching recommendations and composition optimization. */
+export {
+  generateCoachingRecommendations,
+  analyzeComposition,
+  compositionToMarkdown,
+  CoachingRecommendationSchema,
+  CompositionScoreSchema,
+  CompositionRecommendationSchema,
+} from "./team-dna/coaching.js";
+export type {
+  CoachingRecommendation as TeamCoachingRecommendation,
+  CompositionScore,
+  CompositionRecommendation,
+} from "./team-dna/coaching.js";
+
 /** Innovation Supply Chain Mapper — build/buy/partner classification with gap analysis. */
 export {
   mapSupplyChain,
