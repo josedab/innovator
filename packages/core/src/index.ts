@@ -6728,6 +6728,33 @@ export type {
   GatewayResponse,
 } from "./api-gateway/middleware.js";
 
+/** API Gateway billing — subscriptions, usage metering, invoices, Stripe integration. */
+export {
+  createSubscription,
+  getSubscription,
+  findSubscriptionByTenant,
+  cancelSubscription,
+  changeSubscriptionTier,
+  processStripeWebhook,
+  recordMeterEvent,
+  getUnreportedEvents,
+  markEventsReported,
+  getUsageForBilling,
+  generateInvoice,
+  getInvoices,
+  getPricingPlans,
+  clearBillingState,
+  PRICING_PLANS,
+} from "./api-gateway/billing.js";
+export type {
+  Subscription,
+  SubscriptionStatus,
+  UsageMeterEvent,
+  Invoice as GatewayInvoice,
+  InvoiceLine as GatewayInvoiceLine,
+  PricingPlan,
+} from "./api-gateway/billing.js";
+
 /** Integrations — Jira, Linear, Slack, Confluence, Notion. */
 export { JiraIntegration } from "./integrations/jira.js";
 export { LinearIntegration } from "./integrations/linear.js";
