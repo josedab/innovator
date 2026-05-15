@@ -4948,6 +4948,27 @@ export {
   ValidationResultSchema as NLValidationResultSchema,
   ConversationTurnSchema,
 } from "./nl-pipeline/index.js";
+
+/** NL Pipeline Composer — multi-step conversational instructions, streaming DAG execution, templates. */
+export {
+  parseMultiStepInstruction,
+  evaluateConditional,
+  executeComposerDAG,
+  getConversationalTemplates,
+  getConversationalTemplate,
+  filterTemplatesByCategory,
+  instantiateTemplate,
+  composerDAGToText,
+  CONVERSATIONAL_TEMPLATES,
+} from "./nl-pipeline/composer.js";
+export type {
+  ConditionalOperator,
+  Conditional,
+  ComposerStep,
+  ComposerDAG,
+  StreamEvent as ComposerStreamEvent,
+  ConversationalTemplate,
+} from "./nl-pipeline/composer.js";
 export type {
   NLIntentAction,
   NLIntent,
