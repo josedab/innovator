@@ -482,6 +482,29 @@ export type {
   BenchmarkSuiteResult,
 } from "./benchmark/index.js";
 
+/** Benchmark Problems — standardized problems, rubrics, leaderboard, comparison reports. */
+export {
+  BENCHMARK_PROBLEMS,
+  getBenchmarkProblems,
+  filterBenchmarkProblems,
+  getBenchmarkProblem,
+  recordBenchmarkResult,
+  getBenchmarkResults,
+  getAllBenchmarkResults,
+  scoreBenchmarkRun,
+  submitToLeaderboard,
+  getLeaderboardEntries,
+  benchmarkComparisonReport,
+  clearBenchmarkState,
+} from "./benchmark/problems.js";
+export type {
+  BenchmarkDomain,
+  ScoringRubric as BenchmarkScoringRubric,
+  BenchmarkProblem,
+  BenchmarkRunResult,
+  LeaderboardEntry as BenchmarkLeaderboardEntry,
+} from "./benchmark/problems.js";
+
 /** Content extractors — pull context from URLs, files, and code repositories. */
 export {
   extractContent,
