@@ -9,7 +9,7 @@ export class InnovatorError extends Error {
     message: string,
     public readonly status: number,
     public readonly code?: string,
-    public readonly details?: unknown,
+    public readonly details?: unknown
   ) {
     super(message);
     this.name = "InnovatorError";
@@ -70,12 +70,8 @@ export const MemorySearchRequestSchema = z.object({
 /** Schema for {@link PersonaEvaluationRequest} — validates persona-based idea evaluation requests. */
 export const PersonaEvaluationRequestSchema = z.object({
   action: z.enum(["evaluate", "assess", "alignment", "list-personas"]),
-  idea: z
-    .object({ title: z.string(), description: z.string() })
-    .optional(),
-  ideas: z
-    .array(z.object({ title: z.string(), description: z.string() }))
-    .optional(),
+  idea: z.object({ title: z.string(), description: z.string() }).optional(),
+  ideas: z.array(z.object({ title: z.string(), description: z.string() })).optional(),
   personaIds: z.array(z.string()).max(12).optional(),
   model: z.string().optional(),
   format: z.enum(["json", "markdown"]).optional(),
@@ -83,23 +79,11 @@ export const PersonaEvaluationRequestSchema = z.object({
 
 /** Schema for {@link MonitorRequest} — validates innovation-monitor lifecycle actions. */
 export const MonitorRequestSchema = z.object({
-  action: z.enum([
-    "add-source",
-    "remove-source",
-    "start",
-    "stop",
-    "generate-digest",
-  ]),
+  action: z.enum(["add-source", "remove-source", "start", "stop", "generate-digest"]),
   source: z
     .object({
       id: z.string(),
-      type: z.enum([
-        "codebase",
-        "market",
-        "competitor",
-        "metrics",
-        "custom",
-      ]),
+      type: z.enum(["codebase", "market", "competitor", "metrics", "custom"]),
       name: z.string(),
       config: z.record(z.unknown()),
       enabled: z.boolean().optional(),
@@ -257,7 +241,7 @@ export class InnovatorClient {
     method: string,
     path: string,
     body?: unknown,
-    options?: RequestOptions,
+    options?: RequestOptions
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     let lastError: unknown;
@@ -300,7 +284,7 @@ export class InnovatorClient {
             parsed?.error ?? `HTTP ${res.status}`,
             res.status,
             parsed?.code,
-            parsed,
+            parsed
           );
 
           if (isRetryable(res.status) && attempt < this.maxRetries) {
@@ -317,7 +301,7 @@ export class InnovatorClient {
           throw new InnovatorError(
             externalSignal?.aborted ? "Request aborted" : "Request timed out",
             0,
-            externalSignal?.aborted ? "ABORTED" : "TIMEOUT",
+            externalSignal?.aborted ? "ABORTED" : "TIMEOUT"
           );
         }
         lastError = err;
@@ -326,7 +310,7 @@ export class InnovatorClient {
           (err as Error).message ?? "Network error",
           0,
           "NETWORK_ERROR",
-          err,
+          err
         );
       } finally {
         clearTimeout(timer);
@@ -341,7 +325,7 @@ export class InnovatorClient {
     path: string,
     body: unknown,
     onEvent: (event: StreamEvent) => void,
-    options?: RequestOptions,
+    options?: RequestOptions
   ): Promise<void> {
     const url = `${this.baseUrl}${path}`;
 
@@ -377,16 +361,12 @@ export class InnovatorClient {
           parsed?.error ?? `HTTP ${res.status}`,
           res.status,
           parsed?.code,
-          parsed,
+          parsed
         );
       }
 
       if (!res.body) {
-        throw new InnovatorError(
-          "Response body is null",
-          0,
-          "NO_BODY",
-        );
+        throw new InnovatorError("Response body is null", 0, "NO_BODY");
       }
 
       const reader = res.body.getReader();
@@ -429,15 +409,10 @@ export class InnovatorClient {
         throw new InnovatorError(
           externalSignal?.aborted ? "Request aborted" : "Request timed out",
           0,
-          externalSignal?.aborted ? "ABORTED" : "TIMEOUT",
+          externalSignal?.aborted ? "ABORTED" : "TIMEOUT"
         );
       }
-      throw new InnovatorError(
-        (err as Error).message ?? "Stream error",
-        0,
-        "STREAM_ERROR",
-        err,
-      );
+      throw new InnovatorError((err as Error).message ?? "Stream error", 0, "STREAM_ERROR", err);
     } finally {
       externalSignal?.removeEventListener("abort", onAbort);
     }
@@ -449,10 +424,7 @@ export class InnovatorClient {
    * Investigate a subject — gathers background research.
    * POST /api/investigate
    */
-  async investigate(
-    subject: string,
-    options?: RequestOptions,
-  ): Promise<Investigation> {
+  async investigate(subject: string, options?: RequestOptions): Promise<Investigation> {
     const body: InvestigateRequest = { subject, model: options?.model };
     return this.request<Investigation>("POST", "/api/investigate", body, options);
   }
@@ -468,7 +440,7 @@ export class InnovatorClient {
       investigation?: Investigation;
       synthesize?: boolean;
       score?: boolean;
-    },
+    }
   ): Promise<InnovateResponse> {
     const body: InnovateRequest = {
       subject,
@@ -486,10 +458,7 @@ export class InnovatorClient {
    * Returns the final result after streaming completes.
    * POST /api/auto
    */
-  async auto(
-    subject: string,
-    options?: RequestOptions,
-  ): Promise<StreamEvent[]> {
+  async auto(subject: string, options?: RequestOptions): Promise<StreamEvent[]> {
     const events: StreamEvent[] = [];
     await this.streamAuto(subject, (e) => events.push(e), options);
     return events;
@@ -502,7 +471,7 @@ export class InnovatorClient {
   async streamAuto(
     subject: string,
     onEvent: (event: StreamEvent) => void,
-    options?: RequestOptions,
+    options?: RequestOptions
   ): Promise<void> {
     const body: AutoRequest = { subject, model: options?.model };
     return this.requestStream("/api/auto", body, onEvent, options);
@@ -512,10 +481,7 @@ export class InnovatorClient {
    * Run natural-language innovation. Returns all events after streaming.
    * POST /api/nl-innovate
    */
-  async nlInnovate(
-    prompt: string,
-    options?: RequestOptions,
-  ): Promise<StreamEvent[]> {
+  async nlInnovate(prompt: string, options?: RequestOptions): Promise<StreamEvent[]> {
     const events: StreamEvent[] = [];
     await this.streamNLInnovate(prompt, (e) => events.push(e), options);
     return events;
@@ -528,7 +494,7 @@ export class InnovatorClient {
   async streamNLInnovate(
     prompt: string,
     onEvent: (event: StreamEvent) => void,
-    options?: RequestOptions,
+    options?: RequestOptions
   ): Promise<void> {
     const body: NLInnovateRequest = { prompt, model: options?.model };
     return this.requestStream("/api/nl-innovate", body, onEvent, options);
@@ -545,7 +511,7 @@ export class InnovatorClient {
       conflict?: Record<string, unknown>;
       resolution?: DiffMergeRequest["resolution"];
       format?: DiffMergeRequest["format"];
-    },
+    }
   ): Promise<DiffMergeResponse> {
     const body: DiffMergeRequest = {
       action,
@@ -569,7 +535,7 @@ export class InnovatorClient {
       threshold?: number;
       limit?: number;
       sessionFilter?: string;
-    },
+    }
   ): Promise<MemorySearchResponse> {
     const body: MemorySearchRequest = {
       query,
@@ -584,10 +550,7 @@ export class InnovatorClient {
    * Get the organisation DNA summary.
    * GET /api/memory-graph?action=org-dna
    */
-  async getOrgDNA(
-    format?: "json" | "markdown",
-    options?: RequestOptions,
-  ): Promise<OrgDNAResponse> {
+  async getOrgDNA(format?: "json" | "markdown", options?: RequestOptions): Promise<OrgDNAResponse> {
     const params = new URLSearchParams({ action: "org-dna" });
     if (format) params.set("format", format);
     return this.request<OrgDNAResponse>("GET", `/api/memory-graph?${params}`, undefined, options);
@@ -602,7 +565,7 @@ export class InnovatorClient {
     personaIds: string[],
     options?: RequestOptions & {
       format?: "json" | "markdown";
-    },
+    }
   ): Promise<PersonaEvaluationResponse> {
     const body: PersonaEvaluationRequest = {
       action: "evaluate",
@@ -615,7 +578,7 @@ export class InnovatorClient {
       "POST",
       "/api/persona-evaluation",
       body,
-      options,
+      options
     );
   }
 
@@ -633,7 +596,7 @@ export class InnovatorClient {
    */
   async generateDigest(
     period?: "daily" | "weekly",
-    options?: RequestOptions,
+    options?: RequestOptions
   ): Promise<DigestResponse> {
     const body: MonitorRequest = {
       action: "generate-digest",
@@ -643,3 +606,39 @@ export class InnovatorClient {
     return this.request<DigestResponse>("POST", "/api/monitor", body, options);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Headless Components & Event Emitter
+// ---------------------------------------------------------------------------
+
+export {
+  InnovatorEventEmitter,
+  createIdeaCardState,
+  toggleExpand,
+  toggleVote,
+  toggleBookmark,
+  createDebateViewerState,
+  filterDebateEntries,
+  createAngleSelectorState,
+  toggleAngle,
+  getSelectedAngles,
+  createPipelineTracker,
+  updateStageStatus,
+  getOverallProgress,
+  buildIdeaCardProps,
+  buildDebateViewerProps,
+} from "./components.js";
+
+export type {
+  IdeaCardData,
+  DebateEntry,
+  TimelineEvent,
+  AngleOption,
+  PipelineStage,
+  IdeaCardState,
+  DebateViewerState,
+  AngleSelectorState,
+  PipelineTrackerState,
+  IdeaCardRenderProps,
+  DebateViewerRenderProps,
+} from "./components.js";
