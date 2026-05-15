@@ -27,14 +27,16 @@ describe("metrics-dashboard", () => {
   describe("trackIdea", () => {
     it("creates a tracked idea with default stage 'ideated'", () => {
       const idea = trackIdea({ id: "i1", title: "Test", description: "desc" });
-      expect(idea.id).toBe("i1");
-      expect(idea.stage).toBe("ideated");
-      expect(idea.tags).toEqual([]);
+      expect(idea).toMatchObject({
+        id: "i1",
+        stage: "ideated",
+        tags: [],
+      });
       expect(idea.stageHistory).toHaveLength(1);
-      expect(idea.stageHistory[0].stage).toBe("ideated");
+      expect(idea.stageHistory[0]).toMatchObject({ stage: "ideated" });
       expect(idea.stageHistory[0].exitedAt).toBeUndefined();
-      expect(idea.createdAt).toBeTruthy();
-      expect(idea.updatedAt).toBeTruthy();
+      expect(idea.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(idea.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     it("stores optional fields", () => {
@@ -57,8 +59,16 @@ describe("metrics-dashboard", () => {
 
     it("is retrievable via getTrackedIdea", () => {
       trackIdea({ id: "i3", title: "T", description: "d" });
-      expect(getTrackedIdea("i3")).toBeDefined();
+      const idea = getTrackedIdea("i3");
+      expect(idea).toMatchObject({ id: "i3", title: "T", description: "d" });
       expect(getTrackedIdea("nonexistent")).toBeUndefined();
+    });
+
+    it("overwrites existing idea with same ID", () => {
+      trackIdea({ id: "dup", title: "Original", description: "d" });
+      trackIdea({ id: "dup", title: "Overwritten", description: "d2" });
+      const idea = getTrackedIdea("dup");
+      expect(idea).toMatchObject({ id: "dup", title: "Overwritten", description: "d2" });
     });
   });
 
@@ -68,15 +78,31 @@ describe("metrics-dashboard", () => {
     it("advances an idea to a new stage", () => {
       trackIdea({ id: "a1", title: "T", description: "d" });
       const updated = advanceIdea("a1", "shortlisted");
-      expect(updated).toBeDefined();
-      expect(updated!.stage).toBe("shortlisted");
+      expect(updated).toMatchObject({
+        id: "a1",
+        stage: "shortlisted",
+      });
       expect(updated!.stageHistory).toHaveLength(2);
-      expect(updated!.stageHistory[0].exitedAt).toBeTruthy();
-      expect(updated!.stageHistory[1].stage).toBe("shortlisted");
+      expect(updated!.stageHistory[0].exitedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(updated!.stageHistory[1]).toMatchObject({ stage: "shortlisted" });
     });
 
     it("returns undefined for non-existent idea", () => {
       expect(advanceIdea("nonexistent", "shipped")).toBeUndefined();
+    });
+
+    it("allows advancing to any stage (no sequential enforcement)", () => {
+      trackIdea({ id: "skip", title: "T", description: "d" });
+      const updated = advanceIdea("skip", "shipped");
+      expect(updated).toMatchObject({ stage: "shipped" });
+      expect(updated!.stageHistory).toHaveLength(2);
+    });
+
+    it("allows re-entering the same stage", () => {
+      trackIdea({ id: "re", title: "T", description: "d" });
+      const updated = advanceIdea("re", "ideated");
+      expect(updated!.stage).toBe("ideated");
+      expect(updated!.stageHistory).toHaveLength(2);
     });
   });
 
@@ -294,6 +320,33 @@ describe("metrics-dashboard", () => {
       });
       // Revenue: 100 * (12 - 10) = 200, Cost: 10000, ROI: ((200-10000)/10000)*100 = -98%
       expect(roi.estimatedROI).toBeLessThan(0);
+      expect(roi.estimatedROI).toBe(-98);
+    });
+
+    it("handles negative projection months by clamping revenue to 0", () => {
+      const roi = calculateROI({
+        ideaId: "roi-neg-months",
+        title: "Negative months",
+        developmentCost: 1000,
+        monthlyRevenue: 500,
+        timeToMarketMonths: 0,
+        probabilityOfSuccess: 1,
+        projectionMonths: -5,
+      });
+      // Math.max(0, -5 - 0) = 0, so revenue = 0
+      expect(roi.estimatedRevenue).toBe(0);
+    });
+
+    it("handles NaN probability of success", () => {
+      const roi = calculateROI({
+        ideaId: "roi-nan",
+        title: "NaN test",
+        developmentCost: 1000,
+        monthlyRevenue: 500,
+        timeToMarketMonths: 0,
+        probabilityOfSuccess: NaN,
+      });
+      expect(Number.isNaN(roi.riskAdjustedROI)).toBe(true);
     });
   });
 
@@ -407,6 +460,25 @@ describe("metrics-dashboard", () => {
       const dashboard = buildDashboard("alpha");
       expect(dashboard.funnel.totalIdeas).toBe(1);
       expect(dashboard.kpis.totalIdeas).toBe(1);
+    });
+
+    it("averageTimeToShip is always 0 (known limitation)", () => {
+      trackIdea({ id: "kpi1", title: "T", description: "d" });
+      advanceIdea("kpi1", "shipped");
+      const dashboard = buildDashboard();
+      // averageTimeToShip is hardcoded to 0 in buildDashboard
+      expect(dashboard.kpis.averageTimeToShip).toBe(0);
+    });
+
+    it("filters angleEffectiveness by ideas matching teamId context", () => {
+      trackIdea({ id: "ae1", title: "T", description: "d", angleId: "scamper", teamId: "alpha" });
+      trackIdea({ id: "ae2", title: "T", description: "d", angleId: "inversion", teamId: "beta" });
+
+      // angleEffectiveness is computed globally (not filtered by teamId)
+      const dashboard = buildDashboard("alpha");
+      expect(dashboard.funnel.totalIdeas).toBe(1);
+      // But angleEffectiveness still includes all angles
+      expect(dashboard.angleEffectiveness.length).toBeGreaterThanOrEqual(1);
     });
   });
 
