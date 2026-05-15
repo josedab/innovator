@@ -1321,3 +1321,31 @@ export function seedMarketplace(): number {
 
   return seeded;
 }
+
+// ---- Community Gallery ----
+
+export {
+  GalleryItemTypeSchema,
+  GalleryItemSchema,
+  CommentSchema as GalleryCommentSchema,
+  StarSchema as GalleryStarSchema,
+  publishToGallery,
+  getGalleryItem,
+  updateGalleryItem,
+  searchGallery,
+  getTrendingItems,
+  getFeaturedItems,
+  forkGalleryItem,
+  starItem,
+  unstarItem,
+  addComment as addGalleryComment,
+  getComments as getGalleryComments,
+  flagItem,
+  clearGallery,
+} from "./community-gallery.js";
+export type {
+  GalleryItemType,
+  GalleryItem,
+  Comment as GalleryComment,
+  Star as GalleryStar,
+} from "./community-gallery.js";
