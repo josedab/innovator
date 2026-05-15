@@ -1,7 +1,11 @@
-/** Core domain types — Investigation, AngleResult, Synthesis, PipelineProgress, and all shared interfaces. */
+/** Core domain types — Investigation, AngleResult, Synthesis, PipelineProgress, and all shared interfaces.
+ * @see {@link file://docs/API.md#types} for full type documentation
+ */
 export * from "./types.js";
 
-/** GitHub Copilot LLM client — text generation, streaming, and JSON extraction. */
+/** GitHub Copilot LLM client — text generation, streaming, and JSON extraction.
+ * @see {@link file://docs/API.md#copilot-client} for usage examples
+ */
 export {
   /** Initialize and return a shared Copilot LLM client instance. */
   getCopilotClient,
@@ -18,7 +22,10 @@ export {
 /** Options for {@link generateText} and {@link generateTextStream}. */
 export type { GenerateOptions } from "./copilot/client.js";
 
-/** Innovation engine — angles, investigation, generation, synthesis, custom angles, and angle packs. */
+/** Innovation engine — angles, investigation, generation, synthesis, custom angles, and angle packs.
+ * @see {@link file://docs/API.md#innovation-pipeline} for pipeline documentation
+ * @see {@link file://docs/API.md#angles} for angle definitions
+ */
 export {
   /** Built-in innovation angle definitions (SCAMPER, First Principles, etc.). */
   ANGLES,
@@ -61,14 +68,18 @@ export type {
   CompetitiveMap,
 } from "./innovation/index.js";
 
-/** Prompt builders for investigation and synthesis LLM calls. */
+/** Prompt builders for investigation and synthesis LLM calls.
+ * @see {@link file://docs/API.md#prompt-utilities} for prompt customization
+ */
 export {
   /** Build the structured prompt sent to the LLM for subject investigation. */
   buildInvestigationPrompt,
   /** Build the prompt that synthesizes multiple angle results into top ideas. */
   buildSynthesisPrompt,
 } from "./prompts/investigation.js";
-/** Prompt sanitization — defense against prompt injection attacks. */
+/** Prompt sanitization — defense against prompt injection attacks.
+ * @see {@link file://docs/API.md#prompt-utilities} for sanitization patterns
+ */
 export {
   /** Strip potentially dangerous tokens from user-supplied text before LLM calls. */
   sanitizeUserInput,
@@ -83,7 +94,9 @@ export { withRetry } from "./copilot/retry.js";
 /** Configuration options for {@link withRetry}. */
 export type { RetryOptions } from "./copilot/retry.js";
 
-/** Plugin system — register, discover, and load angle/exporter/visualizer plugins. */
+/** Plugin system — register, discover, and load angle/exporter/visualizer plugins.
+ * @see {@link file://docs/API.md#plugin-system} for plugin development guide
+ */
 export {
   /** Register a plugin instance in the global plugin registry. */
   registerPlugin,
@@ -101,7 +114,9 @@ export {
   loadPlugin,
 } from "./plugins/index.js";
 
-/** Domain presets — pre-configured angle sets for common innovation domains. */
+/** Domain presets — pre-configured angle sets for common innovation domains.
+ * @see {@link file://docs/API.md#presets} for preset customization
+ */
 export {
   /** All built-in preset definitions. */
   BUILT_IN_PRESETS,
@@ -115,7 +130,9 @@ export {
   getPresetsByTag,
 } from "./presets/index.js";
 
-/** Session history — save, query, and compare innovation sessions. */
+/** Session history — save, query, and compare innovation sessions.
+ * @see {@link file://docs/API.md#session-history} for session management
+ */
 export {
   /** Persist an innovation session to the local store. */
   saveSession,
