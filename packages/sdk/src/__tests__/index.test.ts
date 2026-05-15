@@ -585,4 +585,145 @@ describe("InnovatorClient", () => {
       vi.unstubAllGlobals();
     });
   });
+
+  // ---- requestStream edge cases ----
+
+  describe("requestStream", () => {
+    function makeMultiChunkStream(chunks: string[]) {
+      const encoder = new TextEncoder();
+      let index = 0;
+      return {
+        getReader: () => ({
+          read: async () => {
+            if (index < chunks.length) {
+              return { done: false, value: encoder.encode(chunks[index++]) };
+            }
+            return { done: true, value: undefined };
+          },
+        }),
+      };
+    }
+
+    it("handles SSE event split across chunk boundaries", async () => {
+      // Split "data: {\"stage\":\"done\"}\n\n" across two chunks
+      const body = makeMultiChunkStream(['data: {"stag', 'e":"done"}\n\n']);
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, body }));
+
+      const events = await client.auto("test");
+      expect(events).toHaveLength(1);
+      expect((events[0].data as { stage: string }).stage).toBe("done");
+      vi.unstubAllGlobals();
+    });
+
+    it("empty stream (0 events) returns empty array", async () => {
+      const body = makeMultiChunkStream([]);
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, body }));
+
+      const events = await client.auto("test");
+      expect(events).toHaveLength(0);
+      vi.unstubAllGlobals();
+    });
+
+    it("filters heartbeat-only keepalive events (empty data lines)", async () => {
+      const body = makeSSEStream([
+        'data: {"stage":"start"}',
+        "",
+        "data: ",
+        "",
+        'data: {"stage":"end"}',
+        "",
+      ]);
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, body }));
+
+      const events = await client.auto("test");
+      // Empty "data: " line should be skipped (raw is empty after trim)
+      expect(events).toHaveLength(2);
+      vi.unstubAllGlobals();
+    });
+
+    it("handles event: prefix for named events", async () => {
+      const body = makeSSEStream([
+        "event: progress",
+        'data: {"step":1}',
+        "",
+        "event: complete",
+        'data: {"step":2}',
+        "",
+      ]);
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, body }));
+
+      const events: StreamEvent[] = [];
+      await client.streamAuto("test", (e) => events.push(e));
+      expect(events).toHaveLength(2);
+      expect(events[0].event).toBe("progress");
+      expect(events[1].event).toBe("complete");
+      vi.unstubAllGlobals();
+    });
+
+    it("throws ABORTED when AbortSignal fires mid-stream", async () => {
+      const controller = new AbortController();
+      let readCount = 0;
+      const body = {
+        getReader: () => ({
+          read: async () => {
+            readCount++;
+            if (readCount === 1) {
+              return {
+                done: false,
+                value: new TextEncoder().encode('data: {"step":1}\n\n'),
+              };
+            }
+            // Abort on second read
+            controller.abort();
+            throw new DOMException("The operation was aborted", "AbortError");
+          },
+        }),
+      };
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, body }));
+
+      const err = await client
+        .streamAuto("test", () => {}, { signal: controller.signal })
+        .catch((e) => e);
+      expect(err).toBeInstanceOf(InnovatorError);
+      expect(err.code).toBe("ABORTED");
+      vi.unstubAllGlobals();
+    });
+
+    it("throws on HTTP error response during stream", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 500,
+          text: async () => JSON.stringify({ error: "Server failed", code: "INTERNAL" }),
+          body: null,
+        })
+      );
+
+      const err = await client.streamAuto("test", () => {}).catch((e) => e);
+      expect(err).toBeInstanceOf(InnovatorError);
+      expect(err.status).toBe(500);
+      expect(err.message).toBe("Server failed");
+      vi.unstubAllGlobals();
+    });
+
+    it("throws NO_BODY when response body is null", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, body: null }));
+
+      const err = await client.streamAuto("test", () => {}).catch((e) => e);
+      expect(err).toBeInstanceOf(InnovatorError);
+      expect(err.code).toBe("NO_BODY");
+      vi.unstubAllGlobals();
+    });
+
+    it("parses non-JSON data as raw string", async () => {
+      const body = makeSSEStream(["data: hello world", ""]);
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, body }));
+
+      const events = await client.auto("test");
+      expect(events).toHaveLength(1);
+      expect(events[0].data).toBe("hello world");
+      vi.unstubAllGlobals();
+    });
+  });
 });
