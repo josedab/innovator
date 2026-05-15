@@ -426,3 +426,31 @@ export {
   detectConsensus as detectAIConsensus,
   synthesizeCanvas,
 } from "./ai-canvas.js";
+
+// ---- Realtime Presence & Collaborative Features ----
+export {
+  PresenceUserSchema,
+  PresenceRoomSchema,
+  WSMessageTypeSchema,
+  WSMessageSchema,
+  ClusterSchema,
+  AutoClusterResultSchema,
+  createPresenceRoom,
+  joinRoom,
+  leaveRoom,
+  updateCursor,
+  getRoom,
+  getRoomBySession,
+  autoClusterNodes as autoClusterCanvasNodes,
+  exportCanvasToJSON,
+  exportCanvasToSVG,
+} from "./realtime-presence.js";
+export type {
+  PresenceUser,
+  PresenceRoom,
+  WSMessageType,
+  WSMessage,
+  Cluster,
+  AutoClusterResult,
+  CanvasExportOptions,
+} from "./realtime-presence.js";
