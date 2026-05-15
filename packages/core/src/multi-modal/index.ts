@@ -487,3 +487,23 @@ export {
   processWhiteboard,
   validateImage,
 } from "./vision.js";
+
+// ---- Meeting Workflow ----
+
+export {
+  MeetingInputTypeSchema,
+  MeetingInputSchema,
+  ExtractedTopicSchema,
+  MeetingAnalysisSchema,
+  VideoFrameSchema,
+  analyzeMeeting,
+  meetingAnalysisToMarkdown,
+  extractKeyFrameTimestamps,
+} from "./meeting-workflow.js";
+export type {
+  MeetingInputType,
+  MeetingInput,
+  ExtractedTopic,
+  MeetingAnalysis,
+  VideoFrame,
+} from "./meeting-workflow.js";
