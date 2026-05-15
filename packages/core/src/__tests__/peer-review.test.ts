@@ -270,4 +270,196 @@ describe("peer-review", () => {
       expect(guidance).toBeTruthy();
     });
   });
+
+  // ---- computeMatchScore edge cases ----
+
+  describe("computeMatchScore edge cases", () => {
+    it("returns 0 for zero expertise overlap", () => {
+      upsertExpertiseProfile(
+        makeProfile({ userId: "r1", domains: [{ domain: "Biotech", level: "expert" }] })
+      );
+      const req = submitReviewRequest("author-1", "Quantum Computing", "Desc", ["Quantum"]);
+      const score = computeMatchScore(getExpertiseProfile("r1")!, req);
+      expect(score).toBe(0);
+    });
+
+    it("returns max score for identical domain with expert level", () => {
+      upsertExpertiseProfile(
+        makeProfile({
+          userId: "r1",
+          domains: [{ domain: "AI/ML", level: "expert", keywords: ["machine-learning"] }],
+        })
+      );
+      const req = submitReviewRequest(
+        "author-1",
+        "ML Pipeline",
+        "A machine-learning pipeline for data",
+        ["AI/ML"]
+      );
+      const score = computeMatchScore(getExpertiseProfile("r1")!, req);
+      expect(score).toBeGreaterThan(0);
+      expect(score).toBeLessThanOrEqual(5);
+    });
+
+    it("gives higher score for expert vs beginner level", () => {
+      upsertExpertiseProfile(
+        makeProfile({ userId: "expert", domains: [{ domain: "AI/ML", level: "expert" }] })
+      );
+      upsertExpertiseProfile(
+        makeProfile({ userId: "beginner", domains: [{ domain: "AI/ML", level: "beginner" }] })
+      );
+      const req = submitReviewRequest("author-1", "ML Idea", "Desc", ["AI/ML"]);
+      const expertScore = computeMatchScore(getExpertiseProfile("expert")!, req);
+      const beginnerScore = computeMatchScore(getExpertiseProfile("beginner")!, req);
+      expect(expertScore).toBeGreaterThan(beginnerScore);
+    });
+
+    it("adds keyword overlap bonus", () => {
+      upsertExpertiseProfile(
+        makeProfile({
+          userId: "r1",
+          domains: [{ domain: "AI/ML", level: "expert", keywords: ["neural", "deep"] }],
+        })
+      );
+      upsertExpertiseProfile(
+        makeProfile({
+          userId: "r2",
+          domains: [{ domain: "AI/ML", level: "expert" }],
+        })
+      );
+      const req = submitReviewRequest("author-1", "Neural Net", "A neural deep learning model", [
+        "AI/ML",
+      ]);
+      const scoreWithKeywords = computeMatchScore(getExpertiseProfile("r1")!, req);
+      const scoreWithout = computeMatchScore(getExpertiseProfile("r2")!, req);
+      expect(scoreWithKeywords).toBeGreaterThan(scoreWithout);
+    });
+  });
+
+  // ---- Anti-gaming validation ----
+
+  describe("anti-gaming", () => {
+    it("rejects self-review via submitReview", () => {
+      upsertExpertiseProfile(makeProfile({ userId: "author-1" }));
+      const req = submitReviewRequest("author-1", "My Idea", "Desc", ["AI/ML"]);
+      // Force match author as reviewer
+      const reqObj = getReviewRequest(req.id)!;
+      reqObj.matchedReviewers.push("author-1");
+
+      expect(() =>
+        submitReview(req.id, "author-1", makeDimensions(), 8, ["Good"], [], [], "approve")
+      ).toThrow("Anti-gaming");
+    });
+
+    it("rejects review with too few dimensions", () => {
+      upsertExpertiseProfile(makeProfile({ userId: "r1" }));
+      const req = submitReviewRequest("author-1", "Test", "Desc", ["AI/ML"]);
+      matchReviewers(req.id);
+
+      const twoDims = [
+        {
+          dimension: "feasibility" as const,
+          score: 8,
+          feedback: "Good feasibility for this idea.",
+        },
+        {
+          dimension: "novelty" as const,
+          score: 7,
+          feedback: "Somewhat novel approach to problem.",
+        },
+      ];
+
+      expect(() => submitReview(req.id, "r1", twoDims, 7, ["Good"], [], [], "approve")).toThrow(
+        "Anti-gaming"
+      );
+    });
+
+    it("rejects review with insufficient feedback length", () => {
+      upsertExpertiseProfile(makeProfile({ userId: "r1" }));
+      const req = submitReviewRequest("author-1", "Test", "Desc", ["AI/ML"]);
+      matchReviewers(req.id);
+
+      const shortFeedback = [
+        { dimension: "feasibility" as const, score: 8, feedback: "OK" },
+        { dimension: "novelty" as const, score: 7, feedback: "Fine" },
+        { dimension: "market-fit" as const, score: 6, feedback: "Meh" },
+      ];
+
+      expect(() => submitReview(req.id, "r1", shortFeedback, 7, [], [], [], "approve")).toThrow(
+        "Anti-gaming"
+      );
+    });
+  });
+
+  // ---- Close request edge cases ----
+
+  describe("close request edge cases", () => {
+    it("rejects closing request with no reviews", () => {
+      const req = submitReviewRequest("author-1", "Test", "Desc", ["AI/ML"]);
+      expect(() => closeReviewRequest(req.id, "author-1")).toThrow("no reviews");
+    });
+
+    it("rejects closing non-existent request", () => {
+      expect(() => closeReviewRequest("nonexistent", "author-1")).toThrow("not found");
+    });
+  });
+
+  // ---- Leaderboard ----
+
+  describe("leaderboard edge cases", () => {
+    it("returns empty leaderboard when no reviews exist", () => {
+      const board = getLeaderboard();
+      expect(board).toHaveLength(0);
+    });
+
+    it("maintains stable sort for tied reputation points", () => {
+      // Create two reviewers with similar reviews
+      upsertExpertiseProfile(makeProfile({ userId: "r1", displayName: "Alice" }));
+      upsertExpertiseProfile(makeProfile({ userId: "r2", displayName: "Bob" }));
+
+      const req1 = submitReviewRequest("author-1", "Idea1", "Desc", ["AI/ML"]);
+      matchReviewers(req1.id, 2);
+      submitReview(req1.id, "r1", makeDimensions(), 8, ["Great"], [], [], "approve");
+      submitReview(req1.id, "r2", makeDimensions(), 8, ["Great"], [], [], "approve");
+
+      const board = getLeaderboard();
+      expect(board).toHaveLength(2);
+      expect(board[0].rank).toBe(1);
+      expect(board[1].rank).toBe(2);
+    });
+  });
+
+  // ---- matchReviewers edge cases ----
+
+  describe("matchReviewers edge cases", () => {
+    it("handles maxReviewers > available reviewers", () => {
+      upsertExpertiseProfile(
+        makeProfile({ userId: "r1", domains: [{ domain: "AI/ML", level: "expert" }] })
+      );
+      const req = submitReviewRequest("author-1", "ML Idea", "Desc", ["AI/ML"]);
+      const matched = matchReviewers(req.id, 100);
+      expect(matched).toHaveLength(1);
+      expect(matched).toContain("r1");
+    });
+
+    it("throws for non-existent request", () => {
+      expect(() => matchReviewers("nonexistent")).toThrow("not found");
+    });
+  });
+
+  // ---- Reputation badge thresholds ----
+
+  describe("reputation badges", () => {
+    it("earns first-review badge after first review", () => {
+      upsertExpertiseProfile(makeProfile({ userId: "r1" }));
+      const req = submitReviewRequest("author-1", "Test", "Desc", ["AI/ML"]);
+      matchReviewers(req.id);
+      submitReview(req.id, "r1", makeDimensions(), 8, ["Good"], ["Bad"], ["Fix"], "approve");
+
+      const rep = getReviewerReputation("r1");
+      expect(rep).toBeDefined();
+      expect(rep!.badges.some((b) => b.id === "first-review")).toBe(true);
+      expect(rep!.totalReviews).toBe(1);
+    });
+  });
 });
