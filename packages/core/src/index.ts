@@ -2216,6 +2216,35 @@ export type {
   QualityGateConfig,
 } from "./quality-gate/index.js";
 
+/** Innovation Governance Board — approval workflows, stage gates, SLA tracking, bottleneck detection. */
+export {
+  createStageGate,
+  getStageGate,
+  listStageGates,
+  registerGovReviewer,
+  getGovReviewer,
+  listGovReviewers,
+  checkQualityGate,
+  createApprovalRequest,
+  submitEvaluation,
+  batchDecision,
+  escalateRequest,
+  getApprovalRequest,
+  listApprovalRequests,
+  computeGovernanceMetrics,
+  governanceSummaryToMarkdown,
+  clearGovernanceState,
+} from "./governance/board.js";
+export type {
+  ApprovalStatus,
+  WorkflowType,
+  StageGate,
+  GovReviewer,
+  EvaluationForm,
+  ApprovalRequest,
+  GovernanceMetrics,
+} from "./governance/board.js";
+
 /** Debate engine — structured pro/con debates with verdicts and quality scoring. */
 export {
   runDebate,
