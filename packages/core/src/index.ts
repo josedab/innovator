@@ -183,6 +183,21 @@ export {
 } from "./visualization/index.js";
 export type { IdeaNode, IdeaEdge, IdeaGraph } from "./visualization/index.js";
 
+/** Fitness Landscape — 3D idea plotting, terrain mesh, clustering, gap detection. */
+export {
+  generateFitnessLandscape,
+  addEvolutionTrail,
+  getGapInvestigationSuggestions,
+} from "./visualization/fitness-landscape.js";
+export type {
+  FitnessPoint,
+  TerrainVertex,
+  LandscapeCluster,
+  EvolutionTrail,
+  GapRegion,
+  FitnessLandscape,
+} from "./visualization/fitness-landscape.js";
+
 /** Copilot Extension — slash commands, chat formatters, and agent manifests for GitHub Copilot integration. */
 export {
   /** Parse a slash command string into a structured command object. */
