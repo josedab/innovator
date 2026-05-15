@@ -3816,6 +3816,35 @@ export {
 } from "./autonomous-agent/index.js";
 export type { AgentBudget, ManagedAgentRun, AgentCheckpoint } from "./autonomous-agent/index.js";
 
+/** Innovation Loops — multi-day persistent agents with research→ideate→test→pivot cycles and human gates. */
+export {
+  startInnovationLoop,
+  approveGate,
+  cancelInnovationLoop,
+  getInnovationLoop,
+  listInnovationLoops,
+  removeInnovationLoop,
+  clearInnovationLoops,
+  innovationLoopToMarkdown,
+  LoopPhaseSchema,
+  LoopStatusSchema,
+  HumanGateSchema,
+  InnovationLoopConfigSchema,
+  TestResultSchema as LoopTestResultSchema,
+  LoopIterationSchema,
+  InnovationLoopSchema,
+} from "./autonomous-agent/index.js";
+export type {
+  LoopPhase,
+  LoopStatus,
+  HumanGate,
+  InnovationLoopConfig,
+  TestResult as LoopTestResult,
+  LoopIteration,
+  InnovationLoop,
+  LoopProgress,
+} from "./autonomous-agent/index.js";
+
 /** Innovation Monitor — long-running domain monitoring with opportunity detection and digest generation. */
 export {
   addMonitorSource,

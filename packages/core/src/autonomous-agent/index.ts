@@ -39,3 +39,32 @@ export {
   AgentBudgetSchema,
 } from "./manager.js";
 export type { AgentBudget, ManagedAgentRun, AgentCheckpoint } from "./manager.js";
+
+/** Multi-day innovation loops with research→ideate→test→pivot cycles and human gates. */
+export {
+  startInnovationLoop,
+  approveGate,
+  cancelInnovationLoop,
+  getInnovationLoop,
+  listInnovationLoops,
+  removeInnovationLoop,
+  clearInnovationLoops,
+  innovationLoopToMarkdown,
+  LoopPhaseSchema,
+  LoopStatusSchema,
+  HumanGateSchema,
+  InnovationLoopConfigSchema,
+  TestResultSchema,
+  LoopIterationSchema,
+  InnovationLoopSchema,
+} from "./innovation-loop.js";
+export type {
+  LoopPhase,
+  LoopStatus,
+  HumanGate,
+  InnovationLoopConfig,
+  TestResult,
+  LoopIteration,
+  InnovationLoop,
+  LoopProgress,
+} from "./innovation-loop.js";
