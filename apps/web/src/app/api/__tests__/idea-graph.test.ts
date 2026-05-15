@@ -53,10 +53,10 @@ async function GET(request: Request, sessionId: string) {
     feasibility: i.feasibility,
   }));
 
-  return new Response(
-    JSON.stringify({ nodes, edges: [], criticalPath: [] }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
-  );
+  return new Response(JSON.stringify({ nodes, edges: [], criticalPath: [] }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 const MOCK_SESSION = {
@@ -69,8 +69,18 @@ const MOCK_SESSION = {
       angleId: "scamper",
       angleName: "SCAMPER",
       ideas: [
-        { title: "Idea A", description: "Desc A", potentialImpact: "Impact A", implementationHint: "" },
-        { title: "Idea B", description: "Desc B", potentialImpact: "Impact B", implementationHint: "" },
+        {
+          title: "Idea A",
+          description: "Desc A",
+          potentialImpact: "Impact A",
+          implementationHint: "",
+        },
+        {
+          title: "Idea B",
+          description: "Desc B",
+          potentialImpact: "Impact B",
+          implementationHint: "",
+        },
       ],
       reasoning: "",
     },
@@ -120,7 +130,12 @@ describe("GET /api/idea-graph/[sessionId]", () => {
           angleId: "scamper",
           angleName: "SCAMPER",
           ideas: [
-            { title: "Only Idea", description: "Solo", potentialImpact: "Big", implementationHint: "" },
+            {
+              title: "Only Idea",
+              description: "Solo",
+              potentialImpact: "Big",
+              implementationHint: "",
+            },
           ],
           reasoning: "",
         },
@@ -161,5 +176,73 @@ describe("GET /api/idea-graph/[sessionId]", () => {
     expect(node.id).toBe("idea-0");
     expect(node.angleId).toBe("scamper");
     expect(node.feasibility).toBe("medium");
+  });
+
+  it("returns empty graph for session with 0 ideas", async () => {
+    const emptySession = {
+      ...MOCK_SESSION,
+      angleResults: [],
+    };
+    mockGetSession.mockReturnValue(emptySession as never);
+
+    const res = await GET(makeRequest(), "session-1");
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.nodes).toHaveLength(0);
+    expect(data.edges).toHaveLength(0);
+    expect(data.criticalPath).toHaveLength(0);
+  });
+
+  it("returns nodes from multiple angle results", async () => {
+    const multiAngleSession = {
+      ...MOCK_SESSION,
+      angleResults: [
+        {
+          angleId: "scamper",
+          angleName: "SCAMPER",
+          ideas: [
+            {
+              title: "Idea A",
+              description: "Desc A",
+              potentialImpact: "Impact A",
+              implementationHint: "",
+            },
+          ],
+          reasoning: "",
+        },
+        {
+          angleId: "first-principles",
+          angleName: "First Principles",
+          ideas: [
+            {
+              title: "Idea C",
+              description: "Desc C",
+              potentialImpact: "Impact C",
+              implementationHint: "",
+            },
+          ],
+          reasoning: "",
+        },
+      ],
+    };
+    mockGetSession.mockReturnValue(multiAngleSession as never);
+
+    const res = await GET(makeRequest(), "session-1");
+    const data = await res.json();
+
+    expect(data.nodes).toHaveLength(2);
+    expect(data.nodes[0].angleId).toBe("scamper");
+    expect(data.nodes[1].angleId).toBe("first-principles");
+  });
+
+  it("generates sequential node IDs", async () => {
+    mockGetSession.mockReturnValue(MOCK_SESSION as never);
+
+    const res = await GET(makeRequest(), "session-1");
+    const data = await res.json();
+
+    expect(data.nodes[0].id).toBe("idea-0");
+    expect(data.nodes[1].id).toBe("idea-1");
   });
 });
