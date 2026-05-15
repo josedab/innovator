@@ -20,6 +20,7 @@ Practical recipes and patterns for working with the Innovator codebase. For setu
 - [Using the Provenance Ledger](#using-the-provenance-ledger)
 - [Building Innovation Memory](#building-innovation-memory)
 - [Sequencing Idea Genomes](#sequencing-idea-genomes)
+- [Working with Storage & Database](#working-with-storage--database)
 - [Testing Patterns](#testing-patterns)
 - [Common Pitfalls](#common-pitfalls)
 
@@ -602,6 +603,109 @@ if (similar.length > 0) {
     console.log(`New idea: ${recombinant.title} (novelty: ${recombinant.noveltyScore})`);
   }
 }
+```
+
+---
+
+## Working with Storage & Database
+
+> 📖 **Architecture Reference:** [Database & Persistence](../ARCHITECTURE.md#database--persistence-postgresql--sqlite--in-memory)
+
+Innovator uses a pluggable `StorageProvider` abstraction (`packages/core/src/storage/types.ts`) so business logic never depends on a specific database. Three backends ship out of the box:
+
+| Backend    | Module                     | Use Case                          |
+| ---------- | -------------------------- | --------------------------------- |
+| In-memory  | `storage/memory.ts`        | Tests and ephemeral CLI runs      |
+| SQLite     | `storage/sqlite.ts`        | Single-user / local persistence   |
+| PostgreSQL | `storage/drivers/index.ts` | Production multi-user deployments |
+
+### The StorageProvider Interface
+
+Every backend implements the `StorageProvider` interface which groups domain-specific sub-interfaces:
+
+```typescript
+import type { StorageProvider } from "@innovator/core";
+
+// StorageProvider shape:
+interface StorageProvider {
+  readonly name: string;
+  sessions: SessionStorage;
+  workspaces: WorkspaceStorage;
+  apiGateway: ApiGatewayStorage;
+  collaboration: CollaborationStorage;
+  analytics: AnalyticsStorage;
+  knowledgeGraph: KnowledgeGraphStorage;
+  initialize(): Promise<void>; // runs migrations
+  close(): Promise<void>; // cleans up connections
+}
+```
+
+Call `initialize()` once at startup — it runs any pending migrations automatically.
+
+### Choosing a Backend at Runtime
+
+The active backend is selected by the `DATABASE_URL` environment variable:
+
+```bash
+# SQLite (default for CLI)
+DATABASE_URL=sqlite:~/.innovator/data.db
+
+# PostgreSQL
+DATABASE_URL=postgresql://innovator:changeme@localhost:5432/innovator
+
+# In-memory (tests / CI)
+# Omit DATABASE_URL entirely — the in-memory provider is used automatically
+```
+
+### PostgreSQL Setup
+
+```bash
+# Start PostgreSQL via Docker Compose
+docker compose up -d postgres
+
+# Verify
+docker compose exec postgres pg_isready -U innovator
+
+# Connect directly
+docker compose exec postgres psql -U innovator -d innovator
+```
+
+Migrations are split into two sets:
+
+- **`CORE_MIGRATIONS`** (`storage/drivers/index.ts`) — tables for sessions, workspaces, analytics, API gateway, collaboration, decisions, tournaments, and schedules.
+- **`PROJECT_MIGRATIONS`** (`workspace-persistence/index.ts`) — tables for multi-session innovation projects (`innovation_projects`, `project_sessions`, `project_snapshots`, `team_contexts`).
+
+Both sets are applied automatically on `initialize()`. See the [Schema Overview](../ARCHITECTURE.md#schema-overview) in ARCHITECTURE.md for the full table listing.
+
+### Writing Storage-Dependent Code
+
+When adding a new domain that needs persistence:
+
+1. **Define a sub-interface** in `storage/types.ts` (e.g., `MyFeatureStorage`).
+2. **Add the field** to the `StorageProvider` interface.
+3. **Implement it** in each backend (`memory.ts`, `sqlite.ts`, `drivers/index.ts`).
+4. **Add a migration** to `CORE_MIGRATIONS` (or `PROJECT_MIGRATIONS` if project-scoped).
+
+```typescript
+// Example: adding storage for a new "feedback" module
+export interface FeedbackStorage {
+  saveFeedback(feedback: Feedback): Promise<void>;
+  getFeedback(id: string): Promise<Feedback | undefined>;
+  listFeedback(): Promise<Feedback[]>;
+}
+```
+
+### Testing with Storage
+
+Always use the in-memory provider or a temp directory for tests — never write to `~/.innovator/`:
+
+```typescript
+import { createMemoryStorage } from "@innovator/core";
+
+const storage = createMemoryStorage();
+await storage.initialize();
+// ... run assertions against storage ...
+await storage.close();
 ```
 
 ---
