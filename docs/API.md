@@ -44,6 +44,10 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
 - [Sentinel](#sentinel)
 - [Genome Sequencer](#genome-sequencer)
 - [Federation DP](#federation-dp)
+- [Model Registry](#model-registry)
+- [Visualization](#visualization)
+- [Interactive Refinement](#interactive-refinement)
+- [Comparative Pipeline](#comparative-pipeline)
 - [Core Types](#core-types)
 - [Zod Schemas](#zod-schemas)
 
@@ -1085,3 +1089,507 @@ When `INNOVATOR_API_KEY` or `INNOVATOR_API_KEYS` is configured, requests are tie
 | Enterprise | Unlimited           |
 
 > **Note:** The rate limiter uses an in-memory store. For multi-instance deployments, replace with a shared store (e.g., Redis).
+
+---
+
+## Model Registry
+
+Manage LLM model capabilities, smart routing, and model comparison. Imported from `packages/core/src/models/`.
+
+### `getModelRegistry()`
+
+Return the full model registry (built-in + custom models).
+
+```typescript
+function getModelRegistry(): ModelCapability[];
+```
+
+**Returns:** Array of all registered `ModelCapability` entries. Built-in models include GPT-5, GPT-5-Mini, GPT-4.1, GPT-4.1-Mini, Claude Sonnet 4.5, and Claude Sonnet 4.
+
+**Example:**
+
+```typescript
+import { getModelRegistry } from "@innovator/core";
+
+const models = getModelRegistry();
+models.forEach((m) => console.log(`${m.displayName} — cost: ${m.costTier}, speed: ${m.speedTier}`));
+```
+
+### `registerModel()`
+
+Register a custom model definition at runtime.
+
+```typescript
+function registerModel(model: ModelCapability): void;
+```
+
+**Parameters:**
+
+| Name    | Type              | Description                                                      |
+| ------- | ----------------- | ---------------------------------------------------------------- |
+| `model` | `ModelCapability` | Model metadata including ID, tiers, and pipeline stage strengths |
+
+**Example:**
+
+```typescript
+import { registerModel } from "@innovator/core";
+
+registerModel({
+  modelId: "my-org/custom-llm",
+  displayName: "Custom LLM",
+  strengths: ["investigation", "synthesis"],
+  costTier: "low",
+  speedTier: "fast",
+  qualityTier: "high",
+});
+```
+
+### `getModelCapability()`
+
+Query a model's capabilities by ID.
+
+```typescript
+function getModelCapability(modelId: string): ModelCapability | undefined;
+```
+
+### `getSmartRouting()`
+
+Get the recommended model for each pipeline stage based on a routing preference.
+
+```typescript
+function getSmartRouting(preference?: "quality" | "speed" | "cost"): ModelRouting;
+```
+
+**Parameters:**
+
+| Name         | Type                             | Description                                  |
+| ------------ | -------------------------------- | -------------------------------------------- |
+| `preference` | `"quality" \| "speed" \| "cost"` | Optimization strategy (default: `"quality"`) |
+
+**Returns:** A `ModelRouting` object mapping each pipeline stage to a recommended model ID.
+
+**Example:**
+
+```typescript
+import { getSmartRouting } from "@innovator/core";
+
+const routing = getSmartRouting("speed");
+console.log(routing.investigation); // fastest model for investigation
+console.log(routing.generation); // fastest model for generation
+console.log(routing.synthesis); // fastest model for synthesis
+```
+
+### `compareModels()`
+
+Compare two or more models by running the same angle on the same subject.
+
+```typescript
+async function compareModels(
+  models: string[],
+  subject: string,
+  investigation: Investigation,
+  angleId: AngleId | string,
+  generateFn: GenerateFn,
+  signal?: AbortSignal
+): Promise<ModelComparisonResult>;
+```
+
+**Returns:** A `ModelComparisonResult` with per-model angle results and timing data.
+
+### `clearCustomModels()`
+
+Remove all user-registered custom models, restoring only built-in models.
+
+```typescript
+function clearCustomModels(): void;
+```
+
+### Model Registry Types
+
+```typescript
+interface ModelCapability {
+  modelId: string;
+  displayName: string;
+  strengths: PipelineModelStage[]; // "investigation" | "generation" | "synthesis"
+  costTier: "low" | "medium" | "high";
+  speedTier: "fast" | "medium" | "slow";
+  qualityTier: "standard" | "high" | "premium";
+}
+
+interface ModelRouting {
+  investigation?: string;
+  generation?: string;
+  synthesis?: string;
+}
+
+interface ModelComparisonResult {
+  angleId: string;
+  results: Array<{ model: string; angleResult: AngleResult; durationMs: number }>;
+}
+```
+
+---
+
+## Visualization
+
+Build idea relationship graphs from angle results. Imported from `packages/core/src/visualization/`.
+
+### `buildIdeaGraph()`
+
+Build a graph of idea nodes and edges from angle results, clustering by angle and connecting ideas that share keywords.
+
+```typescript
+function buildIdeaGraph(
+  angleResults: AngleResult[],
+  synthesis?: Synthesis,
+  similarityThreshold?: number
+): IdeaGraph;
+```
+
+**Parameters:**
+
+| Name                  | Type            | Description                                                   |
+| --------------------- | --------------- | ------------------------------------------------------------- |
+| `angleResults`        | `AngleResult[]` | Array of angle results to graph                               |
+| `synthesis`           | `Synthesis?`    | Optional synthesis to highlight top ideas                     |
+| `similarityThreshold` | `number?`       | Minimum Jaccard similarity to create an edge (default: `0.2`) |
+
+**Returns:** An `IdeaGraph` with nodes, edges, and clusters.
+
+**Example:**
+
+```typescript
+import { buildIdeaGraph } from "@innovator/core";
+
+const graph = buildIdeaGraph(pipeline.angleResults, pipeline.synthesis);
+console.log(`${graph.nodes.length} ideas, ${graph.edges.length} connections`);
+graph.clusters.forEach((c) => console.log(`Cluster: ${c.label} (${c.nodeIds.length} ideas)`));
+```
+
+### `getAngleColor()`
+
+Get the display color associated with a given angle ID for consistent visualization theming.
+
+```typescript
+function getAngleColor(angleId: string): string;
+```
+
+**Returns:** A hex color string (e.g., `"#4285f4"`).
+
+### Visualization Types
+
+```typescript
+interface IdeaNode {
+  id: string;
+  label: string;
+  description: string;
+  angleId: string;
+  angleName: string;
+  impactScore: number;
+  group: string;
+}
+
+interface IdeaEdge {
+  source: string;
+  target: string;
+  weight: number;
+  sharedKeywords: string[];
+}
+
+interface IdeaGraph {
+  nodes: IdeaNode[];
+  edges: IdeaEdge[];
+  clusters: Array<{ angleId: string; label: string; nodeIds: string[] }>;
+}
+```
+
+---
+
+## Interactive Refinement
+
+Iterative deepening conversations and branching exploration trees. Imported from `packages/core/src/conversation/`.
+
+### `createConversation()`
+
+Start a new refinement conversation for an idea or topic.
+
+```typescript
+function createConversation(params: {
+  subject: string;
+  investigation: Investigation;
+  angleResults: AngleResult[];
+  synthesis?: Synthesis;
+  selectedIdeas?: string[];
+}): ConversationContext;
+```
+
+**Returns:** A `ConversationContext` with a unique `sessionId`.
+
+**Example:**
+
+```typescript
+import { createConversation, refineConversation } from "@innovator/core";
+
+const ctx = createConversation({
+  subject: "sustainable packaging",
+  investigation: result.investigation,
+  angleResults: result.angleResults,
+  synthesis: result.synthesis,
+  selectedIdeas: ["Biodegradable smart labels"],
+});
+
+const response = await refineConversation(ctx.sessionId, "How would we prototype this?");
+console.log(response.response);
+console.log(response.suggestions); // follow-up prompts
+```
+
+### `refineConversation()`
+
+Send a follow-up message to deepen or redirect a conversation.
+
+```typescript
+async function refineConversation(
+  sessionId: string,
+  message: string,
+  model?: string,
+  signal?: AbortSignal
+): Promise<RefinementResponse>;
+```
+
+**Parameters:**
+
+| Name        | Type           | Description                     |
+| ----------- | -------------- | ------------------------------- |
+| `sessionId` | `string`       | ID from `createConversation()`  |
+| `message`   | `string`       | Follow-up question or direction |
+| `model`     | `string?`      | LLM model override              |
+| `signal`    | `AbortSignal?` | Cancellation signal             |
+
+**Returns:** `RefinementResponse` with the LLM response, updated ideas, and follow-up suggestions.
+
+### `getConversation()` / `deleteConversation()` / `listConversations()` / `clearConversations()`
+
+CRUD operations for conversation contexts.
+
+```typescript
+function getConversation(sessionId: string): ConversationContext | undefined;
+function deleteConversation(sessionId: string): boolean;
+function listConversations(): ConversationContext[];
+function clearConversations(): void;
+```
+
+### Exploration Trees
+
+Exploration trees enable branching investigations — drill into any idea node to spawn sub-investigations.
+
+### `createExplorationTree()`
+
+Create a branching exploration tree rooted at a conversation's current state.
+
+```typescript
+function createExplorationTree(sessionId: string): ExplorationTree | null;
+```
+
+### `drillDown()`
+
+Expand a node in the exploration tree with a deeper investigation.
+
+```typescript
+async function drillDown(
+  sessionId: string,
+  parentNodeId: string,
+  query: string,
+  model?: string,
+  signal?: AbortSignal
+): Promise<ExplorationNode>;
+```
+
+### `getExplorationPath()` / `getNodeBranches()`
+
+Navigate the exploration tree.
+
+```typescript
+function getExplorationPath(sessionId: string, nodeId: string): ExplorationNode[];
+function getNodeBranches(sessionId: string, nodeId: string): ExplorationNode[];
+```
+
+### Interactive Refinement Types
+
+```typescript
+interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}
+
+interface RefinementResponse {
+  response: string;
+  updatedIdeas: Array<{ title: string; description: string; refinementNote: string }>;
+  suggestions: string[];
+}
+
+interface ConversationContext {
+  sessionId: string;
+  subject: string;
+  investigation: Investigation;
+  angleResults: AngleResult[];
+  synthesis?: Synthesis;
+  selectedIdeas: string[];
+  messages: ConversationMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ExplorationNode {
+  id: string;
+  parentId: string | null;
+  query: string;
+  response: RefinementResponse;
+  depth: number;
+  createdAt: string;
+  children: string[];
+}
+
+interface ExplorationTree {
+  sessionId: string;
+  rootNodeId: string;
+  nodes: Record<string, ExplorationNode>;
+  createdAt: string;
+}
+```
+
+---
+
+## Comparative Pipeline
+
+Run the same innovation pipeline across multiple subjects and synthesize cross-subject insights. Imported from `packages/core/src/innovation/comparative.ts`.
+
+### `runComparativePipeline()`
+
+Process 2–5 subjects through the full innovation pipeline sequentially, then perform cross-subject comparative synthesis.
+
+```typescript
+async function runComparativePipeline(
+  subjects: string[],
+  onProgress: (progress: ComparativeProgress) => void,
+  model?: string,
+  signal?: AbortSignal
+): Promise<ComparativeProgress>;
+```
+
+**Parameters:**
+
+| Name         | Type                                      | Description                               |
+| ------------ | ----------------------------------------- | ----------------------------------------- |
+| `subjects`   | `string[]`                                | 2–5 subject strings to compare            |
+| `onProgress` | `(progress: ComparativeProgress) => void` | Callback invoked on each stage transition |
+| `model`      | `string?`                                 | LLM model override                        |
+| `signal`     | `AbortSignal?`                            | Cancellation signal                       |
+
+**Returns:** Final `ComparativeProgress` with per-subject results and comparative synthesis.
+
+**Throws:** If fewer than 2 or more than 5 subjects are provided.
+
+**Example:**
+
+```typescript
+import { runComparativePipeline } from "@innovator/core";
+
+const result = await runComparativePipeline(
+  ["electric vehicles", "hydrogen fuel cells", "biofuels"],
+  (progress) => {
+    console.log(
+      `[${progress.stage}] Subject ${progress.currentSubjectIndex}/${progress.totalSubjects}: ${progress.currentSubject}`
+    );
+  }
+);
+
+console.log("Synergies:", result.comparativeSynthesis?.synergies);
+console.log("Trade-offs:", result.comparativeSynthesis?.tradeoffs);
+console.log("Combined opportunities:", result.comparativeSynthesis?.combinedOpportunities);
+```
+
+### `runParallelInvestigation()`
+
+Investigate 2–10 subjects and produce cross-subject synthesis with optional competitive mapping.
+
+```typescript
+async function runParallelInvestigation(
+  subjects: string[],
+  options?: {
+    model?: string;
+    signal?: AbortSignal;
+    includeCompetitiveMap?: boolean;
+    onProgress?: (completed: number, total: number) => void;
+  }
+): Promise<ParallelInvestigationResult>;
+```
+
+**Parameters:**
+
+| Name                            | Type                         | Description                              |
+| ------------------------------- | ---------------------------- | ---------------------------------------- |
+| `subjects`                      | `string[]`                   | 2–10 subject strings to investigate      |
+| `options.model`                 | `string?`                    | LLM model override                       |
+| `options.signal`                | `AbortSignal?`               | Cancellation signal                      |
+| `options.includeCompetitiveMap` | `boolean?`                   | Include competitive positioning analysis |
+| `options.onProgress`            | `(completed, total) => void` | Progress callback                        |
+
+**Returns:** `ParallelInvestigationResult` with per-subject investigations and optional competitive map.
+
+### `buildComparativeSynthesisPrompt()`
+
+Build the LLM prompt for cross-subject comparative synthesis. Useful for customizing the synthesis step.
+
+```typescript
+function buildComparativeSynthesisPrompt(
+  subjects: string[],
+  results: Array<{ subject: string; investigation: Investigation; synthesis?: Synthesis }>
+): string;
+```
+
+### Comparative Pipeline Types
+
+```typescript
+interface ComparativeProgress {
+  currentSubjectIndex: number;
+  totalSubjects: number;
+  currentSubject: string;
+  subjectProgress: Map<string, PipelineProgress>;
+  comparativeSynthesis?: ComparativeSynthesis;
+  stage: "processing" | "synthesizing" | "complete" | "error";
+  error?: string;
+}
+
+interface ComparativeSynthesis {
+  synergies: Array<{ subjects: string[]; description: string; potentialImpact: string }>;
+  tradeoffs: Array<{ subjects: string[]; description: string }>;
+  combinedOpportunities: Array<{ title: string; description: string; relatedSubjects: string[] }>;
+  recommendation: string;
+}
+
+interface ParallelInvestigationResult {
+  subjects: string[];
+  investigations: Array<{
+    subject: string;
+    investigation: Investigation;
+    status: "completed" | "failed";
+    error?: string;
+  }>;
+  crossSubjectSynthesis?: ComparativeSynthesis;
+  competitiveMap?: CompetitiveMap;
+  stage: "completed" | "partial" | "failed";
+}
+
+interface CompetitiveMap {
+  subjects: Array<{
+    subject: string;
+    strengths: string[];
+    weaknesses: string[];
+    uniqueAngles: string[];
+  }>;
+  overlapAreas: string[];
+  differentiators: Array<{ subject: string; differentiator: string }>;
+  recommendation: string;
+}
+```
