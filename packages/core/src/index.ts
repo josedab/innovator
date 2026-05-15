@@ -3127,6 +3127,36 @@ export type {
   ComplianceDashboard,
 } from "./compliance/governance.js";
 
+/** Regulatory Innovation Sandbox — constraint sets, compliance screening, and sandbox experiments. */
+export {
+  listConstraintSets,
+  getConstraintSet,
+  createConstraintSet,
+  screenIdea as screenIdeaCompliance,
+  screenIdeaInSandbox,
+  createExperiment as createSandboxExperiment,
+  getExperiment as getSandboxExperiment,
+  listExperiments as listSandboxExperiments,
+  revokeExperiment,
+  getScreeningResult,
+  listScreeningResults,
+  screeningResultToMarkdown,
+  clearSandboxData,
+  ConstraintSetSchema,
+  ConstraintSchema as SandboxConstraintSchema,
+  ScreeningResultSchema,
+  SandboxExperimentSchema,
+  ConstraintCategorySchema,
+} from "./compliance/regulatory-sandbox.js";
+export type {
+  ConstraintSet,
+  Constraint as SandboxConstraint,
+  ConstraintCategory,
+  ConstraintViolation,
+  ScreeningResult,
+  SandboxExperiment,
+} from "./compliance/regulatory-sandbox.js";
+
 /** Community Innovation Challenges — challenge boards, submissions, voting, and leaderboards. */
 export {
   createCommunityChallenge,
