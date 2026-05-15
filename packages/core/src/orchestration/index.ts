@@ -585,3 +585,29 @@ export {
   getBuiltinDSL,
   listBuiltinDSLs,
 } from "./builtin-templates.js";
+
+export {
+  NodePositionSchema,
+  VisualNodeTypeSchema,
+  ApprovalGateSchema,
+  ConditionalBranchSchema,
+  LoopConfigSchema,
+  VisualDAGNodeSchema,
+  VisualEdgeSchema,
+  VisualWorkflowSchema,
+  VisualWorkflowTemplateSchema,
+  VISUAL_TEMPLATES,
+  getVisualTemplate,
+  listVisualTemplates,
+} from "./visual-schema.js";
+export type {
+  NodePosition,
+  VisualNodeType,
+  ApprovalGate,
+  ConditionalBranch,
+  LoopConfig,
+  VisualDAGNode,
+  VisualEdge,
+  VisualWorkflow,
+  VisualWorkflowTemplate,
+} from "./visual-schema.js";
