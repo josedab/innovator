@@ -6611,6 +6611,27 @@ export { analyzeImage, visionToSubject } from "./multi-modal/vision.js";
 export { buildMultiModalContext } from "./multi-modal/index.js";
 export { validateImage as validateBase64Image } from "./multi-modal/vision.js";
 
+/** Multi-Modal Media Processing — video, whiteboard, and meeting recording analysis. */
+export {
+  processVideo,
+  processWhiteboard,
+  processMeetingRecording,
+  getMediaAnalysis,
+  listMediaAnalyses,
+  clearMediaAnalyses,
+  mediaAnalysisToMarkdown,
+  MediaTypeSchema,
+  MediaSegmentSchema,
+  WhiteboardRegionSchema,
+  MediaAnalysisResultSchema,
+} from "./multi-modal/media-processor.js";
+export type {
+  MediaType,
+  MediaSegment,
+  WhiteboardRegion,
+  MediaAnalysisResult,
+} from "./multi-modal/media-processor.js";
+
 /** Canvas AI functions. */
 export { autoClusterNodes, suggestConnections, synthesizeCanvas } from "./canvas/ai-canvas.js";
 
