@@ -414,14 +414,8 @@ export function verifyPlugin(pluginId: string): boolean {
  */
 export function clearMarketplace(): void {
   ensureDir();
-  atomicWriteFileSync(
-    REGISTRY_FILE,
-    JSON.stringify({ plugins: [], installed: [], reviews: [] })
-  );
-  atomicWriteFileSync(
-    TEMPLATE_REGISTRY_FILE,
-    JSON.stringify({ templates: [], collections: [] })
-  );
+  atomicWriteFileSync(REGISTRY_FILE, JSON.stringify({ plugins: [], installed: [], reviews: [] }));
+  atomicWriteFileSync(TEMPLATE_REGISTRY_FILE, JSON.stringify({ templates: [], collections: [] }));
 }
 
 // ---- Creator Tools ----
@@ -1349,3 +1343,25 @@ export type {
   Comment as GalleryComment,
   Star as GalleryStar,
 } from "./community-gallery.js";
+
+// ---- Domain-Specific Angle Packs ----
+
+export {
+  AngleDefinitionSchema,
+  AnglePackSchema,
+  validateAnglePack,
+  generateAnglePack,
+  importAnglePackFromMarketplace,
+  publishAnglePack,
+  installAnglePackById,
+  rateAnglePack,
+  getInstalledAnglePacks,
+  uninstallAnglePack,
+  clearInstalledAnglePacks,
+  anglePackToMarkdown,
+} from "./angle-packs.js";
+export type {
+  AngleDefinition,
+  AnglePack,
+  ValidationResult as AnglePackValidationResult,
+} from "./angle-packs.js";

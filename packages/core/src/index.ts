@@ -3189,6 +3189,27 @@ export type {
   ContributorStats,
 } from "./marketplace/package-standard.js";
 
+/** Domain-Specific Angle Marketplace — angle packs with ratings, validation, and one-click import. */
+export {
+  AngleDefinitionSchema,
+  AnglePackSchema,
+  validateAnglePack,
+  generateAnglePack,
+  importAnglePackFromMarketplace,
+  publishAnglePack,
+  installAnglePackById,
+  rateAnglePack,
+  getInstalledAnglePacks,
+  uninstallAnglePack,
+  clearInstalledAnglePacks,
+  anglePackToMarkdown,
+} from "./marketplace/angle-packs.js";
+export type {
+  AngleDefinition as MarketplaceAngleDefinition,
+  AnglePack,
+  AnglePackValidationResult,
+} from "./marketplace/index.js";
+
 /** Innovation Embeddings & Semantic Search — TF-IDF vector search, similarity clustering, and cross-investigation discovery. */
 export {
   indexDocument,
