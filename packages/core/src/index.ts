@@ -7270,6 +7270,23 @@ export type {
   LayoutOptions,
 } from "./knowledge-graph/graph-visualizer.js";
 
+/** Innovation Graph Explorer — semantic similarity, cross-pollination discovery, clustering. */
+export {
+  computeSimilarityEdges,
+  discoverCrossPollination,
+  clusterGraph,
+  buildExplorationView,
+  explorationViewToMarkdown,
+  SimilarityEdgeSchema,
+  CrossPollinationSchema,
+  ExplorationViewSchema,
+} from "./knowledge-graph/graph-explorer.js";
+export type {
+  SimilarityEdge,
+  CrossPollination,
+  ExplorationView,
+} from "./knowledge-graph/graph-explorer.js";
+
 /** Coaching — innovation profiles, proactive coaching, skill trees. */
 export {
   InnovationProfileBuilder,
