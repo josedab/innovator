@@ -327,6 +327,32 @@ export type {
   MultiDimensionalScore,
 } from "./scoring/index.js";
 
+/** Predictive Innovation Scoring — ML-powered success prediction and prescriptive actions. */
+export {
+  addTrainingData as addPredictiveTrainingData,
+  addTrainingBatch,
+  getTrainingStats,
+  extractFeatures,
+  predictSuccess,
+  generatePrescriptiveActions,
+  runPredictiveBatch,
+  clearTrainingData,
+  TrainingLabelSchema,
+  TrainingDataPointSchema as PredictiveTrainingDataPointSchema,
+  FeatureVectorSchema,
+  PredictionSchema,
+  PrescriptiveActionSchema,
+  PredictiveReportSchema,
+} from "./scoring/predictive.js";
+export type {
+  TrainingLabel,
+  TrainingDataPoint as PredictiveTrainingDataPoint,
+  FeatureVector,
+  Prediction,
+  PrescriptiveAction,
+  PredictiveReport,
+} from "./scoring/predictive.js";
+
 /** Interactive refinement conversations — iterative deepening with branching exploration trees. */
 export {
   /** Start a new refinement conversation for an idea or topic. */
