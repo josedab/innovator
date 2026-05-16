@@ -95,3 +95,15 @@ export type {
   FrontierPoint,
   PortfolioSimResult,
 } from "./portfolio-simulation.js";
+
+// What-If Scenario Simulator
+export {
+  getDefaultSliders,
+  runWhatIfSimulation,
+  compareScenarioRuns,
+  scenarioRunToMarkdown,
+  SliderParamSchema,
+  SimulationOutcomeSchema,
+  ScenarioRunSchema,
+} from "./what-if-simulator.js";
+export type { SliderParam, SimulationOutcome, ScenarioRun } from "./what-if-simulator.js";

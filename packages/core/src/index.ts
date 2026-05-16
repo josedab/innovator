@@ -1531,6 +1531,18 @@ export type {
   PortfolioSimResult,
 } from "./simulation/index.js";
 
+/** What-If Scenario Simulator — Monte Carlo with parameter sliders and sensitivity analysis. */
+export {
+  getDefaultSliders,
+  runWhatIfSimulation,
+  compareScenarioRuns,
+  scenarioRunToMarkdown,
+  SliderParamSchema,
+  SimulationOutcomeSchema,
+  ScenarioRunSchema,
+} from "./simulation/index.js";
+export type { SliderParam, SimulationOutcome, ScenarioRun } from "./simulation/index.js";
+
 /** Gallery — idea marketplace with publishing, upvoting, forking, and featured collections. */
 export {
   publishToGallery,
