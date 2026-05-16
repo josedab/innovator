@@ -40,3 +40,32 @@ export type {
   CopilotAgentProgress,
   CopilotAgentConfig,
 } from "./types.js";
+
+/** Innovation Co-Pilot Chat Agent — conversational pipeline guide. */
+export {
+  classifyIntent,
+  createChatSession,
+  getChatSession,
+  deleteChatSession,
+  listChatSessions,
+  chat,
+  getProactiveSuggestions,
+  clearChatSessions,
+  ChatIntentSchema,
+  ClassifiedIntentSchema,
+  ChatMessageSchema,
+  ChatSessionStateSchema,
+  ChatSessionSchema,
+  SuggestionSchema,
+  ChatResponseSchema,
+} from "./chat-agent.js";
+
+export type {
+  ChatIntent,
+  ClassifiedIntent,
+  ChatMessage,
+  ChatSessionState,
+  ChatSession,
+  Suggestion,
+  ChatAgentResponse,
+} from "./chat-agent.js";

@@ -7405,6 +7405,34 @@ export type {
   CopilotAgentConfig as CopilotAgentRunConfig,
 } from "./copilot-agent/index.js";
 
+// ---- Innovation Co-Pilot Chat Agent ----
+export {
+  classifyIntent,
+  createChatSession,
+  getChatSession,
+  deleteChatSession,
+  listChatSessions,
+  chat,
+  getProactiveSuggestions,
+  clearChatSessions,
+  ChatIntentSchema,
+  ClassifiedIntentSchema,
+  ChatMessageSchema,
+  ChatSessionStateSchema,
+  ChatSessionSchema,
+  SuggestionSchema,
+  ChatResponseSchema,
+} from "./copilot-agent/chat-agent.js";
+export type {
+  ChatIntent,
+  ClassifiedIntent,
+  ChatMessage,
+  ChatSessionState,
+  ChatSession,
+  Suggestion,
+  ChatAgentResponse,
+} from "./copilot-agent/chat-agent.js";
+
 // ---- Innovation Memory & Learning Loop ----
 export {
   loadMemoryGraph,
