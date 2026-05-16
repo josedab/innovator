@@ -7085,6 +7085,19 @@ export {
 } from "./multi-modal/context-fusion.js";
 export type { InputSource, FusedContext, RichOutput } from "./multi-modal/context-fusion.js";
 
+/** Multi-Modal Source Quality — quality assessment, confidence calibration, fusion weights. */
+export {
+  assessSourceQuality,
+  runQualityPipeline,
+  getQualityWeights,
+  SourceQualityReportSchema,
+  MultiModalPipelineResultSchema,
+} from "./multi-modal/source-quality.js";
+export type {
+  SourceQualityReport,
+  MultiModalPipelineResult,
+} from "./multi-modal/source-quality.js";
+
 /** API Gateway — OpenAPI spec and webhook registry. */
 export {
   getOpenAPISpec,
