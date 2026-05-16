@@ -2796,6 +2796,25 @@ export type {
   WarRoom,
 } from "./realtime/war-room.js";
 
+/** Facilitation AI — groupthink detection, participation balance, session timing. */
+export {
+  detectGroupthink,
+  computeParticipationStats,
+  detectParticipationImbalance,
+  generateFacilitationReport,
+  DEFAULT_PHASE_TIMINGS,
+  FacilitationAlertSchema,
+  ParticipationStatsSchema,
+  FacilitationReportSchema,
+  PhaseTimingSchema,
+} from "./realtime/facilitation-ai.js";
+export type {
+  FacilitationAlert,
+  ParticipationStats,
+  FacilitationReport,
+  PhaseTiming,
+} from "./realtime/facilitation-ai.js";
+
 /** Multi-model consensus — run angles across multiple LLMs and synthesize agreements/divergences. */
 export {
   runConsensus,
