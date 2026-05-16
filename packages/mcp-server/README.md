@@ -292,3 +292,16 @@ Common errors:
 | `Path contains invalid sequences` | Path traversal attempt detected                            | Use a clean absolute path without `..` sequences             |
 | Copilot token errors              | GitHub CLI not authenticated or no Copilot subscription    | Run `gh auth login` and verify Copilot access                |
 | LLM timeout                       | LLM request exceeded the timeout threshold                 | Increase `INNOVATOR_LLM_TIMEOUT_MS` or simplify the subject  |
+
+## Troubleshooting
+
+| Issue                                              | Solution                                                                                                                                                 |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Server starts but tools don't appear in client** | Ensure your MCP client config points to the correct command (`npx @innovator/mcp-server`). Restart the client after config changes.                      |
+| **"Cannot find module" errors on startup**         | Run `npm run build` first. The MCP server requires compiled output in `dist/`.                                                                           |
+| **Claude Desktop doesn't connect**                 | Check `claude_desktop_config.json` syntax — JSON must be valid. Verify the path in `command` is accessible. Restart Claude Desktop after config changes. |
+| **SSE transport connection refused**               | Ensure port 3100 (or `MCP_PORT`) is not in use. Check firewall settings. The SSE server binds to `0.0.0.0` by default.                                   |
+| **`gh auth` / Copilot token errors**               | Run `gh auth login` and ensure your account has an active Copilot subscription. In CI, set `GH_TOKEN` env var.                                           |
+| **Slow responses or timeouts**                     | LLM calls can take 30–120s for complex subjects. Increase `INNOVATOR_LLM_TIMEOUT_MS` (default: 90000). Use a simpler subject to test connectivity.       |
+| **`innovate-from-code` returns empty results**     | Ensure the `path` is an absolute path to a directory with source files. The tool scans up to `maxFiles` (default: 200) files.                            |
+| **stdio transport garbles output**                 | Don't mix stdio MCP output with other stdout logging. The MCP server uses stdout exclusively for JSON-RPC messages in stdio mode.                        |
