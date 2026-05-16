@@ -68,3 +68,18 @@ export type {
   InnovationLoop,
   LoopProgress,
 } from "./innovation-loop.js";
+
+/** Convergence detection and cost estimation for autonomous innovation cycles. */
+export {
+  checkConvergence,
+  convergenceToMarkdown,
+  calculateNoveltyRatio,
+  estimateTopicExhaustion,
+  analyzeScoreTrend,
+  estimateCallCost,
+  buildCostEstimate,
+  ConvergenceMetricsSchema,
+  ConvergenceConfigSchema,
+  CostEstimateSchema,
+} from "./convergence.js";
+export type { ConvergenceMetrics, ConvergenceConfig, CostEstimate } from "./convergence.js";

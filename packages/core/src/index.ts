@@ -4318,6 +4318,25 @@ export type {
   LoopProgress,
 } from "./autonomous-agent/index.js";
 
+/** Convergence detection and cost estimation for multi-round autonomous innovation. */
+export {
+  checkConvergence,
+  convergenceToMarkdown,
+  calculateNoveltyRatio,
+  estimateTopicExhaustion,
+  analyzeScoreTrend,
+  estimateCallCost,
+  buildCostEstimate,
+  ConvergenceMetricsSchema,
+  ConvergenceConfigSchema,
+  CostEstimateSchema,
+} from "./autonomous-agent/index.js";
+export type {
+  ConvergenceMetrics,
+  ConvergenceConfig,
+  CostEstimate,
+} from "./autonomous-agent/index.js";
+
 /** Innovation Monitor — long-running domain monitoring with opportunity detection and digest generation. */
 export {
   addMonitorSource,
