@@ -1045,6 +1045,44 @@ export type {
   EncryptionConfig,
 } from "./offline/vault.js";
 
+/** Offline-First PWA — service worker, request queue, local LLM, background sync, conflict resolution. */
+export {
+  getDefaultServiceWorkerConfig,
+  queueRequest,
+  getPendingRequests,
+  completeQueuedRequest,
+  failQueuedRequest,
+  getQueueStats,
+  configureLocalLLM,
+  getLocalLLMConfig,
+  checkLocalLLMStatus,
+  setOnlineStatus,
+  getSyncStatus as getPWASyncStatus,
+  reportConflict,
+  resolveConflict as resolvePWAConflict,
+  runBackgroundSync,
+  generatePWAManifest,
+  clearPWAState,
+  CacheStrategySchema,
+  CacheRuleSchema,
+  ServiceWorkerConfigSchema,
+  QueuedRequestSchema,
+  LocalLLMConfigSchema,
+  LocalLLMStatusSchema,
+  SyncConflictSchema,
+  SyncStatusSchema as PWASyncStatusSchema,
+} from "./offline/pwa.js";
+export type {
+  CacheStrategy,
+  CacheRule,
+  ServiceWorkerConfig,
+  QueuedRequest,
+  LocalLLMConfig,
+  LocalLLMStatus,
+  SyncConflict,
+  SyncStatus as PWASyncStatus,
+} from "./offline/pwa.js";
+
 /** RAG / knowledge grounding — document loading, chunking, embedding, similarity search, and source connectors. */
 export {
   KnowledgeBase,
