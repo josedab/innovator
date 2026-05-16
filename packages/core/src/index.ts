@@ -7669,6 +7669,20 @@ export type {
   CrossSessionInsight,
 } from "./knowledge-lake/index.js";
 
+/** Knowledge Lake Faceted Search — advanced filtering, relevance boosting. */
+export {
+  facetedSearch,
+  getKnowledgeLakeSummary,
+  FacetedSearchRequestSchema,
+  FacetedSearchResponseSchema,
+  SearchFacetSchema,
+} from "./knowledge-lake/faceted-search.js";
+export type {
+  FacetedSearchRequest,
+  FacetedSearchResponse,
+  SearchFacet,
+} from "./knowledge-lake/faceted-search.js";
+
 // ---- Idea-to-Implementation Bridge ----
 export {
   generatePRD,
