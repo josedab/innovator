@@ -5355,6 +5355,24 @@ export type {
   ReportOptions,
 } from "./reports/index.js";
 
+/** Executive Briefing Generator — board-ready reports with portfolio heatmaps. */
+export {
+  generateExecutiveBriefing,
+  briefingToMarkdown,
+  briefingToHtml,
+  ExecutiveBriefingSchema,
+  PortfolioHeatmapSchema,
+  HeatmapCellSchema as BriefingHeatmapCellSchema,
+  BriefingFormatSchema,
+} from "./executive-briefing/index.js";
+export type {
+  ExecutiveBriefing,
+  PortfolioHeatmap,
+  HeatmapCell as BriefingHeatmapCell,
+  BriefingFormat,
+  BriefingInput,
+} from "./executive-briefing/index.js";
+
 /** NL Pipeline — conversational refinement, dry-run cost estimation, iterative editing, and Markdown export. */
 export {
   parseNLIntent,
