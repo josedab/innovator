@@ -3727,6 +3727,22 @@ export type {
   DeepCodeAnalysis,
 } from "./codebase-analysis/index.js";
 
+/** Contextual Codebase Innovation — tech debt scanning, code innovation, PR generation. */
+export {
+  identifyTechDebt,
+  generateCodeInnovations,
+  buildCodebaseInnovationReport,
+  codebaseInnovationReportToMarkdown,
+  TechDebtItemSchema,
+  CodeInnovationSchema,
+  CodebaseInnovationReportSchema,
+} from "./codebase-analysis/contextual-innovation.js";
+export type {
+  TechDebtItem,
+  CodeInnovation,
+  CodebaseInnovationReport,
+} from "./codebase-analysis/contextual-innovation.js";
+
 /** Output contracts — custom Zod schemas for structured innovation output. */
 export {
   registerContract,
