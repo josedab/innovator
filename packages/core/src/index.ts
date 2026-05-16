@@ -7599,3 +7599,21 @@ export type {
   CalibrationRecord,
   CouncilConfig,
 } from "./customer-council/index.js";
+
+// ---- Innovation Seismograph ----
+export {
+  collectSignals as collectSeismographSignals,
+  detectTremors,
+  generateBriefing as generateSeismographBriefing,
+  runSeismograph,
+  SeismographSignalSchema,
+  TremorSchema,
+  SeismographBriefingSchema,
+} from "./seismograph/index.js";
+export type {
+  SeismographSignal,
+  Tremor,
+  SeismographBriefing,
+  SeismographConfig,
+  SeismographProgress,
+} from "./seismograph/index.js";
