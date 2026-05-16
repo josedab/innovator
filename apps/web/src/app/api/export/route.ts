@@ -21,8 +21,15 @@ import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const ExportSchema = z.object({
   format: z.enum([
-    "markdown", "json", "clipboard", "github-issue",
-    "powerpoint", "jira", "confluence", "notion", "google-slides",
+    "markdown",
+    "json",
+    "clipboard",
+    "github-issue",
+    "powerpoint",
+    "jira",
+    "confluence",
+    "notion",
+    "google-slides",
   ]),
   data: z.object({
     subject: z.string(),
@@ -34,7 +41,27 @@ const ExportSchema = z.object({
   config: z.record(z.unknown()).optional(),
 });
 
-/** POST /api/export — export innovation data in the specified format. */
+/**
+ * POST /api/export — Export innovation data in the specified format.
+ *
+ * @requestBody {object} application/json
+ *   - `format` {string} (required) — One of: "markdown", "json", "clipboard",
+ *     "github-issue", "powerpoint", "jira", "confluence", "notion", "google-slides"
+ *   - `data` {ExportData} (required) — Innovation data to export:
+ *     - `subject` {string} — Original investigation subject
+ *     - `investigation` {Investigation} (optional) — Investigation context
+ *     - `angleResults` {AngleResult[]} — Generated ideas per angle
+ *     - `synthesis` {Synthesis} (optional) — Cross-angle synthesis
+ *     - `metadata` {Record<string, unknown>} (optional) — Extra metadata
+ *   - `config` {Record<string, unknown>} (optional) — Format-specific config
+ *
+ * @response 200 {object} application/json — Exported content in requested format
+ * @response 400 {{ error: string }} — Invalid format or validation failure
+ * @response 500 {{ error: string }} — Export failure
+ *
+ * GET /api/export — List available export formats.
+ * @response 200 {{ formats: string[] }} — Array of supported format identifiers
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -77,7 +104,10 @@ export async function POST(request: Request) {
         return new Response(JSON.stringify({ data: result }), { headers: API_RESPONSE_HEADERS });
       }
       case "confluence": {
-        const result = exportToConfluence(exportData, config as Parameters<typeof exportToConfluence>[1]);
+        const result = exportToConfluence(
+          exportData,
+          config as Parameters<typeof exportToConfluence>[1]
+        );
         return new Response(JSON.stringify({ data: result }), { headers: API_RESPONSE_HEADERS });
       }
       case "notion": {

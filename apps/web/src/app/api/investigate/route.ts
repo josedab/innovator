@@ -15,11 +15,30 @@ const RequestSchema = z.object({
 });
 
 /**
- * Investigate a subject by analyzing it with AI to identify key aspects, challenges, and opportunities.
+ * POST /api/investigate — Investigate a subject with AI.
  *
- * @param request - JSON body: `{ subject: string, model?: string }`
- * @returns JSON response with an {@link Investigation} object on success (200),
- *          or `{ error: string }` on validation failure (400) or server error (500).
+ * Analyzes the given subject to identify key aspects, current state, challenges,
+ * and opportunities for innovation.
+ *
+ * @requestBody {object} application/json
+ *   - `subject` {string} (required, 1–500 chars) — The subject to investigate
+ *   - `model` {string} (optional) — LLM model override (e.g. "gpt-4.1", "gpt-5")
+ *
+ * @response 200 {Investigation} application/json — Successful investigation result
+ *   ```json
+ *   {
+ *     "summary": "string",
+ *     "keyAspects": [{ "title": "string", "description": "string" }],
+ *     "currentState": "string",
+ *     "challenges": ["string"],
+ *     "opportunities": ["string"]
+ *   }
+ *   ```
+ * @response 400 {{ error: string }} — Invalid JSON body or failed Zod validation
+ * @response 500 {{ error: string }} — LLM or server failure
+ *
+ * @see {@link RequestSchema} for Zod validation details
+ * @see OpenAPI spec at /api/v1/openapi for machine-readable schema
  */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;

@@ -1,6 +1,31 @@
 /**
  * @description Adversarial Idea Gauntlet — stress-test innovation ideas
  * against specialized adversary agents and get a Survivability Index.
+ *
+ * POST /api/gauntlet
+ *
+ * @requestBody {object} application/json
+ *   - `idea` {object} (required) — The idea to stress-test
+ *     - `title` {string} (1–500 chars)
+ *     - `description` {string} (1–5000 chars)
+ *     - `potentialImpact` {string} (optional, max 2000 chars)
+ *     - `implementationHint` {string} (optional, max 2000 chars)
+ *   - `adversaries` {string[]} (optional) — Subset of: "competitor", "regulator", "skeptic", "economist", "engineer"
+ *   - `strengthen` {boolean} (optional) — Include strengthening suggestions in output
+ *   - `model` {string} (optional, max 100 chars) — LLM model override
+ *   - `format` {"json"|"markdown"} (default: "json") — Response format
+ *
+ * @response 200 {GauntletResult} application/json — Gauntlet result with Survivability Index (0–100)
+ *   ```json
+ *   {
+ *     "survivabilityIndex": 72,
+ *     "attacks": [{ "adversary": "string", "attack": "string", "severity": "string" }],
+ *     "strengthenedIdea": { ... }
+ *   }
+ *   ```
+ * @response 200 text/markdown — Markdown-formatted gauntlet report (when format="markdown")
+ * @response 400 {{ error: string, details: ZodIssue[] }} — Invalid request body
+ * @response 500 {{ error: string }} — Gauntlet evaluation failure
  */
 export const runtime = "nodejs";
 

@@ -66,6 +66,33 @@ apps/web/src/
 - Each exports `GET` and/or `POST` handler functions
 - Input validation uses Zod schemas
 - All responses include `API_RESPONSE_HEADERS` from `src/lib/api-headers.ts`
+- **OpenAPI spec** is available at `/api/v1/openapi` and as a static file at `public/openapi.json`
+
+### API Route Documentation Convention
+
+Every route handler should include structured JSDoc with request/response schemas:
+
+````typescript
+/**
+ * POST /api/<route> — Short description.
+ *
+ * Longer description of behavior.
+ *
+ * @requestBody {object} application/json
+ *   - `field` {type} (required|optional) — Description
+ *   - `field2` {type} (optional, default: value) — Description
+ *
+ * @response 200 {TypeName} application/json — Success description
+ *   ```json
+ *   { "example": "response shape" }
+ *   ```
+ * @response 400 {{ error: string }} — Validation failure
+ * @response 500 {{ error: string }} — Server error
+ */
+export async function POST(request: Request) { ... }
+````
+
+For SSE endpoints, document the event stream format in the `@response` section.
 
 ### Streaming
 

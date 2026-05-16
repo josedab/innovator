@@ -19,14 +19,29 @@ const RequestSchema = z.object({
 });
 
 /**
- * Run the full innovation pipeline automatically via Server-Sent Events.
+ * POST /api/auto — Run the full innovation pipeline with SSE streaming.
  *
  * Investigates the subject, generates innovations for all 8 angles with bounded
- * concurrency, synthesizes results, and streams {@link PipelineProgress} events.
+ * concurrency (MAX_CONCURRENCY=2), synthesizes results, and streams
+ * {@link PipelineProgress} events via Server-Sent Events.
  *
- * @param request - JSON body: `{ subject: string, model?: string }`
- * @returns An SSE stream (`text/event-stream`) where each `data:` line is a JSON
- *          {@link PipelineProgress} object, or `{ error: string }` on failure (400/500).
+ * @requestBody {object} application/json
+ *   - `subject` {string} (required, 1–500 chars) — The subject to innovate on
+ *   - `model` {string} (optional) — LLM model override
+ *
+ * @response 200 text/event-stream — SSE stream of PipelineProgress events
+ *   Each `data:` line is a JSON {@link PipelineProgress} object:
+ *   ```
+ *   data: {"stage":"investigating"}
+ *   data: {"stage":"generating","currentAngle":"scamper","completedAngles":[],"totalAngles":8}
+ *   data: {"stage":"synthesizing","angleResults":[...]}
+ *   data: {"stage":"complete","investigation":{...},"angleResults":[...],"synthesis":{...}}
+ *   ```
+ *   A comment heartbeat (`: heartbeat`) is sent every 15s to prevent proxy timeouts.
+ * @response 400 {{ error: string }} — Invalid JSON or Zod validation failure
+ * @response 500 {{ error: string }} — Pipeline or LLM failure
+ *
+ * @see ARCHITECTURE.md §SSE Streaming Architecture for protocol details
  */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;

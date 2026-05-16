@@ -31,11 +31,31 @@ const RequestSchema = z.object({
 });
 
 /**
- * Generate innovations for a subject using selected angles, with optional synthesis.
+ * POST /api/innovate — Generate innovations for selected angles.
  *
- * @param request - JSON body: `{ subject: string, investigation: Investigation, angles: AngleId[], model?: string, synthesize?: boolean }`
- * @returns JSON response with `{ angleResults: AngleResult[], synthesis?: Synthesis }` on success (200),
- *          or `{ error: string }` on validation failure (400) or server error (500).
+ * Processes the requested angles with bounded concurrency, optionally
+ * synthesizes cross-angle themes, and optionally scores ideas.
+ *
+ * @requestBody {object} application/json
+ *   - `subject` {string} (required, 1–500 chars) — The subject to innovate on
+ *   - `investigation` {Investigation} (required) — Prior investigation context
+ *   - `angles` {AngleId[]} (required, 1–8 items) — Angle IDs to generate for
+ *     Valid IDs: "scamper", "first-principles", "cross-domain", "constraints",
+ *     "inversion", "perspectives", "what-if", "trend-collision"
+ *   - `model` {string} (optional) — LLM model override
+ *   - `synthesize` {boolean} (optional) — Cross-reference results into a Synthesis
+ *   - `score` {boolean} (optional) — Score ideas by feasibility/impact
+ *
+ * @response 200 {object} application/json
+ *   ```json
+ *   {
+ *     "angleResults": [AngleResult, ...],
+ *     "synthesis": Synthesis | undefined,
+ *     "scoring": ScoringResult | undefined
+ *   }
+ *   ```
+ * @response 400 {{ error: string }} — Invalid JSON or Zod validation failure
+ * @response 500 {{ error: string }} — Generation or LLM failure
  */
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? undefined;
