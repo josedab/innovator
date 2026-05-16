@@ -5776,6 +5776,24 @@ export type {
   ProgressEntry,
 } from "./maturity-assessment/index.js";
 
+/** Maturity Learning Paths — coaching prompts, learning paths, feature-gap mapping. */
+export {
+  generateCoachingPrompts,
+  generateLearningPath as generateMaturityLearningPath,
+  mapGapsToFeatures,
+  completeStep,
+  LearningPathStepSchema as MaturityLearningPathStepSchema,
+  LearningPathSchema as MaturityLearningPathSchema,
+  CoachingPromptSchema,
+  FeatureGapMappingSchema,
+} from "./maturity-assessment/learning-paths.js";
+export type {
+  LearningPathStep as MaturityLearningPathStep,
+  LearningPath as MaturityLearningPath,
+  CoachingPrompt,
+  FeatureGapMapping,
+} from "./maturity-assessment/learning-paths.js";
+
 /** Observability — structured logging, Prometheus metrics, health checks, pipeline instrumentation. */
 export {
   logger,
