@@ -6942,6 +6942,21 @@ export type {
   AngleResultInput as VisualAngleResultInput,
 } from "./multi-modal/visual-output.js";
 
+/** Multi-Modal Context Fusion — merge multi-modal inputs into unified context with rich output. */
+export {
+  processAttachment,
+  processPdfInput,
+  processImageInput,
+  processAudioInput,
+  processUrlInput,
+  fuseContext,
+  generateRichOutput,
+  InputSourceSchema,
+  FusedContextSchema,
+  RichOutputSchema,
+} from "./multi-modal/context-fusion.js";
+export type { InputSource, FusedContext, RichOutput } from "./multi-modal/context-fusion.js";
+
 /** API Gateway — OpenAPI spec and webhook registry. */
 export {
   getOpenAPISpec,
