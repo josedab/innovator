@@ -9,6 +9,15 @@ import {
   getWarRoomVoteTallies,
   listWarRooms,
 } from "@innovator/core";
+import {
+  generateFacilitationReport,
+  detectConsensus,
+  startPhaseTimer,
+  getPhaseTimerState,
+  stopPhaseTimer,
+  detectGroupthink,
+  computeParticipationStats,
+} from "@innovator/core/dist/realtime/facilitation-ai.js";
 import { API_RESPONSE_HEADERS } from "../../../lib/api-headers.js";
 
 const CreateSchema = z.object({
@@ -42,11 +51,25 @@ const VoteSchema = z.object({
   comment: z.string().max(500).optional(),
 });
 
+const StartTimerSchema = z.object({
+  action: z.literal("start-timer"),
+  roomId: z.string().max(100),
+  phase: z.string().max(50),
+  durationMinutes: z.number().int().min(1).max(120).optional(),
+});
+
+const StopTimerSchema = z.object({
+  action: z.literal("stop-timer"),
+  roomId: z.string().max(100),
+});
+
 const RequestSchema = z.discriminatedUnion("action", [
   CreateSchema,
   JoinSchema,
   AdvanceSchema,
   VoteSchema,
+  StartTimerSchema,
+  StopTimerSchema,
 ]);
 
 export async function POST(request: Request) {
@@ -72,9 +95,13 @@ export async function POST(request: Request) {
         return new Response(JSON.stringify(room), { headers: API_RESPONSE_HEADERS });
       }
       case "join": {
-        const roomId = data.roomId ?? (data.joinCode ? findWarRoomByCode(data.joinCode)?.id : undefined);
+        const roomId =
+          data.roomId ?? (data.joinCode ? findWarRoomByCode(data.joinCode)?.id : undefined);
         if (!roomId) {
-          return new Response(JSON.stringify({ error: "Room not found" }), { status: 404, headers: API_RESPONSE_HEADERS });
+          return new Response(JSON.stringify({ error: "Room not found" }), {
+            status: 404,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
         const room = joinWarRoom(roomId, data.userId, data.displayName, data.role);
         return new Response(JSON.stringify(room), { headers: API_RESPONSE_HEADERS });
@@ -87,6 +114,19 @@ export async function POST(request: Request) {
         castWarRoomVote(data.roomId, data.userId, data.ideaId, data.value, data.comment);
         const tallies = getWarRoomVoteTallies(data.roomId);
         return new Response(JSON.stringify({ tallies }), { headers: API_RESPONSE_HEADERS });
+      }
+      case "start-timer": {
+        const timer = startPhaseTimer(data.roomId, data.phase, data.durationMinutes);
+        return new Response(JSON.stringify({ timer }), { headers: API_RESPONSE_HEADERS });
+      }
+      case "stop-timer": {
+        const result = stopPhaseTimer(data.roomId);
+        if (!result)
+          return new Response(JSON.stringify({ error: "No active timer" }), {
+            status: 404,
+            headers: API_RESPONSE_HEADERS,
+          });
+        return new Response(JSON.stringify(result), { headers: API_RESPONSE_HEADERS });
       }
     }
   } catch (err) {
@@ -101,15 +141,66 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const roomId = url.searchParams.get("roomId");
     const joinCode = url.searchParams.get("joinCode");
+    const view = url.searchParams.get("view");
+
+    if (roomId && view === "facilitation-report") {
+      const room = getWarRoom(roomId);
+      if (!room)
+        return new Response(JSON.stringify({ error: "Room not found" }), {
+          status: 404,
+          headers: API_RESPONSE_HEADERS,
+        });
+      const report = generateFacilitationReport(room);
+      return new Response(JSON.stringify(report), { headers: API_RESPONSE_HEADERS });
+    }
+
+    if (roomId && view === "consensus") {
+      const room = getWarRoom(roomId);
+      if (!room)
+        return new Response(JSON.stringify({ error: "Room not found" }), {
+          status: 404,
+          headers: API_RESPONSE_HEADERS,
+        });
+      const threshold = parseFloat(url.searchParams.get("threshold") ?? "0.7");
+      const consensus = detectConsensus(room, threshold);
+      return new Response(JSON.stringify(consensus), { headers: API_RESPONSE_HEADERS });
+    }
+
+    if (roomId && view === "timer") {
+      const state = getPhaseTimerState(roomId);
+      return new Response(JSON.stringify({ timer: state }), { headers: API_RESPONSE_HEADERS });
+    }
+
+    if (roomId && view === "participation") {
+      const room = getWarRoom(roomId);
+      if (!room)
+        return new Response(JSON.stringify({ error: "Room not found" }), {
+          status: 404,
+          headers: API_RESPONSE_HEADERS,
+        });
+      const stats = computeParticipationStats(room);
+      const groupthink = detectGroupthink(room);
+      return new Response(JSON.stringify({ participation: stats, groupthink }), {
+        headers: API_RESPONSE_HEADERS,
+      });
+    }
 
     if (roomId) {
       const room = getWarRoom(roomId);
-      if (!room) return new Response(JSON.stringify({ error: "Room not found" }), { status: 404, headers: API_RESPONSE_HEADERS });
+      if (!room)
+        return new Response(JSON.stringify({ error: "Room not found" }), {
+          status: 404,
+          headers: API_RESPONSE_HEADERS,
+        });
       return new Response(JSON.stringify(room), { headers: API_RESPONSE_HEADERS });
     }
     if (joinCode) {
       const room = findWarRoomByCode(joinCode);
-      if (!room) return new Response(JSON.stringify({ error: "Room not found" }), { status: 404, headers: API_RESPONSE_HEADERS });
+      if (!room)
+        return new Response(JSON.stringify({ error: "Room not found" }), {
+          status: 404,
+          headers: API_RESPONSE_HEADERS,
+        });
       return new Response(JSON.stringify(room), { headers: API_RESPONSE_HEADERS });
     }
 
@@ -124,6 +215,9 @@ export async function GET(request: Request) {
     return new Response(JSON.stringify({ rooms }), { headers: API_RESPONSE_HEADERS });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Internal server error";
-    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: API_RESPONSE_HEADERS });
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }
