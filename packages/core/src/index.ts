@@ -3803,6 +3803,28 @@ export type {
   RefinedIdea,
 } from "./innovation-pr/index.js";
 
+/** Innovation CI/CD Pipeline — PR scoring, badges, and trend tracking. */
+export {
+  scorePRInnovation,
+  generateBadgeUrl as generateCICDBadgeUrl,
+  generateBadgeMarkdown as generateCICDBadgeMarkdown,
+  getInnovationTrend,
+  getRepositoryScores,
+  clearScoreHistory,
+  prScoreToMarkdown,
+  trendToMarkdown,
+  InnovationScoreSchema,
+  PRScoreResultSchema,
+  TrendPointSchema,
+  InnovationTrendSchema,
+} from "./innovation-cicd/index.js";
+export type {
+  InnovationScore,
+  PRScoreResult,
+  TrendPoint,
+  InnovationTrend,
+} from "./innovation-cicd/index.js";
+
 /** Innovation Impact Tracker — connect ideas to real-world outcomes with composite scoring. */
 export {
   trackIdea as trackImpactIdea,
