@@ -5344,6 +5344,27 @@ export type {
   FollowUpSuggestion,
 } from "./nl-innovation-api/index.js";
 
+/** NL Context Memory — intent classification, session memory, proactive suggestions. */
+export {
+  classifyIntent as classifyNLIntent,
+  recordMemory,
+  getSessionMemory,
+  recordFeedback as recordNLFeedback,
+  generateProactiveSuggestions,
+  getMemoryStats as getNLMemoryStats,
+  clearMemoryStore,
+  IntentCategorySchema,
+  ClassifiedIntentSchema as NLClassifiedIntentSchema,
+  SessionMemoryEntrySchema,
+  ProactiveSuggestionSchema as NLProactiveSuggestionSchema,
+} from "./nl-innovation-api/context-memory.js";
+export type {
+  IntentCategory,
+  ClassifiedIntent as NLClassifiedIntent,
+  SessionMemoryEntry,
+  ProactiveSuggestion as NLProactiveSuggestion,
+} from "./nl-innovation-api/context-memory.js";
+
 /** Peer Review Network — expertise profiles, review matching, reputation scoring, and leaderboards. */
 export {
   upsertExpertiseProfile,
