@@ -7429,6 +7429,35 @@ export type {
   SentinelProgress,
 } from "./sentinel/index.js";
 
+/** Sentinel Automation — rule engine, approval workflows, performance analytics. */
+export {
+  createAutomationRule as createSentinelRule,
+  listAutomationRules as listSentinelRules,
+  getAutomationRule as getSentinelRule,
+  toggleAutomationRule as toggleSentinelRule,
+  deleteAutomationRule as deleteSentinelRule,
+  evaluateConditions,
+  processSignalAgainstRules,
+  getPendingApprovals,
+  reviewApproval,
+  batchReviewApprovals,
+  computeSentinelPerformance,
+  clearAutomationData,
+  AutomationRuleSchema as SentinelAutomationRuleSchema,
+  TriggerConditionSchema as SentinelTriggerConditionSchema,
+  ActionTypeSchema as SentinelActionTypeSchema,
+  ApprovalRequestSchema,
+  SentinelPerformanceSchema,
+} from "./sentinel/automation.js";
+export type {
+  AutomationRule as SentinelAutomationRule,
+  TriggerCondition as SentinelTriggerCondition,
+  ActionType as SentinelActionType,
+  ApprovalRequest as SentinelApprovalRequest,
+  ApprovalStatus as SentinelApprovalStatus,
+  SentinelPerformance,
+} from "./sentinel/automation.js";
+
 /** Idea Genome Sequencer — structural decomposition and similarity. */
 export {
   sequenceIdea,
