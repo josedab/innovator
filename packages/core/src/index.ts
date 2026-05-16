@@ -3943,6 +3943,25 @@ export type {
   DifferentialPrivacyConfig as BenchmarkPrivacyConfig,
 } from "./cross-org-benchmark/index.js";
 
+/** Cross-Org Privacy Analytics — budget tracking, percentile comparison, UI data. */
+export {
+  recordBudgetExpenditure,
+  getPrivacyBudgetSummary,
+  hasBudget,
+  buildComparisonUIData,
+  clearPrivacyAnalyticsData,
+  PrivacyBudgetEntrySchema,
+  PrivacyBudgetSummarySchema,
+  BenchmarkTrendSchema,
+  ComparisonUIDataSchema,
+} from "./cross-org-benchmark/privacy-analytics.js";
+export type {
+  PrivacyBudgetEntry,
+  PrivacyBudgetSummary,
+  BenchmarkTrend,
+  ComparisonUIData,
+} from "./cross-org-benchmark/privacy-analytics.js";
+
 /** Cross-Repository Innovation Graph — multi-repo scanning, graph building, and opportunity detection. */
 export {
   scanRepository,
