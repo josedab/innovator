@@ -684,6 +684,28 @@ export type {
   TimelineView,
 } from "./replay-decisions/index.js";
 
+/** Innovation Replay Debugger — LLM reasoning traces and fork-and-explore. */
+export {
+  startDebugSession,
+  recordReasoningStep,
+  completeDebugSession,
+  getDebugSession,
+  listDebugSessions,
+  removeDebugSession,
+  clearDebugSessions,
+  extractReasoningTrace,
+  forkFromStep,
+  getStepView,
+  debugSessionToMarkdown,
+  ReasoningStepSchema as DebugReasoningStepSchema,
+  DebugSessionSchema,
+} from "./replay/reasoning-debugger.js";
+export type {
+  ReasoningStep as DebugReasoningStep,
+  DebugSession,
+  StepView,
+} from "./replay/reasoning-debugger.js";
+
 /** Audience-adaptive output — transform results for executive, technical, pitch, or research audiences. */
 export {
   transformForAudience,
