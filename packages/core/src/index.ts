@@ -3229,6 +3229,37 @@ export type {
   ROIDashboard,
 } from "./outcome-tracking/index.js";
 
+/** Outcome Tracking Connectors — integration connectors and attribution engine. */
+export {
+  registerConnectorConfig,
+  getConnectorConfig,
+  listConnectorConfigs,
+  removeConnectorConfig,
+  simulateSync,
+  getSyncHistory as getOutcomeSyncHistory,
+  createAttribution,
+  listAttributions,
+  generateAttributionReport,
+  generateCohortAnalysis,
+  clearConnectorData,
+  ConnectorProviderSchema,
+  SyncDirectionSchema as OutcomeSyncDirectionSchema,
+  ConnectorConfigSchema as OutcomeConnectorConfigSchema,
+  SyncEventSchema,
+  AttributionSchema,
+  AttributionReportSchema,
+  CohortSchema,
+} from "./outcome-tracking/connectors.js";
+export type {
+  ConnectorProvider,
+  SyncDirection as OutcomeSyncDirection,
+  ConnectorConfig as OutcomeConnectorConfig,
+  SyncEvent,
+  Attribution,
+  AttributionReport,
+  Cohort,
+} from "./outcome-tracking/connectors.js";
+
 /** AI Innovation Coach — conversational coaching with domain detection and learning feedback. */
 export {
   startCoachSession,
