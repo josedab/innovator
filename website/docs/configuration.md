@@ -29,6 +29,14 @@ Innovator is configured via environment variables. Copy `.env.local.example` to 
 | `ALGOLIA_SEARCH_KEY`       | Algolia search-only API key for documentation search                    | `PLACEHOLDER`            | No       |
 | `ALGOLIA_INDEX_NAME`       | Algolia index name for documentation search                             | `innovator`              | No       |
 | `PORT`                     | Port for the Next.js dev server                                         | `3000`                   | No       |
+| `COPILOT_EXT_PORT`         | HTTP port for the Copilot Extension server                              | `3200`                   | No       |
+| `COPILOT_WEBHOOK_SECRET`   | Webhook secret for verifying incoming Copilot Extension requests        | _unset_                  | No       |
+| `DATABASE_URL`             | PostgreSQL connection string for persistent storage                     | _unset_                  | No       |
+| `STRIPE_SECRET_KEY`        | Stripe secret key for billing integration                               | _unset_                  | No       |
+| `STRIPE_WEBHOOK_SECRET`    | Stripe webhook signing secret                                           | _unset_                  | No       |
+| `GITHUB_CLIENT_ID`         | GitHub OAuth App client ID                                              | _unset_                  | No       |
+| `GITHUB_CLIENT_SECRET`     | GitHub OAuth App client secret                                          | _unset_                  | No       |
+| `GITHUB_REDIRECT_URI`      | GitHub OAuth callback URL                                               | _unset_                  | No       |
 
 ## `INNOVATOR_DEFAULT_MODEL`
 

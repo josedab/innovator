@@ -42,6 +42,6 @@ npx tsx examples/basic-usage.ts "quantum computing"
 
 ## Further Reading
 
-- [Developer Guide](/docs/developer-guide) — Recipes and patterns for working with the codebase
+- [Developer Guide](https://github.com/josedab/innovator/blob/main/docs/DEVELOPER_GUIDE.md) — Recipes and patterns for working with the codebase
 - [API Reference](/docs/api-reference) — Full function signatures and parameter tables
 - Full details in the [examples/README.md](https://github.com/josedab/innovator/blob/main/examples/README.md)
