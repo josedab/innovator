@@ -1187,6 +1187,33 @@ export type {
   PortfolioInsight,
 } from "./portfolio/types.js";
 
+/** Portfolio Strategic Intelligence — balanced scorecard, strategic alignment, risk simulation, rebalancing. */
+export {
+  addStrategicGoal,
+  listStrategicGoals,
+  removeStrategicGoal,
+  classifyHorizon,
+  buildBalancedScorecard,
+  scoreStrategicAlignment,
+  simulatePortfolioRisk,
+  generateRebalancingRecommendations,
+  clearStrategicGoals,
+  InnovationHorizonSchema,
+  StrategicGoalSchema,
+  BalancedScorecardSchema,
+  StrategicAlignmentSchema,
+  RebalanceRecommendationSchema,
+  PortfolioRiskResultSchema,
+} from "./portfolio/strategic-intelligence.js";
+export type {
+  InnovationHorizon,
+  StrategicGoal,
+  BalancedScorecard,
+  StrategicAlignment,
+  RebalanceRecommendation,
+  PortfolioRiskResult,
+} from "./portfolio/strategic-intelligence.js";
+
 /** Theming / white-label — customizable themes with CSS variables and prompt preambles. */
 export {
   loadTheme,
