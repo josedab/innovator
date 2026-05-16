@@ -2070,6 +2070,38 @@ export type {
   PipelineDAG,
 } from "./pipeline-builder/index.js";
 
+/** Visual Innovation Studio — node-based pipeline builder with typed ports and templates. */
+export {
+  arePortsCompatible,
+  validateVisualPipeline,
+  getNodeLibrary,
+  getTemplateGallery,
+  saveVisualPipeline,
+  getVisualPipeline,
+  listVisualPipelines,
+  deleteVisualPipeline,
+  clearVisualPipelines,
+  PortTypeSchema,
+  PortSchema,
+  NodeTypeSchema,
+  VisualNodeSchema,
+  ConnectionSchema as VisualConnectionSchema,
+  VisualPipelineSchema,
+  ValidationIssueSchema as PipelineValidationIssueSchema,
+  TemplateSchema as PipelineTemplateSchema,
+  NODE_LIBRARY,
+} from "./pipeline-builder/visual-studio.js";
+export type {
+  PortType,
+  Port,
+  NodeType,
+  VisualNode,
+  Connection as VisualConnection,
+  VisualPipeline,
+  ValidationIssue as PipelineValidationIssue,
+  Template as PipelineTemplate,
+} from "./pipeline-builder/visual-studio.js";
+
 /** Innovation diff — compare two subject snapshots and identify emerged, disappeared, and evolved ideas. */
 export {
   runInnovationDiff,
