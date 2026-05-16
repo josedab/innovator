@@ -7667,3 +7667,21 @@ export type {
   SprintRetrospective as InnovationSprintRetrospective,
   SprintConfig as InnovationSprintConfig,
 } from "./sprints/index.js";
+
+// ---- Regulatory & Compliance Pre-Screen ----
+export {
+  screenIdea as screenIdeaRegulatory,
+  screenBatch as screenBatchRegulatory,
+  getRegulatoryDatabase,
+  RegulatoryFrameworkSchema as RegulatoryScreenFrameworkSchema,
+  RegulatoryRiskSchema,
+  ScreeningResultSchema as RegulatoryScreeningResultSchema,
+  ScreeningReportSchema as RegulatoryScreeningReportSchema,
+} from "./regulatory-screen/index.js";
+export type {
+  RegulatoryFramework as RegulatoryScreenFramework,
+  RegulatoryRisk,
+  ScreeningResult as RegulatoryScreeningResult,
+  ScreeningReport as RegulatoryScreeningReport,
+  RegulatoryScreenConfig,
+} from "./regulatory-screen/index.js";
