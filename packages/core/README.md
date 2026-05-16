@@ -50,6 +50,8 @@ packages/core/src/<module>/
 └── __tests__/        # Module-specific tests
 ```
 
+> **📚 Complete Module Index:** The tables below list the most commonly used modules (42 of 217). For the full module index organized by category — including Simulation, Collaboration, AI/ML, Governance, and more — see the **[Feature Module Catalog](../../website/docs/guides/feature-catalog.md)**.
+
 ### Core Modules
 
 | Module                  | Directory     | Description                                                             |
