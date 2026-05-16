@@ -373,6 +373,71 @@ npm run dev
 
 Significant architectural decisions are tracked via ADRs in [`docs/adr/`](docs/adr/). See the [ADR README](docs/adr/README.md) for the full index and format. If your contribution involves a major design choice (new dependency, structural change, protocol selection), consider adding a new ADR.
 
+### Writing a New ADR
+
+1. **Determine the next ADR number.** Check the highest-numbered ADR in `docs/adr/` and increment by 1 (e.g., ADR-0022 → ADR-0023).
+
+2. **Create the file** following the naming convention:
+
+   ```
+   docs/adr/ADR-NNNN-short-kebab-case-title.md
+   ```
+
+   Example: `docs/adr/ADR-0023-websocket-collaboration-protocol.md`
+
+3. **Use this template:**
+
+   ```markdown
+   # ADR-NNNN: Title
+
+   ## Status
+
+   Proposed
+
+   ## Context
+
+   What prompted this decision? What problem are we solving?
+   Include constraints, requirements, and alternatives considered.
+
+   ## Decision
+
+   What was decided and why? Be specific about the technical approach.
+
+   ## Consequences
+
+   **Positive:**
+
+   - What this enables or improves
+
+   **Negative:**
+
+   - Tradeoffs accepted, limitations introduced
+   ```
+
+4. **Set the status** to `Proposed` in your PR. The status will be updated to `Accepted` upon merge.
+
+5. **Add an entry** to the index table in [`docs/adr/README.md`](docs/adr/README.md).
+
+6. **Submit the ADR as part of your PR.** ADRs should accompany the code that implements the decision, not be submitted separately.
+
+### ADR Status Values
+
+| Status         | Meaning                                                            |
+| -------------- | ------------------------------------------------------------------ |
+| **Proposed**   | Under discussion; submitted as part of a PR                        |
+| **Accepted**   | Approved and in effect; merged into `main`                         |
+| **Deprecated** | No longer recommended; a newer approach is preferred               |
+| **Superseded** | Replaced by a newer ADR (link the superseding ADR in the document) |
+
+### When to Write an ADR
+
+- Adding a new external dependency to `@innovator/core`
+- Changing the persistence strategy or storage format
+- Modifying the LLM provider interface or adding a new provider
+- Introducing a new architectural pattern (e.g., event sourcing, CQRS)
+- Changing the API contract or authentication mechanism
+- Major refactoring that alters the module structure
+
 ## Monorepo Workspace Guide
 
 The repository is an [npm workspaces](https://docs.npmjs.com/cli/v10/using-npm/workspaces) monorepo with three workspace groups defined in the root `package.json`:
