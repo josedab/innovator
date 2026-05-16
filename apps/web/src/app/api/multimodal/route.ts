@@ -9,7 +9,14 @@ import {
   buildMultiModalContext as buildExtendedMultiModalContext,
   processExtendedMultiModalInput,
 } from "@innovator/core";
+import {
+  runQualityPipeline,
+  analyzeDiagram,
+  processVideoInput,
+  assessSourceQualityExtended,
+} from "@innovator/core/dist/multi-modal/source-quality.js";
 import type { Attachment } from "@innovator/core";
+import type { InputSource } from "@innovator/core/dist/multi-modal/context-fusion.js";
 import { z } from "zod";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
@@ -45,10 +52,28 @@ const ParseSingleSchema = z.object({
   model: z.string().optional(),
 });
 
+const QualityAssessmentSchema = z.object({
+  action: z.literal("quality-assessment"),
+  sources: z
+    .array(
+      z.object({
+        id: z.string().max(200),
+        type: z.enum(["text", "pdf", "image", "audio", "video", "diagram", "url"]),
+        label: z.string().max(300),
+        content: z.string().max(50000),
+        confidence: z.number().min(0).max(1).default(1),
+        metadata: z.record(z.unknown()).default({}),
+      })
+    )
+    .min(1)
+    .max(20),
+});
+
 const PostBodySchema = z.discriminatedUnion("action", [
   ProcessSchema,
   ValidateSchema,
   ParseSingleSchema,
+  QualityAssessmentSchema,
 ]);
 
 export async function POST(request: Request): Promise<Response> {
@@ -71,10 +96,7 @@ export async function POST(request: Request): Promise<Response> {
 
   if (data.action === "validate") {
     const errors = validateAttachment(data.attachment as Attachment);
-    return Response.json(
-      { valid: errors.length === 0, errors },
-      { headers: API_RESPONSE_HEADERS }
-    );
+    return Response.json({ valid: errors.length === 0, errors }, { headers: API_RESPONSE_HEADERS });
   }
 
   if (data.action === "parse") {
@@ -109,6 +131,18 @@ export async function POST(request: Request): Promise<Response> {
         { status: 500, headers: API_RESPONSE_HEADERS }
       );
     }
+  }
+
+  if (data.action === "quality-assessment") {
+    const pipelineResult = runQualityPipeline(data.sources as InputSource[]);
+    const extendedReports = data.sources.map((s) => assessSourceQualityExtended(s as InputSource));
+    return Response.json(
+      {
+        pipeline: pipelineResult,
+        extendedReports,
+      },
+      { headers: API_RESPONSE_HEADERS }
+    );
   }
 
   return Response.json({ error: "Unknown action" }, { status: 400, headers: API_RESPONSE_HEADERS });
