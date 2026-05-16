@@ -3300,6 +3300,35 @@ export type {
   PromptVersion,
 } from "./prompt-lab/index.js";
 
+/** Smart Prompt Studio — in-app prompt editor with versioning and performance analytics. */
+export {
+  createPromptTemplate as createStudioTemplate,
+  getPromptTemplate as getStudioTemplate,
+  listPromptTemplates as listStudioTemplates,
+  deletePromptTemplate as deleteStudioTemplate,
+  updatePromptTemplate as updateStudioTemplate,
+  getVersionHistory as getStudioVersionHistory,
+  getTemplateVersion as getStudioTemplateVersion,
+  revertToVersion as revertStudioVersion,
+  diffTemplateVersions as diffStudioVersions,
+  recordPromptExecution,
+  getPromptPerformance,
+  getPromptAnalytics,
+  interpolateTemplate,
+  promptAnalyticsToMarkdown,
+  clearPromptStudio,
+  PromptTemplateSchema as StudioTemplateSchema,
+  PromptVersionEntrySchema as StudioVersionEntrySchema,
+  PromptPerformanceSchema,
+  PromptAnalyticsSchema,
+} from "./prompt-studio/index.js";
+export type {
+  PromptTemplate as StudioTemplate,
+  PromptVersionEntry as StudioVersionEntry,
+  PromptPerformance,
+  PromptAnalytics,
+} from "./prompt-studio/index.js";
+
 /** Outcome Tracking & ROI Dashboard — track ideas from generation through implementation to business outcome. */
 export {
   createOutcome as createROIOutcome,
