@@ -7629,3 +7629,21 @@ export {
   MeshInsightsSchema,
 } from "./innovation-mesh/index.js";
 export type { MeshPattern, MeshNode, MeshInsights, MeshConfig } from "./innovation-mesh/index.js";
+
+// ---- Idea Lineage Visualization ----
+export {
+  buildLineageGraph as buildIdeaLineageGraph,
+  getLineageForIdea,
+  exportLineageToSvgData,
+  exportLineageToJson,
+  exportLineageToMarkdown,
+  LineageNodeSchema as IdeaLineageNodeSchema,
+  LineageEdgeSchema as IdeaLineageEdgeSchema,
+  LineageGraphSchema as IdeaLineageGraphSchema,
+} from "./idea-lineage/index.js";
+export type {
+  LineageNode as IdeaLineageNode,
+  LineageEdge as IdeaLineageEdge,
+  LineageGraph as IdeaLineageGraph,
+  LineageConfig as IdeaLineageConfig,
+} from "./idea-lineage/index.js";
