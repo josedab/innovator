@@ -24,8 +24,8 @@ vi.mock("../../prompts/sanitize.js", () => ({
 }));
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { generatePRD, generateTechSpec, generateImplementationPlan, bridgePipelineToMarkdown } from "../idea-bridge.js";
-import type { PRD, TechSpec, BridgePipeline } from "../types.js";
+import { generatePRD, generateTechSpec, generateImplementationPlan, runBridgePipeline, bridgePipelineToMarkdown } from "../idea-bridge.js";
+import type { PRD, TechSpec, BridgePipeline, BridgeProgress } from "../idea-bridge.js";
 
 // ---- Helpers ----
 
@@ -190,6 +190,75 @@ describe("idea-bridge", () => {
       expect(md).toContain("Tech Spec");
       expect(md).toContain("Implementation Plan");
       expect(md).toContain("feature/smart-notifications");
+    });
+  });
+
+  describe("runBridgePipeline", () => {
+    it("runs full pipeline: PRD → spec → plan", async () => {
+      mocks.generateText
+        .mockResolvedValueOnce(MOCK_PRD_RESPONSE)
+        .mockResolvedValueOnce(MOCK_TECH_SPEC_RESPONSE)
+        .mockResolvedValueOnce(MOCK_IMPL_PLAN_RESPONSE);
+
+      const pipeline = await runBridgePipeline("Smart Notifications", "AI notifications");
+
+      expect(pipeline.id).toMatch(/^bridge-/);
+      expect(pipeline.stage).toBe("completed");
+      expect(pipeline.prd).toBeDefined();
+      expect(pipeline.techSpec).toBeDefined();
+      expect(pipeline.implementationPlan).toBeDefined();
+      expect(pipeline.createdBranches.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it("invokes progress callback at each stage", async () => {
+      mocks.generateText
+        .mockResolvedValueOnce(MOCK_PRD_RESPONSE)
+        .mockResolvedValueOnce(MOCK_TECH_SPEC_RESPONSE)
+        .mockResolvedValueOnce(MOCK_IMPL_PLAN_RESPONSE);
+
+      const progressCalls: BridgeProgress[] = [];
+      await runBridgePipeline("Test", "Test idea", {}, (p) => {
+        progressCalls.push(p);
+      });
+
+      expect(progressCalls.length).toBeGreaterThanOrEqual(3);
+      const stages = progressCalls.map((p) => p.stage);
+      expect(stages).toContain("prd");
+      expect(stages).toContain("tech-spec");
+      expect(stages).toContain("implementation-plan");
+    });
+
+    it("propagates LLM error", async () => {
+      mocks.generateText.mockRejectedValue(new Error("LLM failed"));
+      mocks.withRetry.mockRejectedValueOnce(new Error("LLM failed"));
+
+      await expect(
+        runBridgePipeline("Test", "Test idea")
+      ).rejects.toThrow("LLM failed");
+    });
+
+    it("handles minimal idea input (title only)", async () => {
+      mocks.generateText
+        .mockResolvedValueOnce(MOCK_PRD_RESPONSE)
+        .mockResolvedValueOnce(MOCK_TECH_SPEC_RESPONSE)
+        .mockResolvedValueOnce(MOCK_IMPL_PLAN_RESPONSE);
+
+      const pipeline = await runBridgePipeline("Minimal Idea", "");
+      expect(pipeline.stage).toBe("completed");
+      expect(pipeline.ideaTitle).toBe("Minimal Idea");
+    });
+
+    it("generates feature branch names from tasks", async () => {
+      mocks.generateText
+        .mockResolvedValueOnce(MOCK_PRD_RESPONSE)
+        .mockResolvedValueOnce(MOCK_TECH_SPEC_RESPONSE)
+        .mockResolvedValueOnce(MOCK_IMPL_PLAN_RESPONSE);
+
+      const pipeline = await runBridgePipeline("Test", "Test");
+      // Feature branches come from tasks with type "feature"
+      for (const branch of pipeline.createdBranches) {
+        expect(branch).toMatch(/^feature\//);
+      }
     });
   });
 });
