@@ -7580,3 +7580,22 @@ export type {
   DebtScore,
   DebtTrackerConfig,
 } from "./debt-tracker/index.js";
+
+// ---- Synthetic Customer Council ----
+export {
+  getBuiltInCustomerPersonas,
+  createCustomerPersona,
+  runCouncilEvaluation,
+  calibrateCouncil,
+  CustomerPersonaSchema,
+  CouncilEvaluationSchema,
+  CouncilVerdictSchema,
+  CalibrationRecordSchema,
+} from "./customer-council/index.js";
+export type {
+  CustomerPersona,
+  CouncilEvaluation,
+  CouncilVerdict,
+  CalibrationRecord,
+  CouncilConfig,
+} from "./customer-council/index.js";
