@@ -42,6 +42,12 @@ function atomicWrite(filePath: string, data: string): void {
 
 // ---- Library Persistence ----
 
+/**
+ * Load the genome library from disk.
+ *
+ * @param dir - Directory containing the library file (defaults to `~/.innovator/genome-library`).
+ * @returns The parsed genome library, or a fresh empty library if none exists.
+ */
 export function loadLibrary(dir: string = DEFAULT_DIR): GenomeLibrary {
   ensureDir(dir);
   const path = join(dir, LIBRARY_FILE);
@@ -168,7 +174,15 @@ function traitSimilarity(a: GenomeTrait, b: GenomeTrait): number {
   return union > 0 ? intersection / union : 0;
 }
 
-/** Compute overall genome similarity between two idea genomes. */
+/**
+ * Compute overall genome similarity between two idea genomes.
+ * Compares matching trait types using keyword-based Jaccard similarity
+ * and averages the per-trait scores.
+ *
+ * @param genomeA - First genome to compare.
+ * @param genomeB - Second genome to compare.
+ * @returns A {@link GenomeSimilarity} with overall and per-trait similarity scores.
+ */
 export function computeGenomeSimilarity(
   genomeA: IdeaGenome,
   genomeB: IdeaGenome
@@ -207,7 +221,14 @@ export function computeGenomeSimilarity(
   };
 }
 
-/** Find the most similar genomes in the library to a given genome. */
+/**
+ * Find the most similar genomes in the library to a given genome.
+ *
+ * @param genome - The reference genome to compare against.
+ * @param topN - Maximum number of results to return (default: 5).
+ * @param dir - Library directory (defaults to `~/.innovator/genome-library`).
+ * @returns Array of similarity results sorted by descending similarity, each annotated with the idea title.
+ */
 export function findSimilar(
   genome: IdeaGenome,
   topN: number = 5,
@@ -319,17 +340,34 @@ Respond in JSON:
 
 // ---- Library Queries ----
 
-/** Get all genomes in the library. */
+/**
+ * Get all genomes stored in the library.
+ *
+ * @param dir - Library directory (defaults to `~/.innovator/genome-library`).
+ * @returns Array of all stored idea genomes.
+ */
 export function getAllGenomes(dir: string = DEFAULT_DIR): IdeaGenome[] {
   return loadLibrary(dir).genomes;
 }
 
-/** Get a genome by ID. */
+/**
+ * Get a single genome by its unique ID.
+ *
+ * @param genomeId - The genome identifier to look up.
+ * @param dir - Library directory (defaults to `~/.innovator/genome-library`).
+ * @returns The matching genome, or `undefined` if not found.
+ */
 export function getGenome(genomeId: string, dir: string = DEFAULT_DIR): IdeaGenome | undefined {
   return loadLibrary(dir).genomes.find((g) => g.id === genomeId);
 }
 
-/** Search genomes by keyword. */
+/**
+ * Search genomes by keyword across titles, trait values, and trait keywords.
+ *
+ * @param keyword - Case-insensitive search term.
+ * @param dir - Library directory (defaults to `~/.innovator/genome-library`).
+ * @returns Array of genomes matching the keyword.
+ */
 export function searchGenomes(keyword: string, dir: string = DEFAULT_DIR): IdeaGenome[] {
   const normalized = keyword.toLowerCase();
   return loadLibrary(dir).genomes.filter(
@@ -345,7 +383,12 @@ export function searchGenomes(keyword: string, dir: string = DEFAULT_DIR): IdeaG
 
 // ---- Formatting ----
 
-/** Format a genome as Markdown. */
+/**
+ * Format a genome as a human-readable Markdown table.
+ *
+ * @param genome - The idea genome to format.
+ * @returns Markdown string with title, metadata, and a trait table.
+ */
 export function genomeToMarkdown(genome: IdeaGenome): string {
   const lines: string[] = [
     `# 🧬 Idea Genome: ${genome.ideaTitle}`,
