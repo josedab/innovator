@@ -7894,3 +7894,23 @@ export type {
   PricingTier,
   ApiEconomyConfig,
 } from "./api-economy/index.js";
+
+/** Developer Portal — webhook management, playground, dashboard data. */
+export {
+  registerWebhook as registerPortalWebhook,
+  listWebhooks as listPortalWebhooks,
+  removeWebhook as removePortalWebhook,
+  toggleWebhook,
+  savePlaygroundRequest,
+  getPlaygroundHistory,
+  buildDeveloperDashboard,
+  clearDeveloperPortalData,
+  WebhookConfigSchema as PortalWebhookConfigSchema,
+  PlaygroundRequestSchema,
+  DeveloperDashboardSchema,
+} from "./api-economy/developer-portal.js";
+export type {
+  WebhookConfig as PortalWebhookConfig,
+  PlaygroundRequest,
+  DeveloperDashboard,
+} from "./api-economy/developer-portal.js";
