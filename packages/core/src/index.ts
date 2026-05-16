@@ -7617,3 +7617,15 @@ export type {
   SeismographConfig,
   SeismographProgress,
 } from "./seismograph/index.js";
+
+// ---- Cross-Organizational Innovation Mesh ----
+export {
+  extractPatterns as extractMeshPatterns,
+  sharePatterns,
+  receivePatterns,
+  getMeshInsights,
+  MeshPatternSchema,
+  MeshNodeSchema,
+  MeshInsightsSchema,
+} from "./innovation-mesh/index.js";
+export type { MeshPattern, MeshNode, MeshInsights, MeshConfig } from "./innovation-mesh/index.js";
