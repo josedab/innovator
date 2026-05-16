@@ -113,7 +113,13 @@ export async function handleAutoPipeline(args: unknown): Promise<string> {
 
 /**
  * Handle an MCP `innovate-from-code` tool call.
- * Analyzes a codebase and generates innovation ideas grounded in code context.
+ * Analyzes a codebase directory and generates innovation ideas grounded in code context,
+ * including architectural debt, feature gaps, and performance bottlenecks.
+ *
+ * @param args - Raw tool call arguments (`{ path: string, maxFiles?: number }`)
+ * @returns JSON-stringified analysis containing summary, deep analysis, and innovation PRs
+ * @throws {ZodError} If `args` fails schema validation
+ * @throws {Error} If the path is invalid or inaccessible
  */
 export async function handleInnovateFromCode(args: unknown): Promise<string> {
   const input = z
@@ -155,7 +161,12 @@ export async function handleInnovateFromCode(args: unknown): Promise<string> {
 
 /**
  * Handle an MCP `innovate-file` tool call.
- * Analyzes a specific file and suggests innovations.
+ * Analyzes a specific file's complexity, patterns, and relevant subjects.
+ *
+ * @param args - Raw tool call arguments (`{ path: string }`)
+ * @returns JSON-stringified file analysis with complexity hotspot, patterns, and subjects
+ * @throws {ZodError} If `args` fails schema validation
+ * @throws {Error} If the path is invalid or inaccessible
  */
 export async function handleInnovateFile(args: unknown): Promise<string> {
   const input = z
@@ -193,7 +204,12 @@ export async function handleInnovateFile(args: unknown): Promise<string> {
 
 /**
  * Handle an MCP `innovate-architecture` tool call.
- * Analyzes architecture and generates a full report with Innovation PRs.
+ * Performs deep architectural analysis and generates Innovation PRs as a Markdown report.
+ *
+ * @param args - Raw tool call arguments (`{ path: string }`)
+ * @returns Markdown report combining architecture analysis and Innovation PRs
+ * @throws {ZodError} If `args` fails schema validation
+ * @throws {Error} If the path is invalid or inaccessible
  */
 export async function handleInnovateArchitecture(args: unknown): Promise<string> {
   const input = z
@@ -240,8 +256,9 @@ import {
 } from "@innovator/core";
 import type { AutonomousProgress, SwarmConfig } from "@innovator/core";
 
-/** Lazily create a default federation node for MCP server use. */
+/** Lazily create or retrieve a default federation node for MCP server use. */
 let defaultNodeId: string | undefined;
+/** @returns The ID of the default federation node, creating one if none exists. */
 function getOrCreateDefaultNodeId(): string {
   if (defaultNodeId) return defaultNodeId;
   const existing = listNodes();
@@ -260,7 +277,11 @@ function getOrCreateDefaultNodeId(): string {
 
 /**
  * Handle an MCP `nl-innovate` tool call.
- * Parses a natural-language prompt into an execution plan.
+ * Parses a natural-language prompt into a structured execution plan.
+ *
+ * @param args - Raw tool call arguments (`{ prompt: string, model?: string }`)
+ * @returns JSON-stringified execution plan derived from the natural-language prompt
+ * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleNLInnovate(args: unknown): Promise<string> {
   const input = z
@@ -275,7 +296,11 @@ export async function handleNLInnovate(args: unknown): Promise<string> {
 
 /**
  * Handle an MCP `memory-search` tool call.
- * Queries the innovation memory graph for related past ideas.
+ * Queries the innovation memory graph for related past ideas and returns scored results.
+ *
+ * @param args - Raw tool call arguments (`{ query: string, threshold?: number, limit?: number }`)
+ * @returns JSON-stringified array of memory nodes with similarity scores
+ * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleMemorySearch(args: unknown): Promise<string> {
   const input = z
@@ -295,12 +320,14 @@ export async function handleMemorySearch(args: unknown): Promise<string> {
 
 /**
  * Handle an MCP `org-dna` tool call.
- * Generates an organizational innovation DNA report.
+ * Generates an organizational innovation DNA report in JSON or Markdown format.
+ *
+ * @param args - Raw tool call arguments (`{ format?: "json" | "markdown" }`)
+ * @returns JSON-stringified org DNA report or Markdown-formatted string
+ * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleOrgDNA(args: unknown): Promise<string> {
-  const input = z
-    .object({ format: z.enum(["json", "markdown"]).optional() })
-    .parse(args);
+  const input = z.object({ format: z.enum(["json", "markdown"]).optional() }).parse(args);
   const report = generateOrgDNA();
   if (input.format === "markdown") return orgDNAToMarkdown(report);
   return JSON.stringify(report, null, 2);
@@ -308,7 +335,11 @@ export async function handleOrgDNA(args: unknown): Promise<string> {
 
 /**
  * Handle an MCP `persona-eval` tool call.
- * Evaluates an idea through multiple stakeholder personas.
+ * Evaluates an idea through multiple stakeholder personas and returns a Markdown assessment.
+ *
+ * @param args - Raw tool call arguments (`{ idea: string, personaIds: string[], model?: string }`)
+ * @returns Markdown-formatted stakeholder assessment
+ * @throws {ZodError} If `args` fails schema validation
  */
 export async function handlePersonaEval(args: unknown): Promise<string> {
   const input = z
@@ -328,7 +359,12 @@ export async function handlePersonaEval(args: unknown): Promise<string> {
 
 /**
  * Handle an MCP `autonomous-innovate` tool call.
- * Deploys a persistent autonomous agent for deep multi-branch exploration.
+ * Deploys a persistent autonomous agent that performs deep multi-branch exploration
+ * of an innovation subject, returning a portfolio of ideas with decisions and progress.
+ *
+ * @param args - Raw tool call arguments (`{ subject, maxBranches?, maxDepth?, strategy?, model? }`)
+ * @returns JSON-stringified autonomous run result with summary, branches, portfolio, and decisions
+ * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleAutonomousInnovate(args: unknown): Promise<string> {
   const input = z
@@ -393,7 +429,12 @@ export async function handleAutonomousInnovate(args: unknown): Promise<string> {
 
 /**
  * Handle an MCP `swarm-innovate` tool call.
- * Launches a multi-agent swarm for collaborative ideation.
+ * Launches a multi-agent swarm for collaborative ideation, returning converged ideas,
+ * dominant themes, and emergent insights.
+ *
+ * @param args - Raw tool call arguments (`{ subject, agentCount?, maxIterations?, model? }`)
+ * @returns JSON-stringified swarm result with convergence score, ideas, and agent contributions
+ * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleSwarmInnovate(args: unknown): Promise<string> {
   const input = z
@@ -434,7 +475,12 @@ export async function handleSwarmInnovate(args: unknown): Promise<string> {
 
 /**
  * Handle an MCP `network-insights` tool call.
- * Returns innovation patterns from the federated network.
+ * Returns innovation patterns from the federated network, optionally filtered
+ * by domain hint and/or angle ID.
+ *
+ * @param args - Raw tool call arguments (`{ domainHint?: string, angleId?: string }`)
+ * @returns JSON-stringified network dashboard with health, trending angles, and relevant patterns
+ * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleNetworkInsights(args: unknown): Promise<string> {
   const input = z
@@ -481,7 +527,12 @@ export async function handleNetworkInsights(args: unknown): Promise<string> {
 
 /**
  * Handle an MCP `novelty-check` tool call.
- * Assesses the novelty of ideas against known patterns and prior art.
+ * Assesses the novelty of ideas against known patterns and prior art in the
+ * federated network, returning per-idea novelty scores and recommendations.
+ *
+ * @param args - Raw tool call arguments (`{ ideas: Array<{title, description}>, domain?: string }`)
+ * @returns JSON-stringified novelty assessment with scores, similar patterns, and summary
+ * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleNoveltyCheck(args: unknown): Promise<string> {
   const input = z
@@ -506,7 +557,10 @@ export async function handleNoveltyCheck(args: unknown): Promise<string> {
   const results = input.ideas.map((idea) => {
     // Simple keyword-based similarity against known patterns
     const ideaWords = new Set(
-      `${idea.title} ${idea.description}`.toLowerCase().split(/\W+/).filter((w) => w.length > 3)
+      `${idea.title} ${idea.description}`
+        .toLowerCase()
+        .split(/\W+/)
+        .filter((w) => w.length > 3)
     );
 
     let maxSimilarity = 0;
@@ -514,14 +568,20 @@ export async function handleNoveltyCheck(args: unknown): Promise<string> {
 
     for (const pattern of existingPatterns) {
       const patternWords = new Set(
-        `${pattern.title} ${pattern.description}`.toLowerCase().split(/\W+/).filter((w) => w.length > 3)
+        `${pattern.title} ${pattern.description}`
+          .toLowerCase()
+          .split(/\W+/)
+          .filter((w) => w.length > 3)
       );
       const intersection = [...ideaWords].filter((w) => patternWords.has(w));
       const union = new Set([...ideaWords, ...patternWords]);
       const similarity = union.size > 0 ? intersection.length / union.size : 0;
 
       if (similarity > 0.1) {
-        similarPatterns.push({ title: pattern.title, similarity: Math.round(similarity * 100) / 100 });
+        similarPatterns.push({
+          title: pattern.title,
+          similarity: Math.round(similarity * 100) / 100,
+        });
       }
       maxSimilarity = Math.max(maxSimilarity, similarity);
     }
@@ -537,9 +597,7 @@ export async function handleNoveltyCheck(args: unknown): Promise<string> {
           : noveltyScore >= 50
             ? "partially-novel"
             : "similar-prior-art-exists",
-      similarPatterns: similarPatterns
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, 5),
+      similarPatterns: similarPatterns.sort((a, b) => b.similarity - a.similarity).slice(0, 5),
       recommendation:
         noveltyScore >= 80
           ? "Strong candidate for further development. No closely matching prior art found."
