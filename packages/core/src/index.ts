@@ -7647,3 +7647,23 @@ export type {
   LineageGraph as IdeaLineageGraph,
   LineageConfig as IdeaLineageConfig,
 } from "./idea-lineage/index.js";
+
+// ---- Innovation Sprints Framework ----
+export {
+  getSprintTemplates as getInnovationSprintTemplates,
+  createSprint as createInnovationSprint,
+  advanceSprintPhase as advanceInnovationSprintPhase,
+  completeSprint as completeInnovationSprint,
+  getSprintRetrospective as getInnovationSprintRetrospective,
+  SprintTemplateSchema as InnovationSprintTemplateSchema,
+  SprintSchema as InnovationSprintSchema,
+  SprintPhaseSchema as InnovationSprintPhaseSchema,
+  SprintRetrospectiveSchema as InnovationSprintRetrospectiveSchema,
+} from "./sprints/index.js";
+export type {
+  SprintTemplate as InnovationSprintTemplate,
+  Sprint as InnovationSprint,
+  SprintPhase as InnovationSprintPhase,
+  SprintRetrospective as InnovationSprintRetrospective,
+  SprintConfig as InnovationSprintConfig,
+} from "./sprints/index.js";
