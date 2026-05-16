@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
+import "@testing-library/jest-dom/vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import RefinementPanel from "../RefinementPanel";
@@ -26,15 +27,15 @@ describe("RefinementPanel", () => {
 
   it("renders initial concept tier with idea list", () => {
     render(<RefinementPanel ideas={mockIdeas} />);
-    expect(screen.getByText("🔄 Progressive Refinement")).toBeTruthy();
-    expect(screen.getByText("AI Dashboard")).toBeTruthy();
-    expect(screen.getByText("Smart Search")).toBeTruthy();
-    expect(screen.getByText(/Concept → Plan → Specification/)).toBeTruthy();
+    expect(screen.getByText("🔄 Progressive Refinement")).toBeInTheDocument();
+    expect(screen.getByText("AI Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Smart Search")).toBeInTheDocument();
+    expect(screen.getByText(/Concept → Plan → Specification/)).toBeInTheDocument();
   });
 
   it("renders start button with correct idea count", () => {
     render(<RefinementPanel ideas={mockIdeas} />);
-    expect(screen.getByText("Refine 2 Ideas")).toBeTruthy();
+    expect(screen.getByText("Refine 2 Ideas")).toBeInTheDocument();
   });
 
   it("disables start button when no ideas", () => {
@@ -76,7 +77,7 @@ describe("RefinementPanel", () => {
     fireEvent.click(screen.getByText("Refine 2 Ideas"));
 
     await waitFor(() => {
-      expect(screen.getByText("📋 Refine to Plan")).toBeTruthy();
+      expect(screen.getByText("📋 Refine to Plan")).toBeInTheDocument();
     });
     expect(screen.getAllByText("💡 Concept").length).toBeGreaterThan(0);
   });
@@ -135,10 +136,10 @@ describe("RefinementPanel", () => {
     render(<RefinementPanel ideas={[mockIdeas[0]]} />);
     fireEvent.click(screen.getByText("Refine 1 Ideas"));
 
-    await waitFor(() => expect(screen.getByText("📋 Refine to Plan")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("📋 Refine to Plan")).toBeInTheDocument());
     fireEvent.click(screen.getByText("📋 Refine to Plan"));
 
-    await waitFor(() => expect(screen.getByText("📝 Refine to Specification")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("📝 Refine to Specification")).toBeInTheDocument());
   });
 
   // --- Cannot skip tiers ---
@@ -166,7 +167,7 @@ describe("RefinementPanel", () => {
     render(<RefinementPanel ideas={[mockIdeas[0]]} />);
     fireEvent.click(screen.getByText("Refine 1 Ideas"));
 
-    await waitFor(() => expect(screen.getByText("📋 Refine to Plan")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("📋 Refine to Plan")).toBeInTheDocument());
     // Only "Refine to Plan" should be visible, not "Refine to Specification"
     expect(screen.queryByText("📝 Refine to Specification")).toBeNull();
   });
@@ -197,8 +198,8 @@ describe("RefinementPanel", () => {
     fireEvent.click(screen.getByText("Refine 1 Ideas"));
 
     await waitFor(() => {
-      expect(screen.getByText(/Marginal gains are plateauing/)).toBeTruthy();
-      expect(screen.getByText(/Convergence: 92%/)).toBeTruthy();
+      expect(screen.getByText(/Marginal gains are plateauing/)).toBeInTheDocument();
+      expect(screen.getByText(/Convergence: 92%/)).toBeInTheDocument();
     });
   });
 
@@ -246,7 +247,7 @@ describe("RefinementPanel", () => {
     render(<RefinementPanel ideas={[mockIdeas[0]]} />);
     fireEvent.click(screen.getByText("Refine 1 Ideas"));
 
-    await waitFor(() => expect(screen.getByText("📋 Refine to Plan")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("📋 Refine to Plan")).toBeInTheDocument());
 
     const textarea = screen.getByPlaceholderText(/Add context, constraints/);
     fireEvent.change(textarea, { target: { value: "Focus on UX" } });
@@ -297,12 +298,12 @@ describe("RefinementPanel", () => {
     render(<RefinementPanel ideas={[mockIdeas[0]]} />);
     fireEvent.click(screen.getByText("Refine 1 Ideas"));
 
-    await waitFor(() => expect(screen.getByText("📜 Refinement History")).toBeTruthy());
-    expect(screen.getByText(/\+12%/)).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("📜 Refinement History")).toBeInTheDocument());
+    expect(screen.getByText(/\+12%/)).toBeInTheDocument();
 
     // Expand iteration
     fireEvent.click(screen.getByText("Expand"));
-    await waitFor(() => expect(screen.getByText("Step 1")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Step 1")).toBeInTheDocument());
 
     // Collapse
     fireEvent.click(screen.getByText("Collapse"));
@@ -387,15 +388,15 @@ describe("RefinementPanel", () => {
     render(<RefinementPanel ideas={mockIdeas} />);
     fireEvent.click(screen.getByText("Refine 2 Ideas"));
 
-    await waitFor(() => expect(screen.getByText("📝 Refine to Specification")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("📝 Refine to Specification")).toBeInTheDocument());
 
     // Switch to second idea
     fireEvent.click(screen.getByText("Smart Search"));
-    await waitFor(() => expect(screen.getByText("📋 Refine to Plan")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("📋 Refine to Plan")).toBeInTheDocument());
 
     // Switch back to first idea
     fireEvent.click(screen.getByText("AI Dashboard"));
-    await waitFor(() => expect(screen.getByText("📝 Refine to Specification")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("📝 Refine to Specification")).toBeInTheDocument());
   });
 
   // --- Loading state ---
@@ -407,6 +408,6 @@ describe("RefinementPanel", () => {
     render(<RefinementPanel ideas={mockIdeas} />);
     fireEvent.click(screen.getByText("Refine 2 Ideas"));
 
-    await waitFor(() => expect(screen.getByText("Starting...")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Starting...")).toBeInTheDocument());
   });
 });

@@ -2,6 +2,7 @@
 /**
  * @vitest-environment jsdom
  */
+import "@testing-library/jest-dom/vitest";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
@@ -42,24 +43,24 @@ const testNodes = [
 describe("CollaborativeCanvas", () => {
   it("renders empty canvas with SVG and zero ideas", () => {
     render(<CollaborativeCanvas {...defaultProps} />);
-    expect(screen.getByRole("img")).toBeDefined();
-    expect(screen.getByText(/0 ideas/)).toBeDefined();
+    expect(screen.getByRole("img")).toBeInTheDocument();
+    expect(screen.getByText(/0 ideas/)).toBeInTheDocument();
   });
 
   it("renders with initial nodes", () => {
     render(<CollaborativeCanvas {...defaultProps} initialNodes={testNodes} />);
-    expect(screen.getByText(/2 ideas/)).toBeDefined();
-    expect(screen.getByText("First Idea")).toBeDefined();
-    expect(screen.getByText("Second Idea")).toBeDefined();
+    expect(screen.getByText(/2 ideas/)).toBeInTheDocument();
+    expect(screen.getByText("First Idea")).toBeInTheDocument();
+    expect(screen.getByText("Second Idea")).toBeInTheDocument();
   });
 
   it("shows toolbar buttons in edit mode", () => {
     render(<CollaborativeCanvas {...defaultProps} />);
-    expect(screen.getByText("+ Idea")).toBeDefined();
-    expect(screen.getByText("📝 Note")).toBeDefined();
-    expect(screen.getByText("🔗 Connect")).toBeDefined();
-    expect(screen.getByText("🔥 Heat Map")).toBeDefined();
-    expect(screen.getByText("🤖 AI Clusters")).toBeDefined();
+    expect(screen.getByText("+ Idea")).toBeInTheDocument();
+    expect(screen.getByText("📝 Note")).toBeInTheDocument();
+    expect(screen.getByText("🔗 Connect")).toBeInTheDocument();
+    expect(screen.getByText("🔥 Heat Map")).toBeInTheDocument();
+    expect(screen.getByText("🤖 AI Clusters")).toBeInTheDocument();
   });
 
   it("hides action buttons in readOnly mode", () => {
@@ -70,12 +71,12 @@ describe("CollaborativeCanvas", () => {
   it("adds an idea card when clicking + Idea", () => {
     render(<CollaborativeCanvas {...defaultProps} />);
     fireEvent.click(screen.getByText("+ Idea"));
-    expect(screen.getByText(/1 ideas/)).toBeDefined();
+    expect(screen.getByText(/1 ideas/)).toBeInTheDocument();
   });
 
   it("shows participant indicator with user initial", () => {
     render(<CollaborativeCanvas {...defaultProps} displayName="Alice" />);
-    expect(screen.getByText("A")).toBeDefined();
+    expect(screen.getByText("A")).toBeInTheDocument();
   });
 
   it("has correct aria-label on canvas SVG", () => {
@@ -88,6 +89,6 @@ describe("CollaborativeCanvas", () => {
   it("shows note mode indicator when Note button is clicked", () => {
     render(<CollaborativeCanvas {...defaultProps} />);
     fireEvent.click(screen.getByText("📝 Note"));
-    expect(screen.getByText("Click on the canvas to place a sticky note.")).toBeDefined();
+    expect(screen.getByText("Click on the canvas to place a sticky note.")).toBeInTheDocument();
   });
 });

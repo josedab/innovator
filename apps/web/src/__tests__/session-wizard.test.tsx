@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
+import "@testing-library/jest-dom/vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -70,7 +71,7 @@ describe("SessionWizard", () => {
   it("renders loading state initially", () => {
     fetchMock.mockReturnValue(new Promise(() => {})); // never resolves
     render(<SessionWizard />);
-    expect(screen.getByText("Loading wizard...")).toBeDefined();
+    expect(screen.getByText("Loading wizard...")).toBeInTheDocument();
   });
 
   it("renders first step after loading", async () => {
@@ -78,7 +79,7 @@ describe("SessionWizard", () => {
     render(<SessionWizard />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
   });
 
@@ -87,11 +88,11 @@ describe("SessionWizard", () => {
     render(<SessionWizard />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
     const nextButton = screen.getByRole("button", { name: /next/i });
-    expect((nextButton as HTMLButtonElement).disabled).toBe(true);
+    expect(nextButton).toBeDisabled();
   });
 
   it("enables Next button when required field is filled", async () => {
@@ -99,14 +100,14 @@ describe("SessionWizard", () => {
     render(<SessionWizard />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
     const textarea = screen.getByPlaceholderText("Enter your goal...");
     fireEvent.change(textarea, { target: { value: "My innovation goal" } });
 
     const nextButton = screen.getByRole("button", { name: /next/i });
-    expect((nextButton as HTMLButtonElement).disabled).toBe(false);
+    expect(nextButton).not.toBeDisabled();
   });
 
   it("advances to next step on Next click", async () => {
@@ -114,7 +115,7 @@ describe("SessionWizard", () => {
     render(<SessionWizard />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
     // Fill required field
@@ -127,7 +128,7 @@ describe("SessionWizard", () => {
 
     // Should show step 2
     await waitFor(() => {
-      expect(screen.getByText("Select your industry")).toBeDefined();
+      expect(screen.getByText("Select your industry")).toBeInTheDocument();
     });
   });
 
@@ -136,7 +137,7 @@ describe("SessionWizard", () => {
     render(<SessionWizard />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
     // Fill and advance
@@ -145,14 +146,14 @@ describe("SessionWizard", () => {
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Select your industry")).toBeDefined();
+      expect(screen.getByText("Select your industry")).toBeInTheDocument();
     });
 
     // Click back
     fireEvent.click(screen.getByRole("button", { name: /back/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
   });
 
@@ -161,7 +162,7 @@ describe("SessionWizard", () => {
     render(<SessionWizard />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
     expect(screen.queryByRole("button", { name: /back/i })).toBeNull();
@@ -172,7 +173,7 @@ describe("SessionWizard", () => {
     render(<SessionWizard />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
     // Navigate to last step
@@ -181,7 +182,7 @@ describe("SessionWizard", () => {
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Select your industry")).toBeDefined();
+      expect(screen.getByText("Select your industry")).toBeInTheDocument();
     });
 
     // Select industry
@@ -189,11 +190,11 @@ describe("SessionWizard", () => {
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Analysis depth")).toBeDefined();
+      expect(screen.getByText("Analysis depth")).toBeInTheDocument();
     });
 
     // Last step should show "Generate Config" button
-    expect(screen.getByRole("button", { name: /generate config/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /generate config/i })).toBeInTheDocument();
   });
 
   it("calls onClose when close button is clicked", async () => {
@@ -202,7 +203,7 @@ describe("SessionWizard", () => {
     render(<SessionWizard onClose={onClose} />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
     const closeButton = screen.getByText("×");
@@ -215,7 +216,7 @@ describe("SessionWizard", () => {
     render(<SessionWizard />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
     // Fill first step
@@ -225,14 +226,14 @@ describe("SessionWizard", () => {
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Select your industry")).toBeDefined();
+      expect(screen.getByText("Select your industry")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByText("Technology"));
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Analysis depth")).toBeDefined();
+      expect(screen.getByText("Analysis depth")).toBeInTheDocument();
     });
 
     // Mock the config generation API
@@ -244,7 +245,7 @@ describe("SessionWizard", () => {
     fireEvent.click(screen.getByRole("button", { name: /generate config/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("✅ Configuration Generated")).toBeDefined();
+      expect(screen.getByText("✅ Configuration Generated")).toBeInTheDocument();
     });
   });
 
@@ -254,7 +255,7 @@ describe("SessionWizard", () => {
     render(<SessionWizard onComplete={onComplete} />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
     // Fill and advance through all steps
@@ -303,10 +304,10 @@ describe("SessionWizard", () => {
     render(<SessionWizard />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
-    expect(screen.getByLabelText(/advanced mode/i)).toBeDefined();
+    expect(screen.getByLabelText(/advanced mode/i)).toBeInTheDocument();
   });
 
   it("shows all questions in advanced mode on step 0", async () => {
@@ -314,7 +315,7 @@ describe("SessionWizard", () => {
     render(<SessionWizard />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
     // Enable advanced mode
@@ -323,8 +324,8 @@ describe("SessionWizard", () => {
 
     // Should show remaining questions on the same page
     await waitFor(() => {
-      expect(screen.getByText("Select your industry")).toBeDefined();
-      expect(screen.getByText("Analysis depth")).toBeDefined();
+      expect(screen.getByText("Select your industry")).toBeInTheDocument();
+      expect(screen.getByText("Analysis depth")).toBeInTheDocument();
     });
   });
 
@@ -333,11 +334,11 @@ describe("SessionWizard", () => {
     const { container } = render(<SessionWizard />);
 
     await waitFor(() => {
-      expect(screen.getByText("What is your innovation goal?")).toBeDefined();
+      expect(screen.getByText("What is your innovation goal?")).toBeInTheDocument();
     });
 
     // Progress bar div should exist with a width style
     const progressBar = container.querySelector('[class*="bg-blue-500"]');
-    expect(progressBar).toBeDefined();
+    expect(progressBar).toBeInTheDocument();
   });
 });
