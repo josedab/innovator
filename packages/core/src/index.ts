@@ -7531,3 +7531,32 @@ export type {
   BridgeConfig,
   BridgeProgress,
 } from "./idea-bridge/index.js";
+
+// ---- Backtesting Engine ----
+export {
+  getSeedCasePack,
+  replayCase,
+  runBacktest,
+  computeAccuracyMetrics,
+  generateCalibrationReport,
+  BacktestCaseSchema,
+  CasePackSchema,
+  HistoricalOutcomeSchema,
+  PipelineReplayResultSchema,
+  ReplayScoreSchema,
+  AccuracyMetricsSchema,
+  CalibrationAdjustmentSchema,
+  CalibrationReportSchema,
+} from "./backtesting/index.js";
+export type {
+  BacktestCase,
+  CasePack,
+  HistoricalOutcome,
+  PipelineReplayResult,
+  ReplayScore,
+  AccuracyMetrics,
+  CalibrationAdjustment,
+  CalibrationReport,
+  BacktestProgress,
+  BacktestConfig,
+} from "./backtesting/index.js";
