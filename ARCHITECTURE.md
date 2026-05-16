@@ -197,16 +197,70 @@ graph LR
 | `packages/core/src/sentinel/`          | Always-on signal monitoring and opportunity generation        |
 | `packages/core/src/genome-sequencer/`  | Idea decomposition, similarity search, and recombination      |
 | `packages/core/src/federation-dp/`     | Differential privacy for federated pattern sharing            |
-| `packages/mcp-server/src/`             | MCP server exposing tools via stdio/SSE transports            |
-| `packages/bot/`                        | Chat platform bot (Slack, Discord, Teams)                     |
-| `packages/vscode-extension/`           | VS Code extension for in-editor innovation                    |
-| `packages/copilot-extension/`          | GitHub Copilot Extension (@innovator in Copilot Chat)         |
-| `packages/create-innovator/`           | Project scaffolder (`npx create-innovator`)                   |
-| `apps/web/src/components/`             | React UI components                                           |
-| `apps/web/src/app/api/`                | Next.js API route handlers                                    |
-| `apps/cli/src/`                        | Commander.js CLI entry point                                  |
 
-> **Note:** `packages/core/src/` contains 217 module directories. The table above lists the most commonly referenced ones. For the complete module index organized by category (Simulation, Collaboration, AI/ML, etc.), see the [Feature Module Catalog](website/docs/guides/feature-catalog.md).
+#### Analysis & Intelligence
+
+| Path                                  | Purpose                              |
+| ------------------------------------- | ------------------------------------ |
+| `packages/core/src/scoring/`          | Idea scoring and ranking             |
+| `packages/core/src/benchmark/`        | Multi-model performance comparison   |
+| `packages/core/src/hypothesis/`       | Hypothesis-driven innovation framing |
+| `packages/core/src/redteam/`          | Adversarial perspective analysis     |
+| `packages/core/src/competitive/`      | Competitive landscape analysis       |
+| `packages/core/src/impact-simulator/` | Potential impact simulation          |
+| `packages/core/src/quality-gate/`     | Automated LLM output quality checks  |
+| `packages/core/src/swarm/`            | Multi-agent blackboard-pattern swarm |
+
+#### Data & Knowledge
+
+| Path                               | Purpose                                       |
+| ---------------------------------- | --------------------------------------------- |
+| `packages/core/src/memory/`        | Cross-session persistent memory               |
+| `packages/core/src/serendipity/`   | Cross-session unexpected connection discovery |
+| `packages/core/src/diff/`          | Investigation snapshot comparison             |
+| `packages/core/src/hybrid-search/` | Combined TF-IDF and graph-based search        |
+| `packages/core/src/ontology/`      | Domain ontology management                    |
+| `packages/core/src/enrichment/`    | External data enrichment                      |
+
+#### Output & Integration
+
+| Path                                   | Purpose                                         |
+| -------------------------------------- | ----------------------------------------------- |
+| `packages/core/src/export/`            | Markdown, JSON, GitHub Issue, PowerPoint export |
+| `packages/core/src/playbook/`          | Reusable innovation playbook creation           |
+| `packages/core/src/audience/`          | Audience-adaptive output transformation         |
+| `packages/core/src/i18n/`              | Multi-language support                          |
+| `packages/core/src/nl-innovation-api/` | Natural language innovation API                 |
+| `packages/core/src/notifications/`     | Notification delivery system                    |
+| `packages/core/src/integrations/`      | Third-party service integrations                |
+
+#### Infrastructure & Platform
+
+| Path                                       | Purpose                              |
+| ------------------------------------------ | ------------------------------------ |
+| `packages/core/src/history/`               | Session history persistence          |
+| `packages/core/src/metering/`              | API usage metering                   |
+| `packages/core/src/observatory/`           | Prompt call monitoring and debugging |
+| `packages/core/src/telemetry/`             | Anonymous usage telemetry            |
+| `packages/core/src/scheduler/`             | Scheduled task execution             |
+| `packages/core/src/api-gateway/`           | API key management and rate limiting |
+| `packages/core/src/workspace-persistence/` | PostgreSQL workspace persistence     |
+
+#### Consumer Packages
+
+| Path                          | Purpose                                               |
+| ----------------------------- | ----------------------------------------------------- |
+| `packages/mcp-server/src/`    | MCP server exposing tools via stdio/SSE transports    |
+| `packages/bot/`               | Chat platform bot (Slack, Discord, Teams)             |
+| `packages/vscode-extension/`  | VS Code extension for in-editor innovation            |
+| `packages/copilot-extension/` | GitHub Copilot Extension (@innovator in Copilot Chat) |
+| `packages/create-innovator/`  | Project scaffolder (`npx create-innovator`)           |
+| `packages/sdk/`               | Framework-agnostic SDK client                         |
+| `apps/web/src/components/`    | React UI components                                   |
+| `apps/web/src/app/api/`       | Next.js API route handlers                            |
+| `apps/cli/src/`               | Commander.js CLI entry point                          |
+
+> **Note:** `packages/core/src/` contains 217 module directories. The tables above cover the most commonly referenced ones, organized by category. For the complete module index with descriptions and usage examples, see the [Feature Module Catalog](website/docs/guides/feature-catalog.md).
 
 ## Moonshot Modules
 
