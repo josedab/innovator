@@ -28,6 +28,9 @@ apps/web/src/
 │   │   ├── artifacts/        # Artifact generation (PRD, tech spec, etc.)
 │   │   ├── collaborate/      # Collaborative sessions
 │   │   ├── embed/            # Embeddable widget endpoint (CORS-enabled)
+│   │   ├── widget/           # Widget JS source
+│   │   ├── tracker/          # Idea fitness tracker dashboard
+│   │   ├── analytics/        # Innovation analytics
 │   │   └── ...               # share, export, validate, refine, etc.
 │   ├── analytics/            # Analytics dashboard page
 │   └── dashboard/            # Dashboard page
