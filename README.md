@@ -139,6 +139,30 @@ innovator/
 └── package.json      # Workspace root
 ```
 
+### Build Order & Dependencies
+
+The monorepo must be built in dependency order. `npm run build` handles this automatically.
+
+```
+packages/core  →  apps/cli  →  apps/web
+                  packages/mcp-server
+                  packages/bot
+                  packages/copilot-extension
+                  packages/sdk
+```
+
+| Package                 | Depends On        | Build Command                          |
+| ----------------------- | ----------------- | -------------------------------------- |
+| `@innovator/core`       | _(none)_          | `npm run build -w packages/core`       |
+| `apps/cli`              | `@innovator/core` | `npm run build -w apps/cli`            |
+| `apps/web`              | `@innovator/core` | `npm run build -w apps/web`            |
+| `@innovator/mcp-server` | `@innovator/core` | `npm run build -w packages/mcp-server` |
+| `@innovator/bot`        | `@innovator/core` | `npm run build -w packages/bot`        |
+| `@innovator/sdk`        | _(standalone)_    | `npm run build -w packages/sdk`        |
+| `website`               | _(standalone)_    | `npm run build -w website`             |
+
+> **Always build `packages/core` first.** Never build a consumer before core. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full dependency graph.
+
 ## MCP Server
 
 The MCP (Model Context Protocol) server in `packages/mcp-server/` exposes Innovator's capabilities as tools callable by any MCP-compatible AI client — Claude Desktop, Cursor, Windsurf, VS Code, and others.
