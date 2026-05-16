@@ -854,6 +854,236 @@
           }
         }
       }
+    },
+    "/artifacts": {
+      "post": {
+        "summary": "Generate a structured artifact",
+        "description": "Generate a structured artifact (PRD, tech spec, user story, pitch deck) from an innovation idea.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["idea", "artifactType", "subject"],
+                "properties": {
+                  "idea": { "$ref": "#/components/schemas/Idea" },
+                  "artifactType": {
+                    "type": "string",
+                    "description": "Type of artifact to generate",
+                    "enum": [
+                      "prd",
+                      "user-story",
+                      "tech-spec",
+                      "pitch-deck",
+                      "executive-brief",
+                      "go-to-market"
+                    ]
+                  },
+                  "subject": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "Original investigation subject"
+                  },
+                  "investigation": { "$ref": "#/components/schemas/Investigation" },
+                  "model": { "type": "string", "description": "LLM model override" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated artifact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Artifact object whose shape depends on artifactType"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "500": {
+            "description": "Artifact generation failure",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/gauntlet": {
+      "post": {
+        "summary": "Stress-test an idea with adversarial agents",
+        "description": "Run an idea through the Adversarial Gauntlet — 5 adversary personas attack the idea and produce a Survivability Index (0–100).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["idea"],
+                "properties": {
+                  "idea": { "$ref": "#/components/schemas/Idea" },
+                  "adversaries": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": ["competitor", "regulator", "skeptic", "economist", "engineer"]
+                    },
+                    "description": "Subset of adversary personas to use (default: all)"
+                  },
+                  "strengthen": {
+                    "type": "boolean",
+                    "description": "Include strengthened idea in response"
+                  },
+                  "model": { "type": "string", "description": "LLM model override" },
+                  "format": {
+                    "type": "string",
+                    "enum": ["json", "markdown"],
+                    "default": "json",
+                    "description": "Response format"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Gauntlet result with Survivability Index",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "survivabilityIndex": { "type": "number", "minimum": 0, "maximum": 100 },
+                    "attacks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "adversary": { "type": "string" },
+                          "attack": { "type": "string" },
+                          "severity": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "text/markdown": {
+                "schema": { "type": "string", "description": "Markdown-formatted gauntlet report" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "500": {
+            "description": "Gauntlet evaluation failure",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/export": {
+      "post": {
+        "summary": "Export innovation data",
+        "description": "Export innovation session data to various formats including markdown, JSON, GitHub Issues, PowerPoint, Jira, Confluence, Notion, and Google Slides.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["format", "data"],
+                "properties": {
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "markdown",
+                      "json",
+                      "clipboard",
+                      "github-issue",
+                      "powerpoint",
+                      "jira",
+                      "confluence",
+                      "notion",
+                      "google-slides"
+                    ]
+                  },
+                  "data": {
+                    "type": "object",
+                    "required": ["subject", "angleResults"],
+                    "properties": {
+                      "subject": { "type": "string" },
+                      "investigation": { "$ref": "#/components/schemas/Investigation" },
+                      "angleResults": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/AngleResult" }
+                      },
+                      "synthesis": { "$ref": "#/components/schemas/Synthesis" },
+                      "metadata": { "type": "object", "additionalProperties": true }
+                    }
+                  },
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Format-specific configuration"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Exported content in requested format" },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "500": {
+            "description": "Export failure",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List available export formats",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Available export formats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "formats": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
