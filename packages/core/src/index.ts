@@ -7470,6 +7470,35 @@ export type {
   DomainProfile as InnovationMemoryDomainProfile,
 } from "./innovation-memory/index.js";
 
+// ---- Knowledge Lake ----
+export {
+  indexArtifact,
+  indexArtifacts,
+  removeFromIndex,
+  searchLake,
+  detectDuplicates,
+  surfaceTrends,
+  generateCrossSessionInsights,
+  getLakeStats,
+  clearKnowledgeLake,
+  ArtifactTypeSchema as LakeArtifactTypeSchema,
+  IndexedArtifactSchema,
+  LakeSearchResultSchema,
+  LakeSearchResponseSchema,
+  DuplicateGroupSchema,
+  TrendSchema,
+  CrossSessionInsightSchema,
+} from "./knowledge-lake/index.js";
+export type {
+  ArtifactType as LakeArtifactType,
+  IndexedArtifact,
+  LakeSearchResult,
+  LakeSearchResponse,
+  DuplicateGroup,
+  Trend,
+  CrossSessionInsight,
+} from "./knowledge-lake/index.js";
+
 // ---- Idea-to-Implementation Bridge ----
 export {
   generatePRD,
