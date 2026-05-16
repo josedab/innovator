@@ -3077,6 +3077,38 @@ export type {
   ReputationLevel,
 } from "./marketplace/reputation.js";
 
+/** Marketplace 2.0 — formalized package standard, discovery catalog, and contributor portal. */
+export {
+  publishPackage,
+  getPackageListing,
+  searchCatalog,
+  installPackage,
+  submitReview as submitPackageReview,
+  featurePackage,
+  verifyPackage,
+  getContributorStats,
+  validateManifest,
+  unpublishPackage,
+  clearMarketplace as clearMarketplaceV2,
+  PackageCategorySchema,
+  SemverSchema,
+  CompatibilitySchema,
+  PackageManifestSchema,
+  ReviewSchema as PackageReviewSchema,
+  PackageListingSchema,
+  CatalogSearchResultSchema,
+  ContributorStatsSchema,
+} from "./marketplace/package-standard.js";
+export type {
+  PackageCategory,
+  Compatibility,
+  PackageManifest,
+  Review as PackageReview,
+  PackageListing,
+  CatalogSearchResult,
+  ContributorStats,
+} from "./marketplace/package-standard.js";
+
 /** Innovation Embeddings & Semantic Search — TF-IDF vector search, similarity clustering, and cross-investigation discovery. */
 export {
   indexDocument,
