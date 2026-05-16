@@ -7769,6 +7769,24 @@ export type {
   BridgeProgress,
 } from "./idea-bridge/index.js";
 
+/** Idea-to-Ticket Pipeline — generate provider-formatted tickets with acceptance criteria. */
+export {
+  generateAcceptanceCriteria,
+  formatAcceptanceCriteriaMarkdown,
+  formatGitHubTicket,
+  formatJiraTicket,
+  formatLinearTicket,
+  generateTicketBatch,
+  ticketBatchToCreatedIssues,
+  ticketBatchToMarkdown,
+} from "./idea-bridge/index.js";
+export type {
+  AcceptanceCriteria,
+  TicketPayload,
+  TicketBatch,
+  TicketBatchSummary,
+} from "./idea-bridge/index.js";
+
 // ---- Backtesting Engine ----
 export {
   getSeedCasePack,

@@ -14,6 +14,23 @@ export {
 export type { BridgeProgress } from "./idea-bridge.js";
 
 export {
+  generateAcceptanceCriteria,
+  formatAcceptanceCriteriaMarkdown,
+  formatGitHubTicket,
+  formatJiraTicket,
+  formatLinearTicket,
+  generateTicketBatch,
+  ticketBatchToCreatedIssues,
+  ticketBatchToMarkdown,
+} from "./ticket-providers.js";
+export type {
+  AcceptanceCriteria,
+  TicketPayload,
+  TicketBatch,
+  TicketBatchSummary,
+} from "./ticket-providers.js";
+
+export {
   BridgeStageSchema,
   UserStorySchema,
   PRDSchema,
