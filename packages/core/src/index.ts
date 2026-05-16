@@ -7685,3 +7685,28 @@ export type {
   ScreeningReport as RegulatoryScreeningReport,
   RegulatoryScreenConfig,
 } from "./regulatory-screen/index.js";
+
+// ---- Innovation API Economy ----
+export {
+  createApiClient,
+  generateApiKey,
+  validateApiKey,
+  generateSessionToken as generateApiSessionToken,
+  validateSessionToken as validateApiSessionToken,
+  recordUsage as recordApiUsage,
+  getUsageSummary as getApiUsageSummary,
+  getApiPricing,
+  ApiClientSchema,
+  ApiKeySchema as ApiEconomyKeySchema,
+  UsageRecordSchema as ApiEconomyUsageRecordSchema,
+  UsageSummarySchema as ApiEconomyUsageSummarySchema,
+  PricingTierSchema,
+} from "./api-economy/index.js";
+export type {
+  ApiClient,
+  ApiKey as ApiEconomyKey,
+  UsageRecord as ApiEconomyUsageRecord,
+  UsageSummary as ApiEconomyUsageSummary,
+  PricingTier,
+  ApiEconomyConfig,
+} from "./api-economy/index.js";
