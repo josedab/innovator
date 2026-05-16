@@ -28,26 +28,49 @@ export type ConstraintOperator = z.infer<typeof ConstraintOperatorSchema>;
 
 export const ConstraintSchema = z.object({
   type: ConstraintTypeSchema,
-  dimension: z.string().min(1).max(200).describe("What this constraint applies to (e.g., 'budget', 'timeline', 'platform')"),
+  dimension: z
+    .string()
+    .min(1)
+    .max(200)
+    .describe("What this constraint applies to (e.g., 'budget', 'timeline', 'platform')"),
   operator: ConstraintOperatorSchema,
-  value: z.string().min(1).max(500).describe("The constraint value (e.g., '50K', '3 months', 'mobile')"),
-  weight: z.number().min(0).max(1).optional().describe("Importance weight for soft constraints (0-1)"),
+  value: z
+    .string()
+    .min(1)
+    .max(500)
+    .describe("The constraint value (e.g., '50K', '3 months', 'mobile')"),
+  weight: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("Importance weight for soft constraints (0-1)"),
 });
 
 export type Constraint = z.infer<typeof ConstraintSchema>;
 
 export const ConstraintEvaluationSchema = z.object({
-  ideaTitle: z.string().max(500),
+  ideaTitle: z.string().max(500).describe("Title of the idea being evaluated"),
   passes: z.boolean().describe("Whether the idea passes all hard constraints"),
   score: z.number().min(0).max(100).describe("Overall constraint satisfaction score (0-100)"),
-  constraintResults: z.array(
-    z.object({
-      dimension: z.string().max(200),
-      satisfied: z.boolean(),
-      explanation: z.string().max(500),
-    })
-  ).max(50),
-  recommendation: z.string().max(1000).optional(),
+  constraintResults: z
+    .array(
+      z.object({
+        dimension: z
+          .string()
+          .max(200)
+          .describe("Constraint dimension evaluated (e.g. 'budget', 'timeline')"),
+        satisfied: z.boolean().describe("Whether this specific constraint is satisfied"),
+        explanation: z.string().max(500).describe("Reasoning for the satisfaction determination"),
+      })
+    )
+    .max(50)
+    .describe("Per-constraint evaluation results"),
+  recommendation: z
+    .string()
+    .max(1000)
+    .optional()
+    .describe("Actionable recommendation for the idea"),
 });
 
 export type ConstraintEvaluation = z.infer<typeof ConstraintEvaluationSchema>;
@@ -74,7 +97,13 @@ function buildConstraintPrompt(
 
 IDEAS TO EVALUATE:
 """
-${sanitizeLlmOutput(JSON.stringify(ideas.map((i) => ({ title: i.title, description: i.description })), null, 2))}
+${sanitizeLlmOutput(
+  JSON.stringify(
+    ideas.map((i) => ({ title: i.title, description: i.description })),
+    null,
+    2
+  )
+)}
 """
 
 HARD CONSTRAINTS (must pass ALL):
@@ -181,7 +210,9 @@ export async function evaluateConstraints(
 /**
  * Extract flat idea list from angle results for constraint evaluation.
  */
-export function flattenIdeas(angleResults: AngleResult[]): { title: string; description: string }[] {
+export function flattenIdeas(
+  angleResults: AngleResult[]
+): { title: string; description: string }[] {
   return angleResults.flatMap((ar) =>
     ar.ideas.map((idea) => ({
       title: idea.title,
@@ -216,5 +247,7 @@ export function parseConstraintString(str: string): Constraint {
     }
   }
 
-  throw new Error(`Cannot parse constraint: "${str}". Use format: dimension<value, dimension=value, etc.`);
+  throw new Error(
+    `Cannot parse constraint: "${str}". Use format: dimension<value, dimension=value, etc.`
+  );
 }
