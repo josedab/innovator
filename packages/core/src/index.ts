@@ -2615,6 +2615,40 @@ export type {
   ABComparison,
 } from "./observatory/index.js";
 
+/** Enterprise Innovation Observatory — executive dashboard, KPIs, team DNA, competitive alerts, and automated reports. */
+export {
+  addCompetitiveAlert,
+  acknowledgeAlert,
+  addTrendSignal,
+  setTeamDNAProfile,
+  generateExecutiveDashboard,
+  scheduleReport,
+  listScheduledReports,
+  generateInnovationBrief,
+  deleteScheduledReport,
+  clearObservatoryData,
+  InnovationKPISchema,
+  VelocityMetricSchema,
+  TeamDNAProfileSchema,
+  CompetitiveAlertSchema as EnterpriseCompetitiveAlertSchema,
+  TrendSignalSchema,
+  PortfolioHealthSchema,
+  ExecutiveDashboardSchema,
+  ReportFormatSchema as EnterpriseReportFormatSchema,
+  ScheduledReportSchema,
+} from "./observatory/enterprise.js";
+export type {
+  InnovationKPI,
+  VelocityMetric,
+  TeamDNAProfile,
+  CompetitiveAlert as EnterpriseCompetitiveAlert,
+  TrendSignal,
+  PortfolioHealth,
+  ExecutiveDashboard,
+  ReportFormat as EnterpriseReportFormat,
+  ScheduledReport,
+} from "./observatory/enterprise.js";
+
 /** Team innovation rituals — scheduled cadences with participant management and digest generation. */
 export {
   createRitual,
