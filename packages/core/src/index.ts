@@ -2734,6 +2734,41 @@ export type {
   BroadcastToRoom,
 } from "./realtime/index.js";
 
+/** War Room — multi-user innovation sessions with roles, canvas, OT, and voting. */
+export {
+  createWarRoom,
+  getWarRoom,
+  findWarRoomByCode,
+  joinWarRoom,
+  leaveWarRoom,
+  setMemberRole,
+  advanceWarRoomPhase,
+  applyCanvasOperation,
+  castWarRoomVote,
+  getWarRoomVoteTallies,
+  deleteWarRoom,
+  listWarRooms,
+  clearWarRooms,
+  WarRoomRoleSchema,
+  WarRoomMemberSchema,
+  WarRoomPhaseSchema,
+  WarRoomVoteSchema,
+  CanvasObjectSchema,
+  OperationSchema,
+  PipelineExecutionSchema,
+  WarRoomSchema,
+} from "./realtime/war-room.js";
+export type {
+  WarRoomRole,
+  WarRoomMember,
+  WarRoomPhase,
+  WarRoomVote,
+  CanvasObject,
+  Operation,
+  PipelineExecution,
+  WarRoom,
+} from "./realtime/war-room.js";
+
 /** Multi-model consensus — run angles across multiple LLMs and synthesize agreements/divergences. */
 export {
   runConsensus,
