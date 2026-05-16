@@ -7560,3 +7560,23 @@ export type {
   BacktestProgress,
   BacktestConfig,
 } from "./backtesting/index.js";
+
+// ---- Innovation Debt Tracker ----
+export {
+  createDebtItem,
+  updateDebtItem,
+  calculateDebtScore,
+  detectCompetitiveMatch,
+  generateDebtReport,
+  DebtItemSchema,
+  CompetitiveMatchSchema,
+  DebtReportSchema,
+  DebtScoreSchema,
+} from "./debt-tracker/index.js";
+export type {
+  DebtItem,
+  CompetitiveMatch,
+  DebtReport,
+  DebtScore,
+  DebtTrackerConfig,
+} from "./debt-tracker/index.js";
