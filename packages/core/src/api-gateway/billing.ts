@@ -20,73 +20,88 @@ export const SubscriptionStatusSchema = z.enum([
 ]);
 
 export const SubscriptionSchema = z.object({
-  id: z.string().max(100),
-  tenantId: z.string().max(100),
-  tier: z.enum(["free", "pro", "enterprise"]),
-  status: SubscriptionStatusSchema,
-  stripeCustomerId: z.string().max(200).optional(),
-  stripeSubscriptionId: z.string().max(200).optional(),
-  currentPeriodStart: z.string(),
-  currentPeriodEnd: z.string(),
-  cancelAtPeriodEnd: z.boolean().default(false),
-  trialEndDate: z.string().optional(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  id: z.string().max(100).describe("Unique subscription identifier"),
+  tenantId: z.string().max(100).describe("Tenant this subscription belongs to"),
+  tier: z.enum(["free", "pro", "enterprise"]).describe("Billing tier level"),
+  status: SubscriptionStatusSchema.describe("Current subscription lifecycle status"),
+  stripeCustomerId: z
+    .string()
+    .max(200)
+    .optional()
+    .describe("Stripe customer ID for payment processing"),
+  stripeSubscriptionId: z.string().max(200).optional().describe("Stripe subscription ID"),
+  currentPeriodStart: z.string().describe("ISO 8601 start of the current billing period"),
+  currentPeriodEnd: z.string().describe("ISO 8601 end of the current billing period"),
+  cancelAtPeriodEnd: z
+    .boolean()
+    .default(false)
+    .describe("Whether to cancel at the end of the current period"),
+  trialEndDate: z.string().optional().describe("ISO 8601 trial expiration date"),
+  createdAt: z.string().describe("ISO 8601 creation timestamp"),
+  updatedAt: z.string().describe("ISO 8601 last-updated timestamp"),
 });
 
 export const UsageMeterEventSchema = z.object({
-  id: z.string().max(100),
-  tenantId: z.string().max(100),
-  eventType: z.enum(["api_call", "tokens_used", "pipeline_run", "artifact_generated"]),
-  quantity: z.number().min(0),
-  timestamp: z.string(),
-  metadata: z.record(z.string()).optional(),
-  reported: z.boolean().default(false),
+  id: z.string().max(100).describe("Unique meter event identifier"),
+  tenantId: z.string().max(100).describe("Tenant that generated this event"),
+  eventType: z
+    .enum(["api_call", "tokens_used", "pipeline_run", "artifact_generated"])
+    .describe("Type of billable event"),
+  quantity: z.number().min(0).describe("Quantity consumed (calls, tokens, etc.)"),
+  timestamp: z.string().describe("ISO 8601 timestamp of the event"),
+  metadata: z
+    .record(z.string())
+    .optional()
+    .describe("Arbitrary key-value metadata attached to the event"),
+  reported: z.boolean().default(false).describe("Whether this event has been reported to Stripe"),
 });
 
 export const InvoiceLineSchema = z.object({
-  description: z.string().max(500),
-  quantity: z.number().min(0),
-  unitPrice: z.number().min(0),
-  amount: z.number().min(0),
+  description: z.string().max(500).describe("Line item description"),
+  quantity: z.number().min(0).describe("Number of units billed"),
+  unitPrice: z.number().min(0).describe("Price per unit in the invoice currency"),
+  amount: z.number().min(0).describe("Total amount for this line (quantity × unitPrice)"),
 });
 
 export const InvoiceSchema = z.object({
-  id: z.string().max(100),
-  tenantId: z.string().max(100),
-  subscriptionId: z.string().max(100),
-  periodStart: z.string(),
-  periodEnd: z.string(),
-  lines: z.array(InvoiceLineSchema),
-  subtotal: z.number().min(0),
-  tax: z.number().min(0),
-  total: z.number().min(0),
-  currency: z.string().default("usd"),
-  status: z.enum(["draft", "open", "paid", "void"]),
-  createdAt: z.string(),
+  id: z.string().max(100).describe("Unique invoice identifier"),
+  tenantId: z.string().max(100).describe("Tenant this invoice belongs to"),
+  subscriptionId: z.string().max(100).describe("Associated subscription ID"),
+  periodStart: z.string().describe("ISO 8601 billing period start"),
+  periodEnd: z.string().describe("ISO 8601 billing period end"),
+  lines: z.array(InvoiceLineSchema).describe("Invoice line items"),
+  subtotal: z.number().min(0).describe("Subtotal before tax"),
+  tax: z.number().min(0).describe("Tax amount"),
+  total: z.number().min(0).describe("Total amount due (subtotal + tax)"),
+  currency: z.string().default("usd").describe("ISO 4217 currency code"),
+  status: z.enum(["draft", "open", "paid", "void"]).describe("Invoice lifecycle status"),
+  createdAt: z.string().describe("ISO 8601 creation timestamp"),
 });
 
 export const PricingPlanSchema = z.object({
-  tier: z.enum(["free", "pro", "enterprise"]),
-  name: z.string(),
-  monthlyPrice: z.number().min(0),
-  annualPrice: z.number().min(0),
-  features: z.array(z.string()),
-  limits: z.object({
-    dailyCalls: z.number(),
-    monthlyTokens: z.number(),
-    maxApiKeys: z.number(),
-    webhooks: z.boolean(),
-    prioritySupport: z.boolean(),
-    customModels: z.boolean(),
-    sla: z.string().optional(),
-  }),
+  tier: z.enum(["free", "pro", "enterprise"]).describe("Billing tier level"),
+  name: z.string().describe("Human-readable plan name"),
+  monthlyPrice: z.number().min(0).describe("Monthly subscription price in USD"),
+  annualPrice: z.number().min(0).describe("Annual subscription price in USD"),
+  features: z.array(z.string()).describe("List of feature descriptions included in the plan"),
+  limits: z
+    .object({
+      dailyCalls: z.number().describe("Maximum API calls per day"),
+      monthlyTokens: z.number().describe("Maximum tokens per month"),
+      maxApiKeys: z.number().describe("Maximum number of API keys allowed"),
+      webhooks: z.boolean().describe("Whether webhook notifications are enabled"),
+      prioritySupport: z.boolean().describe("Whether priority support is included"),
+      customModels: z.boolean().describe("Whether custom model routing is available"),
+      sla: z.string().optional().describe("SLA uptime guarantee percentage"),
+    })
+    .describe("Resource limits for this plan"),
   overage: z
     .object({
-      perCallCost: z.number().min(0),
-      perTokenCost: z.number().min(0),
+      perCallCost: z.number().min(0).describe("Cost per API call over the daily limit"),
+      perTokenCost: z.number().min(0).describe("Cost per token over the monthly limit"),
     })
-    .optional(),
+    .optional()
+    .describe("Overage pricing for usage beyond plan limits"),
 });
 
 // ---- Types ----
@@ -216,12 +231,22 @@ export function createSubscription(
   return sub;
 }
 
-/** Get subscription by ID. */
+/**
+ * Get a subscription by its unique ID.
+ *
+ * @param id - The subscription identifier.
+ * @returns The subscription, or `undefined` if not found.
+ */
 export function getSubscription(id: string): Subscription | undefined {
   return subscriptions.get(id);
 }
 
-/** Find subscription by tenant ID. */
+/**
+ * Find an active (non-canceled) subscription for a tenant.
+ *
+ * @param tenantId - The tenant identifier to search for.
+ * @returns The first active subscription for the tenant, or `undefined` if none exists.
+ */
 export function findSubscriptionByTenant(tenantId: string): Subscription | undefined {
   for (const sub of subscriptions.values()) {
     if (sub.tenantId === tenantId && sub.status !== "canceled") return sub;
@@ -327,12 +352,22 @@ export function recordMeterEvent(
   return event;
 }
 
-/** Get unreported meter events for Stripe reporting. */
+/**
+ * Get unreported meter events for a tenant, pending Stripe reporting.
+ *
+ * @param tenantId - The tenant identifier to filter by.
+ * @returns Array of unreported usage meter events.
+ */
 export function getUnreportedEvents(tenantId: string): UsageMeterEvent[] {
   return usageMeterEvents.filter((e) => e.tenantId === tenantId && !e.reported);
 }
 
-/** Mark events as reported to Stripe. */
+/**
+ * Mark meter events as reported to Stripe.
+ *
+ * @param eventIds - Array of event IDs to mark as reported.
+ * @returns The number of events that were found and marked.
+ */
 export function markEventsReported(eventIds: string[]): number {
   let count = 0;
   for (const event of usageMeterEvents) {
@@ -344,7 +379,14 @@ export function markEventsReported(eventIds: string[]): number {
   return count;
 }
 
-/** Get usage summary for billing period. */
+/**
+ * Get aggregated usage summary for a tenant's billing period.
+ *
+ * @param tenantId - The tenant identifier.
+ * @param periodStart - ISO 8601 start of the billing period.
+ * @param periodEnd - ISO 8601 end of the billing period.
+ * @returns Breakdown of API calls, tokens, pipeline runs, and artifacts generated.
+ */
 export function getUsageForBilling(
   tenantId: string,
   periodStart: string,
@@ -445,7 +487,12 @@ export function generateInvoice(tenantId: string, subscriptionId: string): Invoi
   return invoice;
 }
 
-/** Get invoices for a tenant. */
+/**
+ * Get all invoices for a tenant.
+ *
+ * @param tenantId - The tenant identifier.
+ * @returns Array of invoices belonging to the tenant.
+ */
 export function getInvoices(tenantId: string): Invoice[] {
   return Array.from(invoices.values()).filter((i) => i.tenantId === tenantId);
 }
@@ -455,7 +502,10 @@ export function getPricingPlans(): PricingPlan[] {
   return [...PRICING_PLANS];
 }
 
-/** Clear all billing state (for testing). */
+/**
+ * Clear all billing state (subscriptions, meter events, invoices).
+ * Primarily intended for test teardown.
+ */
 export function clearBillingState(): void {
   subscriptions.clear();
   usageMeterEvents.length = 0;

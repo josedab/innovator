@@ -12,58 +12,67 @@ import { z } from "zod";
 export const BillingTierSchema = z.enum(["free", "pro", "enterprise"]);
 
 export const ApiKeySchema = z.object({
-  id: z.string().max(100),
-  key: z.string().max(200),
-  name: z.string().max(200),
-  tier: BillingTierSchema,
-  createdAt: z.string(),
-  lastUsedAt: z.string().optional(),
-  enabled: z.boolean(),
-  rateLimit: z.object({
-    dailyLimit: z.number(),
-    minuteLimit: z.number(),
-  }),
-  metadata: z.record(z.string()).optional(),
+  id: z.string().max(100).describe("Unique API key identifier"),
+  key: z.string().max(200).describe("The API key value (prefixed by tier, e.g. inv_free_...)"),
+  name: z.string().max(200).describe("Human-readable label for the key"),
+  tier: BillingTierSchema.describe("Billing tier associated with this key"),
+  createdAt: z.string().describe("ISO 8601 creation timestamp"),
+  lastUsedAt: z
+    .string()
+    .optional()
+    .describe("ISO 8601 timestamp of the last API call using this key"),
+  enabled: z.boolean().describe("Whether the key is active and can be used for requests"),
+  rateLimit: z
+    .object({
+      dailyLimit: z.number().describe("Maximum API calls per day"),
+      minuteLimit: z.number().describe("Maximum API calls per minute"),
+    })
+    .describe("Rate limit configuration for this key"),
+  metadata: z.record(z.string()).optional().describe("Arbitrary key-value metadata"),
 });
 
 export const UsageRecordSchema = z.object({
-  keyId: z.string().max(100),
-  endpoint: z.string().max(200),
-  timestamp: z.string(),
-  durationMs: z.number(),
-  tokensUsed: z.number().optional(),
-  statusCode: z.number(),
-  error: z.string().optional(),
+  keyId: z.string().max(100).describe("API key ID that made this request"),
+  endpoint: z.string().max(200).describe("API endpoint path that was called"),
+  timestamp: z.string().describe("ISO 8601 timestamp of the request"),
+  durationMs: z.number().describe("Request duration in milliseconds"),
+  tokensUsed: z.number().optional().describe("Number of LLM tokens consumed"),
+  statusCode: z.number().describe("HTTP response status code"),
+  error: z.string().optional().describe("Error message if the request failed"),
 });
 
 export const UsageSummarySchema = z.object({
-  keyId: z.string().max(100),
-  tier: BillingTierSchema,
-  period: z.string(),
-  totalCalls: z.number(),
-  totalTokens: z.number(),
-  averageLatencyMs: z.number(),
-  errorRate: z.number().min(0).max(1),
-  endpointBreakdown: z.record(z.number()),
-  dailyUsage: z.array(
-    z.object({
-      date: z.string(),
-      calls: z.number(),
-    })
-  ),
+  keyId: z.string().max(100).describe("API key ID this summary is for"),
+  tier: BillingTierSchema.describe("Billing tier of the key"),
+  period: z.string().describe("Human-readable period description (e.g. '30 days')"),
+  totalCalls: z.number().describe("Total number of API calls in the period"),
+  totalTokens: z.number().describe("Total LLM tokens consumed in the period"),
+  averageLatencyMs: z.number().describe("Average request latency in milliseconds"),
+  errorRate: z.number().min(0).max(1).describe("Fraction of requests that returned errors (0-1)"),
+  endpointBreakdown: z.record(z.number()).describe("Call count per endpoint path"),
+  dailyUsage: z
+    .array(
+      z.object({
+        date: z.string().describe("Date in YYYY-MM-DD format"),
+        calls: z.number().describe("Number of API calls on this date"),
+      })
+    )
+    .describe("Daily usage breakdown"),
 });
 
 export const WebhookEventSchema = z.object({
-  id: z.string(),
-  type: z.enum([
-    "pipeline.complete",
-    "investigation.complete",
-    "usage.limit.warning",
-    "usage.limit.reached",
-  ]),
-  payload: z.record(z.unknown()),
-  timestamp: z.string(),
-  keyId: z.string(),
+  id: z.string().describe("Unique webhook event identifier"),
+  type: z
+    .enum([
+      "pipeline.complete",
+      "investigation.complete",
+      "usage.limit.warning",
+      "usage.limit.reached",
+    ])
+    .describe("Type of event that triggered this webhook"),
+  payload: z.record(z.unknown()).describe("Event-specific payload data"),
+  timestamp: z.string().describe("ISO 8601 timestamp of the event"),
+  keyId: z.string().describe("API key ID associated with this event"),
 });
 
 export type BillingTier = z.infer<typeof BillingTierSchema>;
@@ -74,6 +83,7 @@ export type WebhookEvent = z.infer<typeof WebhookEventSchema>;
 
 // ---- Tier Configuration ----
 
+/** Rate limits per billing tier (daily and per-minute). */
 export const TIER_LIMITS: Record<BillingTier, { dailyLimit: number; minuteLimit: number }> = {
   free: { dailyLimit: 10, minuteLimit: 5 },
   pro: { dailyLimit: 1000, minuteLimit: 60 },
@@ -113,12 +123,22 @@ export function createApiKey(name: string, tier: BillingTier = "free"): ApiKey {
   return apiKey;
 }
 
-/** Get an API key by ID. */
+/**
+ * Get an API key by its unique identifier.
+ *
+ * @param id - The API key identifier.
+ * @returns The API key, or `undefined` if not found.
+ */
 export function getApiKey(id: string): ApiKey | undefined {
   return apiKeys.get(id);
 }
 
-/** Find API key by key value. */
+/**
+ * Find an API key by its secret key value.
+ *
+ * @param keyValue - The full API key string (e.g., `inv_free_abc...`).
+ * @returns The matching API key, or `undefined` if not found.
+ */
 export function findApiKeyByValue(keyValue: string): ApiKey | undefined {
   for (const apiKey of apiKeys.values()) {
     if (apiKey.key === keyValue) return apiKey;
@@ -126,12 +146,21 @@ export function findApiKeyByValue(keyValue: string): ApiKey | undefined {
   return undefined;
 }
 
-/** List all API keys. */
+/**
+ * List all registered API keys.
+ *
+ * @returns Array of all API keys.
+ */
 export function listApiKeys(): ApiKey[] {
   return Array.from(apiKeys.values());
 }
 
-/** Revoke an API key. */
+/**
+ * Revoke an API key, disabling it from making further requests.
+ *
+ * @param id - The API key identifier to revoke.
+ * @returns `true` if found and revoked, `false` if not found.
+ */
 export function revokeApiKey(id: string): boolean {
   const key = apiKeys.get(id);
   if (!key) return false;
@@ -139,7 +168,13 @@ export function revokeApiKey(id: string): boolean {
   return true;
 }
 
-/** Update API key tier. */
+/**
+ * Update an API key's billing tier and associated rate limits.
+ *
+ * @param id - The API key identifier.
+ * @param tier - The new billing tier to assign.
+ * @returns `true` if found and updated, `false` if not found.
+ */
 export function updateApiKeyTier(id: string, tier: BillingTier): boolean {
   const key = apiKeys.get(id);
   if (!key) return false;
@@ -148,7 +183,12 @@ export function updateApiKeyTier(id: string, tier: BillingTier): boolean {
   return true;
 }
 
-/** Delete an API key. */
+/**
+ * Permanently delete an API key.
+ *
+ * @param id - The API key identifier.
+ * @returns `true` if found and deleted, `false` if not found.
+ */
 export function deleteApiKey(id: string): boolean {
   return apiKeys.delete(id);
 }
@@ -268,12 +308,23 @@ export function registerWebhook(keyId: string, url: string): void {
   webhookUrls.set(keyId, urls);
 }
 
-/** Get webhook URLs for an API key. */
+/**
+ * Get registered webhook URLs for an API key.
+ *
+ * @param keyId - The API key identifier.
+ * @returns Array of webhook URLs, or empty array if none registered.
+ */
 export function getWebhooks(keyId: string): string[] {
   return webhookUrls.get(keyId) ?? [];
 }
 
-/** Remove a webhook URL. */
+/**
+ * Remove a specific webhook URL from an API key.
+ *
+ * @param keyId - The API key identifier.
+ * @param url - The webhook URL to remove.
+ * @returns `true` if found and removed, `false` otherwise.
+ */
 export function removeWebhook(keyId: string, url: string): boolean {
   const urls = webhookUrls.get(keyId);
   if (!urls) return false;
@@ -883,7 +934,12 @@ export function createTenant(name: string, ownerEmail: string, tier: BillingTier
   return tenant;
 }
 
-/** Get a tenant by ID. */
+/**
+ * Get a tenant by its unique identifier.
+ *
+ * @param id - The tenant identifier.
+ * @returns The tenant, or `undefined` if not found.
+ */
 export function getTenant(id: string): Tenant | undefined {
   return tenants.get(id);
 }

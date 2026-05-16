@@ -18,17 +18,22 @@ import {
 
 // ---- Schemas ----
 
+/** Schema for the result returned by middleware functions (auth, rate limiting, validation). */
 export const MiddlewareResultSchema = z.object({
-  allowed: z.boolean(),
-  statusCode: z.number(),
-  error: z.string().optional(),
-  headers: z.record(z.string()).optional(),
+  allowed: z.boolean().describe("Whether the request is allowed to proceed"),
+  statusCode: z.number().describe("HTTP status code to return"),
+  error: z.string().optional().describe("Error message if the request was rejected"),
+  headers: z
+    .record(z.string())
+    .optional()
+    .describe("Response headers to include (e.g. rate limit info)"),
   apiKey: z
     .object({
-      id: z.string(),
-      tier: z.enum(["free", "pro", "enterprise"]),
+      id: z.string().describe("API key identifier"),
+      tier: z.enum(["free", "pro", "enterprise"]).describe("Billing tier of the key"),
     })
-    .optional(),
+    .optional()
+    .describe("Authenticated API key context (present on successful auth)"),
 });
 
 export type MiddlewareResult = z.infer<typeof MiddlewareResultSchema>;
@@ -81,7 +86,10 @@ export function checkSlidingWindow(
   };
 }
 
-/** Clear sliding window state (for testing). */
+/**
+ * Clear all sliding window rate limiter state.
+ * Primarily intended for test teardown.
+ */
 export function clearSlidingWindows(): void {
   slidingWindows.clear();
 }
@@ -233,10 +241,15 @@ export function validateRequestBody(
 
 // ---- CORS Configuration ----
 
+/** CORS configuration for allowed origins, methods, headers, and preflight cache duration. */
 export interface CorsConfig {
+  /** Origins allowed to make cross-origin requests (use `["*"]` for any). */
   allowedOrigins: string[];
+  /** HTTP methods allowed in cross-origin requests. */
   allowedMethods: string[];
+  /** Request headers allowed in cross-origin requests. */
   allowedHeaders: string[];
+  /** Maximum duration (in seconds) browsers should cache preflight results. */
   maxAge: number;
 }
 
