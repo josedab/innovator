@@ -3306,6 +3306,30 @@ export type {
   Cohort,
 } from "./outcome-tracking/connectors.js";
 
+/** Innovation Telemetry — lifecycle events, model effectiveness, team heatmaps, executive export. */
+export {
+  recordTelemetryEvent,
+  getTelemetryEvents,
+  getModelEffectiveness,
+  buildTeamHeatmap,
+  buildAngleROIChart,
+  buildExecutiveDashboardExport,
+  exportDashboardToMarkdown,
+  exportDashboardToCSV,
+  clearTelemetryData,
+  TelemetryEventTypeSchema,
+  TelemetryEventSchema,
+} from "./outcome-tracking/telemetry.js";
+export type {
+  TelemetryEventType,
+  TelemetryEvent,
+  ModelEffectivenessMetrics,
+  TeamHeatmapCell,
+  TeamContributionHeatmap,
+  AngleROIChartPoint,
+  ExecutiveDashboardExport,
+} from "./outcome-tracking/telemetry.js";
+
 /** AI Innovation Coach — conversational coaching with domain detection and learning feedback. */
 export {
   startCoachSession,
