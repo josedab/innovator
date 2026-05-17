@@ -103,6 +103,10 @@ export class LRUCache<K, V> {
   set(key: K, value: V): void {
     // Delete first so re-insert moves to end (most recent)
     this.map.delete(key);
+    // Prune expired entries before checking capacity so stale items don't block inserts
+    if (this.map.size >= this.maxSize) {
+      this.prune();
+    }
     if (this.map.size >= this.maxSize) {
       // Evict the least-recently-used entry (first key in Map iteration order)
       const oldest = this.map.keys().next().value;

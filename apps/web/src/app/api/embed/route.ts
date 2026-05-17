@@ -25,8 +25,12 @@ function corsHeaders(origin: string | null): Record<string, string> {
     .map((o) => o.trim());
   const isAllowed = allowedOrigins.includes("*") || (origin && allowedOrigins.includes(origin));
 
+  if (!isAllowed) {
+    return {};
+  }
+
   return {
-    "Access-Control-Allow-Origin": isAllowed ? (origin ?? "*") : "",
+    "Access-Control-Allow-Origin": origin ?? "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-Embed-Key",
     "Access-Control-Max-Age": "86400",

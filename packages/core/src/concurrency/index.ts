@@ -84,7 +84,7 @@ export class Semaphore {
     const next = this.waitQueue.shift();
     if (next) {
       next();
-    } else {
+    } else if (this.permits < this.maxPermits) {
       this.permits++;
     }
   }
