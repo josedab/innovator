@@ -51,6 +51,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`PriorityWeights`** — New type for custom priority weight configuration
 - **`IdeaSummaryStats`** — New type for scored idea summary statistics
 - **`ScoringQuadrant`** — Re-exported `Quadrant` type for priority quadrant filtering
+- **`validateSubject()`** — Public subject validation and sanitization function; checks for non-empty, minimum length (2 chars), maximum length (500 chars), and prompt-injection safety; returns `SubjectValidationResult` with sanitized subject or error message
+- **`SubjectValidationResult`** — New type for the return value of `validateSubject()` (`{ valid, sanitized?, error? }`)
+- **`memoizeAsync()`** — Create a memoized version of an async function using an LRU cache; deduplicates concurrent calls for the same cache key, caches resolved values (not Promises), and evicts on rejection
+- **`computeCompletionPercent()`** — Compute overall pipeline completion percentage (0–100) from a `PipelineProgress` snapshot using weighted stage model (investigation 20%, generation 60%, synthesis 20%)
+- **`PipelineProgress.completionPercent`** — New optional field automatically populated by `runAutoPipeline()` on each progress callback
+- **Pipeline event bus integration** — `investigate()` and `generateForAngle()` now emit lifecycle events (`*.started`, `*.completed`, `*.failed`) on the global `EventBus` with subject, duration, and error details
+- **Time series gap filling** — `getTimeSeries()` now fills gaps with zero-value data points so charts are continuous across the full date range
 
 ### Changed
 
@@ -62,6 +69,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`unregisterPlugin()`** — Now async (returns `Promise<boolean>`), calls `onDestroy` lifecycle hook before removal
 - **`clearPlugins()`** — Now async (returns `Promise<void>`), calls `onDestroy` on each plugin during teardown
 - **Plugin System** — Plugin registration now validates `dependencies` array, throwing on unmet dependencies; tracks per-plugin initialization state
+- **`investigate()` subject validation** — Now validates and sanitizes the subject via `validateSubject()` before making the LLM call; throws `ValidationError` on invalid input instead of sending bad data to the LLM
+- **`generateForAngle()` subject validation** — Now validates and sanitizes the subject via `validateSubject()` before prompt construction
+- **`runAutoPipeline()` subject validation** — Now validates subject at pipeline entry point; throws `ValidationError` immediately on invalid input before any LLM calls
+- **`sanitizeLlmOutput()` in pipeline** — `investigate()` and `generateForAngle()` now apply `sanitizeLlmOutput()` to LLM responses before JSON parsing, preventing multi-hop prompt injection
+- **Pipeline event deduplication** — `runAutoPipeline()` no longer emits redundant `investigation.started`/`investigation.completed`/`investigation.failed` events since `investigate()` now emits them directly
+- **Refinement loop quality scoring** — `generateRefinement()` now uses structural quality scoring (`computeStructuralQuality()`) instead of raw text length comparison; checks for presence of implementation steps, acceptance criteria, risks, dependencies, and other structured fields
+- **Refinement loop UUID generation** — Replaced `crypto.randomUUID()` (browser API) with `node:crypto` `randomUUID()` for consistent Node.js compatibility
+- **Activity heatmap key encoding** — Changed heatmap cell key separator from `:` to null byte (`\0`) to prevent ambiguity when axis labels contain colons
 
 ### Fixed
 
@@ -69,6 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Prompt Studio validation** — `recordPromptExecution()` now validates required fields before persisting execution records
 - **Marketplace tests** — Fixed test setup and assertion mismatches across marketplace module test suites
 - **ESLint compliance** — Removed all `@ts-nocheck` directives and resolved remaining lint warnings across core modules
+- **Cache duplicate JSDoc** — Removed duplicate JSDoc comment block on `memoize()` in `cache/index.ts`
 
 ### Testing
 
@@ -97,6 +113,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Reference** — Added Validation section with built-in validators, custom validator registry, and comprehensive validation
 - **API Reference** — Added Futures Market section documenting LMSR prediction market engine with trading and analytics
 - **API Reference** — Expanded Zod Schemas table with 14 new schema entries (scoring, validation, futures market)
+- **API Reference** — Added `validateSubject()` section with validation rules, `SubjectValidationResult` type, and usage examples
+- **API Reference** — Added `computeCompletionPercent()` section with stage weight breakdown and progress bar example
+- **API Reference** — Updated `investigate()` with throws table (`ValidationError`, `LlmParseError`, `RetryExhaustedError`), event bus integration, and sanitization details
+- **API Reference** — Updated `generateForAngle()` with throws table and event bus lifecycle events
+- **API Reference** — Updated `runAutoPipeline()` with `ValidationError` throws, `completionPercent` progress tracking, and `PipelineProgress.completionPercent` field
+- **API Reference** — Updated `PipelineProgress` type with `completionPercent` and `durationMs` fields
 
 ## [0.3.0] — 2026-05-14
 

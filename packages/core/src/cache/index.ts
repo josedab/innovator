@@ -177,16 +177,6 @@ export class LRUCache<K, V> {
  * @returns A memoized wrapper with the same signature, plus a `.cache` property
  *          exposing the underlying {@link LRUCache} for inspection/clearing.
  */
-/**
- * Create a memoized version of a function using an LRU cache.
- *
- * @param fn - The function to memoize
- * @param options - Cache configuration
- * @param keyFn - Optional function to derive the cache key from the arguments.
- *                Defaults to `JSON.stringify(args)`.
- * @returns A memoized wrapper with the same signature, plus a `.cache` property
- *          exposing the underlying {@link LRUCache} for inspection/clearing.
- */
 export function memoize<Args extends unknown[], R>(
   fn: (...args: Args) => R,
   options: LRUCacheOptions,

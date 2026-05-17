@@ -33,6 +33,7 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
   - [Error Hierarchy](#error-hierarchy)
   - [`isInnovatorError()`](#isinnovatorerror)
 - [Prompt Utilities](#prompt-utilities)
+  - [`validateSubject()`](#validatesubject)
   - [`withRetry()`](#withretry)
   - [`RetryExhaustedError`](#retryexhaustederror)
   - [`withTimeout()`](#withtimeout)
@@ -130,6 +131,14 @@ function investigate(subject: string, model?: string, signal?: AbortSignal): Pro
 
 **Returns:** A validated `Investigation` object.
 
+**Throws:**
+
+| Error                 | When                                                                                    |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| `ValidationError`     | Subject is empty, too short (< 2 chars), too long (> 500 chars), or only unsafe content |
+| `LlmParseError`       | LLM response cannot be parsed as valid JSON after retries                               |
+| `RetryExhaustedError` | All retry attempts are exhausted                                                        |
+
 **Example:**
 
 ```typescript
@@ -142,9 +151,13 @@ console.log(result.challenges);
 console.log(result.opportunities);
 ```
 
-**Error handling:** Retries automatically on JSON parse failures (up to 3 attempts with exponential backoff). Throws if the LLM call fails or the response cannot be parsed after retries.
+**Error handling:** The subject is validated and sanitized (via [`validateSubject()`](#validatesubject)) before the LLM call. Retries automatically on JSON parse failures (up to 3 attempts with exponential backoff). LLM output is sanitized via `sanitizeLlmOutput()` before JSON parsing to prevent multi-hop prompt injection.
+
+**Events:** Emits `investigation.started`, `investigation.completed`, and `investigation.failed` events on the global [Event Bus](#event-bus), enabling progress monitoring and observability without coupling to the pipeline.
 
 > 📖 **Tutorial:** See [Running the Pipeline Programmatically](./DEVELOPER_GUIDE.md#running-the-pipeline-programmatically) for complete usage examples with cancellation and model routing.
+
+### `generateForAngle()`
 
 Generate innovation ideas for a subject using a specific creativity angle.
 
@@ -170,6 +183,13 @@ function generateForAngle(
 
 **Returns:** A validated `AngleResult` with generated ideas and reasoning.
 
+**Throws:**
+
+| Error             | When                                                                         |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `ValidationError` | Subject fails validation or the angle ID is unknown (not built-in or custom) |
+| `LlmParseError`   | LLM response cannot be parsed as valid JSON after retries                    |
+
 **Example:**
 
 ```typescript
@@ -186,6 +206,8 @@ for (const idea of result.ideas) {
 ```
 
 **Angle resolution:** Built-in angle IDs are matched first. If no match is found, the custom angle registry is consulted. Throws `ValidationError` if the angle ID is unknown.
+
+**Events:** Emits `generation.started`, `generation.completed`, and `generation.failed` events on the global [Event Bus](#event-bus) with subject, angle ID, idea count, and duration.
 
 ---
 
@@ -217,7 +239,15 @@ function runAutoPipeline(
 
 **Returns:** Final `PipelineProgress` including all angle results and synthesis.
 
+**Throws:**
+
+| Error             | When                                                                     |
+| ----------------- | ------------------------------------------------------------------------ |
+| `ValidationError` | Subject fails validation (empty, too short/long, or only unsafe content) |
+
 **Concurrency:** Generates ideas for up to `MAX_CONCURRENCY` (2) angles in parallel. Individual angle failures are captured without aborting the pipeline.
+
+**Progress tracking:** Each `PipelineProgress` callback includes a `completionPercent` field (0–100) computed automatically via [`computeCompletionPercent()`](#computecompletionpercent). Weights: investigation = 20%, generation = 60%, synthesis = 20%.
 
 **Example:**
 
@@ -583,6 +613,9 @@ function buildSynthesisPrompt(
   angleResults: string
 ): string;
 
+// Subject validation and sanitization
+function validateSubject(subject: unknown): SubjectValidationResult;
+
 // Defense against prompt injection
 function sanitizeUserInput(input: string): string; // Strip injection patterns
 function wrapUserInput(label: string, input: string): string; // Wrap with delimiters
@@ -590,6 +623,54 @@ function sanitizeLlmOutput(output: string): string; // Clean LLM responses
 
 // Retry with exponential backoff
 function withRetry<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<T>;
+```
+
+### `validateSubject()`
+
+Validate and sanitize a user-provided innovation subject string. Called internally by `investigate()`, `generateForAngle()`, and `runAutoPipeline()`, and also available as a public export for custom validation UIs.
+
+```typescript
+function validateSubject(subject: unknown): SubjectValidationResult;
+```
+
+**Validation rules:**
+
+| Check                    | Constraint                                                        |
+| ------------------------ | ----------------------------------------------------------------- |
+| Type check               | Must be a `string`                                                |
+| Non-empty                | Must not be empty or whitespace-only                              |
+| Minimum length           | ≥ 2 characters after trimming                                     |
+| Maximum length           | ≤ 500 characters                                                  |
+| Prompt-injection defense | Applies `sanitizeUserInput()` — result must still meet min length |
+
+**Returns:**
+
+```typescript
+interface SubjectValidationResult {
+  valid: boolean;
+  /** The sanitized subject string (present when `valid` is `true`). */
+  sanitized?: string;
+  /** Human-readable error message (present when `valid` is `false`). */
+  error?: string;
+}
+```
+
+**Example:**
+
+```typescript
+import { validateSubject } from "@innovator/core";
+
+const result = validateSubject("solar energy");
+if (result.valid) {
+  console.log("Sanitized:", result.sanitized);
+} else {
+  console.error("Invalid:", result.error);
+}
+
+// Validation failures:
+validateSubject(""); // { valid: false, error: "Subject must not be empty" }
+validateSubject("a"); // { valid: false, error: "Subject must be at least 2 characters" }
+validateSubject("x".repeat(501)); // { valid: false, error: "Subject must not exceed 500 characters" }
 ```
 
 ### `withRetry()`
@@ -2274,6 +2355,44 @@ interface PipelineProgress {
     complete: boolean;
   };
   stoppedEarly?: boolean;
+  /** Overall completion percentage (0–100) across all pipeline stages. */
+  completionPercent?: number;
+  /** Duration tracking for each pipeline stage and total elapsed time (in milliseconds). */
+  durationMs?: {
+    investigation?: number;
+    generation?: number;
+    synthesis?: number;
+    total?: number;
+  };
+}
+```
+
+### `computeCompletionPercent()`
+
+Compute the overall completion percentage for a pipeline progress snapshot. Used internally by `runAutoPipeline()` and available for custom UIs.
+
+```typescript
+function computeCompletionPercent(progress: PipelineProgress): number;
+```
+
+**Weights:**
+
+| Stage         | Weight |
+| ------------- | ------ |
+| Investigation | 20%    |
+| Generation    | 60%    |
+| Synthesis     | 20%    |
+
+During the generation stage, progress scales linearly with the number of completed angles. Returns a rounded integer from 0 to 100.
+
+**Example:**
+
+```typescript
+import { computeCompletionPercent, type PipelineProgress } from "@innovator/core";
+
+function renderProgressBar(progress: PipelineProgress) {
+  const pct = computeCompletionPercent(progress);
+  console.log(`[${"█".repeat(pct / 5)}${"░".repeat(20 - pct / 5)}] ${pct}%`);
 }
 ```
 
