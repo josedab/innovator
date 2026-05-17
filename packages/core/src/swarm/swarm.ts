@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
 import type { Investigation } from "../types.js";
 import {
   PERSONALITY_DESCRIPTIONS,
@@ -54,11 +55,15 @@ function buildExplorePrompt(
           .join("\n")
       : "No ideas shared yet.";
 
+  const investigationContext = investigation
+    ? `\nInvestigation context:\n${wrapUserInput("SUMMARY", investigation.summary)}\nKey challenges: ${wrapUserInput("CHALLENGES", investigation.challenges.join(", "))}`
+    : "";
+
   return `You are an autonomous innovation agent with the personality: "${agent.personality}".
 Personality description: ${personalityDesc}
 
-Subject being explored: ${subject}
-${investigation ? `\nInvestigation context:\n${investigation.summary}\nKey challenges: ${investigation.challenges.join(", ")}` : ""}
+${wrapUserInput("SUBJECT", subject)}
+${investigationContext}
 
 Ideas already on the shared blackboard:
 ${existingIdeas}
@@ -84,8 +89,8 @@ function buildReactPrompt(agent: SwarmAgent, entry: BlackboardEntry): string {
   return `You are an innovation agent with personality: "${agent.personality}" (${personalityDesc}).
 
 Another agent (${entry.personality}) proposed this idea:
-Title: ${entry.ideaTitle}
-Description: ${entry.ideaDescription}
+${wrapUserInput("TITLE", entry.ideaTitle)}
+${wrapUserInput("DESCRIPTION", entry.ideaDescription)}
 
 React to this idea from your personality's perspective. Choose one reaction type.
 
@@ -104,7 +109,8 @@ function buildConvergePrompt(blackboard: Blackboard, subject: string): string {
     )
     .join("\n");
 
-  return `Analyze these innovation ideas from a multi-agent swarm exploring "${subject}":
+  return `Analyze these innovation ideas from a multi-agent swarm exploring the following subject:
+${wrapUserInput("SUBJECT", subject)}
 
 ${entries}
 
@@ -166,7 +172,7 @@ async function agentExplore(
         model: config.model,
         signal: config.signal,
       });
-      const parsed = JSON.parse(extractJson(raw));
+      const parsed = JSON.parse(extractJson(sanitizeLlmOutput(raw)));
       return ExploreResponseSchema.parse(parsed);
     },
     { signal: config.signal }
@@ -201,7 +207,7 @@ async function agentReact(
         model: config.model,
         signal: config.signal,
       });
-      const parsed = JSON.parse(extractJson(raw));
+      const parsed = JSON.parse(extractJson(sanitizeLlmOutput(raw)));
       return ReactResponseSchema.parse(parsed);
     },
     { signal: config.signal }
@@ -376,7 +382,7 @@ export async function runSwarm(
         model: config.model,
         signal: config.signal,
       });
-      const parsed = JSON.parse(extractJson(raw));
+      const parsed = JSON.parse(extractJson(sanitizeLlmOutput(raw)));
       return z
         .object({
           ideas: z.array(SwarmIdeaSchema).max(50),

@@ -2,6 +2,7 @@ import { CopilotClient } from "@github/copilot-sdk";
 import type { PermissionRequest } from "@github/copilot-sdk";
 import { AbortError, LlmError, LlmTimeoutError, LlmParseError } from "../errors.js";
 import { LRUCache } from "../cache/index.js";
+import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 
 const DEFAULT_MODEL = process.env.INNOVATOR_DEFAULT_MODEL || "gpt-4.1";
 
@@ -245,14 +246,16 @@ const extractJsonCache = new LRUCache<string, string>({ maxSize: 128, ttlMs: 300
  * Extract JSON from an LLM response that may contain markdown or extra text.
  * Supports both JSON objects (`{...}`) and JSON arrays (`[...]`).
  * Uses bracket-balanced extraction instead of greedy regex.
- * Results are cached to avoid re-parsing identical responses.
+ * The raw input is sanitized (hidden chars stripped, injection patterns removed)
+ * before extraction. Results are cached to avoid re-parsing identical responses.
  */
 export function extractJson(raw: string): string {
-  const cached = extractJsonCache.get(raw);
+  const sanitized = sanitizeLlmOutput(raw);
+  const cached = extractJsonCache.get(sanitized);
   if (cached !== undefined) return cached;
 
-  const result = extractJsonUncached(raw);
-  extractJsonCache.set(raw, result);
+  const result = extractJsonUncached(sanitized);
+  extractJsonCache.set(sanitized, result);
   return result;
 }
 

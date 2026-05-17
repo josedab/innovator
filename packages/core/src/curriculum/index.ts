@@ -11,6 +11,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
 import { ValidationError } from "../errors.js";
 
 // ---- Skill & Difficulty ----
@@ -188,7 +189,8 @@ export async function generateLearningPath(
   const difficulty = options.difficulty ?? "intermediate";
   const maxModules = options.maxModules ?? 10;
 
-  const prompt = `You are an innovation education expert. Create a learning path curriculum for someone who needs to improve in these innovation skills: ${weakSkills.join(", ")}.
+  const prompt = `You are an innovation education expert. Create a learning path curriculum for someone who needs to improve in the following innovation skills:
+${wrapUserInput("TARGET SKILLS", weakSkills.join(", "))}
 Difficulty level: ${difficulty}
 Maximum modules: ${maxModules}
 
@@ -222,7 +224,7 @@ Respond in JSON:
   const raw = await withRetry(() =>
     generateText({ prompt, model: options.model, serverMode: true, signal: options.signal })
   );
-  const parsed = JSON.parse(extractJson(raw));
+  const parsed = JSON.parse(extractJson(sanitizeLlmOutput(raw)));
 
   // Create and store modules
   const moduleIds: string[] = [];

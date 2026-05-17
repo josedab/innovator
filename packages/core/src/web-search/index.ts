@@ -12,6 +12,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { wrapUserInput } from "../prompts/sanitize.js";
 import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
@@ -198,7 +199,8 @@ export async function monitorCompetitors(
   subject: string,
   options?: { model?: string; signal?: AbortSignal }
 ): Promise<Competitor[]> {
-  const prompt = `Analyze the competitive landscape for innovations in "${subject}".
+  const prompt = `Analyze the competitive landscape for innovations in the following subject:
+${wrapUserInput("SUBJECT", subject)}
 Identify key competitors, their strengths, and market gaps.
 
 Respond in JSON:
@@ -330,9 +332,9 @@ function buildGroundingPrompt(
 
   return `Analyze this innovation idea for market grounding:
 
-Subject: ${subject}
-Idea: ${idea.title}
-Description: ${idea.description}
+${wrapUserInput("SUBJECT", subject)}
+${wrapUserInput("IDEA", idea.title)}
+${wrapUserInput("DESCRIPTION", idea.description)}
 ${searchContext}
 
 Provide:

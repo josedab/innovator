@@ -255,8 +255,8 @@ async function evaluateSimilarity(
   const prompt = `You are an innovation historian. Compare a pipeline-generated idea against the actual historical innovation.
 
 PIPELINE IDEA:
-Title: ${pipelineIdea.title}
-Description: ${pipelineIdea.description}
+${wrapUserInput("TITLE", pipelineIdea.title)}
+${wrapUserInput("DESCRIPTION", pipelineIdea.description)}
 
 ${wrapUserInput("ACTUAL INNOVATION", actualInnovation)}
 

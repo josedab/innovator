@@ -603,11 +603,7 @@ program
             createFederationNode({ name: "local-cli", isPublic: false });
           }
           const nodeId = listNodes()[0].id;
-          const enrichment = enrichAngleSelection(
-            nodeId,
-            ANGLE_IDS as unknown as string[],
-            undefined
-          );
+          const enrichment = enrichAngleSelection(nodeId, [...ANGLE_IDS], undefined);
           if (enrichment.enrichments.length > 0) {
             spinner.info("🌐 Network insights applied:");
             for (const msg of enrichment.enrichments) console.log(`   ${msg}`);

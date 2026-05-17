@@ -86,20 +86,33 @@ function parseField(field: string, min: number, max: number): CronField {
       const [range, stepStr] = part.split("/");
       const step = parseInt(stepStr, 10);
       const start = range === "*" ? min : parseInt(range, 10);
-      if (isNaN(step) || isNaN(start)) throw new ValidationError(`Invalid cron field: ${field}`);
+      if (isNaN(step) || isNaN(start) || step <= 0)
+        throw new ValidationError(`Invalid cron field: ${field}`);
+      if (start < min || start > max)
+        throw new ValidationError(
+          `Cron field value ${start} out of range [${min}-${max}]: ${field}`
+        );
       for (let i = start; i <= max; i += step) values.push(i);
     } else if (part.includes("-")) {
       const [startStr, endStr] = part.split("-");
       const start = parseInt(startStr, 10);
       const end = parseInt(endStr, 10);
       if (isNaN(start) || isNaN(end)) throw new ValidationError(`Invalid cron field: ${field}`);
+      if (start < min || end > max || start > end)
+        throw new ValidationError(
+          `Cron range ${start}-${end} out of bounds [${min}-${max}]: ${field}`
+        );
       for (let i = start; i <= end; i++) values.push(i);
     } else {
       const val = parseInt(part, 10);
       if (isNaN(val)) throw new ValidationError(`Invalid cron field: ${field}`);
+      if (val < min || val > max)
+        throw new ValidationError(`Cron field value ${val} out of range [${min}-${max}]: ${field}`);
       values.push(val);
     }
   }
+
+  if (values.length === 0) throw new ValidationError(`Cron field produced no values: ${field}`);
 
   return { values: [...new Set(values)].sort((a, b) => a - b) };
 }
@@ -340,6 +353,7 @@ export function clearSchedules(): void {
 // ---- Background Worker ----
 
 let workerInterval: ReturnType<typeof setInterval> | null = null;
+let workerRunning = false;
 let executionHandler: ((schedule: Schedule) => Promise<void>) | null = null;
 
 /** Set the handler function called when a schedule is due. */
@@ -352,24 +366,30 @@ export function startScheduleWorker(intervalMs = 60000): void {
   if (workerInterval) return;
 
   workerInterval = setInterval(async () => {
-    const due = getDueSchedules();
-    for (const schedule of due) {
-      if (!executionHandler) continue;
-      const start = Date.now();
-      try {
-        await executionHandler(schedule);
-        recordScheduleRun(schedule.id, {
-          status: "completed",
-          resultSummary: "Automated execution completed",
-          durationMs: Date.now() - start,
-        });
-      } catch (error) {
-        recordScheduleRun(schedule.id, {
-          status: "failed",
-          error: error instanceof Error ? error.message : "Execution failed",
-          durationMs: Date.now() - start,
-        });
+    if (workerRunning) return;
+    workerRunning = true;
+    try {
+      const due = getDueSchedules();
+      for (const schedule of due) {
+        if (!executionHandler) continue;
+        const start = Date.now();
+        try {
+          await executionHandler(schedule);
+          recordScheduleRun(schedule.id, {
+            status: "completed",
+            resultSummary: "Automated execution completed",
+            durationMs: Date.now() - start,
+          });
+        } catch (error) {
+          recordScheduleRun(schedule.id, {
+            status: "failed",
+            error: error instanceof Error ? error.message : "Execution failed",
+            durationMs: Date.now() - start,
+          });
+        }
       }
+    } finally {
+      workerRunning = false;
     }
   }, intervalMs);
 }

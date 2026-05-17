@@ -236,6 +236,7 @@ export class TriggerPipeline {
   private seenFingerprints: Map<string, number> = new Map();
   private emitTimestamps: number[] = [];
   private timer: ReturnType<typeof setInterval> | null = null;
+  private polling = false;
   private config: TriggerConfig;
 
   constructor(config: TriggerConfig) {
@@ -274,59 +275,65 @@ export class TriggerPipeline {
 
   /** Execute a single poll cycle across all registered adapters. */
   private async poll(): Promise<void> {
-    // Poll all registered adapters (not just the config source)
-    const adaptersToRun = this.config.source
-      ? ([this.adapters.get(this.config.source)].filter(Boolean) as TriggerSourceAdapter[])
-      : [...this.adapters.values()];
+    if (this.polling) return;
+    this.polling = true;
+    try {
+      // Poll all registered adapters (not just the config source)
+      const adaptersToRun = this.config.source
+        ? ([this.adapters.get(this.config.source)].filter(Boolean) as TriggerSourceAdapter[])
+        : [...this.adapters.values()];
 
-    if (adaptersToRun.length === 0) return;
+      if (adaptersToRun.length === 0) return;
 
-    let allEvents: TriggerEvent[] = [];
-    const results = await Promise.allSettled(
-      adaptersToRun.map((adapter) => adapter.fetchEvents(this.config))
-    );
+      let allEvents: TriggerEvent[] = [];
+      const results = await Promise.allSettled(
+        adaptersToRun.map((adapter) => adapter.fetchEvents(this.config))
+      );
 
-    for (const result of results) {
-      if (result.status === "fulfilled") {
-        allEvents.push(...result.value);
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          allEvents.push(...result.value);
+        }
       }
-    }
 
-    if (allEvents.length === 0) return;
+      if (allEvents.length === 0) return;
 
-    // Dedup
-    const dedupWindow = this.config.deduplicationWindowMs ?? 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    this.pruneFingerprints(now, dedupWindow);
-    allEvents = allEvents.filter((e) => {
-      if (this.seenFingerprints.has(e.fingerprint)) return false;
-      this.seenFingerprints.set(e.fingerprint, now);
-      return true;
-    });
+      // Dedup
+      const dedupWindow = this.config.deduplicationWindowMs ?? 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      this.pruneFingerprints(now, dedupWindow);
+      allEvents = allEvents.filter((e) => {
+        if (this.seenFingerprints.has(e.fingerprint)) return false;
+        this.seenFingerprints.set(e.fingerprint, now);
+        return true;
+      });
 
-    if (allEvents.length === 0) return;
+      if (allEvents.length === 0) return;
 
-    // Semantic matching
-    const matched = await Promise.all(
-      allEvents.map((e) => matchEventToInterests(e, this.interests))
-    );
+      // Semantic matching
+      const matched = await Promise.all(
+        allEvents.map((e) => matchEventToInterests(e, this.interests))
+      );
 
-    // Apply min relevance filter
-    const minRelevance = this.config.filter?.minRelevance ?? 0;
-    const filtered = matched.filter((e) => e.relevanceScore >= minRelevance);
-    if (filtered.length === 0) return;
+      // Apply min relevance filter
+      const minRelevance = this.config.filter?.minRelevance ?? 0;
+      const filtered = matched.filter((e) => e.relevanceScore >= minRelevance);
+      if (filtered.length === 0) return;
 
-    // Frequency cap
-    const capped = this.applyFrequencyCap(filtered);
-    if (capped.length === 0) return;
+      // Frequency cap
+      const capped = this.applyFrequencyCap(filtered);
+      if (capped.length === 0) return;
 
-    // Emit
-    for (const cb of this.callbacks) {
-      try {
-        cb(capped);
-      } catch {
-        // swallow callback errors
+      // Emit
+      for (const cb of this.callbacks) {
+        try {
+          cb(capped);
+        } catch {
+          // swallow callback errors
+        }
       }
+    } finally {
+      this.polling = false;
     }
   }
 
