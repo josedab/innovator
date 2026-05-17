@@ -11,8 +11,8 @@ describe("EventAggregator", () => {
   describe("record / getEvents", () => {
     it("records an event and assigns id + timestamp", () => {
       const event = agg.record({ type: "session_started", metadata: {} });
-      expect(event.id).toBeDefined();
-      expect(event.timestamp).toBeDefined();
+      expect(event.id).toEqual(expect.any(String));
+      expect(event.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(event.type).toBe("session_started");
     });
 
@@ -30,7 +30,7 @@ describe("EventAggregator", () => {
       agg.record({ type: "session_started", metadata: {} });
       agg.record({ type: "session_started", metadata: {} });
       const series = agg.getTimeSeries("session_started", "day");
-      expect(series.length).toBeGreaterThanOrEqual(1);
+      expect(series).toHaveLength(1);
       expect(series[0].count).toBe(2);
     });
 
@@ -172,6 +172,99 @@ describe("EventAggregator", () => {
       agg.record({ type: "session_started", metadata: {} });
       agg.clear();
       expect(agg.getEvents()).toHaveLength(0);
+    });
+  });
+
+  describe("getQualityTrends", () => {
+    it("returns quality trends bucketed by week", () => {
+      agg.record({
+        type: "idea_scored",
+        metadata: {},
+        quality: { overallScore: 8 },
+      });
+      agg.record({
+        type: "idea_scored",
+        metadata: {},
+        quality: { overallScore: 6 },
+      });
+
+      const trends = agg.getQualityTrends();
+      expect(trends).toHaveLength(1);
+      expect(trends[0].avgQuality).toBe(7);
+      expect(trends[0].count).toBe(2);
+    });
+
+    it("returns empty for zero events", () => {
+      const trends = agg.getQualityTrends();
+      expect(trends).toHaveLength(0);
+    });
+
+    it("handles negative quality scores", () => {
+      agg.record({
+        type: "idea_scored",
+        metadata: {},
+        quality: { overallScore: -5 },
+      });
+      agg.record({
+        type: "idea_scored",
+        metadata: {},
+        quality: { overallScore: -3 },
+      });
+
+      const trends = agg.getQualityTrends();
+      expect(trends).toHaveLength(1);
+      expect(trends[0].avgQuality).toBe(-4);
+    });
+
+    it("handles scores above 10", () => {
+      agg.record({
+        type: "idea_scored",
+        metadata: {},
+        quality: { overallScore: 15 },
+      });
+
+      const trends = agg.getQualityTrends();
+      expect(trends).toHaveLength(1);
+      expect(trends[0].avgQuality).toBe(15);
+    });
+
+    it("filters by date range", () => {
+      agg.record({
+        type: "idea_scored",
+        metadata: {},
+        quality: { overallScore: 8 },
+      });
+
+      const farFuture = "2099-01-01T00:00:00.000Z";
+      const trends = agg.getQualityTrends(farFuture);
+      expect(trends).toHaveLength(0);
+    });
+  });
+
+  describe("getTimeSeries edge cases", () => {
+    it("returns empty when from > to date range", () => {
+      agg.record({ type: "session_started", metadata: {} });
+      const series = agg.getTimeSeries(
+        "session_started",
+        "day",
+        "2099-01-01T00:00:00.000Z",
+        "2000-01-01T00:00:00.000Z"
+      );
+      expect(series).toHaveLength(0);
+    });
+  });
+
+  describe("getTeamLeaderboard edge cases", () => {
+    it("returns empty with limit 0", () => {
+      agg.record({ type: "session_started", metadata: {}, teamId: "alpha" });
+      const board = agg.getTeamLeaderboard(0);
+      expect(board).toHaveLength(0);
+    });
+
+    it("handles negative limit by returning empty", () => {
+      agg.record({ type: "session_started", metadata: {}, teamId: "alpha" });
+      const board = agg.getTeamLeaderboard(-1);
+      expect(board).toHaveLength(0);
     });
   });
 });
