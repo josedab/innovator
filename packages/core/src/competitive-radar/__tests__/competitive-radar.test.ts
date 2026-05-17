@@ -62,6 +62,13 @@ import {
   type GapAnalysisReport,
   type RadarDashboard,
 } from "../index.js";
+import {
+  addPatent,
+  addMarketSignal,
+  clearIntelligenceData,
+  generateIntelligenceBrief,
+  intelligenceBriefToMarkdown,
+} from "../intelligence-brief.js";
 import { getCompetitiveEvents } from "../../competitive-autopilot/index.js";
 
 // ---- Helpers ----
@@ -106,6 +113,7 @@ function makeGapReport(overrides: Partial<GapAnalysisReport> = {}): GapAnalysisR
 describe("competitive-radar", () => {
   beforeEach(() => {
     memFs = {};
+    clearIntelligenceData();
     vi.clearAllMocks();
   });
 
@@ -141,9 +149,7 @@ describe("competitive-radar", () => {
 
     it("throws when adding a competitor with a duplicate ID", () => {
       addCompetitor(makeCompetitor({ id: "dup" }));
-      expect(() => addCompetitor(makeCompetitor({ id: "dup" }))).toThrowError(
-        /already exists/
-      );
+      expect(() => addCompetitor(makeCompetitor({ id: "dup" }))).toThrowError(/already exists/);
     });
 
     it("preserves optional website field", () => {
@@ -165,9 +171,7 @@ describe("competitive-radar", () => {
     });
 
     it("throws for an unknown competitor ID", () => {
-      expect(() => updateCompetitor("ghost", { name: "X" })).toThrowError(
-        /not found/
-      );
+      expect(() => updateCompetitor("ghost", { name: "X" })).toThrowError(/not found/);
     });
 
     it("sets lastUpdated when not explicitly provided", () => {
@@ -177,9 +181,7 @@ describe("competitive-radar", () => {
     });
 
     it("preserves fields that are not updated", () => {
-      addCompetitor(
-        makeCompetitor({ id: "u3", name: "Stable", description: "Original desc" })
-      );
+      addCompetitor(makeCompetitor({ id: "u3", name: "Stable", description: "Original desc" }));
       const updated = updateCompetitor("u3", { threatLevel: "critical" });
       expect(updated.name).toBe("Stable");
       expect(updated.description).toBe("Original desc");
@@ -313,9 +315,7 @@ describe("competitive-radar", () => {
     it("renders low severity alert with green icon", () => {
       const dashboard: RadarDashboard = {
         ...baseDashboard,
-        alerts: [
-          { ...baseDashboard.alerts[0], severity: "low", actionRequired: false },
-        ],
+        alerts: [{ ...baseDashboard.alerts[0], severity: "low", actionRequired: false }],
       };
       const md = radarDashboardToMarkdown(dashboard);
       expect(md).toContain("🟢");
@@ -435,6 +435,66 @@ describe("competitive-radar", () => {
       expect(alerts[0].competitor).toBe("Rival Inc");
       expect(alerts[0].type).toBe("new-feature");
       expect(alerts[0].id).toBeDefined();
+    });
+  });
+
+  describe("generateIntelligenceBrief", () => {
+    it("falls back to heuristic analysis when llm output is invalid", async () => {
+      const { generateText } = await import("../../copilot/client.js");
+      (generateText as ReturnType<typeof vi.fn>).mockResolvedValueOnce("not-json");
+
+      addCompetitor(
+        makeCompetitor({ id: "brief-1", name: "Nova Labs", capabilities: ["AI", "Automation"] })
+      );
+      addPatent({
+        title: "Adaptive workflow engine",
+        applicant: "Nova Labs",
+        filingDate: "2024-01-10T00:00:00.000Z",
+        status: "published",
+        relevanceScore: 88,
+        abstract: "Coordinates workflow decisions",
+        domain: "automation",
+        threatLevel: "high",
+      });
+      addMarketSignal({
+        type: "product_launch",
+        title: "Nova launched adaptive routing",
+        description: "Launch bundles AI routing into enterprise tier",
+        date: "2024-02-01T00:00:00.000Z",
+        impactScore: 91,
+        relatedCompetitors: ["Nova Labs"],
+        actionRequired: true,
+      });
+
+      const brief = await generateIntelligenceBrief({ period: "weekly" });
+      expect(brief.sections.length).toBeGreaterThan(0);
+      expect(brief.recommendations.length).toBeGreaterThan(0);
+      expect(brief.executiveSummary).toContain("tracked competitors");
+      expect(brief.overallThreatLevel).toBe("elevated");
+    });
+
+    it("exports heuristic briefs to markdown with actionable sections", async () => {
+      const { generateText } = await import("../../copilot/client.js");
+      (generateText as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+        new Error("llm unavailable")
+      );
+
+      addCompetitor(makeCompetitor({ id: "brief-2", name: "Orbit Corp", threatLevel: "high" }));
+      addMarketSignal({
+        type: "partnership",
+        title: "Orbit announced cloud partnership",
+        description: "Partnership expands Orbit distribution in enterprise accounts",
+        date: "2024-02-03T00:00:00.000Z",
+        impactScore: 82,
+        relatedCompetitors: ["Orbit Corp"],
+        actionRequired: true,
+      });
+
+      const brief = await generateIntelligenceBrief({ period: "weekly" });
+      const markdown = intelligenceBriefToMarkdown(brief);
+      expect(markdown).toContain("## Analysis");
+      expect(markdown).toContain("## Recommendations");
+      expect(markdown).toContain("Orbit Corp");
     });
   });
 

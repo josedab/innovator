@@ -178,6 +178,223 @@ export function removeMarketSignal(id: string): boolean {
 
 // ---- Intelligence Brief Generation ----
 
+function createBriefSection(
+  title: string,
+  content: string,
+  priority: BriefSection["priority"],
+  relatedCompetitors: string[] = []
+): BriefSection {
+  return { title, content, priority, relatedCompetitors: relatedCompetitors.slice(0, 10) };
+}
+
+function buildHeuristicExecutiveSummary(
+  period: IntelligenceBrief["period"],
+  competitors: CompetitorProfile[],
+  patentList: PatentEntry[],
+  signals: MarketSignal[],
+  alerts: CompetitiveAlert[]
+): string {
+  const highestThreat = competitors
+    .slice()
+    .sort((a, b) => threatRank(b.threatLevel) - threatRank(a.threatLevel))[0];
+  const urgentSignals = signals.filter((signal) => signal.impactScore >= 75).length;
+  return [
+    `This ${period} brief covers ${competitors.length} tracked competitors, ${signals.length} market signal(s), ${patentList.length} relevant patent filing(s), and ${alerts.length} alert(s).`,
+    highestThreat
+      ? `${highestThreat.name} currently represents the strongest watch item based on its ${highestThreat.threatLevel} threat level and capabilities in ${highestThreat.capabilities.slice(0, 3).join(", ") || "core areas"}.`
+      : "No competitor currently stands out as a dominant threat, so the focus should stay on broad market surveillance.",
+    urgentSignals > 0
+      ? `${urgentSignals} signal(s) exceeded the high-impact threshold, indicating the market is moving quickly enough to justify active response planning.`
+      : "Signal volume remains manageable, so the team can focus on validating the next response bets instead of broad defensive action.",
+  ].join(" ");
+}
+
+function threatRank(level: CompetitorProfile["threatLevel"]): number {
+  return { low: 1, medium: 2, high: 3, critical: 4 }[level] ?? 0;
+}
+
+function buildHeuristicSections(
+  competitors: CompetitorProfile[],
+  patentList: PatentEntry[],
+  signals: MarketSignal[],
+  alerts: CompetitiveAlert[]
+): BriefSection[] {
+  const sections: BriefSection[] = [];
+
+  if (competitors.length > 0) {
+    const topCompetitors = competitors
+      .slice()
+      .sort((a, b) => threatRank(b.threatLevel) - threatRank(a.threatLevel))
+      .slice(0, 3);
+    sections.push(
+      createBriefSection(
+        "Competitive posture",
+        topCompetitors
+          .map(
+            (competitor) =>
+              `${competitor.name} is rated ${competitor.threatLevel} and shows strength in ${competitor.capabilities.slice(0, 3).join(", ") || "core execution"}; weaknesses include ${competitor.weaknesses.slice(0, 2).join(", ") || "limited disclosed weaknesses"}.`
+          )
+          .join(" "),
+        topCompetitors.some((competitor) => competitor.threatLevel === "critical")
+          ? "critical"
+          : "high",
+        topCompetitors.map((competitor) => competitor.name)
+      )
+    );
+  }
+
+  if (alerts.length > 0) {
+    const highestSeverity = alerts.some((alert) => alert.severity === "critical")
+      ? "critical"
+      : alerts.some((alert) => alert.severity === "high")
+        ? "high"
+        : "medium";
+    sections.push(
+      createBriefSection(
+        "Immediate alert coverage",
+        alerts
+          .slice(0, 5)
+          .map(
+            (alert) =>
+              `${alert.competitor}: ${alert.title} (${alert.severity})${alert.actionRequired ? " — requires action" : ""}.`
+          )
+          .join(" "),
+        highestSeverity,
+        alerts.map((alert) => alert.competitor)
+      )
+    );
+  }
+
+  if (signals.length > 0) {
+    const byType = new Map<MarketSignalType, number>();
+    for (const signal of signals) {
+      byType.set(signal.type, (byType.get(signal.type) ?? 0) + 1);
+    }
+    const leadingTypes = Array.from(byType.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([type, count]) => `${type.replace(/_/g, " ")} (${count})`);
+    sections.push(
+      createBriefSection(
+        "Market movement",
+        `Most notable movement came from ${leadingTypes.join(", ") || "general market activity"}. Top signal(s): ${signals
+          .slice(0, 3)
+          .map((signal) => `${signal.title} (${signal.impactScore})`)
+          .join(", ")}.`,
+        signals.some((signal) => signal.impactScore >= 85) ? "high" : "medium",
+        signals.flatMap((signal) => signal.relatedCompetitors)
+      )
+    );
+  }
+
+  if (patentList.length > 0) {
+    const topPatents = patentList.slice(0, 3);
+    sections.push(
+      createBriefSection(
+        "Patent activity",
+        topPatents
+          .map(
+            (patent) =>
+              `${patent.applicant} ${patent.status} ${patent.title} with relevance ${patent.relevanceScore} and ${patent.threatLevel} threat.`
+          )
+          .join(" "),
+        topPatents.some((patent) => patent.threatLevel === "high") ? "high" : "medium",
+        topPatents.map((patent) => patent.applicant)
+      )
+    );
+  }
+
+  return sections.slice(0, 10);
+}
+
+function buildHeuristicRecommendations(
+  competitors: CompetitorProfile[],
+  patentList: PatentEntry[],
+  signals: MarketSignal[],
+  alerts: CompetitiveAlert[]
+): IntelligenceBrief["recommendations"] {
+  const recommendations = new Map<string, IntelligenceBrief["recommendations"][number]>();
+
+  for (const alert of alerts.filter((entry) => entry.actionRequired)) {
+    recommendations.set(`alert:${alert.id}`, {
+      action: `Review response plan for ${alert.competitor}: ${alert.title}`,
+      priority: alert.severity,
+      rationale: alert.description,
+    });
+  }
+
+  for (const patent of patentList.filter((entry) => entry.threatLevel === "high")) {
+    recommendations.set(`patent:${patent.id}`, {
+      action: `Assess IP exposure around ${patent.title}`,
+      priority: "high",
+      rationale: `${patent.applicant} has a ${patent.status} patent in ${patent.domain} with ${patent.relevanceScore} relevance.`,
+    });
+  }
+
+  for (const signal of signals.filter((entry) => entry.actionRequired || entry.impactScore >= 80)) {
+    recommendations.set(`signal:${signal.id}`, {
+      action: `Prepare a response to ${signal.type.replace(/_/g, " ")}: ${signal.title}`,
+      priority:
+        signal.impactScore >= 90 ? "critical" : signal.impactScore >= 80 ? "high" : "medium",
+      rationale: signal.description,
+    });
+  }
+
+  if (recommendations.size === 0 && competitors.length > 0) {
+    const highestThreat = competitors
+      .slice()
+      .sort((a, b) => threatRank(b.threatLevel) - threatRank(a.threatLevel))[0];
+    recommendations.set("baseline-monitoring", {
+      action: `Schedule deeper monitoring for ${highestThreat.name}`,
+      priority: highestThreat.threatLevel === "critical" ? "critical" : "medium",
+      rationale: `${highestThreat.name} is the highest-threat competitor currently tracked.`,
+    });
+  }
+
+  if (recommendations.size === 0) {
+    recommendations.set("bootstrap", {
+      action: "Add competitor profiles to begin tracking",
+      priority: "high",
+      rationale: "Intelligence briefs require competitor data to produce actionable insights.",
+    });
+  }
+
+  return Array.from(recommendations.values()).slice(0, 10);
+}
+
+function createHeuristicBrief(
+  period: IntelligenceBrief["period"],
+  competitors: CompetitorProfile[],
+  patentList: PatentEntry[],
+  signals: MarketSignal[],
+  alerts: CompetitiveAlert[]
+): IntelligenceBrief {
+  const brief: IntelligenceBrief = {
+    id: randomUUID(),
+    period,
+    generatedAt: new Date().toISOString(),
+    executiveSummary: buildHeuristicExecutiveSummary(
+      period,
+      competitors,
+      patentList,
+      signals,
+      alerts
+    ),
+    sections: buildHeuristicSections(competitors, patentList, signals, alerts),
+    patents: patentList.slice(0, 20),
+    marketSignals: signals.slice(0, 20),
+    alerts: alerts.slice(0, 10).map((alert) => ({
+      title: alert.title,
+      severity: alert.severity,
+      competitor: alert.competitor,
+    })),
+    recommendations: buildHeuristicRecommendations(competitors, patentList, signals, alerts),
+    overallThreatLevel: computeThreatLevel(alerts, signals),
+  };
+  briefs.set(brief.id, brief);
+  return brief;
+}
+
 /**
  * Generate a competitive intelligence brief.
  * Aggregates competitor data, patents, market signals, and alerts into
@@ -201,7 +418,6 @@ export async function generateIntelligenceBrief(options?: {
     // Alerts may fail if no competitors are configured
   }
 
-  // If no data, generate a placeholder brief
   if (competitors.length === 0 && allPatents.length === 0 && signals.length === 0) {
     return createEmptyBrief(period);
   }
@@ -232,7 +448,7 @@ export async function generateIntelligenceBrief(options?: {
         title: String(s.title ?? "Section"),
         content: String(s.content ?? ""),
         priority: ["low", "medium", "high", "critical"].includes(String(s.priority))
-          ? s.priority
+          ? (s.priority as BriefSection["priority"])
           : "medium",
         relatedCompetitors: Array.isArray(s.relatedCompetitors)
           ? s.relatedCompetitors.map(String).slice(0, 10)
@@ -250,7 +466,7 @@ export async function generateIntelligenceBrief(options?: {
         .map((r: Record<string, unknown>) => ({
           action: String(r.action ?? "Review data"),
           priority: ["low", "medium", "high", "critical"].includes(String(r.priority))
-            ? r.priority
+            ? (r.priority as IntelligenceBrief["recommendations"][number]["priority"])
             : "medium",
           rationale: String(r.rationale ?? ""),
         })),
@@ -260,7 +476,7 @@ export async function generateIntelligenceBrief(options?: {
     briefs.set(brief.id, brief);
     return brief;
   } catch {
-    return createEmptyBrief(period);
+    return createHeuristicBrief(period, competitors, allPatents, signals, alerts);
   }
 }
 
@@ -316,13 +532,16 @@ function computeThreatLevel(
   alerts: CompetitiveAlert[],
   signals: MarketSignal[]
 ): "stable" | "elevated" | "high" | "critical" {
-  const criticalAlerts = alerts.filter((a) => a.severity === "critical").length;
-  const highAlerts = alerts.filter((a) => a.severity === "high").length;
-  const highSignals = signals.filter((s) => s.impactScore >= 80).length;
+  const criticalAlerts = alerts.filter((alert) => alert.severity === "critical").length;
+  const highAlerts = alerts.filter((alert) => alert.severity === "high").length;
+  const highSignals = signals.filter((signal) => signal.impactScore >= 80).length;
+  const actionableSignals = signals.filter(
+    (signal) => signal.actionRequired || signal.impactScore >= 90
+  ).length;
 
-  if (criticalAlerts > 0) return "critical";
-  if (highAlerts >= 3 || highSignals >= 5) return "high";
-  if (highAlerts >= 1 || highSignals >= 2) return "elevated";
+  if (criticalAlerts > 0 || actionableSignals >= 2) return "critical";
+  if (highAlerts >= 3 || highSignals >= 4) return "high";
+  if (highAlerts >= 1 || highSignals >= 1 || actionableSignals >= 1) return "elevated";
   return "stable";
 }
 
