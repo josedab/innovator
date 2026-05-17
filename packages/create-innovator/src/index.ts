@@ -50,7 +50,6 @@ interface ScaffoldConfig {
   projectName: string;
   defaultProvider: string;
   setupCopilot: boolean;
-  includePresets: boolean;
   includeCustomAngles: boolean;
 }
 
@@ -214,7 +213,6 @@ async function main() {
     projectName,
     defaultProvider: await ask("Default LLM provider (copilot/openai/anthropic/ollama)", "copilot"),
     setupCopilot: await confirm("Set up GitHub Copilot token guidance?"),
-    includePresets: await confirm("Include domain presets?"),
     includeCustomAngles: await confirm("Include sample custom angle?"),
   };
 
