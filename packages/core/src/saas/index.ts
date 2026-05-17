@@ -21,6 +21,40 @@ export {
 } from "./github-oauth.js";
 export type { GitHubUser, OAuthState, OAuthConfig } from "./github-oauth.js";
 
+export {
+  getGoogleAuthorizationUrl,
+  validateGoogleState,
+  exchangeGoogleCode,
+  getAuthenticatedGoogleUser,
+  clearGoogleAuthData,
+  GoogleUserSchema,
+  GoogleOAuthStateSchema,
+} from "./google-oauth.js";
+export type { GoogleUser, GoogleOAuthState, GoogleOAuthConfig } from "./google-oauth.js";
+
+export {
+  RateLimitConfigSchema,
+  RateLimitResultSchema,
+  RateLimitStatusSchema,
+  DEFAULT_RATE_LIMITS,
+  checkRateLimit,
+  getRateLimitStatus,
+  clearRateLimits,
+} from "./rate-limiter.js";
+export type { RateLimitConfig, RateLimitResult, RateLimitStatus } from "./rate-limiter.js";
+
+export {
+  OnboardingStepSchema,
+  OnboardingProgressSchema,
+  ONBOARDING_STEPS,
+  startOnboarding,
+  completeStep,
+  getOnboardingProgress,
+  skipOnboarding,
+  clearOnboardingData,
+} from "./onboarding.js";
+export type { OnboardingStep, OnboardingProgress } from "./onboarding.js";
+
 export { StripeBillingProvider, getStripeBilling } from "./stripe-billing.js";
 
 export {
@@ -613,15 +647,20 @@ export const WorkspaceSchema = z.object({
   id: z.string().max(200),
   tenantId: z.string().max(200),
   name: z.string().max(200),
-  slug: z.string().max(100).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
   description: z.string().max(2000).optional(),
-  members: z.array(
-    z.object({
-      userId: z.string().max(200),
-      role: z.enum(["owner", "admin", "member", "viewer"]),
-      joinedAt: z.string(),
-    })
-  ).max(200),
+  members: z
+    .array(
+      z.object({
+        userId: z.string().max(200),
+        role: z.enum(["owner", "admin", "member", "viewer"]),
+        joinedAt: z.string(),
+      })
+    )
+    .max(200),
   settings: z.object({
     defaultAngles: z.array(z.string().max(100)).max(10).optional(),
     defaultModel: z.string().max(100).optional(),
@@ -642,7 +681,11 @@ export function createWorkspace(input: {
   ownerId: string;
   description?: string;
 }): Workspace {
-  if (Array.from(workspaces.values()).some((w) => w.slug === input.slug && w.tenantId === input.tenantId)) {
+  if (
+    Array.from(workspaces.values()).some(
+      (w) => w.slug === input.slug && w.tenantId === input.tenantId
+    )
+  ) {
     throw new Error(`Workspace slug "${input.slug}" already exists in this tenant`);
   }
 
@@ -688,10 +731,7 @@ export function addWorkspaceMember(
   return ws;
 }
 
-export function removeWorkspaceMember(
-  workspaceId: string,
-  userId: string
-): boolean {
+export function removeWorkspaceMember(workspaceId: string, userId: string): boolean {
   const ws = workspaces.get(workspaceId);
   if (!ws) return false;
 
