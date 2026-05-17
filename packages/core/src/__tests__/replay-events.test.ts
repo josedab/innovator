@@ -64,7 +64,7 @@ describe("replay/replay-events", () => {
       const session = createReplaySession("run-1");
       expect(session.totalEvents).toBe(3);
       expect(session.status).toBe("playing");
-      expect(session.branchPoints.length).toBeGreaterThanOrEqual(1);
+      expect(session.branchPoints.length).toBe(1); // stage.completed is a branch point
     });
 
     it("advances through events", () => {
@@ -73,11 +73,20 @@ describe("replay/replay-events", () => {
       const session = createReplaySession("run-1");
 
       const result1 = advanceReplaySession(session);
-      expect(result1).not.toBeNull();
+      expect(result1).toEqual(
+        expect.objectContaining({
+          event: expect.objectContaining({ type: "pipeline.started" }),
+          isBranchPoint: false,
+        })
+      );
       expect(result1!.event.type).toBe("pipeline.started");
 
       const result2 = advanceReplaySession(session);
-      expect(result2!.event.type).toBe("stage.completed");
+      expect(result2).toEqual(
+        expect.objectContaining({
+          event: expect.objectContaining({ type: "stage.completed" }),
+        })
+      );
 
       const result3 = advanceReplaySession(session);
       expect(result3).toBeNull();
@@ -95,7 +104,12 @@ describe("replay/replay-events", () => {
 
       resumeReplaySession(session);
       expect(session.status).toBe("playing");
-      expect(advanceReplaySession(session)).not.toBeNull();
+      const advanced = advanceReplaySession(session);
+      expect(advanced).toEqual(
+        expect.objectContaining({
+          event: expect.objectContaining({ type: "pipeline.started" }),
+        })
+      );
     });
 
     it("supports speed changes", () => {
@@ -158,6 +172,63 @@ describe("replay/replay-events", () => {
       expect(md).toContain("Scoring Overlay");
       expect(md).toContain("Branch A");
       expect(md).toContain("Branch B");
+    });
+  });
+
+  describe("replay session edge cases", () => {
+    it("seekReplaySession beyond event count is a no-op", () => {
+      emitReplayEvent("pipeline.started", "run-1", "sess-1");
+      const session = createReplaySession("run-1");
+      seekReplaySession(session, 100);
+      expect(session.currentEventIndex).toBe(0); // unchanged
+    });
+
+    it("seekReplaySession with negative index is a no-op", () => {
+      emitReplayEvent("pipeline.started", "run-1", "sess-1");
+      const session = createReplaySession("run-1");
+      advanceReplaySession(session);
+      seekReplaySession(session, -1);
+      expect(session.currentEventIndex).toBe(1); // unchanged
+    });
+
+    it("createReplaySession with no events returns empty session", () => {
+      const session = createReplaySession("nonexistent-run");
+      expect(session.totalEvents).toBe(0);
+      expect(session.events).toHaveLength(0);
+      expect(session.branchPoints).toHaveLength(0);
+    });
+
+    it("advanceReplaySession on empty session completes immediately", () => {
+      const session = createReplaySession("nonexistent-run");
+      const result = advanceReplaySession(session);
+      expect(result).toBeNull();
+      expect(session.status).toBe("completed");
+    });
+
+    it("seekReplaySession resets completed session to paused", () => {
+      emitReplayEvent("pipeline.started", "run-1", "sess-1");
+      emitReplayEvent("stage.completed", "run-1", "sess-1");
+      const session = createReplaySession("run-1");
+
+      advanceReplaySession(session);
+      advanceReplaySession(session);
+      expect(session.status).toBe("completed");
+
+      seekReplaySession(session, 0);
+      expect(session.status).toBe("paused");
+      expect(session.currentEventIndex).toBe(0);
+    });
+
+    it("pause then advance returns null deterministically", () => {
+      emitReplayEvent("pipeline.started", "run-1", "sess-1");
+      emitReplayEvent("stage.completed", "run-1", "sess-1");
+      const session = createReplaySession("run-1");
+
+      pauseReplaySession(session);
+      const result = advanceReplaySession(session);
+      expect(result).toBeNull();
+      expect(session.status).toBe("paused");
+      expect(session.currentEventIndex).toBe(0);
     });
   });
 });
