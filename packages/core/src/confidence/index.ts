@@ -110,7 +110,7 @@ export async function scoreInvestigationQuality(
   const parsed = await withRetry(
     async () => {
       const raw = await generateText({ prompt, model, serverMode: true, signal });
-      const jsonStr = extractJson(raw);
+      const jsonStr = extractJson(sanitizeLlmOutput(raw));
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {

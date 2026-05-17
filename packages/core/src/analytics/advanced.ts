@@ -71,12 +71,15 @@ export function getTimeSeries(
     dataPoints.set(bucket, values);
   }
 
-  const series: TimeSeriesDataPoint[] = [...dataPoints.entries()]
+  const sparse: TimeSeriesDataPoint[] = [...dataPoints.entries()]
     .map(([timestamp, values]) => ({
       timestamp,
       value: values.reduce((a, b) => a + b, 0),
     }))
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  // Fill gaps with zero-value data points so charts are continuous
+  const series = fillTimeSeriesGaps(sparse, granularity);
 
   const allValues = series.map((s) => s.value);
   const average =
@@ -124,6 +127,73 @@ function getBucket(timestamp: string, granularity: "hour" | "day" | "week" | "mo
   }
 }
 
+/** Convert a bucket timestamp string back to a UTC Date for iteration. */
+function bucketToDate(bucket: string, granularity: "hour" | "day" | "week" | "month"): Date {
+  switch (granularity) {
+    case "hour":
+      // Format: "2025-01-01T10:00" → needs Z suffix for UTC
+      return new Date(bucket.length === 16 ? `${bucket}:00Z` : `${bucket}Z`);
+    case "day":
+    case "week":
+      // Format: "2025-01-01" → midnight UTC
+      return new Date(`${bucket}T00:00:00Z`);
+    case "month":
+      // Format: "2025-01" → first day midnight UTC
+      return new Date(`${bucket}-01T00:00:00Z`);
+  }
+}
+
+/** Advance a Date by one granularity unit (mutates and returns the date). */
+function advanceBucket(d: Date, granularity: "hour" | "day" | "week" | "month"): Date {
+  switch (granularity) {
+    case "hour":
+      d.setUTCHours(d.getUTCHours() + 1);
+      break;
+    case "day":
+      d.setUTCDate(d.getUTCDate() + 1);
+      break;
+    case "week":
+      d.setUTCDate(d.getUTCDate() + 7);
+      break;
+    case "month":
+      d.setUTCMonth(d.getUTCMonth() + 1);
+      break;
+  }
+  return d;
+}
+
+/**
+ * Fill gaps in a sorted time series with zero-value data points so
+ * the series is continuous across the full date range.
+ */
+function fillTimeSeriesGaps(
+  sparse: TimeSeriesDataPoint[],
+  granularity: "hour" | "day" | "week" | "month"
+): TimeSeriesDataPoint[] {
+  if (sparse.length <= 1) return sparse;
+
+  const existing = new Map(sparse.map((p) => [p.timestamp, p]));
+  const filled: TimeSeriesDataPoint[] = [];
+
+  // Parse the bucket timestamp into a proper UTC Date
+  const cursor = bucketToDate(sparse[0].timestamp, granularity);
+  const endBucket = sparse[sparse.length - 1].timestamp;
+
+  // Safety limit to prevent infinite loops with bad data
+  const maxIterations = 10_000;
+  let iterations = 0;
+
+  while (iterations < maxIterations) {
+    const bucket = getBucket(cursor.toISOString(), granularity);
+    if (bucket > endBucket) break;
+    filled.push(existing.get(bucket) ?? { timestamp: bucket, value: 0 });
+    advanceBucket(cursor, granularity);
+    iterations++;
+  }
+
+  return filled;
+}
+
 // ---- Heatmap Data ----
 
 export interface HeatmapCell {
@@ -164,12 +234,14 @@ export function getActivityHeatmap(
         break;
     }
 
-    const key = `${x}:${y}`;
+    const key = `${x}\0${y}`;
     cells.set(key, (cells.get(key) ?? 0) + 1);
   }
 
   return [...cells.entries()].map(([key, value]) => {
-    const [x, y] = key.split(":");
+    const sepIdx = key.indexOf("\0");
+    const x = key.slice(0, sepIdx);
+    const y = key.slice(sepIdx + 1);
     return { x, y, value };
   });
 }

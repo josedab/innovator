@@ -2,6 +2,7 @@
  * Progressive idea refinement engine.
  * Enables iterative deepening from Concept → Plan → Specification.
  */
+import { randomUUID } from "node:crypto";
 import type {
   RefinementSession,
   RefinableIdea,
@@ -16,7 +17,7 @@ const sessions = new Map<string, RefinementSession>();
 export function startRefinementSession(
   ideas: Array<{ id: string; title: string; description: string }>
 ): RefinementSession {
-  const sessionId = crypto.randomUUID();
+  const sessionId = randomUUID();
   const now = new Date().toISOString();
 
   const refinableIdeas: RefinableIdea[] = ideas.map((idea) => ({
@@ -106,19 +107,15 @@ function generateRefinement(
   const previousIterations = session.iterations.filter((i) => i.ideaId === idea.id);
   const lastOutput =
     previousIterations.length > 0
-      ? previousIterations[previousIterations.length - 1].output.content
-      : idea.description;
+      ? previousIterations[previousIterations.length - 1].output
+      : undefined;
 
-  const output = generateTierOutput(idea, tier, lastOutput, feedback);
+  const output = generateTierOutput(idea, tier, lastOutput?.content ?? idea.description, feedback);
 
-  // Calculate quality delta based on content expansion
-  const prevLength = lastOutput.length;
-  const newLength = output.content.length;
-  const qualityDelta =
-    prevLength > 0 ? Math.min(1, (newLength - prevLength) / Math.max(prevLength, 1)) : 1;
+  const qualityDelta = computeStructuralQuality(output, lastOutput);
 
   return {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     tier,
     ideaId: idea.id,
     input: feedback ?? idea.description,
@@ -127,6 +124,53 @@ function generateRefinement(
     createdAt: new Date().toISOString(),
     qualityDelta: Math.round(qualityDelta * 100) / 100,
   };
+}
+
+/**
+ * Compute a quality delta (0–1) based on structural completeness rather
+ * than raw text length. Checks whether the output gained implementation
+ * steps, acceptance criteria, risks, dependencies, etc.
+ */
+function computeStructuralQuality(output: RefinementOutput, previous?: RefinementOutput): number {
+  // Score presence of structured fields (each worth up to 1 point)
+  const fields: Array<keyof RefinementOutput> = [
+    "implementationSteps",
+    "techStack",
+    "timeline",
+    "teamSize",
+    "acceptanceCriteria",
+    "risks",
+    "dependencies",
+    "milestones",
+  ];
+
+  let currentScore = 0;
+  let previousScore = 0;
+
+  for (const field of fields) {
+    const cur = output[field];
+    const prev = previous?.[field];
+
+    if (Array.isArray(cur) && cur.length > 0) currentScore++;
+    else if (typeof cur === "string" && cur.length > 0) currentScore++;
+
+    if (Array.isArray(prev) && prev.length > 0) previousScore++;
+    else if (typeof prev === "string" && prev.length > 0) previousScore++;
+  }
+
+  // Content depth: reward substantive content length (diminishing returns)
+  const contentLen = output.content.length;
+  const contentScore = Math.min(1, contentLen / 500);
+  currentScore += contentScore;
+
+  const maxScore = fields.length + 1; // fields + content
+  const normalizedCurrent = currentScore / maxScore;
+  const normalizedPrevious = previous ? previousScore / maxScore : 0;
+
+  // Delta: how much quality was added in this iteration
+  return previous
+    ? Math.max(0, Math.min(1, normalizedCurrent - normalizedPrevious))
+    : normalizedCurrent;
 }
 
 function generateTierOutput(

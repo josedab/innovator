@@ -124,7 +124,7 @@ export { withTimeout } from "./copilot/timeout.js";
 /** Bounded LRU cache with optional TTL and hit/miss statistics.
  * @see {@link file://docs/API.md#caching} for usage patterns
  */
-export { LRUCache, memoize } from "./cache/index.js";
+export { LRUCache, memoize, memoizeAsync } from "./cache/index.js";
 export type { LRUCacheOptions, CacheStats } from "./cache/index.js";
 
 /** Object pool for recycling frequently allocated objects to reduce GC pressure.

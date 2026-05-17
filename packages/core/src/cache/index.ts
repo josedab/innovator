@@ -177,6 +177,16 @@ export class LRUCache<K, V> {
  * @returns A memoized wrapper with the same signature, plus a `.cache` property
  *          exposing the underlying {@link LRUCache} for inspection/clearing.
  */
+/**
+ * Create a memoized version of a function using an LRU cache.
+ *
+ * @param fn - The function to memoize
+ * @param options - Cache configuration
+ * @param keyFn - Optional function to derive the cache key from the arguments.
+ *                Defaults to `JSON.stringify(args)`.
+ * @returns A memoized wrapper with the same signature, plus a `.cache` property
+ *          exposing the underlying {@link LRUCache} for inspection/clearing.
+ */
 export function memoize<Args extends unknown[], R>(
   fn: (...args: Args) => R,
   options: LRUCacheOptions,
@@ -194,6 +204,61 @@ export function memoize<Args extends unknown[], R>(
     const result = fn(...args);
     cache.set(key, result);
     return result;
+  };
+
+  memoized.cache = cache;
+  return memoized;
+}
+
+/**
+ * Create a memoized version of an async function using an LRU cache.
+ *
+ * Unlike {@link memoize}, this correctly handles Promises: it caches the
+ * resolved value (not the Promise object), deduplicates concurrent calls
+ * for the same key, and evicts the cache entry if the Promise rejects.
+ *
+ * @param fn - The async function to memoize
+ * @param options - Cache configuration
+ * @param keyFn - Optional function to derive the cache key from the arguments.
+ *                Defaults to `JSON.stringify(args)`.
+ * @returns A memoized async wrapper with the same signature, plus a `.cache` property
+ *          exposing the underlying {@link LRUCache} for inspection/clearing.
+ */
+export function memoizeAsync<Args extends unknown[], R>(
+  fn: (...args: Args) => Promise<R>,
+  options: LRUCacheOptions,
+  keyFn?: (...args: Args) => string
+): ((...args: Args) => Promise<R>) & { cache: LRUCache<string, R> } {
+  const cache = new LRUCache<string, R>(options);
+  // Track in-flight promises to deduplicate concurrent calls for the same key
+  const inflight = new Map<string, Promise<R>>();
+  const resolveKey = keyFn ?? ((...args: Args) => JSON.stringify(args));
+
+  const memoized = (...args: Args): Promise<R> => {
+    const key = resolveKey(...args);
+
+    // Return cached resolved value if available
+    if (cache.has(key)) return Promise.resolve(cache.get(key) as R);
+
+    // Deduplicate concurrent calls: if a call for this key is already
+    // in flight, piggyback on its result instead of starting a new one
+    const existing = inflight.get(key);
+    if (existing) return existing;
+
+    const promise = fn(...args)
+      .then((result) => {
+        cache.set(key, result);
+        inflight.delete(key);
+        return result;
+      })
+      .catch((err: unknown) => {
+        // Don't cache failures
+        inflight.delete(key);
+        throw err;
+      });
+
+    inflight.set(key, promise);
+    return promise;
   };
 
   memoized.cache = cache;

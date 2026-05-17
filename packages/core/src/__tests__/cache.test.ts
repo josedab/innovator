@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { LRUCache, memoize } from "../cache/index.js";
+import { LRUCache, memoize, memoizeAsync } from "../cache/index.js";
 
 describe("LRUCache", () => {
   it("stores and retrieves values", () => {
@@ -203,6 +203,96 @@ describe("memoize", () => {
 
     fn.mockClear();
     memoized(1); // should re-compute since evicted
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("memoizeAsync", () => {
+  it("caches resolved values from async functions", async () => {
+    const fn = vi.fn(async (x: number) => x * 2);
+    const memoized = memoizeAsync(fn, { maxSize: 10 });
+
+    expect(await memoized(5)).toBe(10);
+    expect(await memoized(5)).toBe(10);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not cache rejected promises", async () => {
+    let callCount = 0;
+    const fn = vi.fn(async (x: number) => {
+      callCount++;
+      if (callCount === 1) throw new Error("fail");
+      return x * 2;
+    });
+    const memoized = memoizeAsync(fn, { maxSize: 10 });
+
+    await expect(memoized(3)).rejects.toThrow("fail");
+    // Second call should retry (not serve cached rejection)
+    expect(await memoized(3)).toBe(6);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("deduplicates concurrent calls for the same key", async () => {
+    let resolvePromise: (v: number) => void;
+    const fn = vi.fn(
+      (_x: number) =>
+        new Promise<number>((resolve) => {
+          resolvePromise = resolve;
+        })
+    );
+    const memoized = memoizeAsync(fn, { maxSize: 10 });
+
+    // Start two concurrent calls
+    const p1 = memoized(1);
+    const p2 = memoized(1);
+
+    // Should only call fn once
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    resolvePromise!(42);
+    expect(await p1).toBe(42);
+    expect(await p2).toBe(42);
+  });
+
+  it("uses custom key function", async () => {
+    const fn = vi.fn(async (a: number, b: number) => a + b);
+    const memoized = memoizeAsync(fn, { maxSize: 10 }, (a, b) => `${a}+${b}`);
+
+    expect(await memoized(1, 2)).toBe(3);
+    expect(await memoized(1, 2)).toBe(3);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("exposes cache for inspection", async () => {
+    const fn = async (x: number) => x * 2;
+    const memoized = memoizeAsync(fn, { maxSize: 5 });
+
+    await memoized(1);
+    await memoized(2);
+
+    expect(memoized.cache.size).toBe(2);
+  });
+
+  it("respects cache maxSize eviction", async () => {
+    const fn = vi.fn(async (x: number) => x * 2);
+    const memoized = memoizeAsync(fn, { maxSize: 2 });
+
+    await memoized(1);
+    await memoized(2);
+    await memoized(3); // evicts result for 1
+
+    fn.mockClear();
+    await memoized(1); // should re-compute
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns cached value on subsequent calls after resolution", async () => {
+    const fn = vi.fn(async () => "result");
+    const memoized = memoizeAsync(fn, { maxSize: 10 });
+
+    await memoized();
+    await memoized();
+    await memoized();
     expect(fn).toHaveBeenCalledTimes(1);
   });
 });
