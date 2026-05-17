@@ -6,6 +6,8 @@
  */
 
 import { z } from "zod";
+import { clearDailyChallengeData } from "./daily-challenges.js";
+import { clearStreakData, getStreak } from "./streaks.js";
 
 // ---- Schemas ----
 
@@ -511,7 +513,7 @@ export function getLeaderboard(limit: number = 20): LeaderboardEntry[] {
     achievementCount: earnedAchievements.filter((ea) => ea.userId === userId).length,
     challengesCompleted: challenges.filter((c) => c.userId === userId && c.status === "completed")
       .length,
-    currentStreak: 0, // streak requires date tracking beyond scope
+    currentStreak: getStreak(userId)?.currentStreak ?? 0,
     rank: 0,
   }));
 
@@ -575,6 +577,8 @@ export function clearGamification(): void {
   earnedAchievements.length = 0;
   challenges.length = 0;
   activityFeed.length = 0;
+  clearStreakData();
+  clearDailyChallengeData();
   gamificationConfig = {
     enabled: false,
     showLeaderboard: true,
@@ -584,3 +588,36 @@ export function clearGamification(): void {
     notifyDiscord: false,
   };
 }
+
+export {
+  StreakRecordSchema,
+  StreakMilestoneSchema,
+  STREAK_MILESTONES,
+  recordActivity,
+  getStreak,
+  checkMilestone,
+  getStreakLeaderboard,
+  clearStreakData,
+} from "./streaks.js";
+export type { StreakRecord, StreakMilestone } from "./streaks.js";
+
+export {
+  DailyChallengeSchema,
+  ChallengeCompletionSchema,
+  DAILY_CHALLENGE_TEMPLATES,
+  getDailyChallenge,
+  completeDailyChallenge,
+  getUserDailyChallengeHistory,
+  clearDailyChallengeData,
+} from "./daily-challenges.js";
+export type { DailyChallenge, ChallengeCompletion } from "./daily-challenges.js";
+
+export {
+  VelocityMetricsSchema,
+  computeVelocityScore,
+  getWeeklyVelocity,
+  getMonthlyVelocity,
+  getVelocityLeaderboard,
+  velocityToMarkdown,
+} from "./velocity.js";
+export type { VelocityMetrics, VelocityActivity } from "./velocity.js";
