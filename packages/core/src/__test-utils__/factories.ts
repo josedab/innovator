@@ -132,7 +132,7 @@ export function makeSessionRecord(overrides: Partial<MockSessionRecord> = {}): M
 
 // ---- Attack (for gauntlet) ----
 
-import type { Attack } from "../gauntlet/types.js";
+import type { Attack, GauntletResult } from "../gauntlet/types.js";
 
 export function makeAttack(overrides: Partial<Attack> = {}): Attack {
   return {
@@ -143,6 +143,30 @@ export function makeAttack(overrides: Partial<Attack> = {}): Attack {
     reasoning: "This assumption lacks supporting evidence.",
     evidence: "No market data supports the claimed adoption rate.",
     suggestedCounter: "Conduct a survey or pilot to validate the assumption.",
+    ...overrides,
+  };
+}
+
+// ---- GauntletResult ----
+
+let gauntletCounter = 0;
+
+export function makeGauntletResult(overrides: Partial<GauntletResult> = {}): GauntletResult {
+  gauntletCounter++;
+  return {
+    id: `gauntlet-${gauntletCounter}`,
+    ideaTitle: `Gauntlet Idea ${gauntletCounter}`,
+    ideaDescription: `Description of stress-tested idea ${gauntletCounter}.`,
+    attacks: [makeAttack()],
+    survivabilityIndex: 72,
+    transcript: [
+      {
+        adversaryRole: "skeptic",
+        attacks: [makeAttack()],
+        timestamp: new Date().toISOString(),
+      },
+    ],
+    createdAt: new Date().toISOString(),
     ...overrides,
   };
 }
@@ -170,6 +194,31 @@ export function makeSessionIngestion(overrides: Partial<SessionIngestion> = {}):
     ],
     themes: ["fairness"],
     timestamp: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+// ---- AnonymizedPattern (for federation-dp) ----
+
+import type { AnonymizedPattern } from "../federation-dp/types.js";
+
+let patternCounter = 0;
+
+export function makeAnonymizedPattern(
+  overrides: Partial<AnonymizedPattern> = {}
+): AnonymizedPattern {
+  patternCounter++;
+  return {
+    id: `dp-${patternCounter.toString().padStart(8, "0")}`,
+    type: "angle-effectiveness",
+    angleId: "scamper",
+    topicCategory: "technology",
+    noisedValue: 0.75,
+    ciLower: 0.6,
+    ciUpper: 0.9,
+    sampleSize: 10,
+    epoch: "2025-01",
+    createdAt: new Date().toISOString(),
     ...overrides,
   };
 }
