@@ -37,13 +37,13 @@ npx innovator auto 'solar energy'
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - GitHub Copilot subscription
 - GitHub CLI authenticated (`gh auth login`)
 
 ## Quick Start
 
-> **💻 Using GitHub Codespaces or VS Code Dev Containers?** Open the repo in a dev container — Node.js 20, GitHub CLI, and extensions are pre-configured. See [Dev Container / Codespaces](#dev-container--codespaces).
+> **💻 Using GitHub Codespaces or VS Code Dev Containers?** Open the repo in a dev container — Node.js 22, GitHub CLI, and extensions are pre-configured. See [Dev Container / Codespaces](#dev-container--codespaces).
 
 ```bash
 # Use the correct Node.js version (see .nvmrc)
@@ -55,7 +55,7 @@ npm install
 # Copy environment config (edit as needed)
 cp .env.local.example .env.local
 
-# Verify prerequisites (Node 20+, npm 10+, gh CLI, Copilot auth)
+# Verify prerequisites (Node 22+, npm 10+, gh CLI, Copilot auth)
 npm run doctor
 
 # Start the web app (automatically builds core first)
@@ -273,7 +273,7 @@ docker-compose up -d
 
 This repository includes a [dev container](.devcontainer/devcontainer.json) configuration for **GitHub Codespaces** and **VS Code Dev Containers**. It provides:
 
-- **Node.js 20** runtime
+- **Node.js 22** runtime
 - **GitHub CLI** pre-installed
 - **ESLint & Prettier** VS Code extensions with format-on-save enabled
 - **Port 3000** forwarded automatically

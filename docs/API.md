@@ -32,6 +32,8 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
 - [Error Handling](#error-handling)
   - [Error Hierarchy](#error-hierarchy)
   - [`isInnovatorError()`](#isinnovatorerror)
+  - [`AggregateInnovatorError`](#aggregateinnovatorerror)
+  - [`fromZodError()`](#fromzoderror)
 - [Prompt Utilities](#prompt-utilities)
   - [`validateSubject()`](#validatesubject)
   - [`withRetry()`](#withretry)
@@ -41,6 +43,9 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
   - [Lifecycle Hooks](#lifecycle-hooks)
   - [Plugin Loading](#plugin-loading)
   - [Health Checks](#health-checks)
+  - [Plugin Convenience Methods](#plugin-convenience-methods)
+  - [Schema Validation](#schema-validation)
+  - [Plugin Lifecycle Events](#plugin-lifecycle-events)
 - [Presets](#presets)
 - [LRU Cache](#lru-cache)
   - [`LRUCache`](#lrucache)
@@ -51,6 +56,7 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
   - [`withPooled()` / `withPooledAsync()`](#withpooled--withpooledasync)
 - [Result Type](#result-type)
   - [Constructors](#result-constructors)
+  - [Type Guards](#result-type-guards)
   - [Wrappers](#result-wrappers)
   - [Transformers](#result-transformers)
   - [Extractors](#result-extractors)
@@ -546,23 +552,25 @@ classDiagram
     InnovatorError <|-- ConfigurationError
     InnovatorError <|-- AbortError
     InnovatorError <|-- RetryExhaustedError
+    InnovatorError <|-- AggregateInnovatorError
     LlmError <|-- LlmTimeoutError
     LlmError <|-- LlmParseError
     LlmError <|-- RateLimitError
 ```
 
-| Error Class           | Code                  | When Thrown                                    | Extra Properties                          |
-| --------------------- | --------------------- | ---------------------------------------------- | ----------------------------------------- |
-| `InnovatorError`      | `ERR_INNOVATOR`       | Base class for all Innovator errors            | `code: InnovatorErrorCode`                |
-| `LlmError`            | `ERR_LLM`             | LLM API call failures (network, unknown)       | `model?: string`                          |
-| `LlmTimeoutError`     | `ERR_LLM_TIMEOUT`     | LLM request exceeds configured timeout         | `timeoutMs: number`, `model?: string`     |
-| `LlmParseError`       | `ERR_LLM_PARSE`       | LLM output fails JSON parsing                  | `rawOutput: string` (truncated to 500c)   |
-| `RateLimitError`      | `ERR_LLM_RATE_LIMIT`  | LLM API returns HTTP 429                       | `retryAfterMs?: number`, `model?: string` |
-| `RetryExhaustedError` | `ERR_RETRY_EXHAUSTED` | All `withRetry()` attempts exhausted           | `cause: Error`, `attempts: number`        |
-| `ValidationError`     | `ERR_VALIDATION`      | Data fails Zod schema validation               | `issues?: Array<{path, message}>`         |
-| `PipelineError`       | `ERR_PIPELINE`        | A pipeline stage fails                         | `stage: string`                           |
-| `ConfigurationError`  | `ERR_CONFIGURATION`   | Invalid config (missing env vars, bad options) | `configKey?: string`                      |
-| `AbortError`          | `ERR_ABORT`           | Operation cancelled via `AbortSignal`          | —                                         |
+| Error Class               | Code                  | When Thrown                                    | Extra Properties                          |
+| ------------------------- | --------------------- | ---------------------------------------------- | ----------------------------------------- |
+| `InnovatorError`          | `ERR_INNOVATOR`       | Base class for all Innovator errors            | `code: InnovatorErrorCode`                |
+| `LlmError`                | `ERR_LLM`             | LLM API call failures (network, unknown)       | `model?: string`                          |
+| `LlmTimeoutError`         | `ERR_LLM_TIMEOUT`     | LLM request exceeds configured timeout         | `timeoutMs: number`, `model?: string`     |
+| `LlmParseError`           | `ERR_LLM_PARSE`       | LLM output fails JSON parsing                  | `rawOutput: string` (truncated to 500c)   |
+| `RateLimitError`          | `ERR_LLM_RATE_LIMIT`  | LLM API returns HTTP 429                       | `retryAfterMs?: number`, `model?: string` |
+| `RetryExhaustedError`     | `ERR_RETRY_EXHAUSTED` | All `withRetry()` attempts exhausted           | `cause: Error`, `attempts: number`        |
+| `AggregateInnovatorError` | `ERR_PIPELINE`        | Multiple errors from batch/parallel operations | `errors: Error[]`                         |
+| `ValidationError`         | `ERR_VALIDATION`      | Data fails Zod schema validation               | `issues?: Array<{path, message}>`         |
+| `PipelineError`           | `ERR_PIPELINE`        | A pipeline stage fails                         | `stage: string`                           |
+| `ConfigurationError`      | `ERR_CONFIGURATION`   | Invalid config (missing env vars, bad options) | `configKey?: string`                      |
+| `AbortError`              | `ERR_ABORT`           | Operation cancelled via `AbortSignal`          | —                                         |
 
 All `InnovatorError` subclasses support `.toJSON()` for structured serialization in logging and API responses:
 
@@ -599,6 +607,66 @@ function isInnovatorError(err: unknown): err is InnovatorError;
 ```
 
 > **📌 Typed Error Migration (v0.3.0+):** As of the latest release, all `@innovator/core` modules throw typed `InnovatorError` subclasses instead of plain `Error`. Every `throw new Error(...)` has been replaced with the appropriate subclass (`ValidationError`, `LlmParseError`, `ConfigurationError`, `PipelineError`, or `AbortError`). This means `isInnovatorError()` will now catch all errors originating from Innovator, and you can use `err.code` for programmatic discrimination. If your code catches `Error` and checks `instanceof`, it will continue to work since all subclasses extend `Error`.
+
+### `AggregateInnovatorError`
+
+Wraps multiple errors from a batch or parallel operation into a single structured error. Useful for collecting failures from `Promise.allSettled` or multi-stage pipelines where you want to report all failures rather than failing on the first.
+
+```typescript
+class AggregateInnovatorError extends InnovatorError {
+  constructor(
+    message: string,
+    errors: Error[],
+    code?: InnovatorErrorCode // default: "ERR_PIPELINE"
+  );
+  readonly errors: Error[];
+}
+```
+
+**Example:**
+
+```typescript
+import { AggregateInnovatorError, isInnovatorError } from "@innovator/core";
+
+const errors = results.filter((r) => r.status === "rejected").map((r) => r.reason);
+
+if (errors.length > 0) {
+  throw new AggregateInnovatorError(`${errors.length} parallel tasks failed`, errors);
+}
+```
+
+### `fromZodError()`
+
+Convert a Zod validation error into a structured `ValidationError`. Extracts human-readable issue paths and messages from the Zod error, with an optional context prefix.
+
+```typescript
+function fromZodError(
+  zodError: { issues: Array<{ path: (string | number)[]; message: string }> },
+  context?: string
+): ValidationError;
+```
+
+**Parameters:**
+
+| Name       | Type       | Description                                                         |
+| ---------- | ---------- | ------------------------------------------------------------------- |
+| `zodError` | `ZodError` | The Zod error object (or any object with an `issues` array)         |
+| `context`  | `string?`  | Optional prefix for the error message (e.g., `"Plugin validation"`) |
+
+**Example:**
+
+```typescript
+import { fromZodError } from "@innovator/core";
+import { z } from "zod";
+
+const schema = z.object({ name: z.string(), count: z.number() });
+const result = schema.safeParse({ name: 123, count: "bad" });
+
+if (!result.success) {
+  throw fromZodError(result.error, "Config parsing");
+  // → ValidationError: Config parsing: name — Expected string, received number; count — Expected number, received string
+}
+```
 
 ---
 
@@ -786,6 +854,8 @@ Register custom angle, exporter, or visualizer plugins with lifecycle management
 function registerPlugin(plugin: LifecyclePlugin): void;
 async function unregisterPlugin(id: string): Promise<boolean>;
 function getPlugin(id: string): InnovatorPlugin | undefined;
+function getPluginOrThrow(id: string): InnovatorPlugin;
+function hasPlugin(id: string): boolean;
 function listPlugins(): InnovatorPlugin[];
 function getPluginsByType(type: "angle" | "exporter" | "visualizer"): InnovatorPlugin[];
 
@@ -890,6 +960,62 @@ const health = await checkPluginHealth();
 // { "angle-plugin": true, "broken-plugin": false }
 ```
 
+### Plugin Convenience Methods
+
+#### `getPluginOrThrow()`
+
+Retrieve a registered plugin by ID, throwing `ConfigurationError` if not found. Useful when a plugin dependency is required.
+
+```typescript
+function getPluginOrThrow(id: string): InnovatorPlugin;
+```
+
+**Throws:** `ConfigurationError` if no plugin with the given ID is registered.
+
+```typescript
+import { getPluginOrThrow } from "@innovator/core";
+
+const exporter = getPluginOrThrow("csv-exporter"); // throws if missing
+```
+
+#### `hasPlugin()`
+
+Check whether a plugin with the given ID is registered.
+
+```typescript
+function hasPlugin(id: string): boolean;
+```
+
+```typescript
+import { hasPlugin } from "@innovator/core";
+
+if (hasPlugin("my-angle-plugin")) {
+  // safe to use
+}
+```
+
+### Schema Validation
+
+Plugin metadata is validated at registration time via `PluginBaseSchema` (Zod). The schema enforces:
+
+- `id` — non-empty string
+- `name` — non-empty string
+- `type` — one of `"angle"`, `"exporter"`, `"visualizer"`
+- `version` — optional SemVer string
+
+Plugins that fail schema validation throw `ValidationError` on `registerPlugin()`.
+
+### Plugin Lifecycle Events
+
+The plugin system emits lifecycle events on the global [Event Bus](#event-bus), enabling monitoring and observability:
+
+| Event                 | When Emitted                                          | Payload               |
+| --------------------- | ----------------------------------------------------- | --------------------- |
+| `plugin.registered`   | After successful `registerPlugin()`                   | `{ pluginId, type }`  |
+| `plugin.unregistered` | After successful `unregisterPlugin()`                 | `{ pluginId }`        |
+| `plugin.initialized`  | After successful `initPlugin()` or `initAllPlugins()` | `{ pluginId }`        |
+| `plugin.init_failed`  | When `onInit()` throws during initialization          | `{ pluginId, error }` |
+
 > 📖 **Tutorial:** See [Writing a Plugin](./DEVELOPER_GUIDE.md#writing-a-plugin) for a complete plugin example.
 
 ---
@@ -932,16 +1058,17 @@ cache.get("key"); // 42
 
 **Methods:**
 
-| Method            | Returns          | Description                                                                            |
-| ----------------- | ---------------- | -------------------------------------------------------------------------------------- |
-| `get(key)`        | `V \| undefined` | Retrieve value. Promotes to most-recently-used. Returns `undefined` on miss or expiry. |
-| `set(key, value)` | `void`           | Insert or update. Evicts LRU entry if at capacity.                                     |
-| `has(key)`        | `boolean`        | Check existence (expired entries return `false`).                                      |
-| `delete(key)`     | `boolean`        | Remove a specific entry.                                                               |
-| `clear()`         | `void`           | Remove all entries and reset statistics.                                               |
-| `prune()`         | `number`         | Evict all expired entries. Returns count removed.                                      |
-| `stats()`         | `CacheStats`     | Snapshot of hits, misses, size, maxSize, hitRate.                                      |
-| `size`            | `number`         | Current entry count (property).                                                        |
+| Method                   | Returns          | Description                                                                                                                            |
+| ------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `get(key)`               | `V \| undefined` | Retrieve value. Promotes to most-recently-used. Returns `undefined` on miss or expiry.                                                 |
+| `set(key, value)`        | `void`           | Insert or update. Evicts LRU entry if at capacity.                                                                                     |
+| `getOrSet(key, factory)` | `V`              | Return cached value or compute via `factory`, store, and return. Atomic check-and-populate eliminating `has()`+`get()` double lookups. |
+| `has(key)`               | `boolean`        | Check existence (expired entries return `false`).                                                                                      |
+| `delete(key)`            | `boolean`        | Remove a specific entry.                                                                                                               |
+| `clear()`                | `void`           | Remove all entries and reset statistics.                                                                                               |
+| `prune()`                | `number`         | Evict all expired entries. Returns count removed.                                                                                      |
+| `stats()`                | `CacheStats`     | Snapshot of hits, misses, size, maxSize, hitRate.                                                                                      |
+| `size`                   | `number`         | Current entry count (property).                                                                                                        |
 
 **`CacheStats` shape:**
 
@@ -1112,6 +1239,31 @@ const success = ok(42); // Ok<number>
 const failure = err(new Error("oops")); // Err<Error>
 ```
 
+### Result Type Guards
+
+Type-narrowing guards for ergonomic `Result` handling without destructuring:
+
+```typescript
+import { isOk, isErr, ok, err } from "@innovator/core";
+
+function isOk<T, E>(result: Result<T, E>): result is Ok<T>;
+function isErr<T, E>(result: Result<T, E>): result is Err<E>;
+```
+
+**Example:**
+
+```typescript
+const result = tryFn(() => JSON.parse(input));
+
+if (isOk(result)) {
+  console.log(result.value); // TypeScript knows this is Ok<T>
+}
+
+if (isErr(result)) {
+  console.error(result.error); // TypeScript knows this is Err<E>
+}
+```
+
 ### Result Wrappers
 
 Wrap throwing code in a Result — catches exceptions and returns them as `Err<Error>`:
@@ -1210,6 +1362,18 @@ sem.waiting; // Number of callers waiting
 ```
 
 Throws `ConfigurationError` if `maxPermits < 1`.
+
+**Methods:**
+
+| Method      | Returns         | Description                                                                              |
+| ----------- | --------------- | ---------------------------------------------------------------------------------------- |
+| `acquire()` | `Promise<void>` | Wait until a permit is available, then acquire it.                                       |
+| `release()` | `void`          | Release a permit, unblocking the next waiter.                                            |
+| `shrink(n)` | `void`          | Reduce maximum permits to `n` (takes effect as permits are released). Throws if `n < 1`. |
+| `available` | `number`        | Current free permits (property).                                                         |
+| `waiting`   | `number`        | Number of callers waiting for a permit (property).                                       |
+
+> **Adaptive scaling:** `TaskRunner` uses `Semaphore.shrink()` internally when `adaptive: true` and error rates exceed the threshold, dynamically reducing concurrency to protect downstream services.
 
 ### `TaskRunner`
 
@@ -2932,6 +3096,30 @@ Remove all user-registered custom models, restoring only built-in models.
 
 ```typescript
 function clearCustomModels(): void;
+```
+
+### `unregisterModel()`
+
+Remove a single custom model by ID. Returns `true` if the model was found and removed, `false` if it was not registered or is a built-in model.
+
+```typescript
+function unregisterModel(modelId: string): boolean;
+```
+
+**Parameters:**
+
+| Name      | Type     | Description                |
+| --------- | -------- | -------------------------- |
+| `modelId` | `string` | The model ID to unregister |
+
+**Example:**
+
+```typescript
+import { registerModel, unregisterModel } from "@innovator/core";
+
+registerModel({ modelId: "my-org/test-model" /* ... */ });
+unregisterModel("my-org/test-model"); // true
+unregisterModel("gpt-4.1"); // false (built-in, not removable)
 ```
 
 ### Model Registry Types

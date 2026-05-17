@@ -58,6 +58,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`PipelineProgress.completionPercent`** — New optional field automatically populated by `runAutoPipeline()` on each progress callback
 - **Pipeline event bus integration** — `investigate()` and `generateForAngle()` now emit lifecycle events (`*.started`, `*.completed`, `*.failed`) on the global `EventBus` with subject, duration, and error details
 - **Time series gap filling** — `getTimeSeries()` now fills gaps with zero-value data points so charts are continuous across the full date range
+- **`isOk()` / `isErr()`** — Type guard functions for `Result<T, E>` enabling ergonomic type narrowing without destructuring (`isOk(result)` narrows to `Ok<T>`, `isErr(result)` narrows to `Err<E>`)
+- **`AggregateInnovatorError`** — New error class for wrapping multiple errors from batch/parallel operations into a single structured error; extends `InnovatorError` with an `errors: Error[]` property
+- **`fromZodError()`** — Utility to convert a `ZodError` into a structured `ValidationError` with human-readable issue paths and messages; supports optional context prefix
+- **`getPluginOrThrow()`** — Retrieve a registered plugin by ID or throw `ConfigurationError` if not found; useful for required plugin dependencies
+- **`hasPlugin()`** — Check whether a plugin with the given ID is registered (returns `boolean`)
+- **`PluginBaseSchema`** — Zod schema for validating plugin metadata at registration time (enforces `id`, `name`, `type`, optional `version`)
+- **Plugin lifecycle events** — Plugin system now emits `plugin.registered`, `plugin.unregistered`, `plugin.initialized`, and `plugin.init_failed` events on the global EventBus
+- **`unregisterModel()`** — Remove a single custom model by ID from the model registry; returns `true` if removed, `false` if not found or built-in
+- **`LRUCache.getOrSet()`** — Atomic check-and-populate method that returns the cached value or computes it via a factory function, eliminating the `has()`+`get()` double-lookup pattern
+- **`Semaphore.shrink()`** — Dynamically reduce maximum permits for future releases; wired into `TaskRunner` adaptive scaling so concurrency actually decreases when error rates exceed the threshold
 
 ### Changed
 
@@ -77,6 +87,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Refinement loop quality scoring** — `generateRefinement()` now uses structural quality scoring (`computeStructuralQuality()`) instead of raw text length comparison; checks for presence of implementation steps, acceptance criteria, risks, dependencies, and other structured fields
 - **Refinement loop UUID generation** — Replaced `crypto.randomUUID()` (browser API) with `node:crypto` `randomUUID()` for consistent Node.js compatibility
 - **Activity heatmap key encoding** — Changed heatmap cell key separator from `:` to null byte (`\0`) to prevent ambiguity when axis labels contain colons
+- **Plugin registration validation** — `registerPlugin()` now validates plugin metadata via `PluginBaseSchema` (Zod); invalid plugins throw `ValidationError` immediately
+- **Validation parallelization** — `validateIdea()` now runs validators in parallel via `Promise.all` instead of sequentially, improving performance for ideas with multiple validators; error messages are preserved in fallback validation checks instead of being swallowed
+- **Node.js version alignment** — Aligned to Node 22 across Dockerfile, devcontainer, action.yml, CI matrix, `package.json` engines, and `doctor.mjs`
+- **Incremental TypeScript builds** — Enabled `incremental` with `tsBuildInfoFile` in `tsconfig.base.json`, `packages/core`, and `apps/cli` for faster rebuild times
+- **Pipeline sanitized subject** — `pipeline.ts` now correctly uses the sanitized subject for all downstream operations (was unused after validation)
 
 ### Fixed
 
@@ -85,12 +100,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Marketplace tests** — Fixed test setup and assertion mismatches across marketplace module test suites
 - **ESLint compliance** — Removed all `@ts-nocheck` directives and resolved remaining lint warnings across core modules
 - **Cache duplicate JSDoc** — Removed duplicate JSDoc comment block on `memoize()` in `cache/index.ts`
+- **`compareModels()` no-op fix** — Fixed no-op `resolvedAngleId` variable in `compareModels()` that was assigned but never used
+- **Codebase analysis test stability** — Fixed flaky `codebase-analysis` test timeout under parallel load
 
 ### Testing
 
 - **Prompt Studio test suite** — 28 tests covering CRUD operations, versioning, analytics, template interpolation, and input validation
 - **Portfolio optimizer test suite** — 12 tests covering asset conversion, correlation matrix, risk/return metrics, Monte Carlo simulation, and portfolio optimization
-- **Test count** — All 635 test files pass (11,420 total tests)
+- **Plugin system test suite** — 14 new tests covering `getPluginOrThrow()`, `hasPlugin()`, schema validation, lifecycle events, and dependency resolution
+- **Result type test suite** — 9 new tests covering `isOk()`, `isErr()`, `flatMapAsync()`, and `mapAsync()`
+- **Error handling test suite** — 11 new tests covering `AggregateInnovatorError`, `fromZodError()`, and error serialization
+- **Validation test suite** — 14 new `validateSubject()` tests covering all validation branches
+- **Cache test suite** — Tests for `getOrSet()` atomic check-and-populate
+- **Concurrency test suite** — Tests for `Semaphore.shrink()` and adaptive TaskRunner scaling
+- **Model registry test suite** — Tests for `unregisterModel()` single-model removal
+- **Removed duplicate tests** — Removed 4 duplicate root-level test files (`rbac`, `api-playground`, `portfolio-optimizer`, `cross-org-benchmark`) where module-local tests are supersets
 
 ### Documentation
 
@@ -119,6 +143,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Reference** — Updated `generateForAngle()` with throws table and event bus lifecycle events
 - **API Reference** — Updated `runAutoPipeline()` with `ValidationError` throws, `completionPercent` progress tracking, and `PipelineProgress.completionPercent` field
 - **API Reference** — Updated `PipelineProgress` type with `completionPercent` and `durationMs` fields
+- **API Reference** — Added `AggregateInnovatorError` and `fromZodError()` to Error Handling section with examples and Mermaid diagram update
+- **API Reference** — Added `isOk()` / `isErr()` type guards to Result Type section
+- **API Reference** — Added `getPluginOrThrow()`, `hasPlugin()`, Schema Validation, and Plugin Lifecycle Events sections to Plugin System
+- **API Reference** — Added `LRUCache.getOrSet()` method to cache methods table
+- **API Reference** — Added `Semaphore.shrink()` and methods table to Concurrency section
+- **API Reference** — Added `unregisterModel()` to Model Registry section
+- **Changelog** — Updated with all additions, changes, and fixes from recent commits
 
 ## [0.3.0] — 2026-05-14
 
