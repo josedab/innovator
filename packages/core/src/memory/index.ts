@@ -553,7 +553,7 @@ export function autoTuneParameters(domain?: string): TunedParameters {
   // Compute angle weights from outcomes
   const angleScores = new Map<string, { totalScore: number; count: number }>();
   for (const r of records) {
-    const score = r.averageScore ?? (r.userRating ? r.userRating * 10 : 50);
+    const score = r.averageScore ?? (r.userRating != null ? r.userRating * 10 : 50);
     for (const angle of r.anglesUsed) {
       const entry = angleScores.get(angle) ?? { totalScore: 0, count: 0 };
       entry.totalScore += score;

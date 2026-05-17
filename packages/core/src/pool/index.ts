@@ -102,10 +102,11 @@ export class ObjectPool<T> {
       return;
     }
     this.releaseCount++;
-    if (this.items.length >= this.maxSize) {
-      return; // Pool is full — discard
-    }
+    // Always reset the object, even if the pool is full — callers may hold refs
     this.resetFn?.(obj);
+    if (this.items.length >= this.maxSize) {
+      return; // Pool is full — discard after reset
+    }
     this.items.push(obj);
   }
 

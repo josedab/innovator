@@ -150,9 +150,11 @@ export {
   unwrapOr,
   unwrapOrElse,
   collectResults,
+  collectResultsAsync,
   partitionResults,
   flatMapAsync,
   mapAsync,
+  mapAllAsync,
   isOk,
   isErr,
 } from "./result/index.js";
@@ -3021,6 +3023,7 @@ export {
   setStorage,
   initializeStorage,
   closeStorage,
+  isStorageInitialized,
   InMemoryStorageProvider,
 } from "./storage/index.js";
 export type {

@@ -142,7 +142,11 @@ export async function generateText(options: GenerateOptions): Promise<string> {
         );
       }),
     ]);
-    return response?.data?.content ?? "";
+    const content = response?.data?.content ?? "";
+    if (!content) {
+      throw new LlmParseError("LLM returned an empty response", "", { model: options.model });
+    }
+    return content;
   } finally {
     if (timeoutId !== undefined) clearTimeout(timeoutId);
     options.signal?.removeEventListener("abort", abortHandler);

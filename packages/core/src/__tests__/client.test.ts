@@ -179,18 +179,20 @@ describe("copilot/client", () => {
       expect(mockDisconnect).toHaveBeenCalled();
     });
 
-    it("returns empty string when response has no content", async () => {
+    it("throws LlmParseError when response has no content", async () => {
       mockSendAndWait.mockResolvedValue({ data: {} });
 
-      const result = await generateText({ prompt: "test" });
-      expect(result).toBe("");
+      await expect(generateText({ prompt: "test" })).rejects.toThrow(
+        "LLM returned an empty response"
+      );
     });
 
-    it("returns empty string when response is null", async () => {
+    it("throws LlmParseError when response is null", async () => {
       mockSendAndWait.mockResolvedValue(null);
 
-      const result = await generateText({ prompt: "test" });
-      expect(result).toBe("");
+      await expect(generateText({ prompt: "test" })).rejects.toThrow(
+        "LLM returned an empty response"
+      );
     });
 
     it("throws immediately when signal is already aborted", async () => {

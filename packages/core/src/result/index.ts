@@ -188,3 +188,25 @@ export function partitionResults<T, E>(results: Result<T, E>[]): { values: T[]; 
   }
   return { values, errors };
 }
+
+/**
+ * Execute an array of async functions, collecting their results.
+ * Unlike `Promise.all`, this does not short-circuit on the first error —
+ * all functions run to completion and their outcomes are collected as Results.
+ */
+export async function collectResultsAsync<T>(
+  fns: Array<() => Promise<T>>
+): Promise<Result<T, Error>[]> {
+  return Promise.all(fns.map((fn) => tryAsync(fn)));
+}
+
+/**
+ * Apply an async mapping function to an array of items, collecting results.
+ * Runs all mappings concurrently and returns a Result for each item.
+ */
+export async function mapAllAsync<T, U>(
+  items: T[],
+  fn: (item: T) => Promise<U>
+): Promise<Result<U, Error>[]> {
+  return Promise.all(items.map((item) => tryAsync(() => fn(item))));
+}

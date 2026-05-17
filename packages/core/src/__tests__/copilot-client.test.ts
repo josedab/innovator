@@ -106,10 +106,11 @@ describe("copilot/client", () => {
       expect(mockSendAndWait).toHaveBeenCalledWith({ prompt: "Test prompt" });
     });
 
-    it("returns empty string when response has no content", async () => {
+    it("throws LlmParseError when response has no content", async () => {
       mockSendAndWait.mockResolvedValue({});
-      const result = await generateText({ prompt: "test", timeoutMs: 5000 });
-      expect(result).toBe("");
+      await expect(generateText({ prompt: "test", timeoutMs: 5000 })).rejects.toThrow(
+        "LLM returned an empty response"
+      );
     });
 
     it("uses server permission handler when serverMode is true", async () => {
