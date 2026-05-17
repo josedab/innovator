@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help install dev dev-all dev-docs build build-check clean clean-all test test-ci test-coverage check lint lint-fix typecheck format doctor dev-cli test-single test-watch test-changed validate typecheck-core
+.PHONY: help install dev dev-all dev-docs build build-check clean clean-all test test-ci test-coverage check lint lint-fix typecheck format doctor dev-cli test-single test-watch test-changed validate typecheck-core format-check docker-build docker-up docker-down docs-build docs-api
 
 # ── Help ──────────────────────────────────────────────────────────────
 
@@ -87,3 +87,25 @@ clean: ## Remove build artifacts and coverage
 
 clean-all: ## Clean build artifacts and all node_modules
 	npm run clean:all
+
+# ── Docker ────────────────────────────────────────────────────────────
+
+docker-build: ## Build Docker image
+	npm run docker:build
+
+docker-up: ## Start all services with Docker Compose
+	npm run docker:up
+
+docker-down: ## Stop all Docker Compose services
+	npm run docker:down
+
+# ── Documentation ────────────────────────────────────────────────────
+
+docs-build: ## Build the Docusaurus documentation website
+	npm run docs:build
+
+docs-api: ## Generate TypeDoc API documentation for core
+	npm run docs:api
+
+format-check: ## Check formatting without writing changes
+	npm run format:check

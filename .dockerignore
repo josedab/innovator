@@ -60,7 +60,6 @@ CHANGELOG.md
 commitlint.config.mjs
 eslint.config.mjs
 vitest.config.ts
-tsconfig.base.json
 .releaserc.json
 .markdown-link-check.json
 Makefile

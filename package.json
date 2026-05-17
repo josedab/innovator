@@ -33,8 +33,13 @@
     "format:check": "prettier --check .",
     "clean": "rm -rf packages/core/dist apps/web/.next apps/cli/dist coverage && find . -name '*.tsbuildinfo' -not -path './node_modules/*' -delete",
     "clean:all": "npm run clean && rm -rf node_modules packages/core/node_modules apps/web/node_modules apps/cli/node_modules",
+    "docs:build": "npm run build --workspace=website",
     "doctor": "node scripts/doctor.mjs",
     "prepare": "husky",
+    "start": "npm run start --workspace=apps/web",
+    "docker:build": "docker build -t innovator .",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
     "preinstall": "npx only-allow npm"
   },
   "devDependencies": {
