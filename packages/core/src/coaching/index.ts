@@ -7,6 +7,7 @@
  * clarification, mid-angle interventions, and post-synthesis deepening.
  */
 
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
@@ -311,6 +312,276 @@ async function runLlmJson(prompt: string, model?: string, signal?: AbortSignal):
           err.message.includes("Unbalanced JSON braces")),
     }
   );
+}
+
+// ---- Socratic Innovation Coach ----
+
+export interface CoachingSession {
+  id: string;
+  topic: string;
+  messages: CoachMessage[];
+  blindSpots: string[];
+  suggestedAngles: string[];
+  learningPathId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CoachMessage {
+  role: "coach" | "user";
+  content: string;
+  timestamp: string;
+  type?: "question" | "suggestion" | "insight" | "challenge";
+}
+
+export const LearningPathSchema = z.object({
+  id: z.string().max(100),
+  title: z.string().max(500),
+  description: z.string().max(2000),
+  modules: z
+    .array(
+      z.object({
+        id: z.string().max(100),
+        title: z.string().max(500),
+        description: z.string().max(1000),
+        exercises: z.array(z.string().max(500)).max(10),
+        estimatedMinutes: z.number().min(1).max(120),
+      })
+    )
+    .max(20),
+  difficulty: z.enum(["beginner", "intermediate", "advanced"]),
+  tags: z.array(z.string().max(100)).max(10),
+});
+export type LearningPath = z.infer<typeof LearningPathSchema>;
+
+const coachingSessions = new Map<string, CoachingSession>();
+const BASE_COACHING_ANGLES = [
+  "first-principles",
+  "scamper",
+  "inversion",
+  "constraints",
+  "perspectives",
+  "what-if",
+  "cross-domain",
+  "trend-collision",
+];
+
+const BUILT_IN_LEARNING_PATHS: LearningPath[] = [
+  LearningPathSchema.parse({
+    id: "innovation-foundations",
+    title: "Innovation Foundations",
+    description:
+      "Build a durable mental model for framing opportunities and selecting the right innovation angles.",
+    modules: [
+      {
+        id: "opportunity-framing",
+        title: "Opportunity Framing",
+        description:
+          "Clarify the user, job-to-be-done, and strategic constraint before ideation starts.",
+        exercises: [
+          "Rewrite one vague idea as a concrete opportunity statement.",
+          "List three assumptions hidden in your current problem framing.",
+        ],
+        estimatedMinutes: 30,
+      },
+      {
+        id: "angle-selection",
+        title: "Angle Selection",
+        description:
+          "Choose complementary innovation angles based on problem shape and evidence gaps.",
+        exercises: ["Match five example problems to their best-fit innovation angles."],
+        estimatedMinutes: 35,
+      },
+    ],
+    difficulty: "beginner",
+    tags: ["innovation", "fundamentals", "strategy"],
+  }),
+  LearningPathSchema.parse({
+    id: "customer-discovery-loop",
+    title: "Customer Discovery Loop",
+    description:
+      "Improve idea quality by grounding hypotheses in customer evidence and rapid feedback.",
+    modules: [
+      {
+        id: "interview-design",
+        title: "Interview Design",
+        description: "Craft questions that uncover pain points without leading the participant.",
+        exercises: ["Draft five open-ended interview prompts for your product area."],
+        estimatedMinutes: 25,
+      },
+      {
+        id: "signal-synthesis",
+        title: "Signal Synthesis",
+        description: "Turn qualitative feedback into reusable patterns and decision criteria.",
+        exercises: ["Cluster interview notes into three repeatable themes."],
+        estimatedMinutes: 30,
+      },
+    ],
+    difficulty: "intermediate",
+    tags: ["research", "customer-discovery", "validation"],
+  }),
+  LearningPathSchema.parse({
+    id: "experimentation-systems",
+    title: "Experimentation Systems",
+    description:
+      "Design lightweight experiments that test desirability, feasibility, and viability in sequence.",
+    modules: [
+      {
+        id: "experiment-design",
+        title: "Experiment Design",
+        description:
+          "Define hypotheses, success metrics, and stop-loss criteria for innovation bets.",
+        exercises: ["Convert one idea into a falsifiable experiment plan."],
+        estimatedMinutes: 40,
+      },
+      {
+        id: "evidence-review",
+        title: "Evidence Review",
+        description:
+          "Interpret experiment results and decide whether to double down, pivot, or stop.",
+        exercises: ["Review a failed experiment and extract two lessons learned."],
+        estimatedMinutes: 35,
+      },
+    ],
+    difficulty: "intermediate",
+    tags: ["experiments", "decision-making", "measurement"],
+  }),
+  LearningPathSchema.parse({
+    id: "ai-product-innovation",
+    title: "AI Product Innovation",
+    description:
+      "Explore high-leverage AI product opportunities while managing risk, trust, and adoption constraints.",
+    modules: [
+      {
+        id: "ai-opportunity-mapping",
+        title: "AI Opportunity Mapping",
+        description:
+          "Identify where AI creates differentiated value versus incremental automation.",
+        exercises: ["Map one workflow and mark where AI adds, supports, or should stay out."],
+        estimatedMinutes: 45,
+      },
+      {
+        id: "risk-and-guardrails",
+        title: "Risk and Guardrails",
+        description: "Define evaluation criteria, human oversight, and trust-building mechanisms.",
+        exercises: ["Draft guardrails for one AI-powered feature you want to ship."],
+        estimatedMinutes: 40,
+      },
+    ],
+    difficulty: "advanced",
+    tags: ["ai", "product", "risk"],
+  }),
+];
+
+function getAngleCatalogForTopic(topic: string): string[] {
+  const normalized = topic.toLowerCase();
+  if (
+    normalized.includes("ai") ||
+    normalized.includes("machine learning") ||
+    normalized.includes("llm")
+  ) {
+    return [
+      "first-principles",
+      "constraints",
+      "what-if",
+      "cross-domain",
+      "trend-collision",
+      "perspectives",
+    ];
+  }
+  if (
+    normalized.includes("market") ||
+    normalized.includes("customer") ||
+    normalized.includes("growth")
+  ) {
+    return ["perspectives", "inversion", "what-if", "trend-collision", "scamper", "cross-domain"];
+  }
+  return [...BASE_COACHING_ANGLES];
+}
+
+function extractCompletedAngles(messages: CoachMessage[], allAngles: string[]): string[] {
+  const content = messages.map((message) => message.content.toLowerCase()).join(" ");
+  return allAngles.filter((angle) => content.includes(angle.toLowerCase()));
+}
+
+export function createCoachingSession(topic: string): CoachingSession {
+  const trimmedTopic = topic.trim();
+  if (!trimmedTopic) {
+    throw new Error("topic is required");
+  }
+
+  const now = new Date().toISOString();
+  const allAngles = getAngleCatalogForTopic(trimmedTopic);
+  const session: CoachingSession = {
+    id: randomUUID(),
+    topic: trimmedTopic,
+    messages: [
+      {
+        role: "coach",
+        content: `What assumption about ${trimmedTopic} should we challenge first?`,
+        timestamp: now,
+        type: "question",
+      },
+    ],
+    blindSpots: detectBlindSpots([], allAngles),
+    suggestedAngles: suggestNextAngles([], allAngles),
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  coachingSessions.set(session.id, session);
+  return session;
+}
+
+export function getCoachingSession(id: string): CoachingSession | undefined {
+  return coachingSessions.get(id);
+}
+
+export function addCoachMessage(
+  sessionId: string,
+  role: "coach" | "user",
+  content: string,
+  type?: CoachMessage["type"]
+): CoachingSession | undefined {
+  const session = coachingSessions.get(sessionId);
+  if (!session) return undefined;
+
+  const now = new Date().toISOString();
+  session.messages.push({
+    role,
+    content,
+    timestamp: now,
+    type: type ?? (role === "coach" ? "question" : "insight"),
+  });
+
+  const allAngles = getAngleCatalogForTopic(session.topic);
+  const completedAngles = extractCompletedAngles(session.messages, allAngles);
+  session.blindSpots = detectBlindSpots(completedAngles, allAngles);
+  session.suggestedAngles = suggestNextAngles(completedAngles, allAngles);
+  session.updatedAt = now;
+  coachingSessions.set(sessionId, session);
+  return session;
+}
+
+export function detectBlindSpots(investigationAngles: string[], allAngles: string[]): string[] {
+  const completed = new Set(investigationAngles.map((angle) => angle.toLowerCase()));
+  return Array.from(new Set(allAngles)).filter((angle) => !completed.has(angle.toLowerCase()));
+}
+
+export function suggestNextAngles(completedAngles: string[], allAngles: string[]): string[] {
+  return detectBlindSpots(completedAngles, allAngles).slice(0, 3);
+}
+
+export function getBuiltInLearningPaths(): LearningPath[] {
+  return BUILT_IN_LEARNING_PATHS.map((path) => ({
+    ...path,
+    modules: path.modules.map((module) => ({ ...module, exercises: [...module.exercises] })),
+    tags: [...path.tags],
+  }));
+}
+
+export function clearCoachingSessions(): void {
+  coachingSessions.clear();
 }
 
 // ---- Re-exports ----

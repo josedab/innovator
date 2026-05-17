@@ -1108,6 +1108,11 @@ export type {
 /** RAG / knowledge grounding — document loading, chunking, embedding, similarity search, and source connectors. */
 export {
   KnowledgeBase,
+  buildRAGContext,
+  injectContextIntoPrompt,
+  KnowledgeBaseManager,
+  getKnowledgeBaseManager,
+  resetKnowledgeBaseManager,
   loadDocument,
   chunkText,
   generateEmbedding,
@@ -1138,6 +1143,7 @@ export type {
   KnowledgeBaseConfig,
   SearchResult,
   ChunkingOptions,
+  EmbeddingProvider,
   ConnectorType,
   ConnectorConfig,
   ConnectorStatus,
@@ -1380,11 +1386,19 @@ export {
   generatePostSynthesisDeepening,
   detectAssumptions,
   recommendPivots,
+  createCoachingSession,
+  getCoachingSession,
+  addCoachMessage,
+  detectBlindSpots,
+  suggestNextAngles,
+  getBuiltInLearningPaths,
+  clearCoachingSessions,
   CoachPersonalitySchema,
   CoachQuestionSchema,
   AssumptionSchema,
   PivotRecommendationSchema,
   CoachInterventionSchema,
+  LearningPathSchema,
 } from "./coaching/index.js";
 export type {
   CoachPersonality,
@@ -1393,6 +1407,9 @@ export type {
   PivotRecommendation,
   CoachIntervention,
   CoachConfig,
+  CoachingSession,
+  CoachMessage,
+  LearningPath,
 } from "./coaching/index.js";
 
 /** Innovation Profile & Proactive Coaching — persistent user profiles with learning paths. */
@@ -1905,6 +1922,9 @@ export {
   listDomainProfiles,
   getLearningData,
   learningInsightsToMarkdown,
+  getAngleEffectiveness,
+  getTopAnglesForDomain,
+  adjustAngleWeights,
   clearLearningData,
   OutcomeSignalSchema,
   AnglePerformanceSchema as LearningAnglePerformanceSchema,
@@ -2429,10 +2449,12 @@ export {
   deleteMicroApp,
   clearMicroApps,
   generateInstallCode,
+  getIntegrationGuides,
+  validateWidgetConfig,
   MicroAppTypeSchema,
   MicroAppConfigSchema,
 } from "./widget/index.js";
-export type { MicroAppType, MicroAppConfig } from "./widget/index.js";
+export type { MicroAppType, MicroAppConfig, IntegrationGuide } from "./widget/index.js";
 
 /** Idea genealogy — track how ideas evolve across investigation runs. */
 export {
@@ -3439,6 +3461,12 @@ export {
   addRevenueMetric,
   deleteOutcome as deleteROIOutcome,
   buildROIDashboard,
+  tagIdeaOutcome,
+  getIdeaOutcome,
+  listIdeaOutcomes,
+  updateIdeaOutcome,
+  getOutcomesByStatus,
+  clearIdeaOutcomes,
   clearOutcomes,
   OutcomeStageSchema,
   ExternalLinkTypeSchema,
@@ -3446,6 +3474,8 @@ export {
   RevenueMetricSchema,
   StageTransitionSchema,
   OutcomeRecordSchema as ROIOutcomeRecordSchema,
+  IdeaOutcomeStatusSchema,
+  IdeaOutcomeSchema,
 } from "./outcome-tracking/index.js";
 export type {
   OutcomeStage,
@@ -3457,6 +3487,8 @@ export type {
   ROISummary,
   ROITimeSeriesPoint,
   ROIDashboard,
+  IdeaOutcomeStatus,
+  IdeaOutcome,
 } from "./outcome-tracking/index.js";
 
 /** Outcome Tracking Connectors — integration connectors and attribution engine. */
