@@ -517,16 +517,18 @@ Respond with valid JSON only:
     );
     const parsed = JSON.parse(raw) as { scores: typeof rawScores };
     rawScores = parsed.scores;
-  } catch {
-    // Fallback: generate uniform default scores when LLM is unavailable
+  } catch (err) {
+    // Fallback: generate uniform default scores when LLM is unavailable.
+    // Confidence is set very low (0.1) to clearly signal these are defaults, not LLM-scored.
+    const reason = err instanceof Error ? err.message : "Unknown error";
     rawScores = ideas.map((idea) => ({
       ideaTitle: idea.title,
       dimensions: config.dimensions.map((d) => ({
         dimensionId: d.id,
         score: 5,
-        rationale: "Scoring unavailable — using default",
+        rationale: `Scoring unavailable (${reason}) — using default`,
       })),
-      confidence: 0.3,
+      confidence: 0.1,
     }));
   }
 

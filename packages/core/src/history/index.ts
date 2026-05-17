@@ -190,7 +190,16 @@ export function querySessionsPaginated(query: HistoryQuery): PaginatedSessionRes
       (s) =>
         s.subject.toLowerCase().includes(search) ||
         s.investigation?.summary?.toLowerCase().includes(search) ||
+        s.investigation?.currentState?.toLowerCase().includes(search) ||
+        s.investigation?.keyAspects?.some(
+          (a) =>
+            a.title.toLowerCase().includes(search) || a.description.toLowerCase().includes(search)
+        ) ||
+        s.investigation?.challenges?.some((c) => c.toLowerCase().includes(search)) ||
+        s.investigation?.opportunities?.some((o) => o.toLowerCase().includes(search)) ||
         s.notes?.toLowerCase().includes(search) ||
+        s.synthesis?.recommendation?.toLowerCase().includes(search) ||
+        s.synthesis?.themes?.some((t) => t.toLowerCase().includes(search)) ||
         s.angleResults.some((ar) =>
           ar.ideas.some(
             (idea) =>
@@ -301,12 +310,19 @@ export function getSessionStats(): SessionStats {
 
 // ---- Session Export Helpers ----
 
-/** Escape a value for CSV output (wrap in quotes if it contains commas, quotes, or newlines). */
+/** Escape a value for CSV output (wrap in quotes if it contains commas, quotes, or newlines).
+ *  Also guards against CSV formula injection by prefixing dangerous leading characters
+ *  with a single quote so spreadsheets treat them as text, not formulas. */
 function csvEscape(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
+  let safe = value;
+  // Prevent CSV formula injection: prefix dangerous leading characters with a single quote
+  if (/^[=+\-@\t\r]/.test(safe)) {
+    safe = `'${safe}`;
   }
-  return value;
+  if (safe.includes(",") || safe.includes('"') || safe.includes("\n") || safe !== value) {
+    return `"${safe.replace(/"/g, '""')}"`;
+  }
+  return safe;
 }
 
 /**

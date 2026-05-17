@@ -277,6 +277,51 @@ describe("history", () => {
     expect(results[0].subject).toBe("Energy");
   });
 
+  it("searches within investigation challenges and opportunities", () => {
+    saveSession({
+      subject: "Robotics",
+      investigation: {
+        summary: "Standard summary",
+        keyAspects: [{ title: "Servo motors", description: "Precision actuators" }],
+        currentState: "Rapidly evolving field",
+        challenges: ["Battery life limitations"],
+        opportunities: ["Warehouse automation growth"],
+      },
+      angleResults: [],
+    });
+    saveSession({ subject: "Other", angleResults: [] });
+
+    expect(querySessions({ search: "battery life" })).toHaveLength(1);
+    expect(querySessions({ search: "warehouse automation" })).toHaveLength(1);
+    expect(querySessions({ search: "servo motors" })).toHaveLength(1);
+    expect(querySessions({ search: "precision actuators" })).toHaveLength(1);
+    expect(querySessions({ search: "rapidly evolving" })).toHaveLength(1);
+  });
+
+  it("searches within synthesis themes and recommendation", () => {
+    saveSession({
+      subject: "Fintech",
+      angleResults: [sampleAngleResult],
+      synthesis: {
+        topIdeas: [
+          {
+            title: "Idea",
+            description: "A fintech idea",
+            sourceAngle: "scamper",
+            feasibility: "high",
+            potentialImpact: "Large",
+          },
+        ],
+        themes: ["decentralized finance"],
+        recommendation: "Focus on blockchain interoperability",
+      },
+    });
+    saveSession({ subject: "Other", angleResults: [] });
+
+    expect(querySessions({ search: "decentralized finance" })).toHaveLength(1);
+    expect(querySessions({ search: "blockchain interoperability" })).toHaveLength(1);
+  });
+
   // ---- Export as Markdown ----
 
   it("exports a session as Markdown", () => {
@@ -324,6 +369,35 @@ describe("history", () => {
     // Verify that commas and quotes are escaped
     expect(lines[1]).toContain('"Solar, Wind & More"');
     expect(lines[1]).toContain('"Idea with ""quotes"""');
+  });
+
+  it("guards against CSV formula injection", () => {
+    const id = saveSession({
+      subject: "=cmd|'/C calc'!A0",
+      angleResults: [
+        {
+          angleId: "scamper",
+          angleName: "SCAMPER",
+          ideas: [
+            {
+              title: "+SUM(A1:A10)",
+              description: "-1+1",
+              potentialImpact: "@import('evil')",
+              implementationHint: "Normal text",
+            },
+          ],
+          reasoning: "Applied SCAMPER",
+        },
+      ],
+    });
+    const session = getSession(id)!;
+    const csv = exportSessionAsCsv(session);
+    const lines = csv.split("\n");
+    // All dangerous leading characters should be prefixed with a single quote
+    expect(lines[1]).toContain("'=cmd");
+    expect(lines[1]).toContain("'+SUM");
+    expect(lines[1]).toContain("'-1+1");
+    expect(lines[1]).toContain("'@import");
   });
 
   // ---- Security: Path traversal prevention ----

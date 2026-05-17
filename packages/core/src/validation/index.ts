@@ -407,9 +407,14 @@ You MUST respond with valid JSON only:
   "references": ["Market segment or trend reference"]
 }`;
 
-    const raw = await generateText({ prompt, serverMode: true, signal });
-    const jsonStr = extractJson(sanitizeLlmOutput(raw));
-    const parsed = JSON.parse(jsonStr) as {
+    const raw = await withRetry(
+      async () => {
+        const result = await generateText({ prompt, serverMode: true, signal });
+        return extractJson(sanitizeLlmOutput(result));
+      },
+      { signal }
+    );
+    const parsed = JSON.parse(raw) as {
       score: number;
       summary: string;
       details?: string;
@@ -454,9 +459,14 @@ You MUST respond with valid JSON only:
   "references": ["Relevant regulation or standard"]
 }`;
 
-    const raw = await generateText({ prompt, serverMode: true, signal });
-    const jsonStr = extractJson(sanitizeLlmOutput(raw));
-    const parsed = JSON.parse(jsonStr) as {
+    const raw = await withRetry(
+      async () => {
+        const result = await generateText({ prompt, serverMode: true, signal });
+        return extractJson(sanitizeLlmOutput(result));
+      },
+      { signal }
+    );
+    const parsed = JSON.parse(raw) as {
       score: number;
       summary: string;
       details?: string;

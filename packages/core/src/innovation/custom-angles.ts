@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { CustomAngleSchema, AnglePackSchema, type CustomAngle, type AnglePack } from "../types.js";
 import { ValidationError } from "../errors.js";
+import { sanitizeUserInput } from "../prompts/sanitize.js";
 
 const CONFIG_DIR = join(homedir(), ".innovator");
 const ANGLES_FILE = join(CONFIG_DIR, "custom-angles.json");
@@ -164,13 +165,14 @@ export function importAnglePack(pack: unknown): { imported: number; skipped: str
   return { imported: validated.angles.length - skipped.length, skipped };
 }
 
-/** Build a prompt from a custom angle's template by replacing placeholders. */
+/** Build a prompt from a custom angle's template by replacing placeholders.
+ *  Sanitizes user-provided subject and investigation context to prevent prompt injection. */
 export function buildCustomAnglePrompt(
   angle: CustomAngle,
   subject: string,
   investigationContext: string
 ): string {
   return angle.promptTemplate
-    .replace(/\{\{subject\}\}/g, subject)
-    .replace(/\{\{investigation\}\}/g, investigationContext);
+    .replace(/\{\{subject\}\}/g, sanitizeUserInput(subject))
+    .replace(/\{\{investigation\}\}/g, sanitizeUserInput(investigationContext));
 }

@@ -136,7 +136,7 @@ export function buildTemporalPrompt(
   const clampedIdeas = Math.max(1, Math.min(ideasPerHorizon, 20));
 
   const investigationCtx = investigation
-    ? `\nINVESTIGATION CONTEXT:\nSummary: ${investigation.summary}\nChallenges: ${investigation.challenges.join("; ")}\nOpportunities: ${investigation.opportunities.join("; ")}`
+    ? `\n${wrapUserInput("INVESTIGATION CONTEXT", `Summary: ${investigation.summary}\nChallenges: ${investigation.challenges.join("; ")}\nOpportunities: ${investigation.opportunities.join("; ")}`)}`
     : "";
 
   return `You are a futurist and innovation strategist specializing in temporal analysis.
