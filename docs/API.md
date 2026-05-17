@@ -96,6 +96,17 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
   - [Market Operations](#market-operations)
   - [Trading](#trading)
   - [Analytics](#futures-analytics)
+- [Resilience](#resilience)
+  - [Circuit Breaker](#circuit-breaker)
+  - [Failover Chains](#failover-chains)
+  - [Cost Guardrails](#cost-guardrails)
+- [Observability](#observability)
+  - [Prometheus Metrics](#prometheus-metrics)
+  - [Health Checks](#health-checks)
+  - [Instrumentation](#instrumentation)
+- [Storage](#storage)
+  - [Storage Provider Interface](#storage-provider-interface)
+  - [In-Memory Storage](#in-memory-storage)
 - [Collaborative Sessions](#collaborative-sessions)
 - [Artifacts](#artifacts)
 - [Knowledge Graph](#knowledge-graph)
@@ -1152,6 +1163,8 @@ fetchProfile.cache.clear(); // reset
 
 Generic object pool for recycling frequently allocated objects, reducing garbage-collection pressure. Supports configurable pool size, factory/reset functions, and usage statistics.
 
+**Safety features:** Double-release guard via `checkedOut` tracking set — calling `release()` twice on the same object is a safe no-op. Objects are **always reset** before discard (even when the pool is full), so callers never observe stale state through retained references. The `maxSize` constructor option is validated to be ≥ 1.
+
 ### `ObjectPool`
 
 ```typescript
@@ -1343,7 +1356,7 @@ Reusable concurrency primitives: async semaphore, bounded task runner with adapt
 
 ### `Semaphore`
 
-Async semaphore limiting concurrent access to a shared resource:
+Async semaphore limiting concurrent access to a shared resource. Supports **abortable acquire**, a configurable **wait-queue cap** to detect resource leaks, and **dynamic shrinking** for adaptive concurrency.
 
 ```typescript
 import { Semaphore } from "@innovator/core";
@@ -1361,17 +1374,54 @@ sem.available; // Current free permits
 sem.waiting; // Number of callers waiting
 ```
 
+**Constructor:**
+
+```typescript
+new Semaphore(maxPermits: number, options?: { maxWaiters?: number })
+```
+
+| Parameter    | Type      | Default  | Description                                                                   |
+| ------------ | --------- | -------- | ----------------------------------------------------------------------------- |
+| `maxPermits` | `number`  | —        | Maximum concurrent permits. Must be ≥ 1.                                      |
+| `maxWaiters` | `number?` | `10_000` | Maximum queued waiters before throwing `ConfigurationError` (leak detection). |
+
 Throws `ConfigurationError` if `maxPermits < 1`.
 
 **Methods:**
 
-| Method      | Returns         | Description                                                                              |
-| ----------- | --------------- | ---------------------------------------------------------------------------------------- |
-| `acquire()` | `Promise<void>` | Wait until a permit is available, then acquire it.                                       |
-| `release()` | `void`          | Release a permit, unblocking the next waiter.                                            |
-| `shrink(n)` | `void`          | Reduce maximum permits to `n` (takes effect as permits are released). Throws if `n < 1`. |
-| `available` | `number`        | Current free permits (property).                                                         |
-| `waiting`   | `number`        | Number of callers waiting for a permit (property).                                       |
+| Method              | Returns         | Description                                                                             |
+| ------------------- | --------------- | --------------------------------------------------------------------------------------- |
+| `acquire(options?)` | `Promise<void>` | Wait until a permit is available. Pass `{ signal }` to support cancellation.            |
+| `release()`         | `void`          | Release a permit, unblocking the next waiter.                                           |
+| `shrink(n)`         | `void`          | Reduce maximum permits to `n` (takes effect as permits are released). No-op if `n < 1`. |
+| `available`         | `number`        | Current free permits (property).                                                        |
+| `waiting`           | `number`        | Number of callers waiting for a permit (property).                                      |
+
+**Abort support:**
+
+```typescript
+const controller = new AbortController();
+
+// Cancel the acquire after 5 seconds
+setTimeout(() => controller.abort(), 5000);
+
+try {
+  await sem.acquire({ signal: controller.signal });
+  // ... acquired
+} catch (err) {
+  // AbortError: Semaphore acquire aborted
+}
+```
+
+When an `AbortSignal` is aborted, the waiter is removed from the queue and an `AbortError` is thrown. Already-aborted signals throw immediately without queuing.
+
+**Wait-queue cap (leak detection):**
+
+If the wait queue reaches `maxWaiters` (default: 10,000), `acquire()` throws a `ConfigurationError` instead of growing the queue unboundedly — a strong signal that permits are being leaked. Override the cap for high-throughput scenarios:
+
+```typescript
+const sem = new Semaphore(10, { maxWaiters: 50_000 });
+```
 
 > **Adaptive scaling:** `TaskRunner` uses `Semaphore.shrink()` internally when `adaptive: true` and error rates exceed the threshold, dynamically reducing concurrency to protect downstream services.
 
@@ -1506,6 +1556,8 @@ resetStringPool();
 
 In-process event emitter for typed pipeline events. Supports specific and wildcard subscriptions, predicate-based filtering, single-fire listeners, and buffered/batched emission for high-frequency events.
 
+**Safety features:** Listener cap with leak-detection warnings, bounded event buffer with oldest-event eviction, error isolation via `Promise.allSettled()` (one failing listener cannot crash others), and pluggable warning hooks.
+
 ### `EventBus`
 
 ```typescript
@@ -1535,6 +1587,50 @@ await bus.emit("investigation.completed", { subject: "AI" }, "AI", "session-123"
 unsub(); // Remove specific listener
 bus.clear(); // Remove all listeners and buffered events
 ```
+
+**Listener cap and leak detection:**
+
+When the number of listeners for a single event type exceeds the threshold, a warning is emitted to help detect leaks. Adjust or disable with `setMaxListeners()`:
+
+```typescript
+bus.setMaxListeners(50); // Raise threshold
+bus.setMaxListeners(0); // Disable warnings
+
+// Custom warning handler (default: console.warn)
+bus.onWarning((msg) => logger.warn(msg));
+```
+
+**Buffer cap:**
+
+When buffering is enabled, the buffer is capped at `maxBufferSize` (default: 10,000). When full, the **oldest events are dropped** to make room:
+
+```typescript
+bus.setMaxBufferSize(1000); // Smaller buffer for constrained environments
+```
+
+**Error isolation:**
+
+Listener errors are isolated via `Promise.allSettled()` — a throwing listener does **not** prevent other listeners from receiving the event.
+
+**Methods:**
+
+| Method                                      | Returns                  | Description                                                           |
+| ------------------------------------------- | ------------------------ | --------------------------------------------------------------------- |
+| `on(type, listener)`                        | `() => void`             | Subscribe to event type (or `"*"` for all). Returns unsubscribe fn.   |
+| `onFiltered(type, listener, opts)`          | `() => void`             | Subscribe with predicate/subject/session filtering.                   |
+| `once(type, listener)`                      | `() => void`             | Single-fire subscription — auto-unsubscribes after first delivery.    |
+| `emit(type, payload, subject?, sessionId?)` | `Promise<PipelineEvent>` | Emit an event.                                                        |
+| `enableBuffering(intervalMs?)`              | `void`                   | Start buffering events; optionally auto-flush on interval.            |
+| `disableBuffering()`                        | `Promise<void>`          | Stop buffering and flush remaining events.                            |
+| `flush()`                                   | `Promise<number>`        | Deliver all buffered events. Returns count delivered.                 |
+| `clear()`                                   | `void`                   | Remove all listeners, flush timers, and buffered events.              |
+| `listenerCount(type?)`                      | `number`                 | Listener count for a type, or total if no type given.                 |
+| `setMaxListeners(n)`                        | `this`                   | Set per-type listener cap (0 = disable warning). Default: 10.         |
+| `setMaxBufferSize(n)`                       | `this`                   | Set buffer cap. Oldest events dropped when exceeded. Default: 10,000. |
+| `onWarning(handler)`                        | `this`                   | Register custom warning handler.                                      |
+| `maxListeners`                              | `number`                 | Current listener threshold (property).                                |
+| `maxBufferSize`                             | `number`                 | Current buffer cap (property).                                        |
+| `bufferedCount`                             | `number`                 | Events currently in the buffer (property).                            |
 
 **Event types** are defined by the `EventType` union (Zod-validated):
 
@@ -2380,6 +2476,203 @@ interface MarketAnalytics {
   volatility: number;
 }
 ```
+
+---
+
+## Resilience
+
+LLM resilience layer providing circuit breakers, automatic failover chains, cost guardrails, and provider health monitoring. Designed to protect production systems during partial LLM outages and enforce cost budgets.
+
+### Circuit Breaker
+
+Per-provider circuit breaker implementing the standard **closed → open → half-open** state machine:
+
+```typescript
+import { CircuitBreaker, getCircuitBreaker } from "@innovator/core";
+
+// Create or retrieve a breaker for a provider
+const breaker = getCircuitBreaker("openai");
+
+if (breaker.isAllowed()) {
+  try {
+    const result = await callProvider();
+    breaker.recordSuccess();
+  } catch (err) {
+    breaker.recordFailure();
+    throw err;
+  }
+}
+```
+
+**`CircuitBreakerConfig`:**
+
+| Option                | Type     | Default | Description                                                  |
+| --------------------- | -------- | ------- | ------------------------------------------------------------ |
+| `failureThreshold`    | `number` | `5`     | Failures within the monitoring window to trip the breaker.   |
+| `resetTimeoutMs`      | `number` | `30000` | Time before an open breaker transitions to half-open.        |
+| `halfOpenMaxAttempts` | `number` | `2`     | Probe requests allowed in half-open state before re-opening. |
+| `monitorWindowMs`     | `number` | `60000` | Sliding window for failure counting.                         |
+
+**Methods:**
+
+| Method            | Returns        | Description                                                   |
+| ----------------- | -------------- | ------------------------------------------------------------- |
+| `isAllowed()`     | `boolean`      | Whether requests are permitted through the breaker.           |
+| `recordSuccess()` | `void`         | Record a successful request (transitions half-open → closed). |
+| `recordFailure()` | `void`         | Record a failure (may trip the breaker to open).              |
+| `getState()`      | `CircuitState` | Current state: `"closed"`, `"open"`, or `"half-open"`.        |
+| `getStats()`      | `object`       | Snapshot of failure count, success count, and state.          |
+| `reset()`         | `void`         | Force-reset to closed state.                                  |
+
+**Safety:** Failures outside the monitoring window are evicted automatically. Half-open state limits probe requests to prevent cascading failures.
+
+### Failover Chains
+
+Automatic provider failover with circuit-breaker integration:
+
+```typescript
+import { executeWithFailover, createFailoverChain } from "@innovator/core";
+
+const chain = createFailoverChain(["copilot", "openai", "anthropic"]);
+const result = await executeWithFailover(chain, async (providerId) => {
+  return await generateText({ prompt, provider: providerId });
+});
+```
+
+If the primary provider's circuit breaker is open, the request is transparently routed to the next healthy provider in the chain.
+
+### Cost Guardrails
+
+Budget enforcement at per-request, per-session, and monthly granularity:
+
+```typescript
+import { CostGuardrailManager, forecastPipelineCost } from "@innovator/core";
+
+const guardrails = new CostGuardrailManager({
+  maxCostPerRequest: 0.1,
+  maxCostPerSession: 2.0,
+  monthlyCostBudget: 100.0,
+});
+
+guardrails.checkBudget(estimatedCost); // throws if over budget
+const forecast = forecastPipelineCost(subject, angles, model);
+```
+
+### Provider Health Dashboard
+
+Aggregate health view across all configured providers:
+
+```typescript
+import { getProviderHealthDashboard } from "@innovator/core";
+
+const dashboard = getProviderHealthDashboard();
+// { providers: [{ id, state, failures, latencyP50, latencyP99 }] }
+```
+
+---
+
+## Observability
+
+Prometheus-compatible metrics, structured health checks, and span-based instrumentation for pipeline operations.
+
+### Prometheus Metrics
+
+Counters, gauges, and histograms for pipeline execution, LLM latency, token usage, and error rates. Renders to [Prometheus text exposition format](https://prometheus.io/docs/instrumenting/exposition_formats/):
+
+```typescript
+import {
+  recordPipelineExecution,
+  recordLLMLatency,
+  recordIdeasGenerated,
+  setActivePipelines,
+  renderPrometheusMetrics,
+  getAllMetrics,
+  clearMetrics,
+} from "@innovator/core";
+
+// Record events
+recordPipelineExecution("auto", "completed", 4500);
+recordLLMLatency("gpt-4.1", 230);
+recordIdeasGenerated("scamper", 5);
+setActivePipelines(2);
+
+// Expose at /api/metrics
+const output = renderPrometheusMetrics();
+// # HELP innovator_pipeline_executions_total Total pipeline executions
+// # TYPE innovator_pipeline_executions_total counter
+// innovator_pipeline_executions_total{mode="auto",status="completed"} 1
+// ...
+```
+
+**Safety:** Metric identity uses serialized-label indexing for O(1) lookups. Label keys are sorted for stable identity — `{model="gpt-4",status="ok"}` and `{status="ok",model="gpt-4"}` resolve to the same metric.
+
+### Health Checks
+
+Extensible health-check registry with per-check timeouts:
+
+```typescript
+import { createProviderHealthCheck, createStorageHealthCheck } from "@innovator/core";
+
+// Built-in health check factories
+const providerCheck = createProviderHealthCheck("openai", client);
+const storageCheck = createStorageHealthCheck(storageProvider);
+```
+
+Each check returns `{ name, status: "healthy" | "degraded" | "unhealthy", latencyMs, details? }`. A default core health check is always present. Checks that exceed their timeout return `"unhealthy"` instead of hanging.
+
+### Instrumentation
+
+Span-based instrumentation for pipeline stages with metrics and structured logging:
+
+```typescript
+import { beginStage, endStage } from "@innovator/core";
+
+const spanId = beginStage("investigation", { subject: "AI ethics" });
+try {
+  const result = await investigate("AI ethics");
+  endStage(spanId, { status: "completed", ideaCount: result.keyAspects.length });
+} catch (err) {
+  endStage(spanId, { status: "failed", error: err.message });
+}
+```
+
+**Safety:** Active stages are tracked in a bounded registry. Stale stages (not ended within a configurable window) are automatically evicted to prevent unbounded memory growth. `endStage()` emits both span events (via the telemetry subsystem) and Prometheus metrics.
+
+---
+
+## Storage
+
+Pluggable storage abstraction with validated provider registration and an in-memory default.
+
+### Storage Provider Interface
+
+```typescript
+import { setStorage, getStorage } from "@innovator/core";
+
+// Register a custom storage provider
+setStorage(myPostgresProvider);
+
+// Retrieve the active provider
+const provider = getStorage();
+```
+
+`setStorage()` validates the provider object at registration time. `init()` and `close()` are idempotent — safe to call multiple times.
+
+### In-Memory Storage
+
+Default storage provider suitable for development and testing. All data lives in process memory and is lost on restart.
+
+```typescript
+import { InMemoryStorageProvider } from "@innovator/core";
+
+const provider = new InMemoryStorageProvider();
+```
+
+**Safety features:**
+
+- **Bounded retention** — Usage records (`MAX_USAGE_RECORDS`) and analytics events (`MAX_EVENTS`) are capped; oldest entries are evicted when the cap is reached.
+- **Defensive copies** — All reads and writes use `structuredClone()` to prevent callers from mutating internal storage state.
+- **No unbounded growth** — Long-running processes won't accumulate unlimited analytics/usage data in memory.
 
 ---
 

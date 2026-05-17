@@ -68,11 +68,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`unregisterModel()`** — Remove a single custom model by ID from the model registry; returns `true` if removed, `false` if not found or built-in
 - **`LRUCache.getOrSet()`** — Atomic check-and-populate method that returns the cached value or computes it via a factory function, eliminating the `has()`+`get()` double-lookup pattern
 - **`Semaphore.shrink()`** — Dynamically reduce maximum permits for future releases; wired into `TaskRunner` adaptive scaling so concurrency actually decreases when error rates exceed the threshold
+- **`Semaphore` abort support** — `acquire({ signal })` now accepts an `AbortSignal`; aborted waiters are removed from the queue and receive an `AbortError`. Already-aborted signals throw immediately without queuing
+- **`Semaphore` wait-queue cap** — Constructor accepts `maxWaiters` option (default: 10,000); when the queue is full, `acquire()` throws `ConfigurationError` instead of growing unboundedly — helps detect permit leaks in long-running processes
+- **`EventBus` listener cap** — `setMaxListeners(n)` sets a per-event-type listener threshold (default: 10); exceeding it emits a warning to detect listener leaks. Set to 0 to disable. Custom warning handler via `onWarning(handler)`
+- **`EventBus` buffer cap** — `setMaxBufferSize(n)` caps the event buffer (default: 10,000); when full, the oldest events are dropped to make room for new ones, preventing unbounded memory growth
+- **`EventBus` error isolation** — `deliverEvent()` now uses `Promise.allSettled()` so a throwing listener does not prevent other listeners from receiving the event
+- **`EventBus` observability** — New `listenerCount(type?)` method returns the count for a specific event type or total across all types; `maxListeners` and `maxBufferSize` readable properties
+- **`ObjectPool` double-release guard** — `release()` now tracks checked-out objects via a `Set<T>`; calling `release()` twice on the same object is a safe no-op instead of corrupting the pool
+- **`ObjectPool` safe reset-on-discard** — Objects are always reset (via the `reset` callback) even when the pool is full and the object is discarded, so callers holding external references never observe stale state
+- **`ObjectPool` maxSize validation** — Constructor validates `maxSize ≥ 1` and finite; throws `ValidationError` on invalid values
+- **In-memory storage bounded retention** — `InMemoryStorageProvider` caps usage records (`MAX_USAGE_RECORDS`) and analytics events (`MAX_EVENTS`) with FIFO eviction; uses `structuredClone()` for defensive copies on all reads and writes
+- **`CircuitBreaker`** — Per-provider circuit breaker with closed → open → half-open state machine, sliding-window failure tracking, and configurable thresholds
+- **`executeWithFailover()`** — Automatic failover across a provider chain with circuit-breaker integration
+- **`CostGuardrailManager`** — Budget enforcement at per-request, per-session, and monthly granularity
+- **`forecastPipelineCost()`** — Estimate total pipeline cost before execution based on subject, angles, and model
+- **`getProviderHealthDashboard()`** — Aggregate health view across all configured providers
+- **Prometheus metrics** — `recordPipelineExecution()`, `recordLLMLatency()`, `setActivePipelines()`, `recordIdeasGenerated()`, `renderPrometheusMetrics()`, `getAllMetrics()`, `clearMetrics()` with serialized-label indexing for O(1) lookups
+- **Health check factories** — `createProviderHealthCheck()` and `createStorageHealthCheck()` with per-check timeouts and default core health fallback
+- **Span-based instrumentation** — `beginStage()` / `endStage()` with bounded active-stage registry, stale-stage eviction, span events, and Prometheus metric emission
+- **Privacy input validation** — Noise parameters validated; noisy scores clamped to `[0, 100]` to prevent drift
+- **Feedback robustness** — `loadAllFeedback()` skips corrupt files; `buildFeedbackHint()` generates prompt guidance from low-rated feedback patterns
+- **Copilot client hardening** — Safe disconnect handling, abort support, timeout handling, empty-response parse error, and `extractJson()` caching with `extractJsonCacheStats()`
+- **`extractJson()` array support** — Now extracts JSON arrays (`[...]`) in addition to objects; uses balanced-brace parsing and strips trailing commas
+- **Bounded memory caps** — Per-user signals, outcome records, and per-model performance records in the memory/learning module are all bounded with FIFO eviction
+- **Validation hardening** — LLM validators use `sanitizeLlmOutput()` + `extractJson()` for safe JSON parsing; abort support threaded through validator and batch flows; capped arrays and strings in schemas
 
 ### Changed
 
 - **Typed error migration** — Replaced ~250 raw `throw new Error()` calls with typed `InnovatorError` subclasses (`ValidationError`, `LlmParseError`, `AbortError`, `PipelineError`, `ConfigurationError`) across 149 core source files; all modules now use the structured error hierarchy for consistent error handling and programmatic discrimination
 - **Storage driver type safety** — Replaced `any` types with proper interfaces (`Neo4jSession`, `Neo4jRecord`, `PgPool`, etc.) in `graph-database.ts`, `postgresql.ts`, and `sqlite.ts`; removed all `eslint-disable-next-line @typescript-eslint/no-explicit-any` comments in storage drivers
+- **`setStorage()` validation** — Now validates the provider object at registration time; `init()` and `close()` are idempotent
+- **`EventBus.emit()` buffer overflow** — When buffering is enabled and the buffer is full, oldest events are dropped with a warning instead of growing unboundedly
+- **`EventBus.deliverEvent()`** — Switched from sequential listener invocation to `Promise.allSettled()` for error isolation between listeners
+- **Metrics label identity** — Metric values now use serialized-label indexing (`serializeLabels()`) for O(1) lookup; label keys are sorted for stable identity
+- **Health check timeouts** — Individual health checks now have per-check timeouts; timed-out checks return `"unhealthy"` instead of hanging
 - **`withRetry()` input validation** — Now validates that `maxAttempts ≥ 1`, `initialDelayMs ≥ 0`, `backoffMultiplier ≥ 1`, and `maxDelayMs ≥ 0` are finite numbers; throws immediately on invalid options
 - **`withRetry()` error type** — Now throws `RetryExhaustedError` (instead of re-throwing the last error) when all attempts are exhausted, providing structured access to `cause` and `attempts`
 - **`RetryExhaustedError`** — Now extends `InnovatorError` (was plain `Error`), inheriting `code`, `toJSON()`, and `isInnovatorError()` compatibility
@@ -102,8 +131,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cache duplicate JSDoc** — Removed duplicate JSDoc comment block on `memoize()` in `cache/index.ts`
 - **`compareModels()` no-op fix** — Fixed no-op `resolvedAngleId` variable in `compareModels()` that was assigned but never used
 - **Codebase analysis test stability** — Fixed flaky `codebase-analysis` test timeout under parallel load
+- **Privacy noise score clamping** — Noisy scores are now clamped to `[0, 100]` to prevent out-of-range drift after Laplace noise addition
+- **Feedback file corruption** — `loadAllFeedback()` now skips corrupt JSON files instead of throwing, preventing a single bad file from blocking feedback aggregation
+- **`extractJson()` trailing commas** — Now strips trailing commas before closing braces/brackets to handle common LLM output formatting issues
+- **Copilot client disconnect** — Safe disconnect handling suppresses expected close errors during client shutdown
+- **Empty LLM response** — `extractJson()` now throws `LlmParseError` with a descriptive message when the LLM returns an empty response, instead of an opaque parse error
+- **Predictive scoring training cap** — Training data store is bounded by `MAX_TRAINING_DATA`; oldest entries evicted automatically
+- **Context manager budget overflow** — Effective token budget is clamped to model limit; compression history is capped to prevent unbounded growth
+- **Token manager warnings cap** — Warning list bounded by `MAX_WARNINGS` to prevent memory growth in long pipelines
+- **Deduplication abort support** — All deduplication functions now respect `AbortSignal` for cancellation
 
 ### Testing
+
+- **Hardening test suite** — 261-line `hardening-features.test.ts` covering Semaphore abort/queue-cap, EventBus listener-cap/buffer-cap/error-isolation, ObjectPool double-release guard, and Result non-Error normalization
+- **Resilience test suite** — 410-line `resilience.test.ts` covering circuit breaker state machine, failover chains, cost guardrails, provider health dashboard, and storage bounded retention
 
 - **Prompt Studio test suite** — 28 tests covering CRUD operations, versioning, analytics, template interpolation, and input validation
 - **Portfolio optimizer test suite** — 12 tests covering asset conversion, correlation matrix, risk/return metrics, Monte Carlo simulation, and portfolio optimization
@@ -149,7 +190,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Reference** — Added `LRUCache.getOrSet()` method to cache methods table
 - **API Reference** — Added `Semaphore.shrink()` and methods table to Concurrency section
 - **API Reference** — Added `unregisterModel()` to Model Registry section
-- **Changelog** — Updated with all additions, changes, and fixes from recent commits
+- **API Reference** — Added Resilience section with `CircuitBreaker`, `executeWithFailover()`, `CostGuardrailManager`, `forecastPipelineCost()`, and `getProviderHealthDashboard()`
+- **API Reference** — Added Observability section with Prometheus metrics, health-check factories, and span-based instrumentation
+- **API Reference** — Added Storage section with provider interface, `InMemoryStorageProvider`, and bounded retention documentation
+- **API Reference** — Updated Semaphore docs with abort support (`acquire({ signal })`), wait-queue cap (`maxWaiters`), constructor options table, and abort usage example
+- **API Reference** — Updated EventBus docs with listener cap, buffer cap, error isolation, `setMaxListeners()`, `setMaxBufferSize()`, `onWarning()`, `listenerCount()`, and full methods table
+- **API Reference** — Updated Object Pool docs with double-release guard, safe reset-on-discard, and `maxSize` validation
+- **Changelog** — Updated with all memory safety caps, event bus hardening, semaphore abort support, resilience primitives, observability, storage hardening, and correctness fixes from recent commits
 
 ## [0.3.0] — 2026-05-14
 
