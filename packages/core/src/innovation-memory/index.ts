@@ -42,3 +42,28 @@ export type {
   InnovationEvent,
   DomainProfile,
 } from "./types.js";
+
+export {
+  findSerendipitousConnections,
+  generateWeeklyDigest,
+  buildInnovationProfile,
+  digestToMarkdown,
+  profileToMarkdown,
+  SerendipitousConnectionSchema,
+  WeeklyDigestSchema,
+  InnovationProfileSchema,
+} from "./serendipity.js";
+export type {
+  SerendipitousConnection,
+  WeeklyDigest,
+  InnovationProfile,
+} from "./serendipity.js";
+
+export {
+  computeAngleWeights,
+  selectTopAngles,
+  autoWeightAngles,
+  AngleWeightSchema,
+  WeightingContextSchema,
+} from "./angle-weighting.js";
+export type { AngleWeight, WeightingContext } from "./angle-weighting.js";
