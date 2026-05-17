@@ -22,6 +22,8 @@
     "resolveJsonModule": true,
     // Ensure each file can be transpiled independently (required by esbuild, SWC, and similar tools)
     "isolatedModules": true,
+    // Enable incremental compilation — reuses previous build info to speed up subsequent builds
+    "incremental": true,
     // Enforce consistent casing in file imports to prevent errors on case-sensitive file systems
     "forceConsistentCasingInFileNames": true
   }

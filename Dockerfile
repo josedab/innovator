@@ -5,7 +5,7 @@
 # =============================================================================
 
 # --- Stage 1: Build ---
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ RUN npm run build
 RUN npm prune --omit=dev
 
 # --- Stage 2: Production runtime ---
-FROM node:20-slim AS runtime
+FROM node:22-slim AS runtime
 
 # Install dumb-init for proper PID 1 signal handling and GitHub CLI for
 # Copilot SDK authentication. Clean up apt caches to reduce image size.

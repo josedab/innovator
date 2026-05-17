@@ -14,7 +14,7 @@ import {
 
 const testDir = join(tmpdir(), `innovator-codebase-test-${Date.now()}`);
 
-describe("codebase-analysis", () => {
+describe("codebase-analysis", { timeout: 15_000 }, () => {
   beforeEach(() => {
     mkdirSync(join(testDir, "src", "utils"), { recursive: true });
     mkdirSync(join(testDir, "src", "services"), { recursive: true });

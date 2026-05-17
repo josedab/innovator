@@ -36,11 +36,11 @@ function check(label, fn) {
 
 console.log("\n🩺 Innovator Doctor\n");
 
-// 1. Node.js version >= 20
-check("Node.js >= 20", () => {
+// 1. Node.js version >= 22
+check("Node.js >= 22", () => {
   const major = parseInt(process.versions.node.split(".")[0], 10);
-  if (major < 20) {
-    throw new Error(`Found Node.js ${process.versions.node} — upgrade to 20+`);
+  if (major < 22) {
+    throw new Error(`Found Node.js ${process.versions.node} — upgrade to 22+`);
   }
 });
 

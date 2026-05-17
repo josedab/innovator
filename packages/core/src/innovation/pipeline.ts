@@ -87,12 +87,13 @@ export async function runAutoPipeline(
   const effectiveConcurrency = pipelineOptions?.concurrency ?? MAX_CONCURRENCY;
   const retryOpts = pipelineOptions?.retryOptions;
 
-  // Validate subject before starting the pipeline
+  // Validate and sanitize subject before starting the pipeline
   const validation = validateSubject(subject);
   if (!validation.valid) {
     throw new ValidationError(validation.error!);
   }
-  const sanitizedSubject = validation.sanitized!;
+  // Use the sanitized (trimmed) subject for all downstream operations
+  subject = validation.sanitized!;
 
   let terminated = false;
   const pipelineStart = Date.now();
