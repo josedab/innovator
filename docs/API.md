@@ -182,7 +182,7 @@ for (const idea of result.ideas) {
 }
 ```
 
-**Angle resolution:** Built-in angle IDs are matched first. If no match is found, the custom angle registry is consulted. Throws `Error` if the angle ID is unknown.
+**Angle resolution:** Built-in angle IDs are matched first. If no match is found, the custom angle registry is consulted. Throws `ValidationError` if the angle ID is unknown.
 
 ---
 
@@ -378,7 +378,7 @@ Handles:
 - Embedded JSON objects (`{...}`) in free-form text
 - Embedded JSON arrays (`[...]`) in free-form text
 - When both `{` and `[` are present, extracts whichever appears first
-- Throws `Error` if no JSON object or array is found, or brackets are unbalanced
+- Throws `LlmParseError` if no JSON object or array is found, or brackets are unbalanced
 
 **Example:**
 
@@ -545,6 +545,8 @@ Type guard to check if an unknown value is any `InnovatorError` subclass.
 function isInnovatorError(err: unknown): err is InnovatorError;
 ```
 
+> **📌 Typed Error Migration (v0.3.0+):** As of the latest release, all `@innovator/core` modules throw typed `InnovatorError` subclasses instead of plain `Error`. Every `throw new Error(...)` has been replaced with the appropriate subclass (`ValidationError`, `LlmParseError`, `ConfigurationError`, `PipelineError`, or `AbortError`). This means `isInnovatorError()` will now catch all errors originating from Innovator, and you can use `err.code` for programmatic discrimination. If your code catches `Error` and checks `instanceof`, it will continue to work since all subclasses extend `Error`.
+
 ---
 
 ## Prompt Utilities
@@ -649,7 +651,7 @@ function withTimeout<T>(
 | `timeoutMs`     | `number`  | Maximum time in ms to wait (must be positive finite) |
 | `options.model` | `string?` | Model name for error context                         |
 
-**Throws:** `LlmTimeoutError` if the timeout fires before the promise resolves. Throws `Error` if `timeoutMs` is not a positive finite number.
+**Throws:** `LlmTimeoutError` if the timeout fires before the promise resolves. Throws `ValidationError` if `timeoutMs` is not a positive finite number.
 
 **Example:**
 

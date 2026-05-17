@@ -54,12 +54,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Typed error migration** — Replaced ~250 raw `throw new Error()` calls with typed `InnovatorError` subclasses (`ValidationError`, `LlmParseError`, `AbortError`, `PipelineError`, `ConfigurationError`) across 149 core source files; all modules now use the structured error hierarchy for consistent error handling and programmatic discrimination
+- **Storage driver type safety** — Replaced `any` types with proper interfaces (`Neo4jSession`, `Neo4jRecord`, `PgPool`, etc.) in `graph-database.ts`, `postgresql.ts`, and `sqlite.ts`; removed all `eslint-disable-next-line @typescript-eslint/no-explicit-any` comments in storage drivers
 - **`withRetry()` input validation** — Now validates that `maxAttempts ≥ 1`, `initialDelayMs ≥ 0`, `backoffMultiplier ≥ 1`, and `maxDelayMs ≥ 0` are finite numbers; throws immediately on invalid options
 - **`withRetry()` error type** — Now throws `RetryExhaustedError` (instead of re-throwing the last error) when all attempts are exhausted, providing structured access to `cause` and `attempts`
 - **`RetryExhaustedError`** — Now extends `InnovatorError` (was plain `Error`), inheriting `code`, `toJSON()`, and `isInnovatorError()` compatibility
 - **`unregisterPlugin()`** — Now async (returns `Promise<boolean>`), calls `onDestroy` lifecycle hook before removal
 - **`clearPlugins()`** — Now async (returns `Promise<void>`), calls `onDestroy` on each plugin during teardown
 - **Plugin System** — Plugin registration now validates `dependencies` array, throwing on unmet dependencies; tracks per-plugin initialization state
+
+### Fixed
+
+- **Portfolio optimizer validation** — `optimizePortfolio()` now validates weight array length against matrix dimensions and checks for non-empty inputs
+- **Prompt Studio validation** — `recordPromptExecution()` now validates required fields before persisting execution records
+- **Marketplace tests** — Fixed test setup and assertion mismatches across marketplace module test suites
+- **ESLint compliance** — Removed all `@ts-nocheck` directives and resolved remaining lint warnings across core modules
+
+### Testing
+
+- **Prompt Studio test suite** — 28 tests covering CRUD operations, versioning, analytics, template interpolation, and input validation
+- **Portfolio optimizer test suite** — 12 tests covering asset conversion, correlation matrix, risk/return metrics, Monte Carlo simulation, and portfolio optimization
+- **Test count** — All 635 test files pass (11,420 total tests)
 
 ### Documentation
 

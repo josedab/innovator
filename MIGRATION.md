@@ -10,6 +10,51 @@ This document covers upgrade paths and breaking changes for Innovator.
 | 0.2.0             | 20+     | 10+ | Extended engine, multi-provider   |
 | 0.3.0 (current)   | 20+     | 10+ | Moonshot modules, UX improvements |
 
+## Upgrading within v0.3.x (Post-Release Changes)
+
+### Typed Error Migration
+
+All `@innovator/core` modules now throw typed `InnovatorError` subclasses instead of plain `Error`. This is a **behavioral change** — the thrown errors are now instances of `ValidationError`, `LlmParseError`, `ConfigurationError`, `PipelineError`, or `AbortError` instead of generic `Error`.
+
+**Impact:**
+
+- ✅ **No action needed** if your code uses `try/catch` with generic `Error` — all `InnovatorError` subclasses extend `Error`
+- ✅ **No action needed** if you use `isInnovatorError()` — it now catches all errors from Innovator
+- ⚠️ **Review needed** if your code checks `error.message` strings for specific patterns — error messages may have changed
+- ⚠️ **Review needed** if your code uses `error instanceof Error` and then checks `error.constructor.name` — the name is now the specific subclass
+
+**Recommended migration:**
+
+```typescript
+// Before (still works, but less precise):
+try {
+  await investigate(subject);
+} catch (err) {
+  console.error("Something failed:", err);
+}
+
+// After (recommended — use typed error handling):
+import { investigate, isInnovatorError, ValidationError, LlmTimeoutError } from "@innovator/core";
+
+try {
+  await investigate(subject);
+} catch (err) {
+  if (err instanceof ValidationError) {
+    console.error("Invalid input:", err.message);
+  } else if (err instanceof LlmTimeoutError) {
+    console.error("LLM timed out:", err.message);
+  } else if (isInnovatorError(err)) {
+    console.error(`Innovator error [${err.code}]:`, err.message);
+  }
+}
+```
+
+### New Exports (Additive)
+
+```typescript
+import { flatMapAsync, mapAsync } from "@innovator/core"; // Async Result helpers
+```
+
 ## Upgrading from v0.2.0 to v0.3.0
 
 ### What Changed
