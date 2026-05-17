@@ -3,7 +3,7 @@
  *
  * External service integrations — export innovation results
  * to project management and knowledge tools like Jira, Linear,
- * and Notion. Each integration follows a standard interface
+ * Notion, and GitHub Issues. Each integration follows a standard interface
  * for mapping innovation outputs to tool-specific formats.
  */
 
@@ -427,3 +427,52 @@ export { ConfluenceIntegration } from "./confluence.js";
 export type { ConfluenceConfig } from "./confluence.js";
 export { NotionIntegration } from "./notion.js";
 export type { NotionConfig } from "./notion.js";
+export {
+  GitHubIssueExportOptionsSchema,
+  GitHubIssuePayloadSchema,
+  GitHubIssueImportOptionsSchema,
+  GitHubImportedIssueSubjectSchema,
+  formatGitHubIssue,
+  exportToGitHub,
+  importGitHubIssues,
+  GitHubIssuesIntegration,
+} from "./github-issues.js";
+export type {
+  GitHubIssueExportOptions,
+  GitHubIssuePayload,
+  GitHubIssueImportOptions,
+  GitHubImportedIssueSubject,
+  GitHubIssuesConfig,
+} from "./github-issues.js";
+export {
+  BacklogItemSchema,
+  BacklogAnalysisSchema,
+  BacklogImportInputSchema,
+  importBacklog,
+  getImportedBacklog,
+  analyzeBacklog,
+  backlogToInnovationSubjects,
+  clearImportedBacklog,
+} from "./backlog-import.js";
+export type {
+  BacklogItem,
+  BacklogAnalysis,
+  BacklogImportInput,
+} from "./backlog-import.js";
+export {
+  SyncRecordSchema,
+  SyncEventSchema,
+  createSyncRecord,
+  getSyncRecord,
+  getSyncRecordByExternalId,
+  listSyncRecords,
+  updateSyncStatus,
+  recordSyncEvent,
+  getSyncEvents,
+  clearSyncData,
+} from "./sync-tracker.js";
+export type {
+  SyncRecord,
+  SyncEvent,
+  CreateSyncRecordInput,
+} from "./sync-tracker.js";
