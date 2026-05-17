@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help install dev dev-all dev-docs build build-check clean clean-all test test-ci test-coverage check lint lint-fix typecheck format doctor dev-cli
+.PHONY: help install dev dev-all dev-docs build build-check clean clean-all test test-ci test-coverage check lint lint-fix typecheck format doctor dev-cli test-single test-watch
 
 # ── Help ──────────────────────────────────────────────────────────────
 
@@ -58,6 +58,12 @@ format: ## Format all files with Prettier
 
 test: ## Run all tests
 	npm test
+
+test-single: ## Run a single test file (usage: make test-single FILE=packages/core/src/__tests__/my-test.ts)
+	npx vitest run $(FILE)
+
+test-watch: ## Run tests in watch mode
+	npm run test:watch
 
 test-coverage: ## Run tests with coverage report
 	npm run test:coverage
