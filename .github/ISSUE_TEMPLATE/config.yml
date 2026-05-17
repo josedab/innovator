@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/josedab/innovator/discussions
+    about: Ask questions and share ideas in GitHub Discussions
+  - name: 📖 Documentation
+    url: https://josedab.github.io/innovator
+    about: Read the documentation before opening an issue

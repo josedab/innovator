@@ -44,6 +44,7 @@ jobs:
   # Fast-fail: run cheap checks first before expensive build/test
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -68,6 +69,7 @@ jobs:
   build-and-test:
     needs: lint
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     strategy:
       matrix:
@@ -105,12 +107,23 @@ jobs:
       - name: Test with Coverage
         run: npm run test:coverage
 
+      - name: Coverage Summary
+        if: always()
+        run: |
+          if [ -f coverage/lcov-report/index.html ]; then
+            echo "### 📊 Coverage Report" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            # Extract summary line from text report
+            npx vitest run --coverage 2>&1 | grep -E "^(All files|Statements|Branches|Functions|Lines)" | head -5 >> "$GITHUB_STEP_SUMMARY" || true
+          fi
+
       - name: Upload Coverage Report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: coverage-report-node-${{ matrix.node-version }}
           path: coverage/lcov-report/
+          retention-days: 14
 
       - name: Check Outdated Dependencies
         run: npm outdated || true

@@ -4,14 +4,14 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ## Prerequisites
 
-- **Node.js 20+** (see `.nvmrc`)
+- **Node.js 22+** (see `.nvmrc`)
 - **npm** as package manager — do not use yarn or pnpm (enforced via `only-allow npm` preinstall hook; other package managers will be blocked)
 - **GitHub Copilot subscription** (for running the AI-powered features)
 - **GitHub CLI** authenticated (`gh auth login`)
 
 ### Node.js Version
 
-The repository includes an `.nvmrc` file that pins Node.js to version **20**. If you use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm), running `nvm use` (or `fnm use`) in the repository root will automatically switch to the correct version. CI also enforces this version — builds run on Node 20 (and 22 for forward-compatibility testing).
+The repository includes an `.nvmrc` file that pins Node.js to version **22**. If you use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm), running `nvm use` (or `fnm use`) in the repository root will automatically switch to the correct version. CI enforces this version — builds run on Node 22.
 
 ## Setup
 
@@ -58,7 +58,7 @@ The repository includes a `Makefile` that wraps common npm scripts. All targets 
 | `make format`        | Format all files with Prettier                        |
 | `make doctor`        | Check prerequisites (Node, gh CLI, auth, core build)  |
 
-> **💻 Dev Container / Codespaces:** This repo includes a `.devcontainer/devcontainer.json` with Node.js 20, GitHub CLI, and ESLint/Prettier extensions pre-configured. Open in Codespaces or VS Code Dev Containers to skip manual setup.
+> **💻 Dev Container / Codespaces:** This repo includes a `.devcontainer/devcontainer.json` with Node.js 22, GitHub CLI, and ESLint/Prettier extensions pre-configured. Open in Codespaces or VS Code Dev Containers to skip manual setup.
 
 ## Project Structure
 
@@ -520,11 +520,11 @@ This blocks `yarn` and `pnpm` from being used to install dependencies. The monor
 
 Three GitHub Actions workflows run automatically:
 
-| Workflow    | File          | Trigger                              | What it does                                                                                                                                                                       |
-| ----------- | ------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **CI**      | `ci.yml`      | Push & PR to `main`                  | Format check → Lint → Typecheck → Build → Build check → Build website → Test → Coverage → Upload coverage artifact → Check outdated deps → Security audit. Runs on Node 20 and 22. |
-| **CodeQL**  | `codeql.yml`  | Push & PR to `main`, weekly schedule | CodeQL security analysis with `security-and-quality` queries on JavaScript/TypeScript. Results appear in **Security → Code scanning**.                                             |
-| **Release** | `release.yml` | Push to `main` (upstream only)       | Installs → Builds → Tests → Runs `semantic-release` to bump version, update CHANGELOG, create Git tag, and publish GitHub Release. Only runs on `josedab/innovator`, not forks.    |
+| Workflow    | File          | Trigger                              | What it does                                                                                                                                                                    |
+| ----------- | ------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CI**      | `ci.yml`      | Push & PR to `main`                  | Format check → Lint → Typecheck → Build → Build check → Build website → Test → Coverage → Upload coverage artifact → Check outdated deps → Security audit. Runs on Node 22.     |
+| **CodeQL**  | `codeql.yml`  | Push & PR to `main`, weekly schedule | CodeQL security analysis with `security-and-quality` queries on JavaScript/TypeScript. Results appear in **Security → Code scanning**.                                          |
+| **Release** | `release.yml` | Push to `main` (upstream only)       | Installs → Builds → Tests → Runs `semantic-release` to bump version, update CHANGELOG, create Git tag, and publish GitHub Release. Only runs on `josedab/innovator`, not forks. |
 
 All CI checks must pass before a PR can be merged. You can simulate the full CI pipeline locally:
 

@@ -177,5 +177,30 @@ check("Node version matches .nvmrc", () => {
   }
 });
 
+// 12. Lock file exists and is up to date
+check("Lock file present (package-lock.json)", () => {
+  const lockPath = resolve(ROOT, "package-lock.json");
+  if (!existsSync(lockPath)) {
+    throw new Error("package-lock.json not found — run: npm install");
+  }
+});
+
+// 13. Disk space check (warn if < 1 GB free)
+check("Sufficient disk space", () => {
+  try {
+    const output = execSync("df -k .", { cwd: ROOT, encoding: "utf8" });
+    const lines = output.trim().split("\n");
+    if (lines.length >= 2) {
+      const parts = lines[1].split(/\s+/);
+      const availKB = parseInt(parts[3], 10);
+      if (!isNaN(availKB) && availKB < 1_000_000) {
+        return { warn: `Low disk space: ${Math.round(availKB / 1024)} MB available` };
+      }
+    }
+  } catch {
+    // Non-critical — skip on platforms where df is unavailable
+  }
+});
+
 console.log("");
 process.exit(exitCode);
