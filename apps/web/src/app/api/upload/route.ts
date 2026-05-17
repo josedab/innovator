@@ -61,7 +61,8 @@ export async function POST(request: Request) {
     switch (parsed.action) {
       case "validate": {
         const result = validateImage(parsed.imageData, parsed.maxSizeMB);
-        return NextResponse.json({ validation: result }, { headers: API_RESPONSE_HEADERS });
+        const status = result.valid ? 200 : 400;
+        return NextResponse.json({ validation: result }, { status, headers: API_RESPONSE_HEADERS });
       }
 
       case "analyze-image": {

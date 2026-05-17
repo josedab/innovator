@@ -15,6 +15,16 @@
  * @param options - Configuration for the embed code
  * @returns HTML string to embed in a page
  */
+/** Escape a string for safe use inside an HTML attribute value. */
+function escapeHtmlAttr(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 export function generateEmbedCode(options: {
   apiEndpoint: string;
   apiKey?: string;
@@ -34,14 +44,14 @@ export function generateEmbedCode(options: {
     cdnUrl = "https://unpkg.com/@innovator/widget@latest/dist/innovator-widget.js",
   } = options;
 
-  const attrs: string[] = [`api-endpoint="${apiEndpoint}"`];
-  if (apiKey) attrs.push(`api-key="${apiKey}"`);
-  if (angles) attrs.push(`angles="${angles.join(",")}"`);
-  if (theme !== "auto") attrs.push(`theme="${theme}"`);
-  if (title !== "💡 Innovator") attrs.push(`title="${title}"`);
+  const attrs: string[] = [`api-endpoint="${escapeHtmlAttr(apiEndpoint)}"`];
+  if (apiKey) attrs.push(`api-key="${escapeHtmlAttr(apiKey)}"`);
+  if (angles) attrs.push(`angles="${escapeHtmlAttr(angles.join(","))}"`);
+  if (theme !== "auto") attrs.push(`theme="${escapeHtmlAttr(theme)}"`);
+  if (title !== "💡 Innovator") attrs.push(`title="${escapeHtmlAttr(title)}"`);
   if (maxHeight !== 600) attrs.push(`max-height="${maxHeight}"`);
 
-  return `<script src="${cdnUrl}"></script>\n<innovator-widget ${attrs.join(" ")}></innovator-widget>`;
+  return `<script src="${escapeHtmlAttr(cdnUrl)}"></script>\n<innovator-widget ${attrs.join(" ")}></innovator-widget>`;
 }
 
 /**
@@ -121,7 +131,7 @@ export const WIDGET_SOURCE = `
 
         this._result = await res.json();
       } catch (err) {
-        this._error = err.message || 'Something went wrong';
+        this._error = (err instanceof Error ? err.message : String(err)) || 'Something went wrong';
       } finally {
         this._loading = false;
         this.render();

@@ -103,6 +103,14 @@ check("Core package built (packages/core/dist/)", () => {
   }
 });
 
+// 6b. apps/cli/dist/ exists
+check("CLI package built (apps/cli/dist/)", () => {
+  const distPath = resolve(ROOT, "apps/cli/dist");
+  if (!existsSync(distPath)) {
+    return { warn: "Not found — run: npm run build --workspace=apps/cli" };
+  }
+});
+
 // 7. .env.local exists
 check(".env.local configuration file", () => {
   const envPath = resolve(ROOT, ".env.local");

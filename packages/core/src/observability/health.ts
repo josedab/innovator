@@ -30,13 +30,17 @@ export async function getHealthReport(version = "0.2.0"): Promise<HealthReport> 
   const components: ComponentHealth[] = [];
 
   for (const [name, check] of healthChecks) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       // Wrap each check in a timeout to prevent hanging
       const result = await Promise.race([
         check(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Health check timed out")), HEALTH_CHECK_TIMEOUT_MS)
-        ),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("Health check timed out")),
+            HEALTH_CHECK_TIMEOUT_MS
+          );
+        }),
       ]);
       components.push(result);
     } catch (error) {
@@ -46,6 +50,8 @@ export async function getHealthReport(version = "0.2.0"): Promise<HealthReport> 
         message: error instanceof Error ? error.message : "Health check failed",
         lastCheck: new Date().toISOString(),
       });
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
     }
   }
 

@@ -68,8 +68,7 @@ describe("POST /api/upload", () => {
       );
       const data = await res.json();
 
-      expect(res.status).toBe(200);
-      expect(data.validation.valid).toBe(false);
+      expect(res.status).toBe(400);
       expect(data.validation.error).toBe("Too large");
     });
 

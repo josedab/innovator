@@ -26,7 +26,13 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "lcov"],
       include: ["packages/*/src/**/*.ts", "apps/*/src/**/*.{ts,tsx}"],
-      exclude: ["**/__tests__/**", "**/*.test.ts", "**/*.d.ts", "**/node_modules/**"],
+      exclude: [
+        "**/__tests__/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.d.ts",
+        "**/node_modules/**",
+      ],
       // Coverage thresholds — ratcheted to current levels to prevent regression
       thresholds: {
         lines: 72,

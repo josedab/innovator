@@ -46,7 +46,7 @@ export async function migrateFileDataToStorage(
         await storage.sessions.saveSession(session);
         result.sessions++;
       } catch (e) {
-        result.errors.push(`Session ${file}: ${(e as Error).message}`);
+        result.errors.push(`Session ${file}: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
   }
@@ -62,7 +62,7 @@ export async function migrateFileDataToStorage(
         await storage.workspaces.saveWorkspace(workspace);
         result.workspaces++;
       } catch (e) {
-        result.errors.push(`Workspace ${file}: ${(e as Error).message}`);
+        result.errors.push(`Workspace ${file}: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
   }
@@ -77,7 +77,7 @@ export async function migrateFileDataToStorage(
         await storage.analytics.trackEvent(event);
         result.analyticsEvents++;
       } catch (e) {
-        result.errors.push(`Analytics event: ${(e as Error).message}`);
+        result.errors.push(`Analytics event: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
   }
@@ -91,7 +91,7 @@ export async function migrateFileDataToStorage(
       await storage.knowledgeGraph.saveGraph(graph);
       result.knowledgeGraph = true;
     } catch (e) {
-      result.errors.push(`Knowledge graph: ${(e as Error).message}`);
+      result.errors.push(`Knowledge graph: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
