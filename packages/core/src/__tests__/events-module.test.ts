@@ -33,7 +33,9 @@ describe("EventBus", () => {
 
   it("delivers events to typed listeners", async () => {
     const received: PipelineEvent[] = [];
-    bus.on("pipeline.completed", (e) => received.push(e));
+    bus.on("pipeline.completed", (e) => {
+      received.push(e);
+    });
 
     await bus.emit("pipeline.completed", { result: "ok" }, "test");
 
@@ -44,7 +46,9 @@ describe("EventBus", () => {
 
   it("supports wildcard listeners", async () => {
     const received: PipelineEvent[] = [];
-    bus.on("*", (e) => received.push(e));
+    bus.on("*", (e) => {
+      received.push(e);
+    });
 
     await bus.emit("idea.created", { title: "New idea" });
     await bus.emit("pipeline.started", {});
@@ -184,6 +188,7 @@ describe("WebhookManager", () => {
         url: "https://example.com/hook",
         events: ["pipeline.completed"],
         secret: "webhook-secret-1234567",
+        active: true,
       });
 
       expect(webhook.id).toBeDefined();
@@ -235,6 +240,7 @@ describe("WebhookManager", () => {
         url: "https://example.com/hook",
         events: ["pipeline.completed"],
         secret: "webhook-secret-1234567",
+        active: true,
       });
 
       const event: PipelineEvent = {
@@ -258,6 +264,7 @@ describe("WebhookManager", () => {
         url: "https://example.com/hook",
         events: ["pipeline.completed"],
         secret: "webhook-secret-1234567",
+        active: true,
       });
 
       const event: PipelineEvent = {
@@ -281,6 +288,7 @@ describe("WebhookManager", () => {
         url: "https://example.com/hook",
         events: ["pipeline.completed"],
         secret: "webhook-secret-1234567",
+        active: true,
       });
 
       const event: PipelineEvent = {
@@ -306,6 +314,7 @@ describe("WebhookManager", () => {
         url: "https://example.com/hook",
         events: ["pipeline.completed"],
         secret: "webhook-secret-1234567",
+        active: true,
       });
 
       await manager.deliverEvent(webhook.id, {
@@ -328,6 +337,7 @@ describe("WebhookManager", () => {
         url: "https://example.com/hook",
         events: ["pipeline.completed"],
         secret: "webhook-secret-1234567",
+        active: true,
       });
 
       await manager.deliverEvent(webhook.id, {
@@ -350,6 +360,7 @@ describe("WebhookManager", () => {
         url: "https://example.com/hook",
         events: ["pipeline.completed"],
         secret: "webhook-secret-1234567",
+        active: true,
       });
 
       expect(manager.getWebhook(webhook.id)).toBeDefined();
@@ -366,6 +377,7 @@ describe("WebhookManager", () => {
         url: "https://example.com/hook",
         events: ["pipeline.completed"],
         secret: "webhook-secret-1234567",
+        active: true,
       });
 
       const delivery = await manager.deliverEvent(webhook.id, {

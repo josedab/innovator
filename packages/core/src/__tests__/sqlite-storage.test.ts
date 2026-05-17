@@ -262,19 +262,19 @@ describe("SQLiteStorageProvider", () => {
 
   describe("CollaborationStorage", () => {
     it("saves and retrieves session by room code", async () => {
-      const collabSession = {
+      const collabSession: CollaborativeSession = {
         id: "collab-1",
         roomCode: "ABC-123",
         status: "active",
         subject: "Test collaboration",
-        hostId: "host-1",
+        hostUserId: "host-1",
         participants: [],
-        votes: [],
-        chat: [],
+        angleAssignments: {},
+        ideas: [],
+        votes: {},
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
-      await provider.collaboration.saveSession(collabSession as CollaborativeSession);
+      await provider.collaboration.saveSession(collabSession);
 
       const byCode = await provider.collaboration.findByCode("ABC-123");
       expect(byCode).toBeDefined();

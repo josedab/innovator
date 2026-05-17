@@ -3,7 +3,7 @@
  */
 
 const mocks = vi.hoisted(() => ({
-  readEvents: vi.fn(() => []),
+  readEvents: vi.fn((): unknown[] => []),
   generateSummary: vi.fn(),
 }));
 
@@ -49,7 +49,7 @@ function createDefaultSummary(): AnalyticsSummary {
     subjectWordCloud: [{ word: "innovation", count: 10 }],
     recentEvents: [],
     sessionFrequency: [{ date: "2025-01-01", count: 3 }],
-    modelUsage: [{ model: "gpt-4o", count: 10 }],
+    topModels: [{ model: "gpt-4o", count: 10 }],
   };
 }
 

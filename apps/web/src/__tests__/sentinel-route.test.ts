@@ -78,6 +78,7 @@ describe("API /api/sentinel", () => {
     });
     const res = await POST(
       makePost({
+        action: "run",
         sources: [
           {
             id: "hn",
@@ -99,6 +100,7 @@ describe("API /api/sentinel", () => {
     vi.mocked(runSentinel).mockRejectedValue(new Error("Network error"));
     const res = await POST(
       makePost({
+        action: "run",
         sources: [{ id: "t", type: "rss", name: "T", url: "http://x.com", enabled: true }],
         topics: ["AI"],
       })

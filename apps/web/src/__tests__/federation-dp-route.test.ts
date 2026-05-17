@@ -58,7 +58,20 @@ describe("API /api/federation-dp", () => {
   });
 
   it("GET action=patterns returns shared patterns", async () => {
-    vi.mocked(loadSharedPatterns).mockReturnValue([{ id: "p1", type: "angle-effectiveness" }]);
+    vi.mocked(loadSharedPatterns).mockReturnValue([
+      {
+        id: "p1",
+        type: "angle-effectiveness",
+        angleId: "scamper",
+        topicCategory: "sustainability",
+        noisedValue: 0.82,
+        ciLower: 0.7,
+        ciUpper: 0.9,
+        sampleSize: 12,
+        epoch: "2026-01",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
     const res = await GET(makeGet({ action: "patterns" }));
     expect(res.status).toBe(200);
     const data = await res.json();

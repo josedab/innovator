@@ -166,6 +166,8 @@ describe("federation/cross-org-insights", () => {
       setDataResidency({
         orgId: "no-enc",
         region: "us-east",
+        allowCrossRegion: false,
+        retentionDays: 365,
         encryptionRequired: false,
         auditTrailEnabled: true,
       });
@@ -178,6 +180,8 @@ describe("federation/cross-org-insights", () => {
       setDataResidency({
         orgId: "no-audit",
         region: "us-east",
+        allowCrossRegion: false,
+        retentionDays: 365,
         encryptionRequired: true,
         auditTrailEnabled: false,
       });
@@ -219,6 +223,8 @@ describe("federation/cross-org-insights", () => {
       setDataResidency({
         orgId: "org-clear",
         region: "us-east",
+        allowCrossRegion: false,
+        retentionDays: 365,
         encryptionRequired: true,
         auditTrailEnabled: true,
       });

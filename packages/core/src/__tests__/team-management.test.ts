@@ -95,7 +95,14 @@ describe("rbac/team-management", () => {
         slug: "small",
         ownerId: "o1",
       });
-      updateTeam(team.id, { settings: { maxMembers: 1, defaultRole: "contributor" } });
+      updateTeam(team.id, {
+        settings: {
+          dataResidency: "any",
+          defaultRole: "contributor",
+          maxSessions: -1,
+          maxMembers: 1,
+        },
+      });
 
       expect(() => addTeamMember(team.id, "user-2")).toThrow("member limit");
     });

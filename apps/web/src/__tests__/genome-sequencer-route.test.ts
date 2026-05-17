@@ -45,8 +45,16 @@ describe("API /api/genome-sequencer", () => {
       {
         id: "g1",
         ideaTitle: "Idea A",
+        ideaDescription: "A test idea",
         sequencedAt: "2026-01-01",
-        traits: [{ type: "problem-space" }],
+        traits: [
+          {
+            type: "problem-space",
+            value: "workflow bottlenecks",
+            confidence: 0.9,
+            keywords: ["workflow"],
+          },
+        ],
       },
     ]);
     const res = await GET(makeGet());
@@ -57,7 +65,13 @@ describe("API /api/genome-sequencer", () => {
   });
 
   it("GET by id returns genome", async () => {
-    vi.mocked(getGenome).mockReturnValue({ id: "g1", ideaTitle: "Test", traits: [] });
+    vi.mocked(getGenome).mockReturnValue({
+      id: "g1",
+      ideaTitle: "Test",
+      ideaDescription: "Test genome",
+      traits: [],
+      sequencedAt: "2026-01-01T00:00:00.000Z",
+    });
     const res = await GET(makeGet({ id: "g1" }));
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -96,7 +110,13 @@ describe("API /api/genome-sequencer", () => {
   });
 
   it("POST finds similar genomes", async () => {
-    vi.mocked(getGenome).mockReturnValue({ id: "g1", traits: [] });
+    vi.mocked(getGenome).mockReturnValue({
+      id: "g1",
+      ideaTitle: "Genome 1",
+      ideaDescription: "First genome",
+      traits: [],
+      sequencedAt: "2026-01-01T00:00:00.000Z",
+    });
     vi.mocked(findSimilarGenomes).mockReturnValue([
       {
         genomeA: "g1",
@@ -114,8 +134,34 @@ describe("API /api/genome-sequencer", () => {
 
   it("POST recombines two genomes", async () => {
     vi.mocked(getGenome)
-      .mockReturnValueOnce({ id: "g1", traits: [{ type: "problem-space" }] })
-      .mockReturnValueOnce({ id: "g2", traits: [{ type: "solution-mechanism" }] });
+      .mockReturnValueOnce({
+        id: "g1",
+        ideaTitle: "Genome 1",
+        ideaDescription: "First genome",
+        traits: [
+          {
+            type: "problem-space",
+            value: "logistics friction",
+            confidence: 0.8,
+            keywords: ["logistics"],
+          },
+        ],
+        sequencedAt: "2026-01-01T00:00:00.000Z",
+      })
+      .mockReturnValueOnce({
+        id: "g2",
+        ideaTitle: "Genome 2",
+        ideaDescription: "Second genome",
+        traits: [
+          {
+            type: "solution-mechanism",
+            value: "predictive routing",
+            confidence: 0.8,
+            keywords: ["routing"],
+          },
+        ],
+        sequencedAt: "2026-01-01T00:00:00.000Z",
+      });
     vi.mocked(recombineGenomes).mockResolvedValue({
       title: "Recombinant",
       description: "New idea",

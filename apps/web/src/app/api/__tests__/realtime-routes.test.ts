@@ -26,7 +26,9 @@ function createNextRequest(
   url: string,
   options?: { method?: string; body?: unknown }
 ): NextRequest {
-  const init: RequestInit = { method: options?.method ?? "GET" };
+  const init: ConstructorParameters<typeof NextRequest>[1] = {
+    method: options?.method ?? "GET",
+  };
   if (options?.body !== undefined) {
     init.body = JSON.stringify(options.body);
     init.headers = { "Content-Type": "application/json" };

@@ -10,6 +10,7 @@ import {
   clearKnowledgeLake,
   getLakeStats,
 } from "../knowledge-lake/index.js";
+import type { ArtifactType } from "../knowledge-lake/index.js";
 import {
   facetedSearch,
   ingestBatch,
@@ -17,7 +18,12 @@ import {
   getKnowledgeLakeSummary,
 } from "../knowledge-lake/faceted-search.js";
 
-function makeArtifact(id: string, title: string, content: string, type = "idea" as const) {
+function makeArtifact(
+  id: string,
+  title: string,
+  content: string,
+  type: ArtifactType = "idea"
+) {
   const now = new Date().toISOString();
   return { id, type, title, content, tags: [], metadata: {}, createdAt: now, updatedAt: now };
 }

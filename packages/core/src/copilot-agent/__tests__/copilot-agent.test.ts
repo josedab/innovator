@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
   renameSync: vi.fn(),
-  readdirSync: vi.fn(() => []),
+  readdirSync: vi.fn((): string[] => []),
 }));
 
 vi.mock("@github/copilot-sdk", () => ({ CopilotClient: vi.fn() }));

@@ -59,7 +59,20 @@ describe("API /api/provenance", () => {
   });
 
   it("GET session returns entries", async () => {
-    vi.mocked(getLedgerSessionEntries).mockReturnValue([{ id: "e1", type: "investigation" }]);
+    vi.mocked(getLedgerSessionEntries).mockReturnValue([
+      {
+        id: "e1",
+        sequenceNumber: 1,
+        type: "investigation",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        sessionId: "s1",
+        previousHash: "",
+        contentHash: "a".repeat(64),
+        actor: "system",
+        action: "Investigated subject",
+        subject: "Solar panel idea",
+      },
+    ]);
     const res = await GET(makeGet({ action: "session", sessionId: "s1" }));
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -67,7 +80,19 @@ describe("API /api/provenance", () => {
   });
 
   it("POST record-decision creates an entry", async () => {
-    vi.mocked(recordLedgerHumanDecision).mockReturnValue({ id: "e1", type: "approval" });
+    vi.mocked(recordLedgerHumanDecision).mockReturnValue({
+      id: "e1",
+      sequenceNumber: 2,
+      type: "approval",
+      timestamp: "2026-01-01T00:05:00.000Z",
+      sessionId: "s1",
+      previousHash: "a".repeat(64),
+      contentHash: "b".repeat(64),
+      actor: "alice@test.com",
+      action: "Approved idea",
+      subject: "Solar panel idea",
+      reasoning: "Strong market fit",
+    });
     const res = await POST(
       makePost({
         action: "record-decision",
