@@ -15,7 +15,7 @@ import { wrapUserInput, sanitizeLlmOutput, sanitizeUserInput } from "./sanitize.
  */
 export function buildInvestigationPrompt(subject: string, contextDocuments?: string): string {
   const contextBlock = contextDocuments
-    ? `\n${contextDocuments}\n\nUse the knowledge base context above to ground your analysis with specific, relevant details.\n`
+    ? `\n${sanitizeLlmOutput(contextDocuments)}\n\nUse the knowledge base context above to ground your analysis with specific, relevant details.\n`
     : "";
 
   return `You are an expert innovation analyst. Investigate the following subject thoroughly.

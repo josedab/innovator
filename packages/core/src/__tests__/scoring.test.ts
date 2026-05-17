@@ -16,6 +16,7 @@ vi.mock("../copilot/retry.js", () => ({
 
 vi.mock("../prompts/sanitize.js", () => ({
   sanitizeLlmOutput: vi.fn((s: string) => s),
+  sanitizeUserInput: vi.fn((s: string) => s),
   wrapUserInput: vi.fn((label: string, value: string) => `${label}: ${value}`),
 }));
 

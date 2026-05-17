@@ -13,6 +13,21 @@ export interface RetryOptions {
   signal?: AbortSignal;
 }
 
+/** Error thrown when all retry attempts are exhausted. Preserves the original error as `cause`. */
+export class RetryExhaustedError extends Error {
+  /** The underlying error from the last attempt. */
+  override readonly cause: Error;
+  /** Total number of attempts made (including the first). */
+  readonly attempts: number;
+
+  constructor(cause: Error, attempts: number) {
+    super(`All ${attempts} retry attempts exhausted: ${cause.message}`);
+    this.name = "RetryExhaustedError";
+    this.cause = cause;
+    this.attempts = attempts;
+  }
+}
+
 /** Error message substrings that identify transient network/timeout failures eligible for retry. */
 const DEFAULT_RETRYABLE_PATTERNS = [
   "ECONNRESET",
@@ -76,7 +91,12 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
     } catch (error) {
       lastError = error;
 
-      if (attempt === maxAttempts || !isRetryable(error) || signal?.aborted) {
+      if (attempt === maxAttempts) {
+        const cause = error instanceof Error ? error : new Error(String(error));
+        throw new RetryExhaustedError(cause, maxAttempts);
+      }
+
+      if (!isRetryable(error) || signal?.aborted) {
         throw error;
       }
 
@@ -104,5 +124,6 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
     }
   }
 
-  throw lastError;
+  const cause = lastError instanceof Error ? lastError : new Error(String(lastError));
+  throw new RetryExhaustedError(cause, maxAttempts);
 }

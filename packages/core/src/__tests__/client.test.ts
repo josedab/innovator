@@ -84,7 +84,8 @@ describe("copilot/client", () => {
 
     it("falls back to brace-balanced when fenced block has no object", () => {
       const raw = '```json\n[1, 2, 3]\n```\n{"fallback": true}';
-      expect(extractJson(raw)).toBe('{"fallback": true}');
+      // Arrays are valid JSON, so the fenced block is now preferred
+      expect(extractJson(raw)).toBe('[1, 2, 3]');
     });
   });
 

@@ -231,19 +231,47 @@ export async function generateTextStream(
 
 /**
  * Extract JSON from an LLM response that may contain markdown or extra text.
- * Uses brace-balanced extraction instead of greedy regex.
+ * Supports both JSON objects (`{...}`) and JSON arrays (`[...]`).
+ * Uses bracket-balanced extraction instead of greedy regex.
  */
 export function extractJson(raw: string): string {
   // Try fenced JSON block first
   const fenced = raw.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
   if (fenced) {
     const trimmed = fenced[1].trim();
-    if (trimmed.startsWith("{")) return trimmed;
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) return trimmed;
   }
 
-  // Brace-balanced extraction
-  const start = raw.indexOf("{");
-  if (start === -1) throw new Error("No JSON object found in response");
+  // Find the first { or [ to determine JSON type
+  const braceStart = raw.indexOf("{");
+  const bracketStart = raw.indexOf("[");
+
+  let start: number;
+  let openChar: string;
+  let closeChar: string;
+
+  if (braceStart === -1 && bracketStart === -1) {
+    throw new Error("No JSON object found in response");
+  } else if (braceStart === -1) {
+    start = bracketStart;
+    openChar = "[";
+    closeChar = "]";
+  } else if (bracketStart === -1) {
+    start = braceStart;
+    openChar = "{";
+    closeChar = "}";
+  } else {
+    // Pick whichever comes first
+    if (braceStart <= bracketStart) {
+      start = braceStart;
+      openChar = "{";
+      closeChar = "}";
+    } else {
+      start = bracketStart;
+      openChar = "[";
+      closeChar = "]";
+    }
+  }
 
   let depth = 0;
   let inString = false;
@@ -266,8 +294,8 @@ export function extractJson(raw: string): string {
     }
     if (inString) continue;
 
-    if (ch === "{") depth++;
-    else if (ch === "}") {
+    if (ch === openChar) depth++;
+    else if (ch === closeChar) {
       depth--;
       if (depth === 0) {
         return raw.slice(start, i + 1);

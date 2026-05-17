@@ -60,4 +60,40 @@ describe("extractJson", () => {
     const input = 'prefix {"ignore": true} ```json\n{"use": "this"}\n``` suffix';
     expect(JSON.parse(extractJson(input))).toEqual({ use: "this" });
   });
+
+  // --- JSON Array support ---
+
+  it("extracts a plain JSON array", () => {
+    const input = '[1, 2, 3]';
+    expect(JSON.parse(extractJson(input))).toEqual([1, 2, 3]);
+  });
+
+  it("extracts a JSON array from surrounding text", () => {
+    const input = 'Here are the results: [{"name": "a"}, {"name": "b"}] done';
+    expect(JSON.parse(extractJson(input))).toEqual([{ name: "a" }, { name: "b" }]);
+  });
+
+  it("extracts a JSON array from a fenced code block", () => {
+    const input = '```json\n[{"id": 1}, {"id": 2}]\n```';
+    expect(JSON.parse(extractJson(input))).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+
+  it("prefers object when it appears before array", () => {
+    const input = '{"key": "val"} and then [1, 2]';
+    expect(JSON.parse(extractJson(input))).toEqual({ key: "val" });
+  });
+
+  it("prefers array when it appears before object", () => {
+    const input = 'result: [1, 2, 3] and {"key": "val"}';
+    expect(JSON.parse(extractJson(input))).toEqual([1, 2, 3]);
+  });
+
+  it("handles nested arrays correctly", () => {
+    const input = '[[1, 2], [3, [4, 5]]]';
+    expect(JSON.parse(extractJson(input))).toEqual([[1, 2], [3, [4, 5]]]);
+  });
+
+  it("throws on unbalanced brackets in array", () => {
+    expect(() => extractJson("[1, 2, 3")).toThrow("Unbalanced JSON braces");
+  });
 });

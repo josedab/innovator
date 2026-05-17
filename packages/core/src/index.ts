@@ -90,7 +90,7 @@ export {
 } from "./prompts/sanitize.js";
 
 /** Retry utility with exponential backoff for unreliable async operations. */
-export { withRetry } from "./copilot/retry.js";
+export { withRetry, RetryExhaustedError } from "./copilot/retry.js";
 /** Configuration options for {@link withRetry}. */
 export type { RetryOptions } from "./copilot/retry.js";
 
@@ -148,7 +148,13 @@ export {
   querySessions,
   /** Compare two sessions side-by-side. */
   compareSessions,
+  /** Compute aggregate statistics across all stored sessions. */
+  getSessionStats,
+  /** Search sessions with pagination metadata (totalCount). */
+  querySessionsPaginated,
 } from "./history/index.js";
+/** Aggregate statistics across all stored sessions. */
+export type { SessionStats, PaginatedSessionResult } from "./history/index.js";
 
 /** Export — render sessions as Markdown, JSON, GitHub Issues, PowerPoint, Jira, Confluence, Notion, and Google Slides. */
 export {

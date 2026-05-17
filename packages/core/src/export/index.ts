@@ -7,6 +7,11 @@
 
 import type { ExportData } from "../types.js";
 
+/** Escape markdown special characters in inline content to prevent formatting breaks. */
+function escapeMarkdownInline(text: string): string {
+  return text.replace(/([\\*_`\[\]|~<>])/g, "\\$1");
+}
+
 /** Export result containing the formatted output and metadata. */
 export interface ExportResult {
   content: string;
@@ -30,7 +35,7 @@ export interface IntegrationAdapter {
 /** Export to Markdown format. */
 export function exportToMarkdown(data: ExportData): ExportResult {
   const lines: string[] = [];
-  const subject = data.subject;
+  const subject = escapeMarkdownInline(data.subject);
 
   lines.push(`# Innovation Report: ${subject}`);
   lines.push("");
@@ -46,7 +51,7 @@ export function exportToMarkdown(data: ExportData): ExportResult {
 
     lines.push("### Key Aspects");
     for (const aspect of data.investigation.keyAspects) {
-      lines.push(`- **${aspect.title}**: ${aspect.description}`);
+      lines.push(`- **${escapeMarkdownInline(aspect.title)}**: ${aspect.description}`);
     }
     lines.push("");
 
@@ -72,13 +77,13 @@ export function exportToMarkdown(data: ExportData): ExportResult {
     lines.push("");
 
     for (const angle of data.angleResults) {
-      lines.push(`### ${angle.angleName}`);
+      lines.push(`### ${escapeMarkdownInline(angle.angleName)}`);
       lines.push("");
-      lines.push(`*${angle.reasoning}*`);
+      lines.push(`*${escapeMarkdownInline(angle.reasoning)}*`);
       lines.push("");
 
       for (const idea of angle.ideas) {
-        lines.push(`#### ${idea.title}`);
+        lines.push(`#### ${escapeMarkdownInline(idea.title)}`);
         lines.push("");
         lines.push(idea.description);
         lines.push("");
@@ -96,10 +101,10 @@ export function exportToMarkdown(data: ExportData): ExportResult {
     lines.push("### Top Ideas");
     lines.push("");
     for (const idea of data.synthesis.topIdeas) {
-      lines.push(`#### ${idea.title} (${idea.feasibility} feasibility)`);
+      lines.push(`#### ${escapeMarkdownInline(idea.title)} (${idea.feasibility} feasibility)`);
       lines.push("");
       lines.push(idea.description);
-      lines.push(`- **Source**: ${idea.sourceAngle}`);
+      lines.push(`- **Source**: ${escapeMarkdownInline(idea.sourceAngle)}`);
       lines.push(`- **Impact**: ${idea.potentialImpact}`);
       lines.push("");
     }

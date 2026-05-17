@@ -113,6 +113,20 @@ export function listSessions(): SessionRecord[] {
 
 /** Search and filter sessions based on query parameters. */
 export function querySessions(query: HistoryQuery): SessionRecord[] {
+  const { sessions } = querySessionsPaginated(query);
+  return sessions;
+}
+
+/** Paginated query result with total count for building pagination UIs. */
+export interface PaginatedSessionResult {
+  /** Sessions matching the query, sliced by offset/limit. */
+  sessions: SessionRecord[];
+  /** Total number of sessions matching the filter (before pagination). */
+  totalCount: number;
+}
+
+/** Search and filter sessions with pagination metadata. */
+export function querySessionsPaginated(query: HistoryQuery): PaginatedSessionResult {
   let sessions = listSessions();
 
   if (query.search) {
@@ -152,16 +166,24 @@ export function querySessions(query: HistoryQuery): SessionRecord[] {
     );
   }
 
+  const totalCount = sessions.length;
   const offset = query.offset ?? 0;
   const limit = query.limit ?? 50;
-  return sessions.slice(offset, offset + limit);
+  return { sessions: sessions.slice(offset, offset + limit), totalCount };
 }
 
 /** Compare two sessions side by side. */
 export function compareSessions(
   id1: string,
   id2: string
-): { session1: SessionRecord; session2: SessionRecord; sharedThemes: string[] } | undefined {
+): {
+  session1: SessionRecord;
+  session2: SessionRecord;
+  sharedThemes: string[];
+  sharedAngles: string[];
+  uniqueAngles1: string[];
+  uniqueAngles2: string[];
+} | undefined {
   const s1 = getSession(id1);
   const s2 = getSession(id2);
   if (!s1 || !s2) return undefined;
@@ -171,5 +193,55 @@ export function compareSessions(
   const themes2 = s2.synthesis?.themes ?? [];
   const sharedThemes = themes2.filter((t) => themes1.has(t));
 
-  return { session1: s1, session2: s2, sharedThemes };
+  // Compare angle coverage
+  const angles1 = new Set(s1.angleResults.map((ar) => ar.angleId));
+  const angles2 = new Set(s2.angleResults.map((ar) => ar.angleId));
+  const sharedAngles = [...angles1].filter((a) => angles2.has(a));
+  const uniqueAngles1 = [...angles1].filter((a) => !angles2.has(a));
+  const uniqueAngles2 = [...angles2].filter((a) => !angles1.has(a));
+
+  return { session1: s1, session2: s2, sharedThemes, sharedAngles, uniqueAngles1, uniqueAngles2 };
+}
+
+/** Aggregate statistics across all stored sessions. */
+export interface SessionStats {
+  /** Total number of sessions. */
+  totalSessions: number;
+  /** Frequency count for each tag across all sessions. */
+  tagFrequency: Record<string, number>;
+  /** Frequency count for each angle used across all sessions. */
+  angleFrequency: Record<string, number>;
+  /** Total number of ideas generated across all sessions. */
+  totalIdeas: number;
+  /** ISO 8601 timestamp of the earliest session, or undefined if no sessions exist. */
+  earliestSession?: string;
+  /** ISO 8601 timestamp of the most recent session, or undefined if no sessions exist. */
+  latestSession?: string;
+}
+
+/** Compute aggregate statistics across all stored sessions. */
+export function getSessionStats(): SessionStats {
+  const sessions = listSessions();
+  const tagFrequency: Record<string, number> = {};
+  const angleFrequency: Record<string, number> = {};
+  let totalIdeas = 0;
+
+  for (const session of sessions) {
+    for (const tag of session.tags) {
+      tagFrequency[tag] = (tagFrequency[tag] ?? 0) + 1;
+    }
+    for (const ar of session.angleResults) {
+      angleFrequency[ar.angleId] = (angleFrequency[ar.angleId] ?? 0) + 1;
+      totalIdeas += ar.ideas.length;
+    }
+  }
+
+  return {
+    totalSessions: sessions.length,
+    tagFrequency,
+    angleFrequency,
+    totalIdeas,
+    earliestSession: sessions.length > 0 ? sessions[sessions.length - 1].createdAt : undefined,
+    latestSession: sessions.length > 0 ? sessions[0].createdAt : undefined,
+  };
 }

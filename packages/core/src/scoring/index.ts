@@ -9,7 +9,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
+import { sanitizeLlmOutput, sanitizeUserInput, wrapUserInput } from "../prompts/sanitize.js";
 import type { AngleResult, Investigation } from "../types.js";
 
 /** Zod schema for a scored idea. */
@@ -70,7 +70,7 @@ function buildScoringPrompt(
   );
 
   const context = investigation
-    ? `\nINVESTIGATION CONTEXT:\nSummary: ${investigation.summary}\nChallenges: ${investigation.challenges.join("; ")}\nOpportunities: ${investigation.opportunities.join("; ")}`
+    ? `\nINVESTIGATION CONTEXT:\nSummary: ${sanitizeUserInput(investigation.summary)}\nChallenges: ${investigation.challenges.map((c) => sanitizeUserInput(c)).join("; ")}\nOpportunities: ${investigation.opportunities.map((o) => sanitizeUserInput(o)).join("; ")}`
     : "";
 
   return `You are an expert innovation evaluator. Score each idea across multiple dimensions.

@@ -5,7 +5,7 @@ vi.mock("@github/copilot-sdk", () => ({
   approveAll: vi.fn(),
 }));
 
-import { withRetry } from "../copilot/retry.js";
+import { withRetry, RetryExhaustedError } from "../copilot/retry.js";
 
 describe("withRetry", () => {
   it("returns the result on first success", async () => {
@@ -225,5 +225,31 @@ describe("withRetry", () => {
     const gap = delays[1] - delays[0];
     expect(gap).toBeGreaterThanOrEqual(90);
     expect(gap).toBeLessThan(200);
+  });
+
+  it("throws RetryExhaustedError with attempt count after all retries", async () => {
+    const fn = vi.fn().mockRejectedValue(new Error("ECONNRESET"));
+    try {
+      await withRetry(fn, { maxAttempts: 3, initialDelayMs: 1 });
+      expect.fail("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(RetryExhaustedError);
+      const retryErr = err as RetryExhaustedError;
+      expect(retryErr.attempts).toBe(3);
+      expect(retryErr.cause.message).toBe("ECONNRESET");
+      expect(retryErr.message).toContain("3 retry attempts exhausted");
+    }
+  });
+
+  it("RetryExhaustedError preserves original error as cause", async () => {
+    const originalError = new Error("ETIMEDOUT");
+    const fn = vi.fn().mockRejectedValue(originalError);
+    try {
+      await withRetry(fn, { maxAttempts: 2, initialDelayMs: 1 });
+      expect.fail("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(RetryExhaustedError);
+      expect((err as RetryExhaustedError).cause).toBe(originalError);
+    }
   });
 });
