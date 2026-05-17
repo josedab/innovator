@@ -1334,6 +1334,45 @@ export {
 } from "./analytics/roi.js";
 export type { ROIConfig, ROIReport } from "./analytics/roi.js";
 
+/** Analytics Dashboard Enhancements — velocity trends, KPI dashboards, and scheduled reports. */
+export {
+  VelocityDataPointSchema,
+  VelocityTrendSchema as AngleVelocityTrendSchema,
+  HeatmapCellSchema as AngleHeatmapCellSchema,
+  AngleHeatmapSchema,
+  TeamPatternSchema,
+  computeVelocityTrend,
+  generateAngleHeatmap,
+  analyzeTeamPatterns,
+  velocityTrendToMarkdown,
+  KPIMetricSchema,
+  KPIDashboardSchema,
+  computeKPIs,
+  kpiDashboardToMarkdown,
+  ReportScheduleSchema,
+  GeneratedReportSchema,
+  ReportScheduleInputSchema,
+  createReportSchedule,
+  getReportSchedule,
+  listReportSchedules,
+  deleteReportSchedule,
+  generateScheduledReport,
+  getDueSchedules as getDueReportSchedules,
+  clearReportSchedules,
+} from "./analytics/index.js";
+export type {
+  VelocityDataPoint,
+  VelocityTrend as AngleVelocityTrend,
+  AngleHeatmapCell,
+  AngleHeatmap,
+  TeamPattern,
+  KPIMetric,
+  KPIDashboard,
+  ReportSchedule,
+  GeneratedReport,
+  ReportScheduleInput,
+} from "./analytics/index.js";
+
 /** Coaching — AI coach that asks clarifying questions, detects assumptions, and recommends pivots. */
 export {
   generateClarificationQuestions,
@@ -1605,6 +1644,39 @@ export type {
   LeaderboardEntry,
   ActivityItem,
   GamificationConfig,
+} from "./gamification/index.js";
+
+/** Gamification scoring — streaks, daily challenges, and innovation velocity metrics. */
+export {
+  StreakRecordSchema,
+  StreakMilestoneSchema,
+  STREAK_MILESTONES,
+  recordActivity as recordStreakActivity,
+  getStreak,
+  checkMilestone,
+  getStreakLeaderboard,
+  clearStreakData,
+  DailyChallengeSchema,
+  ChallengeCompletionSchema,
+  DAILY_CHALLENGE_TEMPLATES,
+  getDailyChallenge,
+  completeDailyChallenge,
+  getUserDailyChallengeHistory,
+  clearDailyChallengeData,
+  VelocityMetricsSchema as InnovationVelocityMetricsSchema,
+  computeVelocityScore,
+  getWeeklyVelocity,
+  getMonthlyVelocity,
+  getVelocityLeaderboard,
+  velocityToMarkdown,
+} from "./gamification/index.js";
+export type {
+  StreakRecord,
+  StreakMilestone,
+  DailyChallenge,
+  ChallengeCompletion,
+  VelocityMetrics as InnovationVelocityMetrics,
+  VelocityActivity,
 } from "./gamification/index.js";
 
 /** Sustainability / ESG assessment — environmental, social, and governance scoring for ideas. */
@@ -2328,7 +2400,7 @@ export type {
 
 /** Cross-session serendipity — discover unexpected connections between past investigations. */
 export {
-  findSerendipitousConnections,
+  findSerendipitousConnections as findSerendipitousMemoryConnections,
   embedSession,
   SerendipitousConnectionSchema,
   SerendipityResultSchema,
@@ -2512,7 +2584,7 @@ export {
   API_VERSIONS,
   getApiVersionInfo,
   listApiVersions,
-  RateLimitConfigSchema,
+  RateLimitConfigSchema as ApiGatewayRateLimitConfigSchema,
   getEndpointRateLimit,
   checkUsageRateLimit,
 } from "./api-gateway/index.js";
@@ -2526,7 +2598,7 @@ export type {
   DeveloperPortalInfo,
   WebhookSubscription,
   ApiVersion,
-  RateLimitConfig,
+  RateLimitConfig as ApiGatewayRateLimitConfig,
 } from "./api-gateway/index.js";
 
 /** Decision packet — executive-ready decision documents with options, risks, and resource asks. */
@@ -3210,6 +3282,34 @@ export type {
   AnglePackValidationResult,
 } from "./marketplace/index.js";
 
+/** First-Party Domain Packs — curated industry packs with domain-specific angles and rubrics. */
+export {
+  DomainAngleSchema,
+  DomainPackSchema,
+  DOMAIN_PACKS,
+  getDomainPack,
+  listDomainPacks,
+  getDomainPacksByTag,
+  installDomainPack,
+  getInstalledPacks,
+  uninstallDomainPack,
+  clearInstalledPacks,
+} from "./marketplace/index.js";
+export type { DomainAngle, DomainPack } from "./marketplace/index.js";
+
+/** Domain Pack Community — reviews, search, ratings, and popularity for marketplace packs. */
+export {
+  PackReviewSchema,
+  PackSearchResultSchema,
+  submitReview as submitPackReview,
+  getPackReviews,
+  getPackAverageRating,
+  searchPacks as searchDomainPacks,
+  getPopularPacks,
+  clearCommunityData,
+} from "./marketplace/index.js";
+export type { PackReview, PackSearchResult } from "./marketplace/index.js";
+
 /** Innovation Embeddings & Semantic Search — TF-IDF vector search, similarity clustering, and cross-investigation discovery. */
 export {
   indexDocument,
@@ -3568,7 +3668,7 @@ export {
 } from "./api-gateway/api-spec.js";
 export type { ApiEndpoint, SdkLanguage } from "./api-gateway/api-spec.js";
 
-/** External Integrations — export ideas to Jira, Linear, Notion with structured formatting. */
+/** External Integrations — export ideas to Jira, Linear, Notion, and GitHub with structured formatting and sync utilities. */
 export {
   registerIntegration as registerExternalIntegration,
   getIntegration as getExternalIntegration,
@@ -3580,6 +3680,22 @@ export {
   exportToLinear,
   formatNotionPage,
   exportToNotion as exportIdeaToNotion,
+  formatGitHubIssue,
+  exportToGitHub as exportIdeaToGitHub,
+  importGitHubIssues,
+  importBacklog,
+  getImportedBacklog,
+  analyzeBacklog,
+  backlogToInnovationSubjects,
+  clearImportedBacklog,
+  createSyncRecord,
+  getSyncRecord,
+  getSyncRecordByExternalId,
+  listSyncRecords,
+  updateSyncStatus,
+  recordSyncEvent,
+  getSyncEvents,
+  clearSyncData,
   clearIntegrations as clearExternalIntegrations,
 } from "./integrations/index.js";
 export type {
@@ -3590,6 +3706,17 @@ export type {
   JiraExportOptions,
   LinearExportOptions,
   NotionExportOptions,
+  GitHubIssueExportOptions,
+  GitHubIssuePayload,
+  GitHubIssueImportOptions,
+  GitHubImportedIssueSubject,
+  GitHubIssuesConfig,
+  BacklogItem,
+  BacklogAnalysis,
+  BacklogImportInput,
+  SyncRecord,
+  SyncEvent as IntegrationSyncEvent,
+  CreateSyncRecordInput,
 } from "./integrations/index.js";
 
 /** Idea Maturity Lifecycle — formal stage-gate process with evidence requirements. */
@@ -4458,6 +4585,30 @@ export type {
   ConvergenceConfig,
   CostEstimate,
 } from "./autonomous-agent/index.js";
+
+/** Investigation Planning — rule-based decomposition of objectives into executable steps. */
+export {
+  decomposeObjective,
+  selectAnglesForStep,
+  createInvestigationPlan,
+  getNextStep,
+  completeStep,
+  planToMarkdown,
+  InvestigationStepSchema,
+  InvestigationPlanSchema,
+} from "./autonomous-agent/index.js";
+export type { InvestigationStep, InvestigationPlan } from "./autonomous-agent/index.js";
+
+/** Strategy Documents — synthesize autonomous runs into confidence-scored recommendations. */
+export {
+  generateStrategyDocument,
+  assessConfidence,
+  strategyDocToMarkdown,
+  strategyDocToExecutiveBrief,
+  ConfidenceAssessmentSchema,
+  StrategyDocumentSchema,
+} from "./autonomous-agent/index.js";
+export type { ConfidenceAssessment, StrategyDocument } from "./autonomous-agent/index.js";
 
 /** Innovation Monitor — long-running domain monitoring with opportunity detection and digest generation. */
 export {
@@ -5684,6 +5835,32 @@ export type {
   MultiModalContext as ExtendedMultiModalContext,
 } from "./multi-modal/index.js";
 
+/** Multi-Modal extraction — document chunking and audio transcription helpers. */
+export {
+  DocumentChunkSchema as ExtractedDocumentChunkSchema,
+  DocumentMetadataSchema,
+  ExtractedDocumentSchema,
+  chunkDocument,
+  extractDocumentMetadata,
+  processDocument,
+  documentToInnovationSubject,
+  TranscriptionSegmentSchema,
+  TranscriptionResultSchema,
+  TranscriptionProviderSchema,
+  transcribeAudio,
+  segmentByTopics,
+  transcriptionToSubject,
+  transcriptionToMarkdown,
+} from "./multi-modal/index.js";
+export type {
+  DocumentChunk as ExtractedDocumentChunk,
+  DocumentMetadata,
+  ExtractedDocument,
+  TranscriptionSegment,
+  TranscriptionResult,
+  TranscriptionProvider,
+} from "./multi-modal/index.js";
+
 /** Sprint Automation — time-boxed sprints with phases, templates, voting, and retrospectives. */
 export {
   SPRINT_TEMPLATES as AUTO_SPRINT_TEMPLATES,
@@ -5940,7 +6117,7 @@ export {
   generateCoachingPrompts,
   generateLearningPath as generateMaturityLearningPath,
   mapGapsToFeatures,
-  completeStep,
+  completeStep as completeLearningPathStep,
   LearningPathStepSchema as MaturityLearningPathStepSchema,
   LearningPathSchema as MaturityLearningPathSchema,
   CoachingPromptSchema,
@@ -7002,6 +7179,43 @@ export {
   POSTGRES_MIGRATION,
 } from "./saas/index.js";
 
+/** Google SSO — OAuth flow for Google authentication. */
+export {
+  getGoogleAuthorizationUrl,
+  validateGoogleState,
+  exchangeGoogleCode,
+  getAuthenticatedGoogleUser,
+  clearGoogleAuthData,
+  GoogleUserSchema,
+  GoogleOAuthStateSchema,
+} from "./saas/google-oauth.js";
+export type { GoogleUser, GoogleOAuthState, GoogleOAuthConfig } from "./saas/google-oauth.js";
+
+/** SaaS Rate Limiting — per-tenant plan-aware API throttling. */
+export {
+  RateLimitConfigSchema,
+  RateLimitResultSchema,
+  RateLimitStatusSchema,
+  DEFAULT_RATE_LIMITS,
+  checkRateLimit,
+  getRateLimitStatus,
+  clearRateLimits,
+} from "./saas/rate-limiter.js";
+export type { RateLimitConfig, RateLimitResult, RateLimitStatus } from "./saas/rate-limiter.js";
+
+/** SaaS Onboarding — guided setup and activation workflow. */
+export {
+  OnboardingStepSchema,
+  OnboardingProgressSchema,
+  ONBOARDING_STEPS,
+  startOnboarding,
+  completeStep as completeOnboardingStep,
+  getOnboardingProgress,
+  skipOnboarding,
+  clearOnboardingData,
+} from "./saas/onboarding.js";
+export type { OnboardingStep, OnboardingProgress } from "./saas/onboarding.js";
+
 /** Knowledge Graph NL Query — natural language queries, suggestions, and visualization data. */
 export {
   type NLQueryResult,
@@ -7042,6 +7256,32 @@ export {
   listWorkshops,
 } from "./canvas/index.js";
 
+/** Canvas Priority Matrix — impact/effort scoring, quadrant classification, and exports. */
+export {
+  QuadrantSchema,
+  PriorityMatrixNodeSchema,
+  PriorityMatrixSchema,
+  classifyQuadrant,
+  buildPriorityMatrix,
+  layoutPriorityMatrix,
+  priorityMatrixToSvg,
+  priorityMatrixToMarkdown,
+} from "./canvas/index.js";
+export type { Quadrant, PriorityMatrixNode, PriorityMatrix } from "./canvas/index.js";
+
+/** Canvas Auto Layout — grid, radial, force-directed, and hierarchical arrangements. */
+export {
+  applyLayout,
+  forceDirectedLayout,
+  gridLayout,
+  radialLayout,
+  hierarchicalLayout,
+} from "./canvas/index.js";
+export type { LayoutAlgorithm } from "./canvas/index.js";
+
+/** Canvas Export Formats — JSON, markdown, and image data URI outputs. */
+export { canvasToJson, canvasToPng, canvasToMarkdown } from "./canvas/index.js";
+
 /** Metrics Dashboard — funnel tracking, angle effectiveness, ROI calculator, team leaderboards. */
 export {
   type FunnelStage,
@@ -7076,8 +7316,8 @@ export {
   type BatchProgress,
   type BatchResult,
   type BatchConfig,
-  type TranscriptionResult,
-  type TranscriptionSegment,
+  type BatchTranscriptionResult,
+  type BatchTranscriptionSegment,
   processBatch,
   createVoiceAttachment,
   createDocumentAttachment,
@@ -7208,6 +7448,40 @@ export type {
   ConsensusSession,
 } from "./realtime/consensus.js";
 
+/** Real-time collaboration enhancements — idea-list OT, workshop templates, and session summaries. */
+export {
+  OperationTypeSchema,
+  OperationSchema as RealtimeIdeaOperationSchema,
+  TransformResultSchema,
+  transformOperation,
+  applyOperation as applyRealtimeIdeaOperation,
+  resolveConflicts as resolveRealtimeIdeaConflicts,
+  createOperationLog as createRealtimeIdeaOperationLog,
+  clearOperationLogs as clearRealtimeIdeaOperationLogs,
+} from "./realtime/operational-transform.js";
+export type {
+  OperationType,
+  Operation as RealtimeIdeaOperation,
+  TransformResult,
+  OperationLog,
+} from "./realtime/operational-transform.js";
+
+export {
+  WorkshopTemplateSchema,
+  WORKSHOP_TEMPLATES,
+  getTemplate as getWorkshopTemplate,
+  listTemplates as listWorkshopTemplates,
+  getTemplatesByCategory as getWorkshopTemplatesByCategory,
+} from "./realtime/workshop-templates.js";
+export type { WorkshopTemplate } from "./realtime/workshop-templates.js";
+
+export {
+  SessionSummarySchema,
+  generateSessionSummary,
+  sessionSummaryToMarkdown,
+} from "./realtime/session-summary.js";
+export type { SessionSummary } from "./realtime/session-summary.js";
+
 /** Multi-modal — upload processing and visual output generation. */
 export {
   UploadedFileSchema,
@@ -7320,7 +7594,7 @@ export {
 export type {
   QuickstartGuide,
   PortalConfig,
-  OnboardingStep,
+  OnboardingStep as PortalOnboardingStep,
 } from "./api-gateway/developer-portal.js";
 export type {
   Subscription,
@@ -7341,6 +7615,8 @@ export { SlackIntegration } from "./integrations/slack.js";
 export { ConfluenceIntegration } from "./integrations/confluence.js";
 /** Notion integration — syncs innovation data with Notion databases and pages. */
 export { NotionIntegration } from "./integrations/notion.js";
+/** GitHub Issues integration — syncs innovation ideas with GitHub Issues and backlog imports. */
+export { GitHubIssuesIntegration } from "./integrations/github-issues.js";
 
 /** Knowledge Graph — entity extraction and graph visualization. */
 export { EntityExtractor } from "./knowledge-graph/entity-extractor.js";
@@ -7814,6 +8090,28 @@ export type {
   InnovationEventType as InnovationMemoryEventType,
   InnovationEvent as InnovationMemoryEvent,
   DomainProfile as InnovationMemoryDomainProfile,
+} from "./innovation-memory/index.js";
+export {
+  findSerendipitousConnections,
+  generateWeeklyDigest as generateInnovationDigest,
+  buildInnovationProfile,
+  digestToMarkdown as innovationDigestToMarkdown,
+  profileToMarkdown as innovationProfileToMarkdown,
+  computeAngleWeights,
+  selectTopAngles,
+  autoWeightAngles,
+  SerendipitousConnectionSchema as InnovationSerendipitousConnectionSchema,
+  WeeklyDigestSchema as InnovationWeeklyDigestSchema,
+  InnovationProfileSchema,
+  AngleWeightSchema,
+  WeightingContextSchema,
+} from "./innovation-memory/index.js";
+export type {
+  SerendipitousConnection as InnovationSerendipitousConnection,
+  WeeklyDigest as InnovationWeeklyDigest,
+  InnovationProfile as InnovationMemoryProfile,
+  AngleWeight,
+  WeightingContext,
 } from "./innovation-memory/index.js";
 
 // ---- Knowledge Lake ----
