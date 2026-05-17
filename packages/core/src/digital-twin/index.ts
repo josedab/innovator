@@ -328,3 +328,29 @@ export type {
   MonteCarloComparison,
   DistributionStats,
 } from "./monte-carlo.js";
+
+/** Digital twin entities — scenario modeling, relationships, and lightweight simulations. */
+export {
+  TwinEntityTypeSchema,
+  TwinEntitySchema,
+  ScenarioSchema,
+  ScenarioComparisonSchema,
+  createTwinEntity,
+  getTwinEntity,
+  listTwinEntities,
+  addRelationship as addTwinRelationship,
+  createScenario,
+  getScenario,
+  runMonteCarloSimulation as runTwinScenarioMonteCarloSimulation,
+  compareScenarios,
+  generateExecutivePacket,
+  deleteTwinEntity,
+  deleteScenario,
+  clearTwinData,
+} from "./twin-entity.js";
+export type {
+  TwinEntityType,
+  TwinEntity,
+  Scenario,
+  ScenarioComparison,
+} from "./twin-entity.js";

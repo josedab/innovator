@@ -4913,6 +4913,32 @@ export type {
   DistributionStats,
 } from "./digital-twin/index.js";
 
+/** Digital Twin Entities — scenario modeling, relationships, and executive packets. */
+export {
+  TwinEntityTypeSchema as DigitalTwinEntityTypeSchema,
+  TwinEntitySchema as DigitalTwinEntitySchema,
+  ScenarioSchema as DigitalTwinScenarioSchema,
+  ScenarioComparisonSchema as DigitalTwinScenarioComparisonSchema,
+  createTwinEntity as createDigitalTwinEntity,
+  getTwinEntity as getDigitalTwinEntity,
+  listTwinEntities as listDigitalTwinEntities,
+  addTwinRelationship as addDigitalTwinRelationship,
+  createScenario as createDigitalTwinScenario,
+  getScenario as getDigitalTwinScenario,
+  runTwinScenarioMonteCarloSimulation,
+  compareScenarios as compareDigitalTwinScenarios,
+  generateExecutivePacket as generateDigitalTwinExecutivePacket,
+  deleteTwinEntity as deleteDigitalTwinEntity,
+  deleteScenario as deleteDigitalTwinScenario,
+  clearTwinData,
+} from "./digital-twin/index.js";
+export type {
+  TwinEntityType as DigitalTwinEntityType,
+  TwinEntity as DigitalTwinEntity,
+  Scenario as DigitalTwinScenario,
+  ScenarioComparison as DigitalTwinScenarioComparison,
+} from "./digital-twin/index.js";
+
 /** Idea-to-Content Pipeline — transform ideas into blog posts, threads, articles, pitch decks, memos, press releases. */
 export {
   CONTENT_FORMATS,
