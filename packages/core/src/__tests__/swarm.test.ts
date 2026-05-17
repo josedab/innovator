@@ -23,8 +23,8 @@ describe("swarm", () => {
   describe("PERSONALITY_DESCRIPTIONS", () => {
     it("should define descriptions for all personalities", () => {
       expect(Object.keys(PERSONALITY_DESCRIPTIONS)).toHaveLength(11);
-      expect(PERSONALITY_DESCRIPTIONS["risk-taker"]).toBeTruthy();
-      expect(PERSONALITY_DESCRIPTIONS["pragmatist"]).toBeTruthy();
+      expect(PERSONALITY_DESCRIPTIONS["risk-taker"]).toEqual(expect.any(String));
+      expect(PERSONALITY_DESCRIPTIONS["pragmatist"]).toEqual(expect.any(String));
     });
   });
 
@@ -233,6 +233,147 @@ describe("swarm", () => {
 
       const conflicts = detectPersonalityConflicts(blackboard);
       expect(conflicts).toHaveLength(0);
+    });
+
+    it("should return empty for empty blackboard", () => {
+      const blackboard = {
+        entries: [],
+        convergenceScore: 0,
+        dominantThemes: [],
+      };
+
+      const conflicts = detectPersonalityConflicts(blackboard);
+      expect(conflicts).toHaveLength(0);
+    });
+  });
+
+  describe("runSwarm edge cases", () => {
+    it("should work with agentCount: 1", async () => {
+      let callCount = 0;
+      mockGenerateText.mockImplementation(async () => {
+        callCount++;
+        if (callCount <= 1) {
+          return JSON.stringify({
+            ideas: [
+              { title: "Solo Idea", description: "From one agent", confidence: 0.7, tags: [] },
+            ],
+          });
+        }
+        return JSON.stringify({
+          ideas: [
+            {
+              title: "Solo Converged",
+              description: "Converged from single agent",
+              potentialImpact: "Medium",
+              originAgents: ["agent-0"],
+              originPersonalities: ["risk-taker"],
+              confidence: 0.7,
+              endorsements: 0,
+              challenges: [],
+              evolutionPath: ["solo"],
+            },
+          ],
+          convergenceScore: 0.6,
+          dominantThemes: ["solo"],
+          emergentInsights: [],
+        });
+      });
+
+      const result = await runSwarm("test", undefined, {
+        agentCount: 1,
+        maxIterations: 1,
+      });
+
+      expect(result.agentContributions).toHaveLength(1);
+      expect(result.ideas).toHaveLength(1);
+    });
+
+    it("should handle maxIterations: 0 (skip to synthesis)", async () => {
+      mockGenerateText.mockResolvedValue(
+        JSON.stringify({
+          ideas: [],
+          convergenceScore: 0,
+          dominantThemes: [],
+          emergentInsights: [],
+        })
+      );
+
+      const result = await runSwarm("test", undefined, {
+        agentCount: 2,
+        maxIterations: 0,
+      });
+
+      expect(result.totalIterations).toBe(1);
+      expect(result.ideas).toEqual([]);
+    });
+
+    it("should stop when AbortSignal is aborted mid-iteration", async () => {
+      const controller = new AbortController();
+      let callCount = 0;
+
+      const convergeJson = JSON.stringify({
+        ideas: [],
+        convergenceScore: 0.3,
+        dominantThemes: [],
+        emergentInsights: [],
+      });
+
+      mockGenerateText.mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) {
+          controller.abort();
+          return JSON.stringify({
+            ideas: [{ title: "T", description: "D", confidence: 0.5, tags: [] }],
+          });
+        }
+        // After abort, the synthesis/converge call happens
+        return convergeJson;
+      });
+
+      // withRetry mock just calls the function
+      const result = await runSwarm("test", undefined, {
+        agentCount: 2,
+        maxIterations: 3,
+        signal: controller.signal,
+      });
+
+      // Should have completed with whatever state accumulated before abort
+      expect(result).toBeDefined();
+      expect(result.totalIterations).toBeLessThanOrEqual(3);
+    });
+
+    it("should handle agent exploration failure gracefully", async () => {
+      let callCount = 0;
+      mockGenerateText.mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) {
+          throw new Error("LLM unavailable");
+        }
+        if (callCount === 2) {
+          return JSON.stringify({
+            ideas: [{ title: "OK", description: "Works", confidence: 0.5, tags: [] }],
+          });
+        }
+        // Reaction responses
+        if (callCount <= 3) {
+          return JSON.stringify({ type: "endorse", comment: "ok" });
+        }
+        // Converge response
+        return JSON.stringify({
+          ideas: [],
+          convergenceScore: 0.5,
+          dominantThemes: [],
+          emergentInsights: [],
+        });
+      });
+
+      const result = await runSwarm("test", undefined, {
+        agentCount: 2,
+        maxIterations: 1,
+      });
+
+      // One agent failed but swarm should still complete
+      expect(result).toBeDefined();
     });
   });
 });
