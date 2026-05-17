@@ -2902,6 +2902,22 @@ export type {
   BroadcastToRoom,
 } from "./realtime/index.js";
 
+/** Workshop facilitation — room-based real-time workshops with phases, artifacts, and summary generation. */
+export {
+  WorkshopRoomSchema,
+  createWorkshopRoom,
+  getWorkshopRoom,
+  joinWorkshopRoom,
+  leaveWorkshopRoom,
+  advanceWorkshopRoomPhase,
+  addWorkshopArtifact,
+  castRealtimeWorkshopVote,
+  generateRealtimeWorkshopSummary,
+  listWorkshopRooms,
+  clearWorkshopRooms,
+} from "./realtime/index.js";
+export type { WorkshopRoom } from "./realtime/index.js";
+
 /** War Room — multi-user innovation sessions with roles, canvas, OT, and voting. */
 export {
   createWarRoom,

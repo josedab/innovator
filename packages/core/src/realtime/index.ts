@@ -373,6 +373,21 @@ export function resetRealtimeManager(): void {
   globalRoomManager = undefined;
 }
 
+export {
+  WorkshopRoomSchema,
+  createWorkshopRoom,
+  getWorkshopRoom,
+  joinWorkshopRoom,
+  leaveWorkshopRoom,
+  advancePhase as advanceWorkshopRoomPhase,
+  addWorkshopArtifact,
+  castWorkshopVote as castRealtimeWorkshopVote,
+  generateWorkshopSummary as generateRealtimeWorkshopSummary,
+  listWorkshopRooms,
+  clearWorkshopRooms,
+} from "./workshop-facilitation.js";
+export type { WorkshopRoom } from "./workshop-facilitation.js";
+
 export * from "./operational-transform.js";
 export * from "./workshop-templates.js";
 export * from "./session-summary.js";
