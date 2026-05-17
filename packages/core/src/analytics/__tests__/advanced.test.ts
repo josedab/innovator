@@ -112,9 +112,7 @@ describe("advanced analytics", () => {
     });
 
     it("handles single data point time series", () => {
-      mocks.readEvents.mockReturnValue([
-        createEvent("pipeline_started", "2025-01-01T10:00:00Z"),
-      ]);
+      mocks.readEvents.mockReturnValue([createEvent("pipeline_started", "2025-01-01T10:00:00Z")]);
 
       const result = getTimeSeries("sessions");
       expect(result.series).toHaveLength(1);
@@ -132,7 +130,7 @@ describe("advanced analytics", () => {
       mocks.readEvents.mockReturnValue([
         createEvent("pipeline_started", "2025-01-06T10:00:00Z"), // Monday
         createEvent("pipeline_started", "2025-01-06T10:30:00Z"), // Monday same hour
-        createEvent("angle_generated", "2025-01-07T14:00:00Z"),  // Tuesday
+        createEvent("angle_generated", "2025-01-07T14:00:00Z"), // Tuesday
       ]);
 
       const result = getActivityHeatmap("hour-day");
@@ -144,6 +142,50 @@ describe("advanced analytics", () => {
         expect(cell).toHaveProperty("value");
         expect(cell.value).toBeGreaterThan(0);
       }
+    });
+
+    it("generates angle-topic cells from angle_generated events", () => {
+      mocks.readEvents.mockReturnValue([
+        createEvent("angle_generated", "2025-01-06T10:00:00Z", {
+          angleId: "scamper",
+          subject: "sustainable energy ideas",
+        }),
+        createEvent("angle_generated", "2025-01-06T11:00:00Z", {
+          angleId: "scamper",
+          subject: "sustainable packaging",
+        }),
+        createEvent("angle_generated", "2025-01-07T10:00:00Z", {
+          angleId: "first-principles",
+          subject: "machine learning optimization",
+        }),
+      ]);
+
+      const result = getActivityHeatmap("angle-topic");
+      expect(result.length).toBeGreaterThan(0);
+      const scamperCells = result.filter((c) => c.x === "scamper");
+      expect(scamperCells.length).toBeGreaterThan(0);
+    });
+
+    it("generates model-angle cells from events", () => {
+      mocks.readEvents.mockReturnValue([
+        createEvent("angle_generated", "2025-01-06T10:00:00Z", {
+          model: "gpt-4o",
+          angleId: "scamper",
+        }),
+        createEvent("angle_generated", "2025-01-06T11:00:00Z", {
+          model: "gpt-4o",
+          angleId: "scamper",
+        }),
+        createEvent("pipeline_started", "2025-01-07T10:00:00Z", {
+          model: "claude",
+          angleId: "inversion",
+        }),
+      ]);
+
+      const result = getActivityHeatmap("model-angle");
+      expect(result.length).toBeGreaterThan(0);
+      const gpt4oCells = result.filter((c) => c.x === "gpt-4o");
+      expect(gpt4oCells.length).toBeGreaterThan(0);
     });
   });
 
@@ -254,9 +296,7 @@ describe("advanced analytics", () => {
 
   describe("date range spanning no events", () => {
     it("returns empty results for date range with no matching events", () => {
-      mocks.readEvents.mockReturnValue([
-        createEvent("pipeline_started", "2025-01-01T10:00:00Z"),
-      ]);
+      mocks.readEvents.mockReturnValue([createEvent("pipeline_started", "2025-01-01T10:00:00Z")]);
 
       const result = getTimeSeries("sessions", {
         startDate: "2026-01-01",
@@ -264,6 +304,80 @@ describe("advanced analytics", () => {
       });
       expect(result.series).toEqual([]);
       expect(result.average).toBe(0);
+    });
+  });
+
+  describe("division-by-zero edge cases", () => {
+    it("quality leaderboard returns 0 when no scored events exist for a user", () => {
+      mocks.readEvents.mockReturnValue([
+        createEvent("pipeline_started", "2025-01-01T10:00:00Z", { userId: "alice" }),
+      ]);
+
+      const result = getLeaderboard("quality");
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0].score).toBe(0);
+    });
+
+    it("time series percentChange is 0 when firstHalf average is 0", () => {
+      mocks.readEvents.mockReturnValue([
+        createEvent("angle_generated", "2025-01-01T10:00:00Z", { ideaCount: 0 }),
+        createEvent("angle_generated", "2025-01-02T10:00:00Z", { ideaCount: 0 }),
+        createEvent("angle_generated", "2025-01-03T10:00:00Z", { ideaCount: 0 }),
+        createEvent("angle_generated", "2025-01-04T10:00:00Z", { ideaCount: 0 }),
+        createEvent("angle_generated", "2025-01-05T10:00:00Z", { ideaCount: 5 }),
+      ]);
+
+      const result = getTimeSeries("ideas");
+      expect(Number.isFinite(result.percentChange)).toBe(true);
+    });
+
+    it("time series with high variance detects volatile trend", () => {
+      mocks.readEvents.mockReturnValue([
+        createEvent("pipeline_started", "2025-01-01T10:00:00Z"),
+        createEvent("pipeline_started", "2025-01-01T11:00:00Z"),
+        createEvent("pipeline_started", "2025-01-01T12:00:00Z"),
+        createEvent("pipeline_started", "2025-01-01T13:00:00Z"),
+        createEvent("pipeline_started", "2025-01-01T14:00:00Z"),
+        createEvent("pipeline_started", "2025-01-02T10:00:00Z"),
+        createEvent("pipeline_started", "2025-01-03T10:00:00Z"),
+        createEvent("pipeline_started", "2025-01-04T10:00:00Z"),
+      ]);
+
+      const result = getTimeSeries("sessions");
+      expect(["stable", "volatile", "increasing", "decreasing"]).toContain(result.trend);
+    });
+  });
+
+  describe("getTimeSeries granularity", () => {
+    it("buckets by hour", () => {
+      mocks.readEvents.mockReturnValue([
+        createEvent("pipeline_started", "2025-01-01T10:00:00Z"),
+        createEvent("pipeline_started", "2025-01-01T10:30:00Z"),
+        createEvent("pipeline_started", "2025-01-01T11:00:00Z"),
+      ]);
+
+      const result = getTimeSeries("sessions", { granularity: "hour" });
+      expect(result.series.length).toBe(2);
+    });
+
+    it("buckets by month", () => {
+      mocks.readEvents.mockReturnValue([
+        createEvent("pipeline_started", "2025-01-15T10:00:00Z"),
+        createEvent("pipeline_started", "2025-02-15T10:00:00Z"),
+      ]);
+
+      const result = getTimeSeries("sessions", { granularity: "month" });
+      expect(result.series.length).toBe(2);
+    });
+
+    it("buckets by week", () => {
+      mocks.readEvents.mockReturnValue([
+        createEvent("pipeline_started", "2025-01-06T10:00:00Z"),
+        createEvent("pipeline_started", "2025-01-13T10:00:00Z"),
+      ]);
+
+      const result = getTimeSeries("sessions", { granularity: "week" });
+      expect(result.series.length).toBe(2);
     });
   });
 });
