@@ -38,7 +38,7 @@ class MemorySessionStorage implements SessionStorage {
   async updateSession(id: string, updates: { tags?: string[]; notes?: string }): Promise<boolean> {
     const session = this.store.get(id);
     if (!session) return false;
-    if (updates.tags !== undefined) session.tags = updates.tags;
+    if (updates.tags !== undefined) session.tags = [...updates.tags];
     if (updates.notes !== undefined) session.notes = updates.notes;
     session.updatedAt = new Date().toISOString();
     return true;
@@ -152,7 +152,7 @@ class MemoryApiGatewayStorage implements ApiGatewayStorage {
   async updateApiKey(id: string, updates: Partial<ApiKey>): Promise<boolean> {
     const key = this.keys.get(id);
     if (!key) return false;
-    Object.assign(key, updates);
+    Object.assign(key, structuredClone(updates));
     return true;
   }
 
