@@ -3699,6 +3699,36 @@ export type {
   PublishedPattern,
 } from "./federation/index.js";
 
+/** Federated Privacy Exchange — privacy budgets, bundles, playbooks, and audits. */
+export {
+  ExchangePrivacyBudgetSchema,
+  PatternBundleSchema as FederationPatternBundleSchema,
+  FederationPlaybookSchema,
+  FederationAuditEntrySchema,
+  initializeExchangePrivacyBudget,
+  getExchangePrivacyBudget,
+  spendExchangePrivacyBudget,
+  hasExchangePrivacyBudget,
+  resetExchangePrivacyBudget,
+  extractAnonymizedBundle as extractFederationAnonymizedBundle,
+  getPatternBundle as getFederationPatternBundle,
+  listPatternBundles as listFederationPatternBundles,
+  createFederationPlaybook,
+  licenseFederationPlaybook,
+  getFederationPlaybook,
+  listFederationPlaybooks,
+  detectFederationExchangeAnomalies,
+  logFederationAuditEntry,
+  getFederationAuditLog,
+  clearFederationExchangeData,
+} from "./federation/index.js";
+export type {
+  ExchangePrivacyBudget,
+  PatternBundle as FederationPatternBundle,
+  FederationPlaybook,
+  FederationAuditEntry,
+} from "./federation/index.js";
+
 /** Innovation Sprints with Facilitation Engine — time-boxed sessions with automated facilitation. */
 export {
   SPRINT_TEMPLATES,

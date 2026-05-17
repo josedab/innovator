@@ -681,3 +681,33 @@ export type {
   GenomeAnalytics,
   PublishedPattern,
 } from "./genome.js";
+
+/** Privacy exchange — budget tracking, anonymized bundles, playbooks, and audit logs. */
+export {
+  PrivacyBudgetSchema as ExchangePrivacyBudgetSchema,
+  PatternBundleSchema,
+  PlaybookSchema as FederationPlaybookSchema,
+  AuditEntrySchema as FederationAuditEntrySchema,
+  initializePrivacyBudget as initializeExchangePrivacyBudget,
+  getPrivacyBudget as getExchangePrivacyBudget,
+  spendPrivacyBudget as spendExchangePrivacyBudget,
+  hasPrivacyBudget as hasExchangePrivacyBudget,
+  resetPrivacyBudget as resetExchangePrivacyBudget,
+  extractAnonymizedBundle,
+  getPatternBundle,
+  listPatternBundles,
+  createPlaybook as createFederationPlaybook,
+  licensePlaybook as licenseFederationPlaybook,
+  getPlaybook as getFederationPlaybook,
+  listPlaybooks as listFederationPlaybooks,
+  detectAnomalies as detectFederationExchangeAnomalies,
+  logAuditEntry as logFederationAuditEntry,
+  getAuditLog as getFederationAuditLog,
+  clearFederationExchangeData,
+} from "./privacy-exchange.js";
+export type {
+  PrivacyBudget as ExchangePrivacyBudget,
+  PatternBundle,
+  Playbook as FederationPlaybook,
+  AuditEntry as FederationAuditEntry,
+} from "./privacy-exchange.js";
