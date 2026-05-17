@@ -1395,3 +1395,20 @@ export {
   clearCommunityData,
 } from "./community.js";
 export type { PackReview, PackSearchResult } from "./community.js";
+
+// ---- Creator Analytics ----
+
+export {
+  CreatorStatsSchema,
+  PackVersionSchema,
+  PackSubmissionSchema,
+  submitPack,
+  reviewSubmission,
+  getCreatorStats,
+  updateCreatorStats,
+  addPackVersion,
+  getPackVersions,
+  listSubmissions,
+  clearCreatorData,
+} from "./creator-analytics.js";
+export type { CreatorStats, PackVersion, PackSubmission } from "./creator-analytics.js";

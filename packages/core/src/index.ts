@@ -3345,6 +3345,26 @@ export {
 } from "./marketplace/index.js";
 export type { PackReview, PackSearchResult } from "./marketplace/index.js";
 
+/** Marketplace Creator Analytics — creator stats, moderation submissions, and pack versioning. */
+export {
+  CreatorStatsSchema,
+  PackVersionSchema as CreatorPackVersionSchema,
+  PackSubmissionSchema,
+  submitPack,
+  reviewSubmission,
+  getCreatorStats,
+  updateCreatorStats,
+  addPackVersion,
+  getPackVersions,
+  listSubmissions as listPackSubmissions,
+  clearCreatorData,
+} from "./marketplace/index.js";
+export type {
+  CreatorStats as MarketplaceCreatorStats,
+  PackVersion as CreatorPackVersion,
+  PackSubmission as MarketplacePackSubmission,
+} from "./marketplace/index.js";
+
 /** Innovation Embeddings & Semantic Search — TF-IDF vector search, similarity clustering, and cross-investigation discovery. */
 export {
   indexDocument,
