@@ -507,3 +507,243 @@ export default function InnovateCommand() {
   );
 }`;
 }
+
+// ---- Integration Guide Data ----
+
+export interface IntegrationGuide {
+  platform: string;
+  title: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  steps: string[];
+  codeSnippet: string;
+  estimatedMinutes: number;
+}
+
+const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+const VALID_THEMES = new Set(["light", "dark", "auto"]);
+const VALID_POSITIONS = new Set(["inline", "floating", "sidebar", "modal"]);
+const VALID_MICRO_APP_TYPES = new Set([
+  "widget",
+  "slack-app",
+  "notion-block",
+  "browser-extension",
+  "raycast-extension",
+  "custom",
+]);
+
+export function getIntegrationGuides(config: MicroAppConfig): IntegrationGuide[] {
+  const embedCode = generateEmbedCode({
+    apiEndpoint: config.apiEndpoint,
+    apiKey: config.apiKey,
+    angles: config.angles,
+    theme: config.theme,
+    title: config.branding.title,
+    maxHeight: config.layout.maxHeight,
+  });
+
+  const htmlSnippet = embedCode;
+  const reactSnippet = `import { useMemo } from "react";
+
+export function InnovatorWidget() {
+  const widgetMarkup = useMemo(
+    () => ({
+      __html: ${JSON.stringify(embedCode)},
+    }),
+    []
+  );
+
+  return <div dangerouslySetInnerHTML={widgetMarkup} />;
+}`;
+  const vueSnippet = `<template>
+  <div v-html="widgetMarkup" />
+</template>
+
+<script setup lang="ts">
+const widgetMarkup = ${JSON.stringify(embedCode)};
+</script>`;
+  const angularSnippet = `import { Component } from "@angular/core";
+
+@Component({
+  selector: "app-innovator-widget",
+  template: '<div [innerHTML]="widgetMarkup"></div>',
+})
+export class InnovatorWidgetComponent {
+  widgetMarkup = ${JSON.stringify(embedCode)};
+}`;
+  const wordpressSnippet = `<?php
+function innovator_widget_shortcode() {
+    return '${embedCode.replace(/'/g, "\\'")}';
+}
+add_shortcode('innovator_widget', 'innovator_widget_shortcode');`;
+  const shopifySnippet = `<script src="https://unpkg.com/@innovator/widget@latest/dist/innovator-widget.js"></script>
+<innovator-widget
+  api-endpoint="${config.apiEndpoint}"
+  ${config.apiKey ? `api-key="${config.apiKey}"` : ""}
+  theme="${config.theme}"
+  title="${config.branding.title}"
+></innovator-widget>`;
+
+  return [
+    {
+      platform: "html",
+      title: "HTML / Script tag",
+      difficulty: "beginner",
+      steps: [
+        "Open the page where you want the widget to appear.",
+        "Paste the script tag and <innovator-widget> element into the page body.",
+        "Publish the page and verify the widget can reach your API endpoint.",
+      ],
+      codeSnippet: htmlSnippet,
+      estimatedMinutes: 5,
+    },
+    {
+      platform: "react",
+      title: "React",
+      difficulty: "intermediate",
+      steps: [
+        "Create a wrapper component for the embed markup.",
+        "Render the widget in a client-side component or route.",
+        "Confirm the API endpoint is reachable from the browser environment.",
+      ],
+      codeSnippet: reactSnippet,
+      estimatedMinutes: 10,
+    },
+    {
+      platform: "vue",
+      title: "Vue",
+      difficulty: "intermediate",
+      steps: [
+        "Add a component that exposes the widget markup.",
+        "Render the HTML with v-html in a trusted context.",
+        "Mount the component on the page where you want the widget experience.",
+      ],
+      codeSnippet: vueSnippet,
+      estimatedMinutes: 10,
+    },
+    {
+      platform: "angular",
+      title: "Angular",
+      difficulty: "intermediate",
+      steps: [
+        "Create an Angular component dedicated to the widget.",
+        "Bind the generated markup into the component template.",
+        "Add the component to the module or standalone route where it should appear.",
+      ],
+      codeSnippet: angularSnippet,
+      estimatedMinutes: 15,
+    },
+    {
+      platform: "wordpress",
+      title: "WordPress",
+      difficulty: "beginner",
+      steps: [
+        "Add the shortcode helper to your theme or a lightweight plugin.",
+        "Insert the shortcode into the target page or post.",
+        "Preview the page and verify the widget loads correctly.",
+      ],
+      codeSnippet: wordpressSnippet,
+      estimatedMinutes: 12,
+    },
+    {
+      platform: "shopify",
+      title: "Shopify",
+      difficulty: "advanced",
+      steps: [
+        "Open the theme editor and locate the target Liquid section.",
+        "Paste the widget script and custom element into the section template.",
+        "Save the theme and validate the widget inside the storefront.",
+      ],
+      codeSnippet: shopifySnippet,
+      estimatedMinutes: 20,
+    },
+  ];
+}
+
+export function validateWidgetConfig(
+  config: Omit<Partial<MicroAppConfig>, "branding" | "layout" | "features"> & {
+    branding?: Partial<MicroAppConfig["branding"]>;
+    layout?: Partial<MicroAppConfig["layout"]>;
+    features?: Partial<MicroAppConfig["features"]>;
+  }
+): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+
+  if (!config.apiEndpoint) {
+    errors.push("apiEndpoint is required");
+  } else {
+    try {
+      new URL(config.apiEndpoint);
+    } catch {
+      errors.push("apiEndpoint must be a valid URL");
+    }
+  }
+
+  if (config.type && !VALID_MICRO_APP_TYPES.has(config.type)) {
+    errors.push("type must be a supported micro-app type");
+  }
+
+  if (config.theme && !VALID_THEMES.has(config.theme)) {
+    errors.push("theme must be one of: light, dark, auto");
+  }
+
+  if (config.apiKey && config.apiKey.length > 200) {
+    errors.push("apiKey must be 200 characters or fewer");
+  }
+
+  if (config.angles) {
+    if (config.angles.length > 20) {
+      errors.push("angles must contain 20 entries or fewer");
+    }
+    if (config.angles.some((angle) => angle.trim().length === 0 || angle.length > 100)) {
+      errors.push("angles must be non-empty strings up to 100 characters");
+    }
+  }
+
+  if (config.branding) {
+    if (config.branding.title && config.branding.title.length > 200) {
+      errors.push("branding.title must be 200 characters or fewer");
+    }
+    if (config.branding.logoUrl) {
+      try {
+        new URL(config.branding.logoUrl);
+      } catch {
+        errors.push("branding.logoUrl must be a valid URL");
+      }
+    }
+    if (config.branding.primaryColor && !HEX_COLOR_REGEX.test(config.branding.primaryColor)) {
+      errors.push("branding.primaryColor must be a valid hex color");
+    }
+    if (
+      config.branding.borderRadius !== undefined &&
+      (!Number.isFinite(config.branding.borderRadius) || config.branding.borderRadius < 0)
+    ) {
+      errors.push("branding.borderRadius must be a non-negative number");
+    }
+  }
+
+  if (config.layout) {
+    if (
+      config.layout.maxWidth !== undefined &&
+      (!Number.isFinite(config.layout.maxWidth) || config.layout.maxWidth <= 0)
+    ) {
+      errors.push("layout.maxWidth must be a positive number");
+    }
+    if (
+      config.layout.maxHeight !== undefined &&
+      (!Number.isFinite(config.layout.maxHeight) || config.layout.maxHeight <= 0)
+    ) {
+      errors.push("layout.maxHeight must be a positive number");
+    }
+    if (config.layout.position && !VALID_POSITIONS.has(config.layout.position)) {
+      errors.push("layout.position must be one of: inline, floating, sidebar, modal");
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
