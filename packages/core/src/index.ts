@@ -7394,6 +7394,31 @@ export type { LayoutAlgorithm } from "./canvas/index.js";
 /** Canvas Export Formats — JSON, markdown, and image data URI outputs. */
 export { canvasToJson, canvasToPng, canvasToMarkdown } from "./canvas/index.js";
 
+/** Venture Studio — compliance-native risk classification, controls, and dossiers. */
+export {
+  RiskCategorySchema,
+  JurisdictionSchema,
+  RiskClassificationSchema,
+  ControlPlanSchema,
+  ComplianceDossierSchema,
+  classifyRisk,
+  generateControlPlan,
+  simulateJurisdictionRisk,
+  generateDossier,
+  exportDossier,
+  getDossier,
+  listDossiers,
+  clearVentureStudioData,
+} from "./venture-studio/index.js";
+export type {
+  RiskCategory,
+  Jurisdiction,
+  RiskClassification,
+  ControlPlan,
+  ComplianceDossier,
+  GenerateDossierOptions,
+} from "./venture-studio/index.js";
+
 /** Metrics Dashboard — funnel tracking, angle effectiveness, ROI calculator, team leaderboards. */
 export {
   type FunnelStage,
