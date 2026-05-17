@@ -20,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`withRetry()` input validation** — Now validates that `maxAttempts ≥ 1`, `initialDelayMs ≥ 0`, `backoffMultiplier ≥ 1`, and `maxDelayMs ≥ 0` are finite numbers; throws immediately on invalid options
 - **`withRetry()` error type** — Now throws `RetryExhaustedError` (instead of re-throwing the last error) when all attempts are exhausted, providing structured access to `cause` and `attempts`
 
+### Documentation
+
+- **API Reference** — Added comprehensive Error Handling section with error hierarchy diagram, all error codes, and properties
+- **API Reference** — Added `withTimeout()` documentation for standardized LLM timeout handling
+- **API Reference** — Expanded Scoring section with priority scoring, quadrant analysis, summary stats, and configurable scoring engine
+- **API Reference** — Expanded Export section with all 10 built-in exporters (HTML, CSV, PowerPoint, Google Slides, etc.) and integration adapters
+- **API Reference** — Added Validation section with built-in validators, custom validator registry, and comprehensive validation
+- **API Reference** — Added Futures Market section documenting LMSR prediction market engine with trading and analytics
+- **API Reference** — Expanded Zod Schemas table with 14 new schema entries (scoring, validation, futures market)
+
 ## [0.3.0] — 2026-05-14
 
 ### Added

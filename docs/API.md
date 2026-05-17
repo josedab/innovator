@@ -28,9 +28,13 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
   - [Built-in Providers](#built-in-providers)
   - [Provider Registry](#provider-registry)
   - [Configuration](#provider-configuration)
+- [Error Handling](#error-handling)
+  - [Error Hierarchy](#error-hierarchy)
+  - [`isInnovatorError()`](#isinnovatorerror)
 - [Prompt Utilities](#prompt-utilities)
   - [`withRetry()`](#withretry)
   - [`RetryExhaustedError`](#retryexhaustederror)
+  - [`withTimeout()`](#withtimeout)
 - [Plugin System](#plugin-system)
 - [Presets](#presets)
 - [Session History](#session-history)
@@ -38,7 +42,20 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
   - [`getSessionStats()`](#getsessionstats)
   - [`compareSessions()`](#comparesessions)
 - [Export](#export)
+  - [Built-in Exporters](#built-in-exporters)
+  - [Integration Adapters](#integration-adapters)
 - [Scoring](#scoring)
+  - [Priority Scoring](#priority-scoring)
+  - [Quadrant Analysis](#quadrant-analysis)
+  - [Configurable Scoring Engine](#configurable-scoring-engine)
+- [Validation](#validation)
+  - [Built-in Validators](#built-in-validators)
+  - [Custom Validators](#custom-validators)
+  - [Comprehensive Validation](#comprehensive-validation)
+- [Futures Market](#futures-market)
+  - [Market Operations](#market-operations)
+  - [Trading](#trading)
+  - [Analytics](#futures-analytics)
 - [Collaborative Sessions](#collaborative-sessions)
 - [Artifacts](#artifacts)
 - [Knowledge Graph](#knowledge-graph)
@@ -431,6 +448,65 @@ interface InnovatorConfig {
 
 ---
 
+## Error Handling
+
+All Innovator errors extend a common `InnovatorError` base class with a structured `code` property for programmatic error discrimination. Import error classes from `@innovator/core` or `@innovator/core/types` (client-safe).
+
+### Error Hierarchy
+
+```mermaid
+classDiagram
+    Error <|-- InnovatorError
+    InnovatorError <|-- LlmError
+    InnovatorError <|-- ValidationError
+    InnovatorError <|-- PipelineError
+    InnovatorError <|-- ConfigurationError
+    InnovatorError <|-- AbortError
+    LlmError <|-- LlmTimeoutError
+    LlmError <|-- LlmParseError
+    LlmError <|-- RateLimitError
+```
+
+| Error Class          | Code                 | When Thrown                                    | Extra Properties                          |
+| -------------------- | -------------------- | ---------------------------------------------- | ----------------------------------------- |
+| `InnovatorError`     | `ERR_INNOVATOR`      | Base class for all Innovator errors            | `code: InnovatorErrorCode`                |
+| `LlmError`           | `ERR_LLM`            | LLM API call failures (network, unknown)       | `model?: string`                          |
+| `LlmTimeoutError`    | `ERR_LLM_TIMEOUT`    | LLM request exceeds configured timeout         | `timeoutMs: number`, `model?: string`     |
+| `LlmParseError`      | `ERR_LLM_PARSE`      | LLM output fails JSON parsing                  | `rawOutput: string` (truncated to 500c)   |
+| `RateLimitError`     | `ERR_LLM_RATE_LIMIT` | LLM API returns HTTP 429                       | `retryAfterMs?: number`, `model?: string` |
+| `ValidationError`    | `ERR_VALIDATION`     | Data fails Zod schema validation               | `issues?: Array<{path, message}>`         |
+| `PipelineError`      | `ERR_PIPELINE`       | A pipeline stage fails                         | `stage: string`                           |
+| `ConfigurationError` | `ERR_CONFIGURATION`  | Invalid config (missing env vars, bad options) | `configKey?: string`                      |
+| `AbortError`         | `ERR_ABORT`          | Operation cancelled via `AbortSignal`          | —                                         |
+
+**Example:**
+
+```typescript
+import { investigate, LlmTimeoutError, RateLimitError, isInnovatorError } from "@innovator/core";
+
+try {
+  await investigate("renewable energy");
+} catch (err) {
+  if (err instanceof LlmTimeoutError) {
+    console.error(`Timed out after ${err.timeoutMs}ms (model: ${err.model})`);
+  } else if (err instanceof RateLimitError) {
+    console.error(`Rate limited — retry after ${err.retryAfterMs}ms`);
+  } else if (isInnovatorError(err)) {
+    console.error(`[${err.code}] ${err.message}`);
+  }
+}
+```
+
+### `isInnovatorError()`
+
+Type guard to check if an unknown value is any `InnovatorError` subclass.
+
+```typescript
+function isInnovatorError(err: unknown): err is InnovatorError;
+```
+
+---
+
 ## Prompt Utilities
 
 ```typescript
@@ -496,6 +572,48 @@ try {
 } catch (error) {
   if (error instanceof RetryExhaustedError) {
     console.error(`Failed after ${error.attempts} attempts: ${error.cause.message}`);
+  }
+}
+```
+
+---
+
+### `withTimeout()`
+
+Race a promise against a timeout, throwing `LlmTimeoutError` if the timeout fires first. Consolidates the `Promise.race` + `setTimeout` pattern used throughout the LLM client into a single utility.
+
+```typescript
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  options?: { model?: string }
+): Promise<T>;
+```
+
+**Parameters:**
+
+| Name            | Type      | Description                                          |
+| --------------- | --------- | ---------------------------------------------------- |
+| `promise`       | `Promise` | The promise to race against the timeout              |
+| `timeoutMs`     | `number`  | Maximum time in ms to wait (must be positive finite) |
+| `options.model` | `string?` | Model name for error context                         |
+
+**Throws:** `LlmTimeoutError` if the timeout fires before the promise resolves. Throws `Error` if `timeoutMs` is not a positive finite number.
+
+**Example:**
+
+```typescript
+import { withTimeout, generateText, LlmTimeoutError } from "@innovator/core";
+
+try {
+  const result = await withTimeout(
+    generateText({ prompt: "Analyze this topic", model: "gpt-4.1" }),
+    90_000,
+    { model: "gpt-4.1" }
+  );
+} catch (err) {
+  if (err instanceof LlmTimeoutError) {
+    console.error(`Request timed out after ${err.timeoutMs / 1000}s`);
   }
 }
 ```
@@ -713,36 +831,431 @@ if (comparison) {
 }
 ```
 
-Render sessions in multiple output formats:
+## Export
+
+Export innovation results to multiple output formats. All exporters accept an `ExportData` object and return an `ExportResult` with the formatted content, MIME type, and filename.
+
+### Built-in Exporters
+
+| Function                    | Format            | MIME Type          | Extension       |
+| --------------------------- | ----------------- | ------------------ | --------------- |
+| `exportToMarkdown()`        | Markdown          | `text/markdown`    | `.md`           |
+| `exportToJson()`            | JSON              | `application/json` | `.json`         |
+| `exportToHtml()`            | HTML (standalone) | `text/html`        | `.html`         |
+| `exportToCsv()`             | CSV (RFC 4180)    | `text/csv`         | `.csv`          |
+| `exportToPowerPoint()`      | PPTX (JSON)       | `application/json` | `.pptx.json`    |
+| `exportToGoogleSlides()`    | Google Slides     | `application/json` | `.gslides.json` |
+| `generateGitHubIssueBody()` | GitHub Issue      | `text/markdown`    | —               |
+| `exportToClipboard()`       | Markdown (copy)   | —                  | —               |
+
+**Example:**
 
 ```typescript
-function exportToMarkdown(data: ExportData): string;
-function exportToJson(data: ExportData): string;
-function generateGitHubIssueBody(data: ExportData): string;
-function exportToClipboard(data: ExportData): Promise<void>;
-function exportToPowerPoint(data: ExportData): Promise<ExportResult>;
+import { exportToHtml, exportToCsv, exportToMarkdown } from "@innovator/core";
+
+const data: ExportData = { subject, investigation, angleResults, synthesis };
+
+// Self-contained HTML report
+const html = exportToHtml(data);
+writeFileSync(html.filename, html.content);
+
+// CSV for spreadsheet analysis
+const csv = exportToCsv(data);
+writeFileSync(csv.filename, csv.content);
+
+// Markdown for documentation
+const md = exportToMarkdown(data);
+console.log(md.content);
+```
+
+### Integration Adapters
+
+Third-party integrations export via the `IntegrationAdapter` interface:
+
+```typescript
 function exportToJira(data: ExportData): Promise<ExportResult>;
 function exportToConfluence(data: ExportData): Promise<ExportResult>;
 function exportToNotion(data: ExportData): Promise<ExportResult>;
-function exportToGoogleSlides(data: ExportData): Promise<ExportResult>;
-function getAvailableFormats(): ExportFormat[];
+```
+
+**`ExportResult` type:**
+
+```typescript
+interface ExportResult {
+  content: string; // The formatted output
+  mimeType: string; // MIME type for Content-Type headers
+  extension: string; // File extension (e.g., ".html")
+  filename: string; // Suggested filename (e.g., "innovation-solar-energy.html")
+}
 ```
 
 ---
 
 ## Scoring
 
-Score and rank innovation ideas:
+AI-powered multi-dimensional scoring of generated ideas across feasibility, impact, novelty, and time-to-implement dimensions.
+
+### `scoreIdeas()`
+
+Score innovation ideas using LLM evaluation.
 
 ```typescript
-function scoreIdeas(ideas: InnovationIdea[]): Promise<ScoringResult>;
+function scoreIdeas(
+  angleResults: AngleResult[],
+  model?: string,
+  investigation?: Investigation,
+  signal?: AbortSignal
+): Promise<ScoringResult>;
+```
+
+**Returns:** A `ScoringResult` containing an array of `IdeaScore` objects.
+
+### Priority Scoring
+
+```typescript
+// Default composite score (impact: 35%, feasibility: 30%, novelty: 20%, speed: 15%)
 function computePriorityScore(score: IdeaScore): number;
-function getQuadrant(score: IdeaScore): string;
-function rankIdeas(results: ScoringResult): InnovationIdea[];
+
+// Custom weights
+function computeWeightedPriorityScore(score: IdeaScore, weights?: PriorityWeights): number;
+
+// Sort by composite priority (descending)
+function rankIdeas(scores: IdeaScore[]): IdeaScore[];
+
+// Get top N ideas by a single dimension
+function getTopByDimension(
+  scores: IdeaScore[],
+  dimension: "feasibility" | "impact" | "novelty",
+  limit?: number // default: 5
+): IdeaScore[];
+```
+
+**`PriorityWeights` interface:**
+
+```typescript
+interface PriorityWeights {
+  impact?: number; // default: 0.35
+  feasibility?: number; // default: 0.3
+  novelty?: number; // default: 0.2
+  speed?: number; // default: 0.15
+}
+```
+
+### Quadrant Analysis
+
+Ideas are classified into four quadrants based on their feasibility and impact scores:
+
+| Quadrant            | Criteria                      | Meaning                                  |
+| ------------------- | ----------------------------- | ---------------------------------------- |
+| `quick-wins`        | High feasibility, high impact | Easy to implement, high value — do first |
+| `strategic-bets`    | Low feasibility, high impact  | Hard but transformative — plan carefully |
+| `low-hanging-fruit` | High feasibility, low impact  | Easy wins for incremental gains          |
+| `reconsider`        | Low feasibility, low impact   | Not worth pursuing now                   |
+
+```typescript
+function getQuadrant(score: IdeaScore): Quadrant;
+function filterIdeasByQuadrant(scores: IdeaScore[], quadrants: Quadrant[]): IdeaScore[];
+function getIdeaSummaryStats(scores: IdeaScore[]): IdeaSummaryStats;
+```
+
+**`IdeaSummaryStats` type:**
+
+```typescript
+interface IdeaSummaryStats {
+  total: number;
+  averageFeasibility: number;
+  averageImpact: number;
+  averageNovelty: number;
+  quadrantCounts: Record<Quadrant, number>;
+  topPriorityTitle: string | undefined;
+}
+```
+
+**Example:**
+
+```typescript
+import { scoreIdeas, filterIdeasByQuadrant, getIdeaSummaryStats, rankIdeas } from "@innovator/core";
+
+const scored = await scoreIdeas(pipeline.angleResults, "gpt-4.1", pipeline.investigation);
+
+// Focus on quick wins
+const quickWins = filterIdeasByQuadrant(scored.scores, ["quick-wins"]);
+console.log(`${quickWins.length} quick wins found`);
+
+// Get summary statistics
+const stats = getIdeaSummaryStats(scored.scores);
+console.log(`Average impact: ${stats.averageImpact}, Top idea: ${stats.topPriorityTitle}`);
+
+// Rank all ideas by composite priority
+const ranked = rankIdeas(scored.scores);
+```
+
+### Configurable Scoring Engine
+
+For advanced use cases, define custom scoring dimensions with quality gates and calibration:
+
+```typescript
 function scoreWithEngine(
   ideas: InnovationIdea[],
-  config: ScoringEngineConfig
+  config: ScoringEngineConfig,
+  model?: string,
+  signal?: AbortSignal
 ): Promise<MultiDimensionalScore[]>;
+```
+
+**`ScoringEngineConfig` type:**
+
+```typescript
+interface ScoringEngineConfig {
+  id: string;
+  name: string;
+  dimensions: ScoringDimension[]; // 1–20 custom dimensions
+  qualityGates?: Array<{
+    type: "min-score" | "min-ideas" | "min-dimensions" | "max-risk";
+    dimension?: string;
+    threshold: number;
+    action: "warn" | "block" | "flag";
+    message: string;
+  }>;
+  calibration?: {
+    enabled?: boolean; // default: false
+    feedbackWeight?: number; // 0–1, default: 0.3
+    minCalibrationSamples?: number; // default: 5
+  };
+}
+```
+
+**Calibration feedback:**
+
+```typescript
+// Record human feedback to calibrate future scoring
+function recordCalibrationFeedback(
+  ideaTitle: string,
+  dimensionId: string,
+  humanScore: number
+): void;
+
+// Reset calibration data
+function clearCalibration(): void;
+```
+
+---
+
+## Validation
+
+Validate generated ideas against real-world data including patent databases, market reports, competitor analysis, and technical feasibility. Produces a validation scorecard per idea.
+
+### Built-in Validators
+
+| Validator               | Category      | What It Checks                             |
+| ----------------------- | ------------- | ------------------------------------------ |
+| `PatentValidator`       | `patent`      | Patent landscape similarity risk           |
+| `MarketValidator`       | `market`      | Market viability and competitive landscape |
+| `FeasibilityValidator`  | `feasibility` | Technical implementation feasibility       |
+| `MarketSizingValidator` | `market`      | TAM/SAM/SOM market sizing analysis         |
+| `RegulatoryValidator`   | `regulatory`  | Regulatory compliance risk assessment      |
+
+### `validateIdea()` / `validateIdeas()`
+
+```typescript
+function validateIdea(
+  idea: InnovationIdea,
+  domain: string,
+  model?: string,
+  signal?: AbortSignal
+): Promise<ValidationResult>;
+
+function validateIdeas(
+  ideas: InnovationIdea[],
+  domain: string,
+  model?: string,
+  signal?: AbortSignal
+): Promise<ValidationScorecard>;
+```
+
+**`ValidationResult` type:**
+
+```typescript
+interface ValidationResult {
+  ideaTitle: string;
+  overallScore: number; // 0 = invalid, 100 = highly validated
+  overallStatus: "validated" | "caution" | "risky" | "insufficient-data";
+  checks: ValidationCheck[]; // Individual check results
+  recommendation: string;
+  validatedAt: string; // ISO 8601
+}
+
+interface ValidationCheck {
+  source: string; // e.g., "Google Patents"
+  category: "patent" | "market" | "competitor" | "feasibility" | "regulatory";
+  status: "pass" | "warn" | "fail" | "unknown";
+  score: number; // 0 = no risk, 100 = high risk
+  summary: string;
+  details?: string;
+  references?: string[];
+}
+```
+
+**Example:**
+
+```typescript
+import { validateIdeas } from "@innovator/core";
+
+const scorecard = await validateIdeas(
+  pipeline.angleResults.flatMap((ar) => ar.ideas),
+  "renewable energy",
+  "gpt-4.1"
+);
+
+for (const result of scorecard.results) {
+  console.log(`${result.ideaTitle}: ${result.overallStatus} (${result.overallScore}/100)`);
+  for (const check of result.checks.filter((c) => c.status === "fail")) {
+    console.warn(`  ⚠️ ${check.source}: ${check.summary}`);
+  }
+}
+```
+
+### Custom Validators
+
+Register pluggable validators that check ideas against custom data sources:
+
+```typescript
+interface IdeaValidator {
+  id: string;
+  name: string;
+  category: ValidationCheck["category"];
+  validate(idea: InnovationIdea, domain: string, signal?: AbortSignal): Promise<ValidationCheck>;
+}
+
+function registerValidator(validator: IdeaValidator): void;
+function unregisterValidator(id: string): boolean;
+function listValidators(): IdeaValidator[];
+function clearValidators(): void;
+```
+
+### Comprehensive Validation
+
+Run all registered validators and produce a comprehensive report:
+
+```typescript
+function validateComprehensive(
+  idea: InnovationIdea,
+  investigation: Investigation,
+  model?: string,
+  signal?: AbortSignal
+): Promise<ComprehensiveValidation>;
+```
+
+---
+
+## Futures Market
+
+Internal prediction market where team members bet virtual tokens on which ideas will succeed. Uses a Logarithmic Market Scoring Rule (LMSR) for automated market making with a continuous double auction order book.
+
+### Market Operations
+
+```typescript
+function createMarket(
+  ideaId: string,
+  ideaTitle: string,
+  description: string,
+  config?: MarketConfig
+): Market;
+
+function getMarketPrice(marketId: string): number;
+
+function getOrderBook(marketId: string): {
+  market: Market;
+  openOrders: Order[];
+  recentTrades: Trade[];
+};
+```
+
+**`MarketConfig` type:**
+
+```typescript
+interface MarketConfig {
+  startingBalance?: number; // Virtual tokens for new traders (default: 1000)
+  liquidityParameter?: number; // LMSR b parameter (default: 100, higher = less price impact)
+  maxPositionSize?: number; // Max shares per trader per market (default: 500)
+}
+```
+
+### Trading
+
+```typescript
+// Place a limit order at a specific price
+function placeLimitOrder(
+  marketId: string,
+  traderId: string,
+  side: "yes" | "no",
+  quantity: number,
+  limitPrice: number, // 0–1 (probability)
+  displayName?: string
+): Order;
+
+// Place a market order (fills immediately at LMSR price)
+function placeMarketOrder(
+  marketId: string,
+  traderId: string,
+  side: "yes" | "no",
+  quantity: number,
+  displayName?: string
+): Order;
+
+// Get a trader's portfolio
+function getTraderPortfolio(traderId: string): TraderPortfolio | undefined;
+```
+
+**Example:**
+
+```typescript
+import {
+  createMarket,
+  placeMarketOrder,
+  getMarketPrice,
+  getMarketAnalytics,
+} from "@innovator/core";
+
+// Create a market for an idea
+const market = createMarket("idea-123", "AI-powered code reviews", "Will this idea succeed?");
+
+// Team members place bets
+placeMarketOrder(market.id, "alice", "yes", 50, "Alice");
+placeMarketOrder(market.id, "bob", "no", 30, "Bob");
+
+// Check the crowd's implied probability
+const price = getMarketPrice(market.id); // 0.0–1.0
+console.log(`Crowd thinks ${(price * 100).toFixed(1)}% chance of success`);
+
+// Get full analytics with leaderboard and sentiment
+const analytics = getMarketAnalytics(market.id);
+console.log(`Sentiment: ${analytics.sentiment}, Volatility: ${analytics.volatility}`);
+```
+
+### Futures Analytics
+
+```typescript
+function getMarketAnalytics(marketId: string): MarketAnalytics;
+```
+
+**`MarketAnalytics` type:**
+
+```typescript
+interface MarketAnalytics {
+  marketId: string;
+  priceHistory: Array<{ timestamp: string; price: number; volume: number }>;
+  impliedProbability: number; // Current price as probability (0–1)
+  leaderboard: Array<{
+    traderId: string;
+    displayName: string;
+    pnL: number;
+    accuracy: number;
+    tradeCount: number;
+  }>;
+  sentiment: "bullish" | "bearish" | "neutral";
+  volatility: number;
+}
 ```
 
 ---
@@ -917,14 +1430,27 @@ interface CustomAngle {
 
 All core types have corresponding Zod schemas for runtime validation of LLM output:
 
-| Schema                 | Validates        |
-| ---------------------- | ---------------- |
-| `InvestigationSchema`  | `Investigation`  |
-| `InnovationIdeaSchema` | `InnovationIdea` |
-| `AngleResultSchema`    | `AngleResult`    |
-| `SynthesisSchema`      | `Synthesis`      |
-| `CustomAngleSchema`    | `CustomAngle`    |
-| `AnglePackSchema`      | `AnglePack`      |
+| Schema                        | Validates               |
+| ----------------------------- | ----------------------- |
+| `InvestigationSchema`         | `Investigation`         |
+| `InnovationIdeaSchema`        | `InnovationIdea`        |
+| `AngleResultSchema`           | `AngleResult`           |
+| `SynthesisSchema`             | `Synthesis`             |
+| `CustomAngleSchema`           | `CustomAngle`           |
+| `AnglePackSchema`             | `AnglePack`             |
+| `IdeaScoreSchema`             | `IdeaScore`             |
+| `ScoringResultSchema`         | `ScoringResult`         |
+| `ScoringDimensionSchema`      | `ScoringDimension`      |
+| `ScoringEngineConfigSchema`   | `ScoringEngineConfig`   |
+| `MultiDimensionalScoreSchema` | `MultiDimensionalScore` |
+| `ValidationCheckSchema`       | `ValidationCheck`       |
+| `ValidationResultSchema`      | `ValidationResult`      |
+| `ValidationScorecardSchema`   | `ValidationScorecard`   |
+| `MarketSchema`                | `Market`                |
+| `OrderSchema`                 | `Order`                 |
+| `TradeSchema`                 | `Trade`                 |
+| `TraderPortfolioSchema`       | `TraderPortfolio`       |
+| `MarketAnalyticsSchema`       | `MarketAnalytics`       |
 
 Import schemas directly for custom validation:
 
