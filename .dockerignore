@@ -1,0 +1,69 @@
+# =============================================================================
+# .dockerignore — Exclude files from Docker build context
+# Reduces build time, image size, and prevents leaking secrets into images.
+# =============================================================================
+
+# --- Version control ---
+.git
+.gitignore
+
+# --- Dependencies (reinstalled via npm ci in Dockerfile) ---
+node_modules
+packages/*/node_modules
+apps/*/node_modules
+website/node_modules
+
+# --- Build artifacts (rebuilt in Dockerfile) ---
+dist
+packages/*/dist
+apps/*/dist
+apps/web/.next
+coverage
+*.tsbuildinfo
+
+# --- Environment and secrets ---
+.env
+.env.*
+!.env.local.example
+
+# --- IDE and editor files ---
+.vscode
+.devcontainer
+.idea
+*.swp
+*.swo
+*~
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+
+# --- CI/CD and GitHub metadata ---
+.github
+.husky
+
+# --- Documentation and non-runtime files ---
+docs
+website
+examples
+*.md
+LICENSE
+CHANGELOG.md
+
+# --- Development tooling config ---
+.eslintcache
+.prettierignore
+.prettierrc
+.editorconfig
+.nvmrc
+.npmrc
+commitlint.config.mjs
+eslint.config.mjs
+vitest.config.ts
+tsconfig.base.json
+.releaserc.json
+.markdown-link-check.json
+Makefile
+
+# --- Local state ---
+.innovator

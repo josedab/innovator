@@ -7,6 +7,7 @@ services:
       - "3000:3000" # Web UI and API
     environment:
       - PORT=3000
+      - NODE_ENV=production
       - INNOVATOR_API_KEY=${INNOVATOR_API_KEY} # Optional: protects API routes
       - INNOVATOR_DEFAULT_MODEL=${INNOVATOR_DEFAULT_MODEL:-gpt-4.1} # LLM model for generation
       - INNOVATOR_LLM_TIMEOUT_MS=${INNOVATOR_LLM_TIMEOUT_MS:-90000} # Request timeout (ms)
@@ -26,12 +27,35 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=256m
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "2.0"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "const http = require('http'); http.get('http://localhost:3000/', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
 
   # PostgreSQL database — stores innovation sessions, history, and collaboration data.
   postgres:
     image: postgres:16-alpine
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432" # Bind to localhost only — not exposed to network
     environment:
       POSTGRES_DB: innovator
       POSTGRES_USER: ${POSTGRES_USER:-innovator}
@@ -44,13 +68,20 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1.0"
 
   # pgAdmin — web-based PostgreSQL admin UI for development/debugging.
   # Access at http://localhost:5050 with the credentials below.
   pgadmin:
     image: dpage/pgadmin4:9.4
     ports:
-      - "5050:80" # pgAdmin web UI
+      - "127.0.0.1:5050:80" # Bind to localhost only
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@innovator.dev}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Set PGADMIN_PASSWORD in .env or environment}
@@ -59,6 +90,15 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    profiles:
+      - debug # Only start pgadmin with: docker compose --profile debug up
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.5"
 
 volumes:
   pgdata: # Named volume for PostgreSQL data persistence

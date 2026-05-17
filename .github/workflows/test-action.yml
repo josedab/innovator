@@ -13,6 +13,9 @@ on:
       - "apps/cli/**"
       - "packages/core/**"
 
+permissions:
+  contents: read
+
 jobs:
   validate-action:
     name: Validate GitHub Action
