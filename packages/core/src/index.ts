@@ -8193,6 +8193,29 @@ export type {
   GenomeLibrary,
 } from "./genome-sequencer/index.js";
 
+/** Genome White-Space Atlas — clustering, novelty scoring, and recombinant concepts. */
+export {
+  addGenomeRecord as addAtlasGenomeRecord,
+  getGenomeRecord as getAtlasGenomeRecord,
+  listGenomeRecords as listAtlasGenomeRecords,
+  clusterGenomeRecords as clusterAtlasGenomeRecords,
+  identifyWhiteSpaces as identifyGenomeWhiteSpaces,
+  scoreNovelty as scoreAtlasNovelty,
+  generateRecombinantConcepts as generateAtlasRecombinantConcepts,
+  exportPatentBrief as exportAtlasPatentBrief,
+  clearGenomeAtlasData,
+  GenomeRecordSchema as AtlasGenomeRecordSchema,
+  GenomeClusterSchema as AtlasGenomeClusterSchema,
+  WhiteSpaceRegionSchema as AtlasWhiteSpaceRegionSchema,
+  NoveltyScoreSchema as AtlasNoveltyScoreSchema,
+} from "./genome-sequencer/index.js";
+export type {
+  GenomeRecord as AtlasGenomeRecord,
+  GenomeCluster as AtlasGenomeCluster,
+  WhiteSpaceRegion as AtlasWhiteSpaceRegion,
+  NoveltyScore as AtlasNoveltyScore,
+} from "./genome-sequencer/index.js";
+
 /** Federation DP — differential privacy for innovation pattern sharing. */
 export {
   laplaceMechanism as federationLaplaceMechanism,

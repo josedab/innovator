@@ -23,3 +23,25 @@ export type {
   RecombinantIdea,
   GenomeLibrary,
 } from "./types.js";
+
+export {
+  addGenomeRecord,
+  getGenomeRecord,
+  listGenomeRecords,
+  clusterGenomeRecords,
+  identifyWhiteSpaces,
+  scoreNovelty,
+  generateRecombinantConcepts,
+  exportPatentBrief,
+  clearGenomeAtlasData,
+  GenomeRecordSchema,
+  GenomeClusterSchema,
+  WhiteSpaceRegionSchema,
+  NoveltyScoreSchema,
+} from "./atlas.js";
+export type {
+  GenomeRecord,
+  GenomeCluster,
+  WhiteSpaceRegion,
+  NoveltyScore,
+} from "./atlas.js";
