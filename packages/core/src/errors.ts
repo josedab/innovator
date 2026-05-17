@@ -66,8 +66,11 @@ export class LlmError extends InnovatorError {
   /** The LLM model that was being called when the error occurred. */
   readonly model?: string;
 
-  constructor(message: string, options?: { model?: string; cause?: Error }) {
-    super(message, "ERR_LLM", options?.cause);
+  constructor(
+    message: string,
+    options?: { model?: string; cause?: Error; code?: InnovatorErrorCode }
+  ) {
+    super(message, options?.code ?? "ERR_LLM", options?.cause);
     this.name = "LlmError";
     this.model = options?.model;
   }
@@ -88,10 +91,11 @@ export class LlmTimeoutError extends LlmError {
   readonly timeoutMs: number;
 
   constructor(timeoutMs: number, options?: { model?: string; cause?: Error }) {
-    super(`LLM request timed out after ${timeoutMs / 1000}s`, { ...options });
+    super(`LLM request timed out after ${timeoutMs / 1000}s`, {
+      ...options,
+      code: "ERR_LLM_TIMEOUT",
+    });
     this.name = "LlmTimeoutError";
-    // Override code from parent — use Object.defineProperty to bypass readonly
-    Object.defineProperty(this, "code", { value: "ERR_LLM_TIMEOUT" as InnovatorErrorCode });
     this.timeoutMs = timeoutMs;
   }
 }
@@ -104,9 +108,8 @@ export class LlmParseError extends LlmError {
   readonly rawOutput: string;
 
   constructor(message: string, rawOutput: string, options?: { model?: string; cause?: Error }) {
-    super(message, { ...options });
+    super(message, { ...options, code: "ERR_LLM_PARSE" });
     this.name = "LlmParseError";
-    Object.defineProperty(this, "code", { value: "ERR_LLM_PARSE" as InnovatorErrorCode });
     this.rawOutput = rawOutput.length > 500 ? rawOutput.slice(0, 500) + "…" : rawOutput;
   }
 
@@ -130,9 +133,8 @@ export class RateLimitError extends LlmError {
     message: string = "LLM request was rate-limited",
     options?: { model?: string; retryAfterMs?: number; cause?: Error }
   ) {
-    super(message, { model: options?.model, cause: options?.cause });
+    super(message, { model: options?.model, cause: options?.cause, code: "ERR_LLM_RATE_LIMIT" });
     this.name = "RateLimitError";
-    Object.defineProperty(this, "code", { value: "ERR_LLM_RATE_LIMIT" as InnovatorErrorCode });
     this.retryAfterMs = options?.retryAfterMs;
   }
 
@@ -214,8 +216,8 @@ export class ConfigurationError extends InnovatorError {
  * Error thrown when an operation is aborted via AbortSignal.
  */
 export class AbortError extends InnovatorError {
-  constructor(message: string = "Operation was aborted") {
-    super(message, "ERR_ABORT");
+  constructor(message: string = "Operation was aborted", cause?: Error) {
+    super(message, "ERR_ABORT", cause);
     this.name = "AbortError";
   }
 }

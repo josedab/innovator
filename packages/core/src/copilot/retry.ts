@@ -15,7 +15,6 @@ export interface RetryOptions {
 
 import { AbortError, ConfigurationError } from "../errors.js";
 import { RateLimitError, LlmParseError, InnovatorError } from "../errors.js";
-import type { InnovatorErrorCode } from "../errors.js";
 import { getEventBus } from "../events/emitter.js";
 
 /** Error thrown when all retry attempts are exhausted. Preserves the original error as `cause`. */
@@ -28,7 +27,7 @@ export class RetryExhaustedError extends InnovatorError {
   constructor(cause: Error, attempts: number) {
     super(
       `All ${attempts} retry attempts exhausted: ${cause.message}`,
-      "ERR_RETRY_EXHAUSTED" as InnovatorErrorCode,
+      "ERR_RETRY_EXHAUSTED",
       cause
     );
     this.name = "RetryExhaustedError";

@@ -72,7 +72,8 @@ jobs:
         run: npm run build --workspace=website
 
       - name: Validate Documentation Links
-        run: npx --yes markdown-link-check --config .markdown-link-check.json --quiet website/docs/**/*.md README.md CONTRIBUTING.md || true
+        continue-on-error: true
+        run: npx --yes markdown-link-check --config .markdown-link-check.json --quiet website/docs/**/*.md README.md CONTRIBUTING.md
 
       # Run tests with coverage only (no duplicate plain test run)
       - name: Test with Coverage

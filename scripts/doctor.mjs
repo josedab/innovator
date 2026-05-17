@@ -7,8 +7,8 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -126,8 +126,23 @@ check("Workspace packages valid", () => {
   let missing = [];
 
   for (const pattern of workspacePatterns) {
-    // Only check literal paths (not glob patterns for existence)
-    if (!pattern.includes("*")) {
+    if (pattern.includes("*")) {
+      // Resolve glob patterns like "apps/*" and "packages/*" by listing the directory
+      const baseDir = resolve(ROOT, pattern.replace(/\/?\*$/, ""));
+      if (!existsSync(baseDir)) {
+        missing.push(pattern);
+        continue;
+      }
+      const entries = readdirSync(baseDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const pkgPath = join(baseDir, entry.name, "package.json");
+          if (!existsSync(pkgPath)) {
+            missing.push(`${pattern.replace("*", entry.name)}`);
+          }
+        }
+      }
+    } else {
       const pkgPath = resolve(ROOT, pattern, "package.json");
       if (!existsSync(pkgPath)) {
         missing.push(pattern);

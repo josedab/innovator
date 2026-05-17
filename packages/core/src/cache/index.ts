@@ -187,8 +187,10 @@ export function memoize<Args extends unknown[], R>(
 
   const memoized = (...args: Args): R => {
     const key = resolveKey(...args);
-    const cached = cache.get(key);
-    if (cached !== undefined) return cached;
+    // Use has() instead of get() !== undefined so functions returning
+    // undefined are correctly cached (get() can't distinguish a miss
+    // from a cached undefined value).
+    if (cache.has(key)) return cache.get(key) as R;
     const result = fn(...args);
     cache.set(key, result);
     return result;
