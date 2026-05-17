@@ -621,3 +621,14 @@ export {
   velocityToMarkdown,
 } from "./velocity.js";
 export type { VelocityMetrics, VelocityActivity } from "./velocity.js";
+
+export {
+  BadgeDefinitionSchema,
+  BADGE_DEFINITIONS,
+  getBadgeDefinitions,
+  getBadgeById,
+  checkBadgeUnlock,
+  getUnlockedBadges,
+  generateDailyChallenge,
+} from "./enhanced-badges.js";
+export type { BadgeDefinition } from "./enhanced-badges.js";

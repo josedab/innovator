@@ -1709,6 +1709,18 @@ export type {
   VelocityActivity,
 } from "./gamification/index.js";
 
+/** Gamification badges — expanded badge catalog plus generated daily challenges. */
+export {
+  BadgeDefinitionSchema as InnovationBadgeDefinitionSchema,
+  BADGE_DEFINITIONS as INNOVATION_BADGE_DEFINITIONS,
+  getBadgeDefinitions as getInnovationBadgeDefinitions,
+  getBadgeById as getInnovationBadgeById,
+  checkBadgeUnlock as checkInnovationBadgeUnlock,
+  getUnlockedBadges as getUnlockedInnovationBadges,
+  generateDailyChallenge as generateInnovationDailyChallenge,
+} from "./gamification/index.js";
+export type { BadgeDefinition as InnovationBadgeDefinition } from "./gamification/index.js";
+
 /** Sustainability / ESG assessment — environmental, social, and governance scoring for ideas. */
 export {
   scoreSustainability,
