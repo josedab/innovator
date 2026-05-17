@@ -7394,6 +7394,34 @@ export type { LayoutAlgorithm } from "./canvas/index.js";
 /** Canvas Export Formats — JSON, markdown, and image data URI outputs. */
 export { canvasToJson, canvasToPng, canvasToMarkdown } from "./canvas/index.js";
 
+/** Canvas State — persistent board state with clustering, layouts, and exports. */
+export {
+  CanvasStateNodeSchema,
+  CanvasStateEdgeSchema,
+  CanvasStateClusterSchema,
+  CanvasStateSchema,
+  createCanvasState,
+  getCanvasState,
+  addCanvasNode,
+  removeCanvasNode,
+  addCanvasStateEdge,
+  createCanvasStateCluster,
+  mergeCluster,
+  ungroupCluster,
+  applyForceDirectedLayout,
+  applyGridLayout,
+  applyHierarchicalLayout,
+  canvasStateToSvg,
+  canvasStateToJson,
+  clearCanvasStates,
+} from "./canvas/index.js";
+export type {
+  CanvasStateNode,
+  CanvasStateEdge,
+  CanvasStateCluster,
+  CanvasState,
+} from "./canvas/index.js";
+
 /** Venture Studio — compliance-native risk classification, controls, and dossiers. */
 export {
   RiskCategorySchema,

@@ -480,3 +480,31 @@ export type { LayoutAlgorithm } from "./auto-layout.js";
 
 // ---- Canvas Export Formats ----
 export { canvasToJson, canvasToPng, canvasToMarkdown } from "./canvas-export.js";
+
+// ---- Canvas State Management ----
+export {
+  CanvasNodeSchema as CanvasStateNodeSchema,
+  CanvasEdgeSchema as CanvasStateEdgeSchema,
+  CanvasClusterSchema as CanvasStateClusterSchema,
+  CanvasStateSchema,
+  createCanvasState,
+  getCanvasState,
+  addCanvasNode,
+  removeCanvasNode,
+  addCanvasEdge as addCanvasStateEdge,
+  createCluster as createCanvasStateCluster,
+  mergeCluster,
+  ungroupCluster,
+  applyForceDirectedLayout,
+  applyGridLayout,
+  applyHierarchicalLayout,
+  canvasStateToSvg,
+  canvasStateToJson,
+  clearCanvasStates,
+} from "./canvas-state.js";
+export type {
+  CanvasNode as CanvasStateNode,
+  CanvasEdge as CanvasStateEdge,
+  CanvasCluster as CanvasStateCluster,
+  CanvasState,
+} from "./canvas-state.js";
