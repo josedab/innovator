@@ -34,8 +34,19 @@ function atomicWriteFileSync(filePath: string, data: string): void {
   const dir = dirname(filePath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   const tmpPath = `${filePath}.${randomUUID().slice(0, 8)}.tmp`;
-  writeFileSync(tmpPath, data, "utf-8");
-  renameSync(tmpPath, filePath);
+  try {
+    writeFileSync(tmpPath, data, "utf-8");
+    renameSync(tmpPath, filePath);
+  } catch (err) {
+    // Clean up temp file on failure (e.g. disk full)
+    try {
+      if (existsSync(tmpPath)) unlinkSync(tmpPath);
+    } catch {
+      // best-effort cleanup
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ValidationError(`Failed to write session file: ${msg}`);
+  }
 }
 
 function ensureHistoryDir(): void {
