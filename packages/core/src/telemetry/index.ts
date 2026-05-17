@@ -73,6 +73,7 @@ export type QualityTrend = z.infer<typeof QualityTrendSchema>;
 
 // ---- In-Memory Stores ----
 
+const MAX_LOG_ENTRIES = 5_000;
 const effectivenessLog: PromptEffectiveness[] = [];
 const hallucinationLog: HallucinationCheck[] = [];
 
@@ -191,6 +192,10 @@ export function recordPromptEffectiveness(
     timestamp: new Date().toISOString(),
   };
   effectivenessLog.push(record);
+  // Evict oldest entries when exceeding capacity
+  if (effectivenessLog.length > MAX_LOG_ENTRIES) {
+    effectivenessLog.splice(0, effectivenessLog.length - MAX_LOG_ENTRIES);
+  }
   return record;
 }
 
@@ -321,6 +326,9 @@ export function detectHallucinations(text: string): HallucinationCheck {
   };
 
   hallucinationLog.push(result);
+  if (hallucinationLog.length > MAX_LOG_ENTRIES) {
+    hallucinationLog.splice(0, hallucinationLog.length - MAX_LOG_ENTRIES);
+  }
   return result;
 }
 

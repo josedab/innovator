@@ -95,6 +95,9 @@ export type ABTestResult = z.infer<typeof ABTestResultSchema>;
 
 // ---- In-memory stores ----
 
+const MAX_SIGNALS_PER_USER = 2_000;
+const MAX_OUTCOME_RECORDS = 5_000;
+const MAX_MODEL_RECORDS = 1_000;
 const signals: Map<string, UserSignal[]> = new Map();
 const profiles: Map<string, UserPreferenceProfile> = new Map();
 const abTests: Map<string, ABTestAssignment[]> = new Map();
@@ -115,16 +118,20 @@ export function recordSignal(signal: Omit<UserSignal, "id" | "timestamp">): User
   const validated = UserSignalSchema.parse(fullSignal);
   const userSignals = signals.get(validated.userId) ?? [];
   userSignals.push(validated);
+  // Evict oldest signals per user to prevent unbounded growth
+  if (userSignals.length > MAX_SIGNALS_PER_USER) {
+    userSignals.splice(0, userSignals.length - MAX_SIGNALS_PER_USER);
+  }
   signals.set(validated.userId, userSignals);
 
   return validated;
 }
 
 /**
- * Get all signals for a user.
+ * Get all signals for a user. Returns a defensive copy.
  */
 export function getUserSignals(userId: string): UserSignal[] {
-  return signals.get(userId) ?? [];
+  return [...(signals.get(userId) ?? [])];
 }
 
 // ---- Profile building ----
@@ -417,10 +424,17 @@ export function recordOutcome(outcome: Omit<OutcomeRecord, "timestamp">): Outcom
   };
   const validated = OutcomeRecordSchema.parse(record);
   outcomeRecords.push(validated);
+  // Cap outcome records to prevent unbounded growth
+  if (outcomeRecords.length > MAX_OUTCOME_RECORDS) {
+    outcomeRecords.splice(0, outcomeRecords.length - MAX_OUTCOME_RECORDS);
+  }
 
   if (validated.model) {
     const modelRecords = modelPerformance.get(validated.model) ?? [];
     modelRecords.push(validated);
+    if (modelRecords.length > MAX_MODEL_RECORDS) {
+      modelRecords.splice(0, modelRecords.length - MAX_MODEL_RECORDS);
+    }
     modelPerformance.set(validated.model, modelRecords);
   }
 

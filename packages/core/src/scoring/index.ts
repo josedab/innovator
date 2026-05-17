@@ -424,6 +424,7 @@ export const DEFAULT_SCORING_DIMENSIONS: ScoringDimension[] = [
 
 // ---- Calibration Store (user feedback adjustments) ----
 
+const MAX_CALIBRATION_ENTRIES_PER_KEY = 500;
 const calibrationFeedback = new Map<string, Array<{ dimensionId: string; scoreDelta: number }>>();
 
 /** Record user calibration feedback for scoring adjustments. */
@@ -437,6 +438,10 @@ export function recordCalibrationFeedback(
   const key = `${configId}:${dimensionId}`;
   const existing = calibrationFeedback.get(key) ?? [];
   existing.push({ dimensionId, scoreDelta: userScore - llmScore });
+  // Keep only the most recent entries to prevent unbounded growth
+  if (existing.length > MAX_CALIBRATION_ENTRIES_PER_KEY) {
+    existing.splice(0, existing.length - MAX_CALIBRATION_ENTRIES_PER_KEY);
+  }
   calibrationFeedback.set(key, existing);
 }
 

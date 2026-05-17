@@ -23,13 +23,21 @@ export function unregisterHealthCheck(name: string): void {
   healthChecks.delete(name);
 }
 
+const HEALTH_CHECK_TIMEOUT_MS = 10_000;
+
 /** Run all health checks and produce a report. */
 export async function getHealthReport(version = "0.2.0"): Promise<HealthReport> {
   const components: ComponentHealth[] = [];
 
   for (const [name, check] of healthChecks) {
     try {
-      const result = await check();
+      // Wrap each check in a timeout to prevent hanging
+      const result = await Promise.race([
+        check(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Health check timed out")), HEALTH_CHECK_TIMEOUT_MS)
+        ),
+      ]);
       components.push(result);
     } catch (error) {
       components.push({

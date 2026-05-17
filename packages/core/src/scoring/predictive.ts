@@ -104,6 +104,7 @@ export type PredictiveReport = z.infer<typeof PredictiveReportSchema>;
 
 // ---- Training Data Pipeline ----
 
+const MAX_TRAINING_DATA = 10_000;
 const trainingData: TrainingDataPoint[] = [];
 
 /**
@@ -111,6 +112,10 @@ const trainingData: TrainingDataPoint[] = [];
  */
 export function addTrainingData(point: TrainingDataPoint): void {
   trainingData.push(TrainingDataPointSchema.parse(point));
+  // Evict oldest entries when exceeding capacity
+  if (trainingData.length > MAX_TRAINING_DATA) {
+    trainingData.splice(0, trainingData.length - MAX_TRAINING_DATA);
+  }
 }
 
 /**

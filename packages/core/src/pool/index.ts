@@ -56,6 +56,7 @@ export interface PoolStats {
  */
 export class ObjectPool<T> {
   private readonly items: T[] = [];
+  private readonly checkedOut = new Set<T>();
   private readonly factory: () => T;
   private readonly resetFn?: (obj: T) => void;
   private readonly maxSize: number;
@@ -81,10 +82,13 @@ export class ObjectPool<T> {
     this.acquireCount++;
     const item = this.items.pop();
     if (item !== undefined) {
+      this.checkedOut.add(item);
       return item;
     }
     this.createCount++;
-    return this.factory();
+    const newItem = this.factory();
+    this.checkedOut.add(newItem);
+    return newItem;
   }
 
   /**
@@ -93,6 +97,10 @@ export class ObjectPool<T> {
    * If the pool is at capacity, the object is discarded (left for GC).
    */
   release(obj: T): void {
+    // Guard against double-release: only accept objects that were checked out
+    if (!this.checkedOut.delete(obj)) {
+      return;
+    }
     this.releaseCount++;
     if (this.items.length >= this.maxSize) {
       return; // Pool is full — discard

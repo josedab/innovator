@@ -74,7 +74,7 @@ export type AutomationLogEntry = z.infer<typeof AutomationLogEntrySchema>;
 
 const rules = new Map<string, AutomationRule>();
 const automationLog: AutomationLogEntry[] = [];
-const unsubscribes: (() => void)[] = [];
+const ruleUnsubscribes = new Map<string, () => void>();
 
 // ---- Rule Management ----
 
@@ -99,7 +99,7 @@ export function createAutomationRule(
     if (!automationRule.enabled) return;
     await evaluateAndExecute(automationRule, event);
   });
-  unsubscribes.push(unsub);
+  ruleUnsubscribes.set(automationRule.id, unsub);
 
   return automationRule;
 }
@@ -122,8 +122,13 @@ export function toggleAutomationRule(id: string, enabled: boolean): boolean {
   return true;
 }
 
-/** Delete an automation rule. */
+/** Delete an automation rule and unsubscribe its event listener. */
 export function deleteAutomationRule(id: string): boolean {
+  const unsub = ruleUnsubscribes.get(id);
+  if (unsub) {
+    unsub();
+    ruleUnsubscribes.delete(id);
+  }
   return rules.delete(id);
 }
 
@@ -307,6 +312,6 @@ export function createPipelineNotificationChain(channel: string = "general"): Au
 export function clearAutomation(): void {
   rules.clear();
   automationLog.length = 0;
-  for (const unsub of unsubscribes) unsub();
-  unsubscribes.length = 0;
+  for (const unsub of ruleUnsubscribes.values()) unsub();
+  ruleUnsubscribes.clear();
 }

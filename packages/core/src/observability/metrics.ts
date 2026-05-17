@@ -23,6 +23,8 @@ interface MetricValue {
 
 const definitions = new Map<string, MetricDefinition>();
 const values = new Map<string, MetricValue[]>();
+// Fast label lookup: metric name → (serialized labels → MetricValue)
+const labelIndex = new Map<string, Map<string, MetricValue>>();
 
 const DEFAULT_HISTOGRAM_BUCKETS = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000];
 
@@ -32,19 +34,37 @@ function ensureMetric(name: string, type: MetricType, help: string): void {
   if (!definitions.has(name)) {
     definitions.set(name, { name, type, help });
     values.set(name, []);
+    labelIndex.set(name, new Map());
   }
 }
 
-function findOrCreateValue(name: string, labels: Record<string, string>): MetricValue {
-  const list = values.get(name) ?? [];
-  const labelKey = JSON.stringify(labels);
-  let existing = list.find((v) => JSON.stringify(v.labels) === labelKey);
-  if (!existing) {
-    existing = { labels, value: 0 };
-    list.push(existing);
-    values.set(name, list);
+function serializeLabels(labels: Record<string, string>): string {
+  const keys = Object.keys(labels).sort();
+  if (keys.length === 0) return "";
+  let result = "";
+  for (const k of keys) {
+    result += `${k}\0${labels[k]}\0`;
   }
-  return existing;
+  return result;
+}
+
+function findOrCreateValue(name: string, labels: Record<string, string>): MetricValue {
+  const index = labelIndex.get(name);
+  const labelKey = serializeLabels(labels);
+
+  if (index) {
+    const existing = index.get(labelKey);
+    if (existing) return existing;
+  }
+
+  const list = values.get(name) ?? [];
+  const newValue: MetricValue = { labels, value: 0 };
+  list.push(newValue);
+  values.set(name, list);
+  if (index) {
+    index.set(labelKey, newValue);
+  }
+  return newValue;
 }
 
 // ---- Counter ----
@@ -225,4 +245,5 @@ export function getAllMetrics(): PrometheusMetric[] {
 export function clearMetrics(): void {
   definitions.clear();
   values.clear();
+  labelIndex.clear();
 }

@@ -311,6 +311,7 @@ function dbscanCluster(
 
     const clusterMembers = [i];
     const queue = [...neighbors];
+    const queued = new Set<number>(neighbors);
 
     while (queue.length > 0) {
       const j = queue.shift()!;
@@ -321,8 +322,9 @@ function dbscanCluster(
       const jNeighbors = getNeighbors(j, similarityMatrix, threshold);
       if (jNeighbors.length >= minSize - 1) {
         for (const k of jNeighbors) {
-          if (!visited.has(k) && !queue.includes(k)) {
+          if (!visited.has(k) && !queued.has(k)) {
             queue.push(k);
+            queued.add(k);
           }
         }
       }

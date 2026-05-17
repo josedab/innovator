@@ -127,7 +127,10 @@ export class WebhookManager {
         this.deliveryLog.push(delivery);
         lastDelivery = delivery;
 
-        if (response.ok) return delivery;
+        if (response.ok) {
+          this.trimCollections();
+          return delivery;
+        }
       } catch (err) {
         lastDelivery = {
           webhookId,

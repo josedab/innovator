@@ -12,6 +12,8 @@ import { recordPipelineExecution, recordLLMLatency } from "./metrics.js";
 import type { PipelineStageName, InstrumentedStage } from "./types.js";
 
 const activeStages = new Map<string, InstrumentedStage>();
+const MAX_ACTIVE_STAGES = 1_000;
+const STALE_STAGE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 /**
  * Begin instrumenting a pipeline stage.
@@ -34,6 +36,16 @@ export function beginStage(
   };
 
   activeStages.set(span.spanId, instrumented);
+
+  // Evict stale stages that were never ended (prevents unbounded growth)
+  if (activeStages.size > MAX_ACTIVE_STAGES) {
+    const now = Date.now();
+    for (const [id, s] of activeStages) {
+      if (now - new Date(s.startTime).getTime() > STALE_STAGE_TTL_MS) {
+        activeStages.delete(id);
+      }
+    }
+  }
 
   logger.info(`Pipeline stage started: ${stage}`, {
     stage,

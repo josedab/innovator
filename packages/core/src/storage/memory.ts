@@ -156,12 +156,20 @@ class MemoryApiGatewayStorage implements ApiGatewayStorage {
     return true;
   }
 
+  private static readonly MAX_USAGE_RECORDS = 10_000;
+
   async recordUsage(record: UsageRecord): Promise<void> {
     this.usage.push(record);
+    // Evict oldest records when exceeding capacity
+    if (this.usage.length > MemoryApiGatewayStorage.MAX_USAGE_RECORDS) {
+      this.usage.splice(0, this.usage.length - MemoryApiGatewayStorage.MAX_USAGE_RECORDS);
+    }
   }
 
   async getUsageRecords(keyId: string, since?: string): Promise<UsageRecord[]> {
-    return this.usage.filter((r) => r.keyId === keyId && (!since || r.timestamp >= since));
+    return structuredClone(
+      this.usage.filter((r) => r.keyId === keyId && (!since || r.timestamp >= since))
+    );
   }
 
   async saveWebhook(keyId: string, url: string): Promise<void> {
@@ -171,7 +179,7 @@ class MemoryApiGatewayStorage implements ApiGatewayStorage {
   }
 
   async getWebhooks(keyId: string): Promise<string[]> {
-    return this.webhooks.get(keyId) ?? [];
+    return [...(this.webhooks.get(keyId) ?? [])];
   }
 
   async removeWebhook(keyId: string, url: string): Promise<boolean> {
@@ -214,9 +222,13 @@ class MemoryCollaborationStorage implements CollaborationStorage {
 
 class MemoryAnalyticsStorage implements AnalyticsStorage {
   private events: AnalyticsEvent[] = [];
+  private static readonly MAX_EVENTS = 10_000;
 
   async trackEvent(event: AnalyticsEvent): Promise<void> {
     this.events.push(event);
+    if (this.events.length > MemoryAnalyticsStorage.MAX_EVENTS) {
+      this.events.splice(0, this.events.length - MemoryAnalyticsStorage.MAX_EVENTS);
+    }
   }
 
   async readEvents(limit?: number): Promise<AnalyticsEvent[]> {

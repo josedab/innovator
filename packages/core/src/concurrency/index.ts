@@ -58,13 +58,14 @@ export class Semaphore {
 
   /**
    * Reduce the maximum permit count. Takes effect as permits are released.
-   * Cannot reduce below 1 or below the number of currently acquired permits.
+   * Cannot reduce below 1.
    */
   shrink(newMax: number): void {
-    if (newMax < 1) return;
-    // Reduce available permits to enforce the new cap
-    this.permits = Math.max(0, Math.min(this.permits, newMax - (this.maxPermits - this.permits)));
+    if (!Number.isFinite(newMax) || newMax < 1) return;
+    const acquired = this.maxPermits - this.permits;
     this.maxPermits = newMax;
+    // Available permits = new max minus currently acquired, clamped to 0
+    this.permits = Math.max(0, newMax - acquired);
   }
 
   /** Current number of available permits. */
@@ -143,6 +144,28 @@ export class TaskRunner {
       throw new ConfigurationError(
         `TaskRunner: concurrency must be >= 1, got ${this.concurrency}`,
         "concurrency"
+      );
+    }
+    if (!Number.isFinite(this.minConcurrency) || this.minConcurrency < 1) {
+      throw new ConfigurationError(
+        `TaskRunner: minConcurrency must be >= 1, got ${this.minConcurrency}`,
+        "minConcurrency"
+      );
+    }
+    if (
+      !Number.isFinite(this.errorThreshold) ||
+      this.errorThreshold < 0 ||
+      this.errorThreshold > 1
+    ) {
+      throw new ConfigurationError(
+        `TaskRunner: errorThreshold must be between 0 and 1, got ${this.errorThreshold}`,
+        "errorThreshold"
+      );
+    }
+    if (this.minConcurrency > this.concurrency) {
+      throw new ConfigurationError(
+        `TaskRunner: minConcurrency (${this.minConcurrency}) must be <= concurrency (${this.concurrency})`,
+        "minConcurrency"
       );
     }
   }

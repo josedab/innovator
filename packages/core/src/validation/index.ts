@@ -537,7 +537,7 @@ export async function validateComprehensive(
     marketChecks.length > 0
       ? marketChecks.reduce((s, c) => s + c.score, 0) / marketChecks.length
       : 50;
-  const _avgCompetitorScore =
+  const avgCompetitorScore =
     competitorChecks.length > 0
       ? competitorChecks.reduce((s, c) => s + c.score, 0) / competitorChecks.length
       : 50;
@@ -546,12 +546,13 @@ export async function validateComprehensive(
       ? regulatoryChecks.reduce((s, c) => s + c.score, 0) / regulatoryChecks.length
       : 50;
 
+  // Market temperature: high score = hot market (high opportunity), low = cold/saturated
   const marketTemperature: ComprehensiveValidation["marketContext"]["marketTemperature"] =
-    avgMarketScore < 25
+    avgMarketScore >= 75
       ? "hot"
-      : avgMarketScore < 50
+      : avgMarketScore >= 50
         ? "warming"
-        : avgMarketScore < 75
+        : avgMarketScore >= 25
           ? "cold"
           : "saturated";
 
@@ -562,7 +563,7 @@ export async function validateComprehensive(
     scorecard.results.length === 0
       ? "unknown"
       : scorecard.results.filter((r) => r.overallStatus === "validated").length >
-          scorecard.results.length / 2
+            scorecard.results.length / 2 && avgCompetitorScore >= 40
         ? "strong"
         : scorecard.results.filter((r) => r.overallStatus !== "risky").length >
             scorecard.results.length / 2

@@ -157,8 +157,9 @@ export class LRUCache<K, V> {
     return this.map.size;
   }
 
-  /** Return a snapshot of cache hit/miss statistics. */
+  /** Return a snapshot of cache hit/miss statistics. Prunes expired entries first for accuracy. */
   stats(): CacheStats {
+    this.prune();
     const total = this.hitCount + this.missCount;
     return {
       hits: this.hitCount,
@@ -242,8 +243,9 @@ export function memoizeAsync<Args extends unknown[], R>(
   const memoized = (...args: Args): Promise<R> => {
     const key = resolveKey(...args);
 
-    // Return cached resolved value if available
-    if (cache.has(key)) return Promise.resolve(cache.get(key) as R);
+    // Single lookup: avoids the has()+get() double-lookup and TTL race
+    const cached = cache.get(key);
+    if (cached !== undefined) return Promise.resolve(cached);
 
     // Deduplicate concurrent calls: if a call for this key is already
     // in flight, piggyback on its result instead of starting a new one

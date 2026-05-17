@@ -64,6 +64,7 @@ interface IndexedDocument {
 const index = new Map<string, IndexedDocument>();
 const idfCache = new Map<string, number>();
 let idfDirty = true;
+const MAX_INDEX_SIZE = 50_000;
 
 // ---- Text Processing ----
 
@@ -250,6 +251,16 @@ export function indexDocument(doc: Omit<EmbeddingDocument, "id" | "createdAt">):
 
   index.set(document.id, { document, vector, magnitude });
   idfDirty = true;
+
+  // Evict oldest documents when index exceeds capacity
+  if (index.size > MAX_INDEX_SIZE) {
+    const iter = index.keys();
+    const toRemove = index.size - MAX_INDEX_SIZE;
+    for (let i = 0; i < toRemove; i++) {
+      const oldest = iter.next().value;
+      if (oldest !== undefined) index.delete(oldest);
+    }
+  }
 
   return document;
 }

@@ -114,6 +114,7 @@ export class TokenBudgetManager {
   private profile: TokenBudgetProfile;
   private accounts = new Map<string, StageTokenAccount>();
   private warnings: string[] = [];
+  private static readonly MAX_WARNINGS = 200;
 
   constructor(profile: TokenBudgetProfile | string = "standard") {
     this.profile =
@@ -173,6 +174,10 @@ export class TokenBudgetManager {
     } else if (account.utilizationPct >= 100) {
       account.truncated = true;
       this.warnings.push(`Stage "${stage}" exceeded token budget (${account.utilizationPct}%)`);
+    }
+    // Cap warnings to prevent unbounded growth
+    if (this.warnings.length > TokenBudgetManager.MAX_WARNINGS) {
+      this.warnings.splice(0, this.warnings.length - TokenBudgetManager.MAX_WARNINGS);
     }
 
     return account;

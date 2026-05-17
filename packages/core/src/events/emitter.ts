@@ -104,6 +104,11 @@ export class EventBus {
    */
   enableBuffering(intervalMs?: number): void {
     this.bufferEnabled = true;
+    // Clear any existing flush interval to prevent duplicates
+    if (this.flushIntervalId) {
+      clearInterval(this.flushIntervalId);
+      this.flushIntervalId = undefined;
+    }
     if (intervalMs && intervalMs > 0) {
       this.flushIntervalId = setInterval(() => {
         this.flush().catch(() => {});
