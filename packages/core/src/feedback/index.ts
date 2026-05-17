@@ -56,7 +56,9 @@ function ensureFeedbackDir(): void {
   }
 }
 
-/** Submit feedback for an idea. */
+/** Submit feedback for an idea.
+ * @throws {z.ZodError} if the feedback data fails schema validation
+ */
 export function submitFeedback(params: {
   sessionId?: string;
   ideaTitle: string;
@@ -66,7 +68,7 @@ export function submitFeedback(params: {
 }): string {
   ensureFeedbackDir();
   const id = randomUUID();
-  const feedback: IdeaFeedback = {
+  const feedback = IdeaFeedbackSchema.parse({
     id,
     sessionId: params.sessionId,
     ideaTitle: params.ideaTitle,
@@ -74,7 +76,7 @@ export function submitFeedback(params: {
     rating: params.rating,
     comment: params.comment,
     timestamp: new Date().toISOString(),
-  };
+  });
   writeFileSync(join(FEEDBACK_DIR, `${id}.json`), JSON.stringify(feedback, null, 2), "utf-8");
   return id;
 }

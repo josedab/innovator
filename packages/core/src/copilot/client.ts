@@ -264,10 +264,52 @@ export function extractJsonCacheStats() {
 /**
  * Strip trailing commas before closing braces/brackets in JSON.
  * LLMs frequently produce JSON with trailing commas which is invalid per spec.
- * Only removes commas outside of string literals.
+ * Tracks string literal boundaries to avoid corrupting values.
  */
 function stripTrailingCommas(json: string): string {
-  return json.replace(/,\s*([}\]])/g, "$1");
+  const result: string[] = [];
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i];
+
+    if (escaped) {
+      result.push(ch);
+      escaped = false;
+      continue;
+    }
+
+    if (ch === "\\" && inString) {
+      result.push(ch);
+      escaped = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      result.push(ch);
+      continue;
+    }
+
+    if (!inString && ch === ",") {
+      // Look ahead: if only whitespace before a closing brace/bracket, skip the comma
+      let j = i + 1;
+      while (
+        j < json.length &&
+        (json[j] === " " || json[j] === "\t" || json[j] === "\n" || json[j] === "\r")
+      ) {
+        j++;
+      }
+      if (j < json.length && (json[j] === "}" || json[j] === "]")) {
+        continue; // skip trailing comma
+      }
+    }
+
+    result.push(ch);
+  }
+
+  return result.join("");
 }
 
 /**

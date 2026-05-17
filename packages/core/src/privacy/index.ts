@@ -47,6 +47,12 @@ function ensureDir(): void {
 
 /** Generate Laplace noise for ε-differential privacy. */
 export function laplaceMechanism(sensitivity: number, epsilon: number): number {
+  if (epsilon <= 0 || !Number.isFinite(epsilon)) {
+    throw new Error("laplaceMechanism: epsilon must be a positive finite number");
+  }
+  if (sensitivity < 0 || !Number.isFinite(sensitivity)) {
+    throw new Error("laplaceMechanism: sensitivity must be a non-negative finite number");
+  }
   const scale = sensitivity / epsilon;
   const u = Math.random() - 0.5;
   return -scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
@@ -54,6 +60,15 @@ export function laplaceMechanism(sensitivity: number, epsilon: number): number {
 
 /** Generate Gaussian noise for (ε,δ)-differential privacy. */
 export function gaussianMechanism(sensitivity: number, epsilon: number, delta: number): number {
+  if (epsilon <= 0 || !Number.isFinite(epsilon)) {
+    throw new Error("gaussianMechanism: epsilon must be a positive finite number");
+  }
+  if (delta <= 0 || delta >= 1 || !Number.isFinite(delta)) {
+    throw new Error("gaussianMechanism: delta must be in (0, 1)");
+  }
+  if (sensitivity < 0 || !Number.isFinite(sensitivity)) {
+    throw new Error("gaussianMechanism: sensitivity must be a non-negative finite number");
+  }
   const sigma = (sensitivity * Math.sqrt(2 * Math.log(1.25 / delta))) / epsilon;
   // Box-Muller transform
   const u1 = Math.random();
