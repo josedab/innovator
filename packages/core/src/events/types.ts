@@ -17,6 +17,8 @@ export const EventTypeSchema = z.enum([
   "idea.created",
   "idea.scored",
   "session.saved",
+  "retry.attempt",
+  "retry.exhausted",
 ]);
 
 export type EventType = z.infer<typeof EventTypeSchema>;

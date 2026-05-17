@@ -1,6 +1,7 @@
 import { CopilotClient } from "@github/copilot-sdk";
 import type { PermissionRequest } from "@github/copilot-sdk";
 import { AbortError, LlmError, LlmTimeoutError, LlmParseError } from "../errors.js";
+import { LRUCache } from "../cache/index.js";
 
 const DEFAULT_MODEL = process.env.INNOVATOR_DEFAULT_MODEL || "gpt-4.1";
 
@@ -231,11 +232,35 @@ export async function generateTextStream(
 }
 
 /**
+ * LRU cache for extractJson — avoids re-parsing identical LLM responses.
+ * Bounded to 128 entries with a 5-minute TTL to limit memory usage.
+ */
+const extractJsonCache = new LRUCache<string, string>({ maxSize: 128, ttlMs: 300_000 });
+
+/**
  * Extract JSON from an LLM response that may contain markdown or extra text.
  * Supports both JSON objects (`{...}`) and JSON arrays (`[...]`).
  * Uses bracket-balanced extraction instead of greedy regex.
+ * Results are cached to avoid re-parsing identical responses.
  */
 export function extractJson(raw: string): string {
+  const cached = extractJsonCache.get(raw);
+  if (cached !== undefined) return cached;
+
+  const result = extractJsonUncached(raw);
+  extractJsonCache.set(raw, result);
+  return result;
+}
+
+/** Expose cache stats for observability. */
+export function extractJsonCacheStats() {
+  return extractJsonCache.stats();
+}
+
+/**
+ * Uncached JSON extraction implementation.
+ */
+function extractJsonUncached(raw: string): string {
   // Try fenced JSON block first
   const fenced = raw.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
   if (fenced) {

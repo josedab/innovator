@@ -397,6 +397,7 @@ describe("Marketplace Enhanced – Template Registry", () => {
     });
 
     it("skips duplicates on import", () => {
+      clearTemplateRegistry();
       const a = publishTemplate(makeTemplate({ name: "dup" }));
       const bundleJson = exportBundle([a.id]);
       // Import again without clearing – template already exists

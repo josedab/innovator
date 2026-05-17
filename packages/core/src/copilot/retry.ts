@@ -16,6 +16,7 @@ export interface RetryOptions {
 import { AbortError, ConfigurationError } from "../errors.js";
 import { RateLimitError, LlmParseError, InnovatorError } from "../errors.js";
 import type { InnovatorErrorCode } from "../errors.js";
+import { getEventBus } from "../events/emitter.js";
 
 /** Error thrown when all retry attempts are exhausted. Preserves the original error as `cause`. */
 export class RetryExhaustedError extends InnovatorError {
@@ -123,12 +124,28 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
 
       if (attempt === maxAttempts) {
         const cause = error instanceof Error ? error : new Error(String(error));
+        getEventBus()
+          .emit("retry.exhausted", {
+            attempts: maxAttempts,
+            error: cause.message,
+          })
+          .catch(() => {});
         throw new RetryExhaustedError(cause, maxAttempts);
       }
 
       if (!isRetryable(error) || signal?.aborted) {
         throw error;
       }
+
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      getEventBus()
+        .emit("retry.attempt", {
+          attempt,
+          maxAttempts,
+          error: errorMsg,
+          nextDelayMs: delay,
+        })
+        .catch(() => {});
 
       // Full jitter: randomize between 50%-100% of computed delay to spread retries
       const jitter = delay * (0.5 + Math.random() * 0.5);

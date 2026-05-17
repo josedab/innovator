@@ -1,8 +1,10 @@
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { AbortError, PipelineError, LlmParseError, ConfigurationError } from "../errors.js";
+import { AbortError, PipelineError, LlmParseError } from "../errors.js";
 import { buildSynthesisPrompt } from "../prompts/investigation.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { runConcurrent } from "../concurrency/index.js";
+import { getEventBus } from "../events/emitter.js";
 import {
   ANGLE_IDS,
   MAX_CONCURRENCY,
@@ -25,74 +27,6 @@ function sanitizeErrorMessage(stage: string): string {
 function isAbortError(err: unknown): boolean {
   if (err instanceof AbortError) return true;
   return err instanceof Error && /abort/i.test(err.message);
-}
-
-/** Result of running tasks with bounded concurrency, collecting both successes and per-task errors. */
-interface ConcurrencyResult<T> {
-  /** Ordered results array matching the input task indices; `undefined` for failed tasks. */
-  results: (T | undefined)[];
-  /** Errors captured per task, indexed to match the original task array. */
-  errors: { index: number; error: Error }[];
-}
-
-/**
- * Execute an array of async task factories with a bounded concurrency limit (semaphore pattern).
- *
- * Uses a `Set` of in-flight promises and `Promise.race` to wait for a slot
- * when the concurrency cap is reached, ensuring at most `concurrency` tasks
- * run simultaneously.
- */
-async function runWithConcurrency<T>(
-  tasks: (() => Promise<T>)[],
-  concurrency: number,
-  signal?: AbortSignal
-): Promise<ConcurrencyResult<T>> {
-  if (!Number.isFinite(concurrency) || concurrency < 1) {
-    throw new ConfigurationError(
-      `runWithConcurrency: concurrency must be >= 1, got ${concurrency}`,
-      "concurrency"
-    );
-  }
-  if (tasks.length === 0) {
-    return { results: [], errors: [] };
-  }
-
-  const results: (T | undefined)[] = new Array(tasks.length);
-  const errors: { index: number; error: Error }[] = [];
-  // Active promise pool — acts as the semaphore's permit set
-  const executing: Set<Promise<void>> = new Set();
-
-  for (let i = 0; i < tasks.length; i++) {
-    if (signal?.aborted) break;
-
-    const index = i;
-    // Start the task and record its result or error by index
-    const p = tasks[index]()
-      .then((result) => {
-        results[index] = result;
-      })
-      .catch((err) => {
-        errors.push({
-          index,
-          error: err instanceof Error ? err : new Error(String(err)),
-        });
-      });
-    // Wrap the promise so it removes itself from the pool on completion
-    const wrapped = p.then(() => {
-      executing.delete(wrapped);
-    });
-    executing.add(wrapped);
-
-    // When the pool is full, wait for the first task to finish (release a permit)
-    if (executing.size >= concurrency) {
-      await Promise.race(executing);
-    }
-  }
-
-  // Wait for all remaining in-flight tasks to settle
-  await Promise.all(executing);
-
-  return { results, errors };
 }
 
 /**
@@ -126,6 +60,7 @@ export async function runAutoPipeline(
   const selectedAngles = angles ?? [...ANGLE_IDS];
   let terminated = false;
   const pipelineStart = Date.now();
+  const bus = getEventBus();
 
   const progress: PipelineProgress = {
     stage: "investigating",
@@ -145,6 +80,7 @@ export async function runAutoPipeline(
   };
 
   safeProgress(progress);
+  bus.emit("pipeline.started", { subject, angles: selectedAngles }).catch(() => {});
 
   // Step 1: Investigate
   if (signal?.aborted) {
@@ -158,13 +94,23 @@ export async function runAutoPipeline(
 
   let investigation: Investigation;
   const investigationStart = Date.now();
+  bus.emit("investigation.started", { subject }).catch(() => {});
   try {
     investigation = await investigate(subject, modelRouting?.investigation ?? model, signal);
     progress.investigation = investigation;
     progress.durationMs!.investigation = Date.now() - investigationStart;
+    bus
+      .emit("investigation.completed", { subject, durationMs: progress.durationMs!.investigation })
+      .catch(() => {});
   } catch (err) {
     progress.durationMs!.investigation = Date.now() - investigationStart;
     progress.durationMs!.total = Date.now() - pipelineStart;
+    bus
+      .emit("investigation.failed", {
+        subject,
+        error: err instanceof Error ? err.message : String(err),
+      })
+      .catch(() => {});
     if (isAbortError(err)) {
       progress.stage = "error";
       progress.stoppedEarly = true;
@@ -215,7 +161,7 @@ export async function runAutoPipeline(
   );
 
   try {
-    const { results: orderedResults, errors: angleErrors } = await runWithConcurrency(
+    const { results: orderedResults, errors: angleErrors } = await runConcurrent(
       tasks,
       MAX_CONCURRENCY,
       signal
@@ -251,6 +197,9 @@ export async function runAutoPipeline(
   // Step 3: Synthesize
   progress.stage = "synthesizing";
   safeProgress(progress);
+  bus
+    .emit("synthesis.started", { subject, angleCount: progress.angleResults.length })
+    .catch(() => {});
 
   if (signal?.aborted) {
     progress.stage = "error";
@@ -292,9 +241,18 @@ export async function runAutoPipeline(
 
     progress.synthesis = SynthesisSchema.parse(parsedJson);
     progress.durationMs!.synthesis = Date.now() - synthesisStart;
+    bus
+      .emit("synthesis.completed", { subject, durationMs: progress.durationMs!.synthesis })
+      .catch(() => {});
   } catch (err) {
     progress.durationMs!.synthesis = Date.now() - synthesisStart;
     progress.durationMs!.total = Date.now() - pipelineStart;
+    bus
+      .emit("synthesis.failed", {
+        subject,
+        error: err instanceof Error ? err.message : String(err),
+      })
+      .catch(() => {});
     if (isAbortError(err)) {
       progress.stage = "error";
       progress.stoppedEarly = true;
@@ -311,6 +269,13 @@ export async function runAutoPipeline(
   progress.stage = "complete";
   progress.durationMs!.total = Date.now() - pipelineStart;
   terminated = true;
+  bus
+    .emit("pipeline.completed", {
+      subject,
+      durationMs: progress.durationMs!.total,
+      angleCount: progress.angleResults.length,
+    })
+    .catch(() => {});
   safeProgress(progress);
   return progress;
 }

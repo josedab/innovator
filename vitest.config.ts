@@ -12,9 +12,12 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    // Disable file-level parallelism to prevent shared file state conflicts
-    // (marketplace, white-label, and other modules use ~/.innovator/ files)
-    fileParallelism: false,
+    // Enable file-level parallelism for faster CI — tests should use temp directories
+    // for any file I/O to avoid shared-state conflicts
+    fileParallelism: true,
+    // Limit worker pool to avoid overwhelming CI runners
+    pool: "forks",
+    maxForks: 4,
     // Run tests in both packages and apps workspaces
     include: ["packages/*/src/**/*.test.ts", "apps/*/src/**/*.test.{ts,tsx}"],
     // Use jsdom environment for web app tests (React components need DOM APIs)

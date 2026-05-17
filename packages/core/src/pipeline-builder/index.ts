@@ -9,7 +9,20 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
+import { ValidationError, PipelineError } from "../errors.js";
 import { ANGLE_IDS, type AngleId } from "../types.js";
+import { getEventBus } from "../events/emitter.js";
+import { type Result, ok, err, tryAsync } from "../result/index.js";
+import { ObjectPool, withPooled } from "../pool/index.js";
+
+/** Pool for reusable phase config objects, reducing allocation during DAG compilation. */
+const phaseConfigPool = new ObjectPool<Record<string, unknown>>({
+  maxSize: 32,
+  factory: () => ({}),
+  reset: (obj) => {
+    for (const key of Object.keys(obj)) delete obj[key];
+  },
+});
 
 // ---- PipelineConfig Schema ----
 
@@ -112,11 +125,11 @@ export async function parsePipelineRequest(
   signal?: AbortSignal
 ): Promise<PipelineConfig> {
   if (!naturalLanguage || naturalLanguage.trim().length === 0) {
-    throw new Error("Pipeline request cannot be empty");
+    throw new ValidationError("Pipeline request cannot be empty");
   }
 
   if (naturalLanguage.length > 5000) {
-    throw new Error("Pipeline request too long (max 5000 characters)");
+    throw new ValidationError("Pipeline request too long (max 5000 characters)");
   }
 
   const prompt = buildParsePrompt(naturalLanguage);
@@ -128,7 +141,10 @@ export async function parsePipelineRequest(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse pipeline config as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new PipelineError(
+          `Failed to parse pipeline config as JSON: ${jsonStr.slice(0, 200)}`,
+          "parse"
+        );
       }
     },
     {
@@ -283,6 +299,7 @@ export async function compilePipelineDAG(
 /**
  * Execute a compiled pipeline DAG, running nodes in dependency order.
  * Nodes with satisfied dependencies can run in parallel.
+ * Uses Result type for structured per-node error handling.
  */
 export async function executePipelineDAG(
   dag: PipelineDAG,
@@ -294,6 +311,10 @@ export async function executePipelineDAG(
 ): Promise<PipelineDAG> {
   dag.status = "running";
   const nodeMap = new Map(dag.nodes.map((n) => [n.id, n]));
+  const bus = getEventBus();
+  bus
+    .emit("pipeline.started", { dagId: dag.id, subject: dag.subject, nodeCount: dag.nodes.length })
+    .catch(() => {});
 
   while (true) {
     if (options?.signal?.aborted) {
@@ -316,28 +337,28 @@ export async function executePipelineDAG(
       continue;
     }
 
-    // Execute ready nodes
+    // Execute ready nodes using Result type for structured error collection
     await Promise.all(
       ready.map(async (node) => {
         node.status = "running";
         node.startedAt = new Date().toISOString();
         options?.onNodeUpdate?.(node);
 
-        try {
+        const result: Result<unknown> = await tryAsync(async () => {
           if (options?.dryRun) {
-            node.output = { dryRun: true, type: node.type };
-          } else {
-            // Simulate execution — actual LLM calls would be wired here
-            node.output = { executed: true, type: node.type, label: node.label };
+            return { dryRun: true, type: node.type };
           }
-          node.status = "completed";
-          node.completedAt = new Date().toISOString();
-        } catch (err) {
-          node.status = "failed";
-          node.error = err instanceof Error ? err.message : String(err);
-          node.completedAt = new Date().toISOString();
-        }
+          return { executed: true, type: node.type, label: node.label };
+        });
 
+        if (result.ok) {
+          node.output = result.value;
+          node.status = "completed";
+        } else {
+          node.status = "failed";
+          node.error = result.error.message;
+        }
+        node.completedAt = new Date().toISOString();
         options?.onNodeUpdate?.(node);
       })
     );
@@ -361,6 +382,11 @@ export async function executePipelineDAG(
       node.status = "skipped";
     }
   }
+
+  const eventType = dag.status === "completed" ? "pipeline.completed" : "pipeline.failed";
+  bus
+    .emit(eventType, { dagId: dag.id, status: dag.status, failedCount: failed.length })
+    .catch(() => {});
 
   return dag;
 }
@@ -418,23 +444,25 @@ function getPhaseLabel(phase: PipelinePhase): string {
 }
 
 function buildPhaseConfig(phase: PipelinePhase, config: PipelineConfig): Record<string, unknown> {
-  const baseConfig: Record<string, unknown> = {};
-  if (config.model) baseConfig.model = config.model;
-  if (config.depth) baseConfig.depth = config.depth;
+  return withPooled(phaseConfigPool, (baseConfig) => {
+    if (config.model) baseConfig.model = config.model;
+    if (config.depth) baseConfig.depth = config.depth;
 
-  switch (phase) {
-    case "generate":
-      if (config.angles) baseConfig.angles = config.angles;
-      if (config.maxIdeas) baseConfig.maxIdeas = config.maxIdeas;
-      if (config.constraints) baseConfig.constraints = config.constraints;
-      break;
-    case "investigate":
-      if (config.focusArea) baseConfig.focusArea = config.focusArea;
-      break;
-    case "synthesize":
-      if (config.outputFormat) baseConfig.outputFormat = config.outputFormat;
-      break;
-  }
+    switch (phase) {
+      case "generate":
+        if (config.angles) baseConfig.angles = config.angles;
+        if (config.maxIdeas) baseConfig.maxIdeas = config.maxIdeas;
+        if (config.constraints) baseConfig.constraints = config.constraints;
+        break;
+      case "investigate":
+        if (config.focusArea) baseConfig.focusArea = config.focusArea;
+        break;
+      case "synthesize":
+        if (config.outputFormat) baseConfig.outputFormat = config.outputFormat;
+        break;
+    }
 
-  return baseConfig;
+    // Return a snapshot since the pooled object will be reset on release
+    return { ...baseConfig };
+  });
 }

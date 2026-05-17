@@ -34,6 +34,8 @@ export {
   generateTextStream,
   /** Extract and parse a JSON object from an LLM text response. */
   extractJson,
+  /** Get cache statistics for the extractJson LRU cache. */
+  extractJsonCacheStats,
 } from "./copilot/client.js";
 
 /** Options for {@link generateText} and {@link generateTextStream}. */
