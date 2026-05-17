@@ -40,6 +40,13 @@ async function runWithConcurrency<T>(
   concurrency: number,
   signal?: AbortSignal
 ): Promise<ConcurrencyResult<T>> {
+  if (!Number.isFinite(concurrency) || concurrency < 1) {
+    throw new Error(`runWithConcurrency: concurrency must be >= 1, got ${concurrency}`);
+  }
+  if (tasks.length === 0) {
+    return { results: [], errors: [] };
+  }
+
   const results: (T | undefined)[] = new Array(tasks.length);
   const errors: { index: number; error: Error }[] = [];
   // Active promise pool — acts as the semaphore's permit set

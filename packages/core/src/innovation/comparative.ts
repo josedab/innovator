@@ -151,6 +151,16 @@ export async function runComparativePipeline(
     throw new Error("Comparative analysis requires 2-5 subjects");
   }
 
+  const emptySubjects = subjects.filter((s) => !s.trim());
+  if (emptySubjects.length > 0) {
+    throw new Error("Comparative analysis: all subjects must be non-empty strings");
+  }
+
+  const uniqueSubjects = new Set(subjects.map((s) => s.trim().toLowerCase()));
+  if (uniqueSubjects.size !== subjects.length) {
+    throw new Error("Comparative analysis: subjects must be unique (duplicates found)");
+  }
+
   const subjectProgress = new Map<string, PipelineProgress>();
   const subjectResults: Array<{
     subject: string;
