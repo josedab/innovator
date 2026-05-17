@@ -296,3 +296,34 @@ describe("memoizeAsync", () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("LRUCache.getOrSet", () => {
+  it("returns cached value without calling factory", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 10 });
+    cache.set("a", 42);
+    const factory = vi.fn(() => 99);
+    expect(cache.getOrSet("a", factory)).toBe(42);
+    expect(factory).not.toHaveBeenCalled();
+  });
+
+  it("calls factory on miss and caches result", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 10 });
+    const factory = vi.fn(() => 99);
+    expect(cache.getOrSet("a", factory)).toBe(99);
+    expect(factory).toHaveBeenCalledTimes(1);
+    // Second call should use cached value
+    const factory2 = vi.fn(() => 100);
+    expect(cache.getOrSet("a", factory2)).toBe(99);
+    expect(factory2).not.toHaveBeenCalled();
+  });
+
+  it("tracks hit/miss stats correctly", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 10 });
+    cache.getOrSet("a", () => 1); // miss
+    cache.getOrSet("a", () => 2); // hit
+    cache.getOrSet("b", () => 3); // miss
+    const stats = cache.stats();
+    expect(stats.hits).toBe(1);
+    expect(stats.misses).toBe(2);
+  });
+});

@@ -84,6 +84,14 @@ export function registerModel(model: ModelCapability): void {
   customModels.push(model);
 }
 
+/** Unregister a custom model by ID. Returns true if a model was removed. */
+export function unregisterModel(modelId: string): boolean {
+  const index = customModels.findIndex((m) => m.modelId === modelId);
+  if (index === -1) return false;
+  customModels.splice(index, 1);
+  return true;
+}
+
 /** Get capability info for a specific model. */
 export function getModelCapability(modelId: string): ModelCapability | undefined {
   return getModelRegistry().find((m) => m.modelId === modelId);
@@ -220,7 +228,7 @@ export async function compareModels(
   generateFn: GenerateFn,
   signal?: AbortSignal
 ): Promise<ModelComparisonResult> {
-  const resolvedAngleId = typeof angleId === "string" ? angleId : angleId;
+  const resolvedAngleId = String(angleId);
 
   const promises = models.map(async (model) => {
     const start = Date.now();

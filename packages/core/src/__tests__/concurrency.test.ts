@@ -180,3 +180,28 @@ describe("runConcurrent", () => {
     expect(result.errors).toHaveLength(0);
   });
 });
+
+describe("Semaphore.shrink", () => {
+  it("reduces available permits", () => {
+    const sem = new Semaphore(4);
+    expect(sem.available).toBe(4);
+    sem.shrink(2);
+    expect(sem.available).toBe(2);
+  });
+
+  it("does not reduce below 1", () => {
+    const sem = new Semaphore(4);
+    sem.shrink(0);
+    // shrink(0) is a no-op since newMax < 1
+    expect(sem.available).toBe(4);
+  });
+
+  it("respects already-acquired permits", async () => {
+    const sem = new Semaphore(3);
+    await sem.acquire(); // 2 available
+    sem.shrink(2);
+    // 1 permit was acquired, newMax=2, so available should be at most 1
+    expect(sem.available).toBeLessThanOrEqual(1);
+    sem.release();
+  });
+});

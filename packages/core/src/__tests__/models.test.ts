@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import {
   getModelRegistry,
   registerModel,
+  unregisterModel,
   getModelCapability,
   getSmartRouting,
   clearCustomModels,
@@ -136,6 +137,33 @@ describe("models", () => {
       expect(gpt5s).toHaveLength(1);
       expect(gpt5s[0].source).toBe("built-in");
       vi.unstubAllEnvs();
+    });
+  });
+
+  describe("unregisterModel", () => {
+    it("removes a custom model by ID", () => {
+      registerModel({
+        modelId: "temp-model",
+        displayName: "Temporary",
+        strengths: ["generation"],
+        costTier: "low",
+        speedTier: "fast",
+        qualityTier: "standard",
+      });
+      expect(getModelCapability("temp-model")).toBeDefined();
+      const removed = unregisterModel("temp-model");
+      expect(removed).toBe(true);
+      expect(getModelCapability("temp-model")).toBeUndefined();
+    });
+
+    it("returns false for non-existent model", () => {
+      expect(unregisterModel("no-such-model")).toBe(false);
+    });
+
+    it("does not remove built-in models", () => {
+      const removed = unregisterModel("gpt-5");
+      expect(removed).toBe(false);
+      expect(getModelCapability("gpt-5")).toBeDefined();
     });
   });
 });

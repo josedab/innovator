@@ -295,6 +295,8 @@ export {
   getModelRegistry,
   /** Register a custom model definition. */
   registerModel,
+  /** Unregister a custom model by ID. */
+  unregisterModel,
   /** Query a model's capabilities (context window, streaming, etc.). */
   getModelCapability,
   /** Get a unified list of all available models from all sources. */

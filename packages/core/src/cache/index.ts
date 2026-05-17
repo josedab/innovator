@@ -119,6 +119,27 @@ export class LRUCache<K, V> {
     return true;
   }
 
+  /**
+   * Get the value for a key if present, otherwise compute it via `factory`,
+   * store the result, and return it. Avoids the has()+get() double-lookup.
+   */
+  getOrSet(key: K, factory: () => V): V {
+    const entry = this.map.get(key);
+    if (entry && !this.isExpired(entry)) {
+      // Promote to most-recently-used
+      this.map.delete(key);
+      this.map.set(key, entry);
+      this.hitCount++;
+      return entry.value;
+    }
+    // Miss or expired
+    if (entry) this.map.delete(key);
+    this.missCount++;
+    const value = factory();
+    this.set(key, value);
+    return value;
+  }
+
   /** Remove a specific entry. Returns `true` if the entry existed. */
   delete(key: K): boolean {
     return this.map.delete(key);
@@ -187,13 +208,7 @@ export function memoize<Args extends unknown[], R>(
 
   const memoized = (...args: Args): R => {
     const key = resolveKey(...args);
-    // Use has() instead of get() !== undefined so functions returning
-    // undefined are correctly cached (get() can't distinguish a miss
-    // from a cached undefined value).
-    if (cache.has(key)) return cache.get(key) as R;
-    const result = fn(...args);
-    cache.set(key, result);
-    return result;
+    return cache.getOrSet(key, () => fn(...args));
   };
 
   memoized.cache = cache;

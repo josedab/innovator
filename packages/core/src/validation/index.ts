@@ -283,20 +283,26 @@ export async function validateIdea(
 
   const checks: ValidationCheck[] = [];
 
-  for (const validator of activeValidators) {
-    if (signal?.aborted) break;
+  // Run validators in parallel for better performance
+  const validatorPromises = activeValidators.map(async (validator) => {
+    if (signal?.aborted) return null;
     try {
-      const check = await validator.validate(idea, domain, signal);
-      checks.push(check);
-    } catch {
-      checks.push({
+      return await validator.validate(idea, domain, signal);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return {
         source: validator.name,
         category: validator.category,
-        status: "unknown",
+        status: "unknown" as const,
         score: 50,
-        summary: `Validation check failed: ${validator.name}. Results may be incomplete.`,
-      });
+        summary: `Validation check failed for ${validator.name}: ${errorMsg}`,
+      };
     }
+  });
+
+  const settled = await Promise.all(validatorPromises);
+  for (const check of settled) {
+    if (check) checks.push(check);
   }
 
   // Compute overall score: inverse average of risk scores (higher = more validated)

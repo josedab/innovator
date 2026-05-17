@@ -24,6 +24,7 @@ import { ConfigurationError, AbortError } from "../errors.js";
  */
 export class Semaphore {
   private permits: number;
+  private maxPermits: number;
   private readonly waitQueue: Array<() => void> = [];
 
   constructor(maxPermits: number) {
@@ -31,6 +32,7 @@ export class Semaphore {
       throw new ConfigurationError("Semaphore: maxPermits must be >= 1", "maxPermits");
     }
     this.permits = maxPermits;
+    this.maxPermits = maxPermits;
   }
 
   /** Acquire a permit, waiting if all are in use. */
@@ -52,6 +54,17 @@ export class Semaphore {
     } else {
       this.permits++;
     }
+  }
+
+  /**
+   * Reduce the maximum permit count. Takes effect as permits are released.
+   * Cannot reduce below 1 or below the number of currently acquired permits.
+   */
+  shrink(newMax: number): void {
+    if (newMax < 1) return;
+    // Reduce available permits to enforce the new cap
+    this.permits = Math.max(0, Math.min(this.permits, newMax - (this.maxPermits - this.permits)));
+    this.maxPermits = newMax;
   }
 
   /** Current number of available permits. */
@@ -170,6 +183,7 @@ export class TaskRunner {
           );
           if (newConcurrency < effectiveConcurrency) {
             effectiveConcurrency = newConcurrency;
+            semaphore.shrink(newConcurrency);
           }
         }
       }
