@@ -466,14 +466,44 @@ export {
   type BatchResult,
   type BatchConfig,
   type TranscriptionConfig,
-  type TranscriptionResult,
-  type TranscriptionSegment,
+  type TranscriptionResult as BatchTranscriptionResult,
+  type TranscriptionSegment as BatchTranscriptionSegment,
   processBatch,
   createVoiceAttachment,
   createDocumentAttachment,
   createURLAttachment,
   buildInvestigationInput,
 } from "./batch.js";
+
+// ---- Document Extraction ----
+
+export {
+  DocumentChunkSchema,
+  DocumentMetadataSchema,
+  ExtractedDocumentSchema,
+  chunkDocument,
+  extractDocumentMetadata,
+  processDocument,
+  documentToInnovationSubject,
+} from "./document-extraction.js";
+export type { DocumentChunk, DocumentMetadata, ExtractedDocument } from "./document-extraction.js";
+
+// ---- Audio Transcription ----
+
+export {
+  TranscriptionSegmentSchema,
+  TranscriptionResultSchema,
+  TranscriptionProviderSchema,
+  transcribeAudio,
+  segmentByTopics,
+  transcriptionToSubject,
+  transcriptionToMarkdown,
+} from "./transcription.js";
+export type {
+  TranscriptionSegment,
+  TranscriptionResult,
+  TranscriptionProvider,
+} from "./transcription.js";
 
 // ---- Vision Model Integration ----
 
