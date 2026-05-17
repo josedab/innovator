@@ -8,8 +8,7 @@ import {
   getApiPricing,
   createApiClient,
   generateApiKey,
-  getUsageSummary,
-  recordUsage,
+  getApiUsageSummary as getUsageSummary,
 } from "@innovator/core";
 import {
   registerWebhook,
@@ -170,9 +169,7 @@ export async function POST(request: Request) {
     const parsed = PostBodySchema.parse(body);
 
     if (parsed.action === "register") {
-      const client = createApiClient({
-        name: parsed.name,
-        email: parsed.email,
+      const client = createApiClient(parsed.name, parsed.email, {
         organization: parsed.organization,
         tier: parsed.tier,
       });

@@ -72,7 +72,7 @@ import {
   evaluateConstraints,
   flattenIdeas,
   parseConstraintString,
-  findSerendipitousConnections,
+  findSerendipitousMemoryConnections,
   scoreInvestigationQuality,
   meetsConfidenceThreshold,
   formatGapSuggestions,
@@ -2550,7 +2550,7 @@ program
     const spinner = ora("Analyzing past investigations for connections...").start();
 
     try {
-      const result = await findSerendipitousConnections(minSim, maxConn, opts.model);
+      const result = await findSerendipitousMemoryConnections(minSim, maxConn, opts.model);
       spinner.succeed(
         `Found ${result.connections.length} connection(s) across ${result.totalSessionsAnalyzed} sessions\n`
       );

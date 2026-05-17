@@ -180,15 +180,17 @@ export async function POST(request: Request) {
         submittedAt: now.toISOString(),
       };
 
+      const { orgId, submittedAt, ...benchmarkMetrics } = metrics;
+
       if (parsed.usePrivacy) {
-        const result = submitMetricsWithPrivacy(metrics);
+        const result = submitMetricsWithPrivacy(orgId, benchmarkMetrics);
         return Response.json(
           { submitted: true, noised: true, result },
           { status: 201, headers: API_RESPONSE_HEADERS }
         );
       }
 
-      submitMetrics(metrics);
+      submitMetrics(orgId, benchmarkMetrics);
       return Response.json({ submitted: true }, { status: 201, headers: API_RESPONSE_HEADERS });
     }
 

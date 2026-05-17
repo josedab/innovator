@@ -49,7 +49,7 @@ export default function WarRoomFacilitationPanel({ roomId }: Props) {
   const [timer, setTimer] = useState<TimerState | null>(null);
   const [groupthinkRisk, setGroupthinkRisk] = useState(0);
   const [balance, setBalance] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   const fetchReport = useCallback(async () => {
     try {

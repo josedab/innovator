@@ -8,7 +8,7 @@ import {
   getAssessmentQuestions,
   scoreAssessment,
   getAssessmentResult,
-  getRoadmap,
+  getMaturityRoadmap as getRoadmap,
   benchmarkAssessment,
 } from "@innovator/core";
 import {
@@ -179,7 +179,13 @@ export async function POST(request: Request) {
     const parsed = PostBodySchema.parse(body);
 
     if (parsed.action === "submit") {
-      const result = scoreAssessment(parsed.organizationId, parsed.responses);
+      const result = scoreAssessment(
+        parsed.organizationId,
+        parsed.responses.map((response) => ({
+          questionId: response.questionId,
+          value: response.selectedOption,
+        }))
+      );
       return Response.json(result, { status: 201, headers: API_RESPONSE_HEADERS });
     }
 

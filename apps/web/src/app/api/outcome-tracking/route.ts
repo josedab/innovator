@@ -5,8 +5,8 @@
 export const runtime = "nodejs";
 
 import {
-  createOutcome,
-  listOutcomes,
+  createROIOutcome as createOutcome,
+  listROIOutcomes as listOutcomes,
   transitionOutcome,
   addExternalLink,
   addRevenueMetric,
