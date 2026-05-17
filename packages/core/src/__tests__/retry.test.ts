@@ -182,10 +182,11 @@ describe("withRetry", () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
-  it("maxAttempts=0 never calls fn (throws last error as undefined)", async () => {
+  it("maxAttempts=0 rejects with validation error (must be >= 1)", async () => {
     const fn = vi.fn().mockResolvedValue("ok");
-    // maxAttempts=0 means the loop body never executes → throws undefined
-    await expect(withRetry(fn, { maxAttempts: 0 })).rejects.toBeUndefined();
+    await expect(withRetry(fn, { maxAttempts: 0 })).rejects.toThrow(
+      "withRetry: maxAttempts must be a finite number >= 1"
+    );
     expect(fn).not.toHaveBeenCalled();
   });
 

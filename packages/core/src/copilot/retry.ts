@@ -51,6 +51,19 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
     signal,
   } = options;
 
+  if (maxAttempts < 1 || !Number.isFinite(maxAttempts)) {
+    throw new Error("withRetry: maxAttempts must be a finite number >= 1");
+  }
+  if (initialDelayMs < 0 || !Number.isFinite(initialDelayMs)) {
+    throw new Error("withRetry: initialDelayMs must be a finite non-negative number");
+  }
+  if (backoffMultiplier < 1 || !Number.isFinite(backoffMultiplier)) {
+    throw new Error("withRetry: backoffMultiplier must be a finite number >= 1");
+  }
+  if (maxDelayMs < 0 || !Number.isFinite(maxDelayMs)) {
+    throw new Error("withRetry: maxDelayMs must be a finite non-negative number");
+  }
+
   let lastError: unknown;
   let delay = initialDelayMs;
 
