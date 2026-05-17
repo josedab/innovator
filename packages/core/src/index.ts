@@ -3549,7 +3549,7 @@ export type {
   ROITimeSeriesPoint,
   ROIDashboard,
   IdeaOutcomeStatus,
-  IdeaOutcome,
+  IdeaOutcome as OutcomeIdeaOutcome,
 } from "./outcome-tracking/index.js";
 
 /** Outcome Tracking Connectors — integration connectors and attribution engine. */
@@ -3624,7 +3624,7 @@ export {
 export type {
   CoachMessageRole,
   CoachSessionStatus,
-  CoachMessage,
+  CoachMessage as SessionCoachMessage,
   CoachDomain,
   CoachSession,
   CoachSessionConfig,
@@ -5394,7 +5394,7 @@ export type {
   InnovationSkill,
   DifficultyLevel,
   LearningModule,
-  LearningPath,
+  LearningPath as CurriculumLearningPath,
   ModuleProgress,
   LearnerProfile,
   Certificate,
@@ -8757,7 +8757,7 @@ export {
   listActionFormats,
 } from "./action-generation/index.js";
 export type {
-  PRD,
+  PRD as ActionPRD,
   UserStory as ActionUserStory,
   UserStorySet,
   KeyResult,

@@ -25,7 +25,8 @@ vi.mock("../../prompts/sanitize.js", () => ({
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { generatePRD, generateTechSpec, generateImplementationPlan, runBridgePipeline, bridgePipelineToMarkdown } from "../idea-bridge.js";
-import type { PRD, TechSpec, BridgePipeline, BridgeProgress } from "../idea-bridge.js";
+import type { PRD, TechSpec, BridgePipeline } from "../types.js";
+import type { BridgeProgress } from "../idea-bridge.js";
 
 // ---- Helpers ----
 
