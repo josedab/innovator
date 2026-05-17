@@ -2,9 +2,10 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { LlmParseError, ValidationError } from "../errors.js";
-import { sanitizeLlmOutput } from "../prompts/sanitize.js";
-import { sanitizeUserInput } from "../prompts/sanitize.js";
+import { sanitizeLlmOutput, sanitizeUserInput } from "../prompts/sanitize.js";
+import { runConcurrent } from "../concurrency/index.js";
 import {
+  MAX_CONCURRENCY,
   type AngleResult,
   type Investigation,
   type PipelineProgress,
@@ -329,25 +330,37 @@ export async function runParallelInvestigation(
     signal?: AbortSignal;
     includeCompetitiveMap?: boolean;
     onProgress?: (completed: number, total: number) => void;
+    /** Maximum concurrent investigations (defaults to MAX_CONCURRENCY). */
+    concurrency?: number;
   }
 ): Promise<ParallelInvestigationResult> {
   if (subjects.length < 2 || subjects.length > 10) {
     throw new ValidationError("Parallel investigation requires 2-10 subjects");
   }
 
-  const investigations: ParallelInvestigationResult["investigations"] = [];
+  const effectiveConcurrency = options?.concurrency ?? MAX_CONCURRENCY;
+  let completedCount = 0;
 
-  // Investigate all subjects (sequentially to avoid rate limits)
-  for (let i = 0; i < subjects.length; i++) {
-    if (options?.signal?.aborted) break;
-    options?.onProgress?.(i, subjects.length);
+  // Build task factories for parallel execution
+  const tasks = subjects.map((subject) => async () => {
+    const inv = await investigate(subject, options?.model, options?.signal);
+    completedCount++;
+    options?.onProgress?.(completedCount, subjects.length);
+    return { subject, investigation: inv, status: "completed" as const };
+  });
 
-    try {
-      const inv = await investigate(subjects[i], options?.model, options?.signal);
-      investigations.push({ subject: subjects[i], investigation: inv, status: "completed" });
-    } catch (err) {
-      investigations.push({
-        subject: subjects[i],
+  // Run investigations in parallel with bounded concurrency
+  const batch = await runConcurrent(tasks, effectiveConcurrency, options?.signal);
+
+  const investigations: ParallelInvestigationResult["investigations"] = subjects.map(
+    (subject, i) => {
+      const result = batch.results[i];
+      if (result) {
+        return result;
+      }
+      const taskError = batch.errors.find((e) => e.index === i);
+      return {
+        subject,
         investigation: {
           summary: "",
           keyAspects: [],
@@ -355,11 +368,11 @@ export async function runParallelInvestigation(
           challenges: [],
           opportunities: [],
         },
-        status: "failed",
-        error: err instanceof Error ? err.message : String(err),
-      });
+        status: "failed" as const,
+        error: taskError?.error.message ?? "Unknown error",
+      };
     }
-  }
+  );
 
   const completed = investigations.filter((i) => i.status === "completed");
   if (completed.length < 2) {

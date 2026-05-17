@@ -1,6 +1,7 @@
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { LlmParseError, ValidationError } from "../errors.js";
+import { getEventBus } from "../events/emitter.js";
 import {
   buildScamperPrompt,
   buildFirstPrinciplesPrompt,
@@ -12,6 +13,7 @@ import {
   buildTrendCollisionPrompt,
 } from "../prompts/angles/index.js";
 import { investigationContext } from "../prompts/investigation.js";
+import { validateSubject, sanitizeLlmOutput } from "../prompts/sanitize.js";
 import { AngleResultSchema, type AngleId, type AngleResult, type Investigation } from "../types.js";
 import { buildCustomAnglePrompt, getCustomAngle } from "./custom-angles.js";
 
@@ -36,7 +38,8 @@ const ANGLE_PROMPT_MAP: Record<AngleId, PromptBuilder> = {
  * @param angleId - The creativity angle to apply (e.g. `"scamper"`, `"inversion"`)
  * @param model - Optional LLM model override
  * @returns A validated {@link AngleResult} containing generated ideas and reasoning
- * @throws If the angle ID is unknown, the LLM call fails, or the response is unparseable
+ * @throws {ValidationError} If the subject is invalid or the angle ID is unknown
+ * @throws If the LLM call fails or the response is unparseable
  *
  * @example
  * ```ts
@@ -54,41 +57,75 @@ export async function generateForAngle(
   model?: string,
   signal?: AbortSignal
 ): Promise<AngleResult> {
+  const validation = validateSubject(subject);
+  if (!validation.valid) {
+    throw new ValidationError(validation.error!);
+  }
+  const sanitizedSubject = validation.sanitized!;
+  const bus = getEventBus();
+  const start = Date.now();
+
   const buildPrompt = ANGLE_PROMPT_MAP[angleId as AngleId];
 
   let prompt: string;
   if (buildPrompt) {
-    prompt = buildPrompt(subject, investigation);
+    prompt = buildPrompt(sanitizedSubject, investigation);
   } else {
     // Check custom angles
     const customAngle = getCustomAngle(angleId);
     if (!customAngle) {
       throw new ValidationError(`Unknown angle: ${angleId}`);
     }
-    const context = investigationContext(subject, investigation);
-    prompt = buildCustomAnglePrompt(customAngle, subject, context);
+    const context = investigationContext(sanitizedSubject, investigation);
+    prompt = buildCustomAnglePrompt(customAngle, sanitizedSubject, context);
   }
-  const parsed = await withRetry(
-    async () => {
-      const raw = await generateText({ prompt, model, serverMode: true, signal });
-      const jsonStr = extractJson(raw);
-      try {
-        return JSON.parse(jsonStr) as unknown;
-      } catch {
-        throw new LlmParseError(
-          `Failed to parse ${angleId} response as JSON`,
-          jsonStr.slice(0, 200)
-        );
+
+  bus.emit("generation.started", { subject: sanitizedSubject, angleId }).catch(() => {});
+
+  let result: AngleResult;
+  try {
+    const parsed = await withRetry(
+      async () => {
+        const raw = await generateText({ prompt, model, serverMode: true, signal });
+        const jsonStr = extractJson(sanitizeLlmOutput(raw));
+        try {
+          return JSON.parse(jsonStr) as unknown;
+        } catch {
+          throw new LlmParseError(
+            `Failed to parse ${angleId} response as JSON`,
+            jsonStr.slice(0, 200)
+          );
+        }
+      },
+      {
+        signal,
+        isRetryable: (err) =>
+          err instanceof Error &&
+          (err.message.includes("Failed to parse") ||
+            err.message.includes("No JSON object found") ||
+            err.message.includes("Unbalanced JSON braces")),
       }
-    },
-    {
-      signal,
-      isRetryable: (err) =>
-        err instanceof Error &&
-        (err.message.includes("Failed to parse") ||
-          err.message.includes("No JSON object found") ||
-          err.message.includes("Unbalanced JSON braces")),
-    }
-  );
-  return AngleResultSchema.parse(parsed);
+    );
+    result = AngleResultSchema.parse(parsed);
+  } catch (err) {
+    bus
+      .emit("generation.failed", {
+        subject: sanitizedSubject,
+        angleId,
+        error: err instanceof Error ? err.message : String(err),
+        durationMs: Date.now() - start,
+      })
+      .catch(() => {});
+    throw err;
+  }
+
+  bus
+    .emit("generation.completed", {
+      subject: sanitizedSubject,
+      angleId,
+      ideaCount: result.ideas.length,
+      durationMs: Date.now() - start,
+    })
+    .catch(() => {});
+  return result;
 }

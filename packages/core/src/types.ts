@@ -160,6 +160,8 @@ export interface PipelineProgress {
   };
   /** Whether the pipeline was stopped early by the user. */
   stoppedEarly?: boolean;
+  /** Overall completion percentage (0–100) across all pipeline stages. */
+  completionPercent?: number;
   /** Duration tracking for each pipeline stage and total elapsed time (in milliseconds). */
   durationMs?: {
     /** Time spent in the investigation stage. */
@@ -173,6 +175,48 @@ export interface PipelineProgress {
     /** Per-angle generation durations keyed by angle ID. */
     perAngle?: Record<string, number>;
   };
+}
+
+/**
+ * Compute the overall completion percentage for a pipeline progress snapshot.
+ *
+ * Weights: investigation = 20%, generation = 60%, synthesis = 20%.
+ * During generation, progress scales linearly with completed angles.
+ *
+ * @param progress - The current pipeline progress snapshot
+ * @returns A number from 0 to 100 representing overall completion
+ */
+export function computeCompletionPercent(progress: PipelineProgress): number {
+  const INVESTIGATION_WEIGHT = 20;
+  const GENERATION_WEIGHT = 60;
+  const SYNTHESIS_WEIGHT = 20;
+
+  switch (progress.stage) {
+    case "investigating":
+      return 0;
+    case "generating": {
+      const angleFraction =
+        progress.totalAngles > 0 ? progress.completedAngles.length / progress.totalAngles : 0;
+      return Math.round(INVESTIGATION_WEIGHT + GENERATION_WEIGHT * angleFraction);
+    }
+    case "synthesizing":
+      return INVESTIGATION_WEIGHT + GENERATION_WEIGHT;
+    case "complete":
+      return INVESTIGATION_WEIGHT + GENERATION_WEIGHT + SYNTHESIS_WEIGHT;
+    case "error":
+      // Return progress at the point of failure
+      if (progress.investigation) {
+        if (progress.angleResults.length > 0) {
+          return INVESTIGATION_WEIGHT + GENERATION_WEIGHT;
+        }
+        const angleFraction =
+          progress.totalAngles > 0 ? progress.completedAngles.length / progress.totalAngles : 0;
+        return Math.round(INVESTIGATION_WEIGHT + GENERATION_WEIGHT * angleFraction);
+      }
+      return 0;
+    default:
+      return 0;
+  }
 }
 
 // ---- Custom Angles ----

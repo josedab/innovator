@@ -1,15 +1,16 @@
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import type { RetryOptions } from "../copilot/retry.js";
-import { AbortError, LlmParseError } from "../errors.js";
+import { AbortError, LlmParseError, ValidationError } from "../errors.js";
 import { buildSynthesisPrompt } from "../prompts/investigation.js";
-import { sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { sanitizeLlmOutput, validateSubject } from "../prompts/sanitize.js";
 import { runConcurrent } from "../concurrency/index.js";
 import { getEventBus } from "../events/emitter.js";
 import {
   ANGLE_IDS,
   MAX_CONCURRENCY,
   SynthesisSchema,
+  computeCompletionPercent,
   type AngleId,
   type AngleResult,
   type Investigation,
@@ -85,6 +86,14 @@ export async function runAutoPipeline(
   const effectiveRouting = pipelineOptions?.modelRouting ?? modelRouting;
   const effectiveConcurrency = pipelineOptions?.concurrency ?? MAX_CONCURRENCY;
   const retryOpts = pipelineOptions?.retryOptions;
+
+  // Validate subject before starting the pipeline
+  const validation = validateSubject(subject);
+  if (!validation.valid) {
+    throw new ValidationError(validation.error!);
+  }
+  const sanitizedSubject = validation.sanitized!;
+
   let terminated = false;
   const pipelineStart = Date.now();
   const bus = getEventBus();
@@ -100,6 +109,7 @@ export async function runAutoPipeline(
   const safeProgress = (p: PipelineProgress) => {
     if (terminated) return;
     try {
+      p.completionPercent = computeCompletionPercent(p);
       onProgress({ ...p });
     } catch {
       // Client may have disconnected — ignore
@@ -121,7 +131,6 @@ export async function runAutoPipeline(
 
   let investigation: Investigation;
   const investigationStart = Date.now();
-  bus.emit("investigation.started", { subject }).catch(() => {});
   try {
     investigation = await investigate(
       subject,
@@ -130,18 +139,9 @@ export async function runAutoPipeline(
     );
     progress.investigation = investigation;
     progress.durationMs!.investigation = Date.now() - investigationStart;
-    bus
-      .emit("investigation.completed", { subject, durationMs: progress.durationMs!.investigation })
-      .catch(() => {});
   } catch (err) {
     progress.durationMs!.investigation = Date.now() - investigationStart;
     progress.durationMs!.total = Date.now() - pipelineStart;
-    bus
-      .emit("investigation.failed", {
-        subject,
-        error: err instanceof Error ? err.message : String(err),
-      })
-      .catch(() => {});
     if (isAbortError(err)) {
       progress.stage = "error";
       progress.stoppedEarly = true;

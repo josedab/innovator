@@ -16,6 +16,8 @@ vi.mock("../copilot/client.js", () => ({
 vi.mock("../prompts/sanitize.js", () => ({
   sanitizeUserInput: vi.fn((s: string) => s),
   wrapUserInput: vi.fn((label: string, content: string) => `[${label}]: ${content}`),
+  validateSubject: vi.fn((s: string) => ({ valid: true, sanitized: s })),
+  sanitizeLlmOutput: vi.fn((s: string) => s),
 }));
 
 import { ResearchAgent, deepInvestigate } from "../research/agent.js";
