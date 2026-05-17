@@ -454,3 +454,29 @@ export type {
   AutoClusterResult,
   CanvasExportOptions,
 } from "./realtime-presence.js";
+
+// ---- Priority Matrix ----
+export {
+  QuadrantSchema,
+  PriorityMatrixNodeSchema,
+  PriorityMatrixSchema,
+  classifyQuadrant,
+  buildPriorityMatrix,
+  layoutPriorityMatrix,
+  priorityMatrixToSvg,
+  priorityMatrixToMarkdown,
+} from "./priority-matrix.js";
+export type { Quadrant, PriorityMatrixNode, PriorityMatrix } from "./priority-matrix.js";
+
+// ---- Auto Layout ----
+export {
+  applyLayout,
+  forceDirectedLayout,
+  gridLayout,
+  radialLayout,
+  hierarchicalLayout,
+} from "./auto-layout.js";
+export type { LayoutAlgorithm } from "./auto-layout.js";
+
+// ---- Canvas Export Formats ----
+export { canvasToJson, canvasToPng, canvasToMarkdown } from "./canvas-export.js";
