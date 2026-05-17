@@ -87,9 +87,11 @@ describe("validation", () => {
       expect(unregisterValidator("nope")).toBe(false);
     });
 
-    it("replaces validator with same id", () => {
+    it("rejects duplicate validator id", () => {
       registerValidator(makeValidator("v1", 30));
-      registerValidator(makeValidator("v1", 50));
+      expect(() => registerValidator(makeValidator("v1", 50))).toThrow(
+        'a validator with id "v1" is already registered'
+      );
       expect(listValidators()).toHaveLength(1);
     });
 

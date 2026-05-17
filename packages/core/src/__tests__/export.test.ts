@@ -3,6 +3,7 @@ import {
   exportToMarkdown,
   exportToJson,
   exportToClipboard,
+  exportToCsv,
   generateGitHubIssueBody,
   exportToPowerPoint,
   exportToJira,
@@ -228,6 +229,76 @@ describe("export", () => {
     });
   });
 
+  describe("exportToCsv", () => {
+    it("exports synthesis top ideas as CSV with headers", () => {
+      const result = exportToCsv(sampleData);
+      const lines = result.content.split("\n");
+      expect(lines[0]).toBe(
+        "Title,Description,Impact,Feasibility,Source Angle,Implementation Hint"
+      );
+      expect(lines.length).toBeGreaterThan(1);
+      expect(result.extension).toBe(".csv");
+      expect(result.mimeType).toBe("text/csv");
+    });
+
+    it("exports angle results when no synthesis", () => {
+      const data: ExportData = {
+        subject: "Test",
+        angleResults: [
+          {
+            angleId: "scamper",
+            angleName: "SCAMPER",
+            ideas: [
+              {
+                title: "Idea A",
+                description: "Desc A",
+                potentialImpact: "High",
+                implementationHint: "Step 1",
+              },
+            ],
+            reasoning: "R",
+          },
+        ],
+      };
+      const result = exportToCsv(data);
+      const lines = result.content.split("\n");
+      expect(lines).toHaveLength(2);
+      expect(lines[1]).toContain("Idea A");
+      expect(lines[1]).toContain("SCAMPER");
+    });
+
+    it("escapes commas and quotes in CSV values", () => {
+      const data: ExportData = {
+        subject: "Test",
+        angleResults: [
+          {
+            angleId: "a1",
+            angleName: "Test, Angle",
+            ideas: [
+              {
+                title: 'Idea with "quotes"',
+                description: "Normal desc",
+                potentialImpact: "High",
+                implementationHint: "Hint",
+              },
+            ],
+            reasoning: "R",
+          },
+        ],
+      };
+      const result = exportToCsv(data);
+      expect(result.content).toContain('"Test, Angle"');
+      expect(result.content).toContain('"Idea with ""quotes"""');
+    });
+
+    it("returns only header for empty data", () => {
+      const data: ExportData = { subject: "Empty", angleResults: [] };
+      const result = exportToCsv(data);
+      const lines = result.content.split("\n");
+      expect(lines).toHaveLength(1);
+    });
+  });
+
   describe("exportToPowerPoint", () => {
     it("generates structured slide data with title slide", () => {
       const result = exportToPowerPoint(sampleData);
@@ -420,9 +491,9 @@ describe("export", () => {
   });
 
   describe("getAvailableFormats", () => {
-    it("returns all 9 formats", () => {
+    it("returns all 10 formats", () => {
       const formats = getAvailableFormats();
-      expect(formats).toHaveLength(9);
+      expect(formats).toHaveLength(10);
     });
 
     it("includes all expected format IDs", () => {

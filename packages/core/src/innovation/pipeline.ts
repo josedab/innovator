@@ -115,12 +115,14 @@ export async function runAutoPipeline(
 ): Promise<PipelineProgress> {
   const selectedAngles = angles ?? [...ANGLE_IDS];
   let terminated = false;
+  const pipelineStart = Date.now();
 
   const progress: PipelineProgress = {
     stage: "investigating",
     completedAngles: [],
     totalAngles: selectedAngles.length,
     angleResults: [],
+    durationMs: {},
   };
 
   const safeProgress = (p: PipelineProgress) => {
@@ -138,17 +140,22 @@ export async function runAutoPipeline(
   if (signal?.aborted) {
     progress.stage = "error";
     progress.error = "Request was aborted";
+    progress.durationMs!.total = Date.now() - pipelineStart;
     terminated = true;
     return progress;
   }
 
   let investigation: Investigation;
+  const investigationStart = Date.now();
   try {
     investigation = await investigate(subject, modelRouting?.investigation ?? model, signal);
     progress.investigation = investigation;
+    progress.durationMs!.investigation = Date.now() - investigationStart;
   } catch (err) {
     progress.stage = "error";
     progress.error = sanitizeErrorMessage("Investigation");
+    progress.durationMs!.investigation = Date.now() - investigationStart;
+    progress.durationMs!.total = Date.now() - pipelineStart;
     terminated = true;
     safeProgress(progress);
     return progress;
@@ -161,9 +168,12 @@ export async function runAutoPipeline(
   if (signal?.aborted) {
     progress.stage = "error";
     progress.error = "Request was aborted";
+    progress.durationMs!.total = Date.now() - pipelineStart;
     terminated = true;
     return progress;
   }
+
+  const generationStart = Date.now();
 
   // Track completed angles for progress reporting; each task closure captures
   // its own angleId so concurrent .then() callbacks don't race on shared state.
@@ -192,6 +202,7 @@ export async function runAutoPipeline(
       MAX_CONCURRENCY,
       signal
     );
+    progress.durationMs!.generation = Date.now() - generationStart;
     // Keep successfully generated results
     progress.angleResults = orderedResults.filter((r): r is AngleResult => r !== undefined);
     if (angleErrors.length > 0) {
@@ -204,6 +215,7 @@ export async function runAutoPipeline(
     if (progress.angleResults.length === 0) {
       progress.stage = "error";
       progress.error = sanitizeErrorMessage("Generation");
+      progress.durationMs!.total = Date.now() - pipelineStart;
       terminated = true;
       safeProgress(progress);
       return progress;
@@ -211,6 +223,8 @@ export async function runAutoPipeline(
   } catch (err) {
     progress.stage = "error";
     progress.error = sanitizeErrorMessage("Generation");
+    progress.durationMs!.generation = Date.now() - generationStart;
+    progress.durationMs!.total = Date.now() - pipelineStart;
     terminated = true;
     safeProgress(progress);
     return progress;
@@ -223,10 +237,12 @@ export async function runAutoPipeline(
   if (signal?.aborted) {
     progress.stage = "error";
     progress.error = "Request was aborted";
+    progress.durationMs!.total = Date.now() - pipelineStart;
     terminated = true;
     return progress;
   }
 
+  const synthesisStart = Date.now();
   try {
     const angleResultsJson = sanitizeLlmOutput(JSON.stringify(progress.angleResults, null, 2));
     const synthesisPrompt = buildSynthesisPrompt(subject, investigation, angleResultsJson);
@@ -256,15 +272,19 @@ export async function runAutoPipeline(
     );
 
     progress.synthesis = SynthesisSchema.parse(parsedJson);
+    progress.durationMs!.synthesis = Date.now() - synthesisStart;
   } catch (err) {
     progress.stage = "error";
     progress.error = sanitizeErrorMessage("Synthesis");
+    progress.durationMs!.synthesis = Date.now() - synthesisStart;
+    progress.durationMs!.total = Date.now() - pipelineStart;
     terminated = true;
     safeProgress(progress);
     return progress;
   }
 
   progress.stage = "complete";
+  progress.durationMs!.total = Date.now() - pipelineStart;
   terminated = true;
   safeProgress(progress);
   return progress;

@@ -12,6 +12,14 @@ function escapeMarkdownInline(text: string): string {
   return text.replace(/([\\*_`\[\]|~<>])/g, "\\$1");
 }
 
+/** Escape a value for CSV output (wrap in quotes if it contains commas, quotes, or newlines). */
+function csvEscape(value: string): string {
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
 /** Export result containing the formatted output and metadata. */
 export interface ExportResult {
   content: string;
@@ -363,20 +371,29 @@ export function exportToJira(
     epicName: `Innovation: ${data.subject}`,
   });
 
-  // Individual idea stories
-  const ideas = data.synthesis?.topIdeas ?? data.angleResults.flatMap((ar) => ar.ideas);
-  for (const idea of ideas) {
-    const desc = "description" in idea ? idea.description : "";
-    const impact = "potentialImpact" in idea ? idea.potentialImpact : "";
-    const hint = "implementationHint" in idea ? idea.implementationHint : "";
-
-    issues.push({
-      summary: "title" in idea ? idea.title : String(idea),
-      description: `${desc}\n\n**Impact:** ${impact}\n\n**How to start:** ${hint}`,
-      issueType,
-      labels,
-      priority: "feasibility" in idea && idea.feasibility === "high" ? "High" : "Medium",
-    });
+  // Individual idea stories — normalize both shapes to a common format
+  if (data.synthesis) {
+    for (const idea of data.synthesis.topIdeas) {
+      issues.push({
+        summary: idea.title,
+        description: `${idea.description}\n\n**Impact:** ${idea.potentialImpact}\n\n**Source:** ${idea.sourceAngle}`,
+        issueType,
+        labels,
+        priority: idea.feasibility === "high" ? "High" : "Medium",
+      });
+    }
+  } else {
+    for (const angle of data.angleResults) {
+      for (const idea of angle.ideas) {
+        issues.push({
+          summary: idea.title,
+          description: `${idea.description}\n\n**Impact:** ${idea.potentialImpact}\n\n**How to start:** ${idea.implementationHint}`,
+          issueType,
+          labels,
+          priority: "Medium",
+        });
+      }
+    }
   }
 
   const slug = data.subject
@@ -611,6 +628,57 @@ export function exportToGoogleSlides(data: ExportData): ExportResult {
   };
 }
 
+/**
+ * Export to CSV format (spreadsheet-compatible).
+ * If synthesis is available, exports top ideas; otherwise exports all angle ideas.
+ */
+export function exportToCsv(data: ExportData): ExportResult {
+  const header = "Title,Description,Impact,Feasibility,Source Angle,Implementation Hint";
+  const rows: string[] = [header];
+
+  if (data.synthesis) {
+    for (const idea of data.synthesis.topIdeas) {
+      rows.push(
+        [
+          csvEscape(idea.title),
+          csvEscape(idea.description),
+          csvEscape(idea.potentialImpact),
+          csvEscape(idea.feasibility),
+          csvEscape(idea.sourceAngle),
+          csvEscape(""),
+        ].join(",")
+      );
+    }
+  } else {
+    for (const angle of data.angleResults) {
+      for (const idea of angle.ideas) {
+        rows.push(
+          [
+            csvEscape(idea.title),
+            csvEscape(idea.description),
+            csvEscape(idea.potentialImpact),
+            csvEscape(""),
+            csvEscape(angle.angleName),
+            csvEscape(idea.implementationHint),
+          ].join(",")
+        );
+      }
+    }
+  }
+
+  const slug = data.subject
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 50);
+
+  return {
+    content: rows.join("\n"),
+    mimeType: "text/csv",
+    extension: ".csv",
+    filename: `innovation-${slug}.csv`,
+  };
+}
+
 /** Get all available export formats. */
 export function getAvailableFormats(): Array<{ id: string; name: string; extension: string }> {
   return [
@@ -618,6 +686,7 @@ export function getAvailableFormats(): Array<{ id: string; name: string; extensi
     { id: "json", name: "JSON", extension: ".json" },
     { id: "github-issue", name: "GitHub Issue", extension: ".md" },
     { id: "clipboard", name: "Clipboard Text", extension: ".txt" },
+    { id: "csv", name: "CSV (Spreadsheet)", extension: ".csv" },
     { id: "powerpoint", name: "PowerPoint (JSON)", extension: ".pptx.json" },
     { id: "jira", name: "Jira Issues (JSON)", extension: ".jira.json" },
     { id: "confluence", name: "Confluence (JSON)", extension: ".confluence.json" },

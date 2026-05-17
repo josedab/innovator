@@ -252,4 +252,93 @@ describe("withRetry", () => {
       expect((err as RetryExhaustedError).cause).toBe(originalError);
     }
   });
+
+  it("maxAttempts=1 with retryable error wraps in RetryExhaustedError", async () => {
+    const fn = vi.fn().mockRejectedValue(new Error("ECONNRESET"));
+    try {
+      await withRetry(fn, { maxAttempts: 1, initialDelayMs: 1 });
+      expect.fail("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(RetryExhaustedError);
+      const retryErr = err as RetryExhaustedError;
+      expect(retryErr.attempts).toBe(1);
+      expect(retryErr.cause.message).toBe("ECONNRESET");
+    }
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects with validation error for NaN maxAttempts", async () => {
+    const fn = vi.fn().mockResolvedValue("ok");
+    await expect(withRetry(fn, { maxAttempts: NaN })).rejects.toThrow(
+      "withRetry: maxAttempts must be a finite number >= 1"
+    );
+  });
+
+  it("rejects with validation error for Infinity maxAttempts", async () => {
+    const fn = vi.fn().mockResolvedValue("ok");
+    await expect(withRetry(fn, { maxAttempts: Infinity })).rejects.toThrow(
+      "withRetry: maxAttempts must be a finite number >= 1"
+    );
+  });
+
+  it("rejects with validation error for negative initialDelayMs", async () => {
+    const fn = vi.fn().mockResolvedValue("ok");
+    await expect(withRetry(fn, { initialDelayMs: -100 })).rejects.toThrow(
+      "withRetry: initialDelayMs must be a finite non-negative number"
+    );
+  });
+
+  it("rejects with validation error for NaN initialDelayMs", async () => {
+    const fn = vi.fn().mockResolvedValue("ok");
+    await expect(withRetry(fn, { initialDelayMs: NaN })).rejects.toThrow(
+      "withRetry: initialDelayMs must be a finite non-negative number"
+    );
+  });
+
+  it("rejects with validation error for backoffMultiplier < 1", async () => {
+    const fn = vi.fn().mockResolvedValue("ok");
+    await expect(withRetry(fn, { backoffMultiplier: 0.5 })).rejects.toThrow(
+      "withRetry: backoffMultiplier must be a finite number >= 1"
+    );
+  });
+
+  it("rejects with validation error for negative maxDelayMs", async () => {
+    const fn = vi.fn().mockResolvedValue("ok");
+    await expect(withRetry(fn, { maxDelayMs: -1 })).rejects.toThrow(
+      "withRetry: maxDelayMs must be a finite non-negative number"
+    );
+  });
+
+  it("RetryExhaustedError wraps non-Error primitive in Error", async () => {
+    const fn = vi.fn().mockRejectedValue(new Error("ECONNRESET"));
+    try {
+      await withRetry(fn, { maxAttempts: 1, initialDelayMs: 1 });
+      expect.fail("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(RetryExhaustedError);
+      expect((err as RetryExhaustedError).cause).toBeInstanceOf(Error);
+    }
+  });
+
+  it("AbortSignal fires between fn() calls stops retry loop", async () => {
+    const controller = new AbortController();
+    let callCount = 0;
+    const fn = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        // Abort right after first call fails
+        setTimeout(() => controller.abort(), 5);
+      }
+      return Promise.reject(new Error("ECONNRESET"));
+    });
+
+    await expect(
+      withRetry(fn, {
+        maxAttempts: 5,
+        initialDelayMs: 100,
+        signal: controller.signal,
+      })
+    ).rejects.toThrow("Retry aborted");
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
 });

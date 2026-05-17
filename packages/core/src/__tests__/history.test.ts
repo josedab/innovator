@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -20,6 +20,8 @@ const {
   querySessionsPaginated,
   compareSessions,
   getSessionStats,
+  exportSessionAsMarkdown,
+  exportSessionAsCsv,
 } = await import("../history/index.js");
 
 const sampleAngleResult = {
@@ -118,7 +120,9 @@ describe("history", () => {
     });
     const id2 = saveSession({
       subject: "B",
-      angleResults: [{ ...sampleAngleResult, angleId: "first-principles", angleName: "First Principles" }],
+      angleResults: [
+        { ...sampleAngleResult, angleId: "first-principles", angleName: "First Principles" },
+      ],
       synthesis: { topIdeas: [], themes: ["AI", "Speed"], recommendation: "" },
     });
     const comparison = compareSessions(id1, id2);
@@ -192,5 +196,130 @@ describe("history", () => {
     const result = querySessionsPaginated({ tags: ["target"], limit: 1 });
     expect(result.sessions).toHaveLength(1);
     expect(result.totalCount).toBe(2);
+  });
+
+  // ---- Input validation ----
+
+  it("throws on empty subject in saveSession", () => {
+    expect(() => saveSession({ subject: "", angleResults: [] })).toThrow(
+      "subject must be a non-empty string"
+    );
+  });
+
+  it("throws on whitespace-only subject in saveSession", () => {
+    expect(() => saveSession({ subject: "   ", angleResults: [] })).toThrow(
+      "subject must be a non-empty string"
+    );
+  });
+
+  // ---- Pagination edge cases ----
+
+  it("clamps negative offset to 0", () => {
+    saveSession({ subject: "A", angleResults: [] });
+    saveSession({ subject: "B", angleResults: [] });
+    const result = querySessionsPaginated({ offset: -5 });
+    expect(result.sessions.length).toBe(2);
+  });
+
+  it("clamps negative limit to 0", () => {
+    saveSession({ subject: "A", angleResults: [] });
+    const result = querySessionsPaginated({ limit: -1 });
+    expect(result.sessions).toHaveLength(0);
+    expect(result.totalCount).toBe(1);
+  });
+
+  it("floors fractional offset and limit", () => {
+    for (let i = 0; i < 5; i++) {
+      saveSession({ subject: `S${i}`, angleResults: [] });
+    }
+    const result = querySessionsPaginated({ offset: 1.9, limit: 2.7 });
+    expect(result.sessions).toHaveLength(2);
+  });
+
+  // ---- Corrupt file resilience ----
+
+  it("skips corrupt JSON files when listing sessions", () => {
+    saveSession({ subject: "Valid", angleResults: [] });
+    const corruptPath = join(testDir, ".innovator", "history", "corrupt.json");
+    writeFileSync(corruptPath, "NOT-JSON{{{", "utf-8");
+    const sessions = listSessions();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].subject).toBe("Valid");
+  });
+
+  // ---- Search against nested idea text ----
+
+  it("searches within idea descriptions", () => {
+    saveSession({
+      subject: "Energy",
+      angleResults: [
+        {
+          angleId: "scamper",
+          angleName: "SCAMPER",
+          ideas: [
+            {
+              title: "Solar Panel Optimization",
+              description: "Use quantum dots to improve photovoltaic efficiency",
+              potentialImpact: "High",
+              implementationHint: "Start with lab tests",
+            },
+          ],
+          reasoning: "Applied SCAMPER",
+        },
+      ],
+    });
+    saveSession({ subject: "Other", angleResults: [] });
+    const results = querySessions({ search: "quantum dots" });
+    expect(results).toHaveLength(1);
+    expect(results[0].subject).toBe("Energy");
+  });
+
+  // ---- Export as Markdown ----
+
+  it("exports a session as Markdown", () => {
+    const id = saveSession({
+      subject: "AI Testing",
+      angleResults: [sampleAngleResult],
+      tags: ["ai", "testing"],
+      notes: "Important session",
+    });
+    const session = getSession(id)!;
+    const md = exportSessionAsMarkdown(session);
+    expect(md).toContain("# Innovation Session: AI Testing");
+    expect(md).toContain("**Tags**: ai, testing");
+    expect(md).toContain("**Notes**: Important session");
+    expect(md).toContain("### SCAMPER");
+    expect(md).toContain("#### Test Idea");
+  });
+
+  // ---- Export as CSV ----
+
+  it("exports a session as CSV with proper escaping", () => {
+    const id = saveSession({
+      subject: "Solar, Wind & More",
+      angleResults: [
+        {
+          angleId: "scamper",
+          angleName: "SCAMPER",
+          ideas: [
+            {
+              title: 'Idea with "quotes"',
+              description: "A description with,commas",
+              potentialImpact: "High",
+              implementationHint: "Step 1",
+            },
+          ],
+          reasoning: "Applied SCAMPER",
+        },
+      ],
+    });
+    const session = getSession(id)!;
+    const csv = exportSessionAsCsv(session);
+    const lines = csv.split("\n");
+    expect(lines[0]).toBe("Subject,Angle,Idea Title,Description,Impact,Implementation Hint");
+    expect(lines).toHaveLength(2);
+    // Verify that commas and quotes are escaped
+    expect(lines[1]).toContain('"Solar, Wind & More"');
+    expect(lines[1]).toContain('"Idea with ""quotes"""');
   });
 });

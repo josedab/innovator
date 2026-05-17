@@ -64,8 +64,15 @@ export interface IdeaValidator {
 // Registry of validators
 const validators: Map<string, IdeaValidator> = new Map();
 
-/** Register a custom validator. */
+/** Register a custom validator.
+ * @throws If a validator with the same ID is already registered
+ */
 export function registerValidator(validator: IdeaValidator): void {
+  if (validators.has(validator.id)) {
+    throw new Error(
+      `registerValidator: a validator with id "${validator.id}" is already registered`
+    );
+  }
   validators.set(validator.id, validator);
 }
 
@@ -113,7 +120,7 @@ You MUST respond with valid JSON only:
     return withRetry(
       async () => {
         const raw = await generateText({ prompt, serverMode: true, signal });
-        const jsonStr = extractJson(raw);
+        const jsonStr = extractJson(sanitizeLlmOutput(raw));
         const parsed = JSON.parse(jsonStr) as {
           score: number;
           summary: string;
@@ -163,7 +170,7 @@ You MUST respond with valid JSON only:
     return withRetry(
       async () => {
         const raw = await generateText({ prompt, serverMode: true, signal });
-        const jsonStr = extractJson(raw);
+        const jsonStr = extractJson(sanitizeLlmOutput(raw));
         const parsed = JSON.parse(jsonStr) as {
           score: number;
           summary: string;
@@ -215,7 +222,7 @@ You MUST respond with valid JSON only:
     return withRetry(
       async () => {
         const raw = await generateText({ prompt, serverMode: true, signal });
-        const jsonStr = extractJson(raw);
+        const jsonStr = extractJson(sanitizeLlmOutput(raw));
         const parsed = JSON.parse(jsonStr) as {
           score: number;
           summary: string;
@@ -401,7 +408,7 @@ You MUST respond with valid JSON only:
 }`;
 
     const raw = await generateText({ prompt, serverMode: true, signal });
-    const jsonStr = extractJson(raw);
+    const jsonStr = extractJson(sanitizeLlmOutput(raw));
     const parsed = JSON.parse(jsonStr) as {
       score: number;
       summary: string;
@@ -448,7 +455,7 @@ You MUST respond with valid JSON only:
 }`;
 
     const raw = await generateText({ prompt, serverMode: true, signal });
-    const jsonStr = extractJson(raw);
+    const jsonStr = extractJson(sanitizeLlmOutput(raw));
     const parsed = JSON.parse(jsonStr) as {
       score: number;
       summary: string;
@@ -509,18 +516,27 @@ export async function validateComprehensive(
     r.checks.filter((c) => c.category === "regulatory")
   );
 
-  const avgMarketScore = marketChecks.length > 0
-    ? marketChecks.reduce((s, c) => s + c.score, 0) / marketChecks.length
-    : 50;
-  const avgCompetitorScore = competitorChecks.length > 0
-    ? competitorChecks.reduce((s, c) => s + c.score, 0) / competitorChecks.length
-    : 50;
-  const avgRegulatoryScore = regulatoryChecks.length > 0
-    ? regulatoryChecks.reduce((s, c) => s + c.score, 0) / regulatoryChecks.length
-    : 50;
+  const avgMarketScore =
+    marketChecks.length > 0
+      ? marketChecks.reduce((s, c) => s + c.score, 0) / marketChecks.length
+      : 50;
+  const avgCompetitorScore =
+    competitorChecks.length > 0
+      ? competitorChecks.reduce((s, c) => s + c.score, 0) / competitorChecks.length
+      : 50;
+  const avgRegulatoryScore =
+    regulatoryChecks.length > 0
+      ? regulatoryChecks.reduce((s, c) => s + c.score, 0) / regulatoryChecks.length
+      : 50;
 
   const marketTemperature: ComprehensiveValidation["marketContext"]["marketTemperature"] =
-    avgMarketScore < 25 ? "hot" : avgMarketScore < 50 ? "warming" : avgMarketScore < 75 ? "cold" : "saturated";
+    avgMarketScore < 25
+      ? "hot"
+      : avgMarketScore < 50
+        ? "warming"
+        : avgMarketScore < 75
+          ? "cold"
+          : "saturated";
 
   const regulatoryComplexity: ComprehensiveValidation["marketContext"]["regulatoryComplexity"] =
     avgRegulatoryScore < 30 ? "low" : avgRegulatoryScore < 60 ? "medium" : "high";
@@ -528,9 +544,11 @@ export async function validateComprehensive(
   const overallViability: ComprehensiveValidation["marketContext"]["overallViability"] =
     scorecard.results.length === 0
       ? "unknown"
-      : scorecard.results.filter((r) => r.overallStatus === "validated").length > scorecard.results.length / 2
+      : scorecard.results.filter((r) => r.overallStatus === "validated").length >
+          scorecard.results.length / 2
         ? "strong"
-        : scorecard.results.filter((r) => r.overallStatus !== "risky").length > scorecard.results.length / 2
+        : scorecard.results.filter((r) => r.overallStatus !== "risky").length >
+            scorecard.results.length / 2
           ? "moderate"
           : "weak";
 

@@ -103,9 +103,10 @@ export function getPresetsByCategory(category: string): Preset[] {
   return BUILT_IN_PRESETS.filter((p) => p.category.toLowerCase() === category.toLowerCase());
 }
 
-/** Get presets filtered by tag. */
+/** Get presets filtered by tag (case-insensitive). */
 export function getPresetsByTag(tag: string): Preset[] {
-  return BUILT_IN_PRESETS.filter((p) => p.tags?.includes(tag.toLowerCase()));
+  const normalizedTag = tag.toLowerCase();
+  return BUILT_IN_PRESETS.filter((p) => p.tags?.some((t) => t.toLowerCase() === normalizedTag));
 }
 
 // ---- Domain-Specific Innovation Packs ----

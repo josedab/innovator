@@ -64,7 +64,7 @@ describe("extractJson", () => {
   // --- JSON Array support ---
 
   it("extracts a plain JSON array", () => {
-    const input = '[1, 2, 3]';
+    const input = "[1, 2, 3]";
     expect(JSON.parse(extractJson(input))).toEqual([1, 2, 3]);
   });
 
@@ -89,11 +89,57 @@ describe("extractJson", () => {
   });
 
   it("handles nested arrays correctly", () => {
-    const input = '[[1, 2], [3, [4, 5]]]';
-    expect(JSON.parse(extractJson(input))).toEqual([[1, 2], [3, [4, 5]]]);
+    const input = "[[1, 2], [3, [4, 5]]]";
+    expect(JSON.parse(extractJson(input))).toEqual([
+      [1, 2],
+      [3, [4, 5]],
+    ]);
   });
 
-  it("throws on unbalanced brackets in array", () => {
-    expect(() => extractJson("[1, 2, 3")).toThrow("Unbalanced JSON braces");
+  it("throws on empty string input", () => {
+    expect(() => extractJson("")).toThrow("No JSON object found");
+  });
+
+  it("throws on whitespace-only input", () => {
+    expect(() => extractJson("   \n\t  ")).toThrow("No JSON object found");
+  });
+
+  it("handles BOM character before JSON", () => {
+    const input = '\uFEFF{"key": "value"}';
+    expect(JSON.parse(extractJson(input))).toEqual({ key: "value" });
+  });
+
+  it("handles fenced block with extra whitespace", () => {
+    const input = '```json\n  \n  {"result": true}\n  \n```';
+    expect(JSON.parse(extractJson(input))).toEqual({ result: true });
+  });
+
+  it("handles deeply nested objects", () => {
+    const input = '{"a": {"b": {"c": {"d": {"e": "deep"}}}}}';
+    const result = JSON.parse(extractJson(input));
+    expect(result.a.b.c.d.e).toBe("deep");
+  });
+
+  it("handles strings with escaped backslashes", () => {
+    const input = '{"path": "C:\\\\Users\\\\test"}';
+    const result = JSON.parse(extractJson(input));
+    expect(result.path).toBe("C:\\Users\\test");
+  });
+
+  it("handles JSON with unicode content", () => {
+    const input = '{"msg": "日本語テスト 🎉"}';
+    const result = JSON.parse(extractJson(input));
+    expect(result.msg).toBe("日本語テスト 🎉");
+  });
+
+  it("extracts JSON from multi-line LLM response with explanation", () => {
+    const input = `Here is my analysis:
+
+Based on the investigation, I've identified the following:
+
+{"summary": "test", "keyAspects": []}
+
+Let me know if you need more details.`;
+    expect(JSON.parse(extractJson(input))).toEqual({ summary: "test", keyAspects: [] });
   });
 });

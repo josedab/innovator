@@ -9,8 +9,8 @@ export function sanitizeUserInput(input: string): string {
   // Normalize Unicode to NFC to prevent homoglyph bypass
   let sanitized = input.normalize("NFC");
 
-  // Strip zero-width and invisible characters
-  sanitized = sanitized.replace(/[\u200B-\u200F\u2028-\u202F\u2060\uFEFF]/g, "");
+  // Strip zero-width, invisible characters, and null bytes
+  sanitized = sanitized.replace(/[\u0000\u200B-\u200F\u2028-\u202F\u2060\uFEFF]/g, "");
 
   // Normalize unicode whitespace to regular spaces
   sanitized = sanitized.replace(/\p{Zs}/gu, " ");

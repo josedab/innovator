@@ -6,11 +6,25 @@
  * Supports CRUD, full-text search, and filtering.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync, renameSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  unlinkSync,
+  renameSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { SessionRecord, HistoryQuery, Investigation, AngleResult, Synthesis } from "../types.js";
+import type {
+  SessionRecord,
+  HistoryQuery,
+  Investigation,
+  AngleResult,
+  Synthesis,
+} from "../types.js";
 
 const HISTORY_DIR = join(homedir(), ".innovator", "history");
 
@@ -33,7 +47,9 @@ function sessionPath(id: string): string {
   return join(HISTORY_DIR, `${id}.json`);
 }
 
-/** Save a new session from pipeline results. Returns the session ID. */
+/** Save a new session from pipeline results. Returns the session ID.
+ * @throws If subject is empty or whitespace-only
+ */
 export function saveSession(params: {
   subject: string;
   investigation?: Investigation;
@@ -43,6 +59,9 @@ export function saveSession(params: {
   notes?: string;
   presetId?: string;
 }): string {
+  if (!params.subject || !params.subject.trim()) {
+    throw new Error("saveSession: subject must be a non-empty string");
+  }
   ensureHistoryDir();
   const id = randomUUID();
   const now = new Date().toISOString();
@@ -74,10 +93,7 @@ export function getSession(id: string): SessionRecord | undefined {
 }
 
 /** Update a session's tags or notes. */
-export function updateSession(
-  id: string,
-  updates: { tags?: string[]; notes?: string }
-): boolean {
+export function updateSession(id: string, updates: { tags?: string[]; notes?: string }): boolean {
   const session = getSession(id);
   if (!session) return false;
   if (updates.tags !== undefined) session.tags = updates.tags;
@@ -147,9 +163,7 @@ export function querySessionsPaginated(query: HistoryQuery): PaginatedSessionRes
   }
 
   if (query.tags && query.tags.length > 0) {
-    sessions = sessions.filter((s) =>
-      query.tags!.every((tag) => s.tags.includes(tag))
-    );
+    sessions = sessions.filter((s) => query.tags!.every((tag) => s.tags.includes(tag)));
   }
 
   if (query.fromDate) {
@@ -161,14 +175,12 @@ export function querySessionsPaginated(query: HistoryQuery): PaginatedSessionRes
   }
 
   if (query.angleId) {
-    sessions = sessions.filter((s) =>
-      s.angleResults.some((ar) => ar.angleId === query.angleId)
-    );
+    sessions = sessions.filter((s) => s.angleResults.some((ar) => ar.angleId === query.angleId));
   }
 
   const totalCount = sessions.length;
-  const offset = query.offset ?? 0;
-  const limit = query.limit ?? 50;
+  const offset = Math.max(0, Math.floor(query.offset ?? 0));
+  const limit = Math.max(0, Math.floor(query.limit ?? 50));
   return { sessions: sessions.slice(offset, offset + limit), totalCount };
 }
 
@@ -176,14 +188,16 @@ export function querySessionsPaginated(query: HistoryQuery): PaginatedSessionRes
 export function compareSessions(
   id1: string,
   id2: string
-): {
-  session1: SessionRecord;
-  session2: SessionRecord;
-  sharedThemes: string[];
-  sharedAngles: string[];
-  uniqueAngles1: string[];
-  uniqueAngles2: string[];
-} | undefined {
+):
+  | {
+      session1: SessionRecord;
+      session2: SessionRecord;
+      sharedThemes: string[];
+      sharedAngles: string[];
+      uniqueAngles1: string[];
+      uniqueAngles2: string[];
+    }
+  | undefined {
   const s1 = getSession(id1);
   const s2 = getSession(id2);
   if (!s1 || !s2) return undefined;
@@ -244,4 +258,128 @@ export function getSessionStats(): SessionStats {
     earliestSession: sessions.length > 0 ? sessions[sessions.length - 1].createdAt : undefined,
     latestSession: sessions.length > 0 ? sessions[0].createdAt : undefined,
   };
+}
+
+// ---- Session Export Helpers ----
+
+/** Escape a value for CSV output (wrap in quotes if it contains commas, quotes, or newlines). */
+function csvEscape(value: string): string {
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+/**
+ * Export a session record as a Markdown document.
+ *
+ * @param session - The session record to export
+ * @returns A Markdown-formatted string with all session data
+ */
+export function exportSessionAsMarkdown(session: SessionRecord): string {
+  const lines: string[] = [];
+  lines.push(`# Innovation Session: ${session.subject}`);
+  lines.push("");
+  lines.push(`- **ID**: ${session.id}`);
+  lines.push(`- **Created**: ${session.createdAt}`);
+  lines.push(`- **Updated**: ${session.updatedAt}`);
+  if (session.tags.length > 0) {
+    lines.push(`- **Tags**: ${session.tags.join(", ")}`);
+  }
+  if (session.notes) {
+    lines.push(`- **Notes**: ${session.notes}`);
+  }
+  lines.push("");
+
+  if (session.investigation) {
+    lines.push("## Investigation");
+    lines.push("");
+    lines.push(`**Summary:** ${session.investigation.summary}`);
+    lines.push("");
+    lines.push("### Key Aspects");
+    for (const aspect of session.investigation.keyAspects) {
+      lines.push(`- **${aspect.title}**: ${aspect.description}`);
+    }
+    lines.push("");
+    lines.push(`**Current State:** ${session.investigation.currentState}`);
+    lines.push("");
+    lines.push("### Challenges");
+    for (const c of session.investigation.challenges) {
+      lines.push(`- ${c}`);
+    }
+    lines.push("");
+    lines.push("### Opportunities");
+    for (const o of session.investigation.opportunities) {
+      lines.push(`- ${o}`);
+    }
+    lines.push("");
+  }
+
+  if (session.angleResults.length > 0) {
+    lines.push("## Ideas by Angle");
+    lines.push("");
+    for (const ar of session.angleResults) {
+      lines.push(`### ${ar.angleName} (\`${ar.angleId}\`)`);
+      lines.push("");
+      lines.push(`*${ar.reasoning}*`);
+      lines.push("");
+      for (const idea of ar.ideas) {
+        lines.push(`#### ${idea.title}`);
+        lines.push("");
+        lines.push(idea.description);
+        lines.push("");
+        lines.push(`- **Impact**: ${idea.potentialImpact}`);
+        lines.push(`- **How to start**: ${idea.implementationHint}`);
+        lines.push("");
+      }
+    }
+  }
+
+  if (session.synthesis) {
+    lines.push("## Synthesis");
+    lines.push("");
+    lines.push("### Top Ideas");
+    for (const idea of session.synthesis.topIdeas) {
+      lines.push(`- **${idea.title}** (${idea.feasibility} feasibility) — ${idea.potentialImpact}`);
+    }
+    lines.push("");
+    lines.push("### Themes");
+    for (const theme of session.synthesis.themes) {
+      lines.push(`- ${theme}`);
+    }
+    lines.push("");
+    lines.push("### Recommendation");
+    lines.push(session.synthesis.recommendation);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Export a session's ideas as CSV rows for spreadsheet import.
+ *
+ * @param session - The session record to export
+ * @returns A CSV string with headers: Subject, Angle, Idea Title, Description, Impact, Implementation Hint
+ */
+export function exportSessionAsCsv(session: SessionRecord): string {
+  const header = "Subject,Angle,Idea Title,Description,Impact,Implementation Hint";
+  const rows: string[] = [header];
+
+  for (const ar of session.angleResults) {
+    for (const idea of ar.ideas) {
+      rows.push(
+        [
+          csvEscape(session.subject),
+          csvEscape(ar.angleName),
+          csvEscape(idea.title),
+          csvEscape(idea.description),
+          csvEscape(idea.potentialImpact),
+          csvEscape(idea.implementationHint),
+        ].join(",")
+      );
+    }
+  }
+
+  return rows.join("\n");
 }

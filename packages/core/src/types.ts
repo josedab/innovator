@@ -160,6 +160,17 @@ export interface PipelineProgress {
   };
   /** Whether the pipeline was stopped early by the user. */
   stoppedEarly?: boolean;
+  /** Duration tracking for each pipeline stage and total elapsed time (in milliseconds). */
+  durationMs?: {
+    /** Time spent in the investigation stage. */
+    investigation?: number;
+    /** Time spent in the generation stage. */
+    generation?: number;
+    /** Time spent in the synthesis stage. */
+    synthesis?: number;
+    /** Total pipeline elapsed time. */
+    total?: number;
+  };
 }
 
 // ---- Custom Angles ----

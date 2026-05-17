@@ -135,7 +135,7 @@ export async function scoreIdeas(
   const parsed = await withRetry(
     async () => {
       const raw = await generateText({ prompt, model, serverMode: true, signal });
-      const jsonStr = extractJson(raw);
+      const jsonStr = extractJson(sanitizeLlmOutput(raw));
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
@@ -408,14 +408,14 @@ Respond with valid JSON only:
     const raw = await withRetry(
       async () => {
         const result = await generateText({ prompt, model, serverMode: true, signal });
-        return extractJson(result);
+        return extractJson(sanitizeLlmOutput(result));
       },
       { signal }
     );
     const parsed = JSON.parse(raw) as { scores: typeof rawScores };
     rawScores = parsed.scores;
   } catch {
-    // Fallback: generate uniform scores
+    // Fallback: generate uniform default scores when LLM is unavailable
     rawScores = ideas.map((idea) => ({
       ideaTitle: idea.title,
       dimensions: config.dimensions.map((d) => ({

@@ -89,7 +89,9 @@ export function getModelCapability(modelId: string): ModelCapability | undefined
 }
 
 /** Auto-select the best model for each pipeline stage based on registered capabilities. */
-export function getSmartRouting(preference: "quality" | "speed" | "cost" = "quality"): ModelRouting {
+export function getSmartRouting(
+  preference: "quality" | "speed" | "cost" = "quality"
+): ModelRouting {
   const registry = getModelRegistry();
 
   const selectBest = (stage: PipelineModelStage): string | undefined => {
@@ -132,7 +134,10 @@ type GenerateFn = (
   signal?: AbortSignal
 ) => Promise<AngleResult>;
 
-/** Run the same angle on multiple models and compare results side by side. */
+/**
+ * Run the same angle on multiple models in parallel and compare results side by side.
+ * Results are returned in the same order as the input models array.
+ */
 export async function compareModels(
   subject: string,
   investigation: Investigation,
@@ -141,32 +146,33 @@ export async function compareModels(
   generateFn: GenerateFn,
   signal?: AbortSignal
 ): Promise<ModelComparisonResult> {
-  const results: ModelComparisonResult["results"] = [];
+  const resolvedAngleId = typeof angleId === "string" ? angleId : angleId;
 
-  for (const model of models) {
+  const promises = models.map(async (model) => {
     const start = Date.now();
     try {
       const angleResult = await generateFn(subject, investigation, angleId, model, signal);
-      results.push({
+      return {
         model,
         angleResult,
         durationMs: Date.now() - start,
-      });
+      };
     } catch (err) {
-      results.push({
+      return {
         model,
         angleResult: {
-          angleId: typeof angleId === "string" ? angleId : angleId,
+          angleId: resolvedAngleId,
           angleName: `Error (${model})`,
           ideas: [],
           reasoning: `Failed: ${err instanceof Error ? err.message : String(err)}`,
         },
         durationMs: Date.now() - start,
-      });
+      };
     }
-  }
+  });
 
-  return { angleId: typeof angleId === "string" ? angleId : angleId, results };
+  const results = await Promise.all(promises);
+  return { angleId: resolvedAngleId, results };
 }
 
 /** Clear custom models (for testing). */
