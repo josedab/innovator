@@ -122,8 +122,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Incremental TypeScript builds** — Enabled `incremental` with `tsBuildInfoFile` in `tsconfig.base.json`, `packages/core`, and `apps/cli` for faster rebuild times
 - **Pipeline sanitized subject** — `pipeline.ts` now correctly uses the sanitized subject for all downstream operations (was unused after validation)
 
+### Security
+
+- **Widget embed XSS hardening** — `generateEmbedCode()` now escapes all HTML attribute values (endpoint, API key, title, CDN URL) via `escapeHtmlAttr()` to prevent attribute injection in embedded script/component tags
+- **LLM prompt injection hardening** — `wrapUserInput()` and `sanitizeLlmOutput()` now applied consistently across `backtesting`, `curriculum`, `swarm`, and `web-search` modules to isolate user-provided content in LLM prompts
+- **Embed API CORS hardening** — `/api/embed` route now returns no CORS headers for disallowed origins instead of echoing an empty origin value
+- **Middleware auth enforcement** — API key validation middleware now returns `401` for missing or invalid keys instead of falling through
+- **Copilot client sanitization** — LLM responses are now sanitized via `sanitizeLlmOutput()` before JSON extraction and caching, reducing injection and parse-error surface
+
 ### Fixed
 
+- **LRU cache stale eviction** — `LRUCache.set()` now prunes expired entries before capacity eviction, so stale items no longer block inserts
+- **Semaphore permit over-allocation** — `Semaphore.release()` no longer increments permits beyond `maxPermits` when no waiters are queued
+- **Realtime room membership** — `RealtimeRoomManager.joinRoom()` now removes users from their previous room before reassigning, preventing stale memberships
+- **Scheduler cron validation** — `parseField()` now validates cron range boundaries and step values more strictly; rejects `start > end` ranges and `step ≤ 0`
+- **Scheduler worker overlap** — `startScheduleWorker()` now uses a reentrancy guard (`workerRunning`) to prevent overlapping execution cycles
+- **Trigger polling overlap** — `TriggerPipeline.start()` now prevents overlapping polling cycles with a reentrancy guard
+- **Token scoring empty sentences** — TF-IDF token scoring now handles empty tokenized sentences without errors
+- **Migration error handling** — Storage migration error reporting now safely handles non-`Error` thrown values via `instanceof` guard
+- **Health check timer cleanup** — `runHealthChecks()` now clears per-check timeout timers after each check completes, preventing timer leaks
+- **Retry abort cleanup** — `withRetry()` delay phase now cleans up abort listeners reliably and handles already-aborted signals immediately
 - **Portfolio optimizer validation** — `optimizePortfolio()` now validates weight array length against matrix dimensions and checks for non-empty inputs
 - **Prompt Studio validation** — `recordPromptExecution()` now validates required fields before persisting execution records
 - **Marketplace tests** — Fixed test setup and assertion mismatches across marketplace module test suites
@@ -156,6 +174,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Concurrency test suite** — Tests for `Semaphore.shrink()` and adaptive TaskRunner scaling
 - **Model registry test suite** — Tests for `unregisterModel()` single-model removal
 - **Removed duplicate tests** — Removed 4 duplicate root-level test files (`rbac`, `api-playground`, `portfolio-optimizer`, `cross-org-benchmark`) where module-local tests are supersets
+- **CLI smoke-test stability** — Increased CLI smoke-test timeouts to reduce flakiness under parallel load
+- **Upload route validation tests** — Updated upload route test expectations to assert `400` status for invalid payloads
+
+### Infrastructure
+
+- **Doctor script enhancements** — `npm run doctor` now checks CLI build output (`apps/cli/dist/index.js`), lockfile presence, and available disk space
+- **Vitest coverage exclusions** — Excluded `*.test.tsx` files from coverage instrumentation in `vitest.config.ts`
 
 ### Documentation
 
@@ -197,6 +222,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Reference** — Updated EventBus docs with listener cap, buffer cap, error isolation, `setMaxListeners()`, `setMaxBufferSize()`, `onWarning()`, `listenerCount()`, and full methods table
 - **API Reference** — Updated Object Pool docs with double-release guard, safe reset-on-discard, and `maxSize` validation
 - **Changelog** — Updated with all memory safety caps, event bus hardening, semaphore abort support, resilience primitives, observability, storage hardening, and correctness fixes from recent commits
+- **API Reference** — Added Scheduler section with cron parsing, natural language conversion, schedule CRUD, run history, and background worker
+- **API Reference** — Added Triggers section with `TriggerPipeline`, semantic matching, deduplication, frequency capping, and source adapters
+- **API Reference** — Added Widget section with `generateEmbedCode()`, micro-app system, and integration guides
+- **API Reference** — Added Realtime section with `RealtimeRoomManager`, room-based presence, live voting, and typing indicators
+- **Changelog** — Added Security section documenting widget XSS hardening, LLM prompt injection hardening across 4 modules, CORS hardening, and auth enforcement
+- **Changelog** — Added Infrastructure section for doctor script enhancements and Vitest coverage exclusions
+- **Changelog** — Final documentation pass ensuring all changes from recent 5 commits are captured
 
 ## [0.3.0] — 2026-05-14
 

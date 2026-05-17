@@ -121,6 +121,10 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
 - [Visualization](#visualization)
 - [Interactive Refinement](#interactive-refinement)
 - [Comparative Pipeline](#comparative-pipeline)
+- [Scheduler](#scheduler)
+- [Triggers](#triggers)
+- [Widget](#widget)
+- [Realtime](#realtime)
 - [Core Types](#core-types)
 - [Zod Schemas](#zod-schemas)
 
@@ -3803,4 +3807,472 @@ interface CompetitiveMap {
   differentiators: Array<{ subject: string; differentiator: string }>;
   recommendation: string;
 }
+```
+
+---
+
+## Scheduler
+
+Cron-like scheduler for automated periodic innovation runs. Supports cron expression parsing, natural language schedule descriptions, schedule CRUD, persistent run history, and a background worker for automatic execution.
+
+### `parseCron()`
+
+Parse a standard 5-field cron expression into a structured `ParsedCron` object.
+
+```typescript
+function parseCron(expression: string): ParsedCron;
+```
+
+**Throws:** `ValidationError` if the expression does not have exactly 5 fields or contains invalid range/step values.
+
+### `cronMatches()`
+
+Check if a `Date` matches a parsed cron expression.
+
+```typescript
+function cronMatches(cron: ParsedCron, date: Date): boolean;
+```
+
+### `getNextRunTime()`
+
+Calculate the next execution time from a given start date (default: now). Searches up to 1 year ahead.
+
+```typescript
+function getNextRunTime(expression: string, from?: Date): Date;
+```
+
+### `naturalLanguageToCron()`
+
+Convert a natural language schedule description (e.g., `"every weekday"`, `"daily"`, `"every day at 14:30"`) to a cron expression. Returns `null` if no pattern matches.
+
+```typescript
+function naturalLanguageToCron(text: string): string | null;
+```
+
+**Supported patterns:** `every minute`, `every hour`, `daily`, `every day at HH:MM`, `weekly`, `every <weekday>`, `monthly`, `every weekday`, `twice daily`.
+
+### Schedule CRUD
+
+```typescript
+function createSchedule(
+  input: Omit<Schedule, "id" | "createdAt" | "updatedAt" | "runCount" | "nextRunAt">
+): Schedule;
+function getSchedule(id: string): Schedule | undefined;
+function updateSchedule(
+  id: string,
+  updates: Partial<
+    Pick<
+      Schedule,
+      | "name"
+      | "description"
+      | "cronExpression"
+      | "timezone"
+      | "action"
+      | "status"
+      | "delivery"
+      | "maxRuns"
+    >
+  >
+): Schedule;
+function deleteSchedule(id: string): boolean;
+function listSchedules(): Schedule[];
+function getDueSchedules(now?: Date): Schedule[];
+function clearSchedules(): void;
+```
+
+### Run History
+
+```typescript
+function recordScheduleRun(
+  scheduleId: string,
+  result: {
+    status: "completed" | "failed";
+    resultSummary?: string;
+    error?: string;
+    durationMs?: number;
+  }
+): ScheduleRun;
+function getScheduleRuns(scheduleId: string): ScheduleRun[];
+```
+
+### Background Worker
+
+```typescript
+function setScheduleExecutionHandler(handler: (schedule: Schedule) => Promise<void>): void;
+function startScheduleWorker(intervalMs?: number): void; // default: 60000ms
+function stopScheduleWorker(): void;
+```
+
+The worker checks for due schedules at the configured interval. A reentrancy guard prevents overlapping execution cycles. Set an execution handler before starting the worker.
+
+**Example:**
+
+```typescript
+import {
+  createSchedule,
+  setScheduleExecutionHandler,
+  startScheduleWorker,
+  stopScheduleWorker,
+} from "@innovator/core";
+
+// Create a daily schedule
+createSchedule({
+  name: "Daily AI trends scan",
+  cronExpression: "0 9 * * *",
+  timezone: "America/New_York",
+  action: { type: "auto-pipeline", subject: "AI trends 2025" },
+  status: "active",
+  delivery: [{ type: "slack", target: "#innovation", enabled: true }],
+});
+
+// Wire up execution
+setScheduleExecutionHandler(async (schedule) => {
+  console.log(`Running: ${schedule.name}`);
+  // ... run pipeline, send notifications
+});
+
+startScheduleWorker(); // checks every 60s
+// stopScheduleWorker() to tear down
+```
+
+### Scheduler Types
+
+```typescript
+type ScheduleStatus = "active" | "paused" | "completed" | "failed";
+
+interface ScheduleAction {
+  type: "investigate" | "auto-pipeline" | "competitive-analysis" | "trend-scan" | "custom";
+  subject: string;
+  model?: string;
+  angles?: string[];
+  customConfig?: Record<string, unknown>;
+}
+
+interface Schedule {
+  id: string;
+  name: string;
+  description?: string;
+  cronExpression: string;
+  timezone: string;
+  action: ScheduleAction;
+  status: ScheduleStatus;
+  delivery: DeliveryChannel[];
+  maxRuns?: number;
+  runCount: number;
+  lastRunAt?: string;
+  nextRunAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface DeliveryChannel {
+  type: "email" | "slack" | "webhook";
+  target: string;
+  enabled: boolean;
+}
+
+interface ScheduleRun {
+  id: string;
+  scheduleId: string;
+  startedAt: string;
+  completedAt?: string;
+  status: "running" | "completed" | "failed";
+  resultSummary?: string;
+  error?: string;
+  durationMs?: number;
+}
+```
+
+---
+
+## Triggers
+
+Contextual Innovation Triggers — monitor external sources for events relevant to user-defined innovation interests. Includes semantic matching via LLM, deduplication, frequency capping, and a configurable polling pipeline.
+
+### `TriggerPipeline`
+
+The main class for creating and managing trigger-based innovation monitoring.
+
+```typescript
+class TriggerPipeline {
+  constructor(config: TriggerConfig);
+  registerSource(id: string, adapter: TriggerSourceAdapter): void;
+  addInterest(interest: InnovationInterest): void;
+  removeInterest(id: string): void;
+  onTrigger(callback: TriggerCallback): void;
+  start(intervalMs?: number): void; // default: 300000ms (5 min)
+  stop(): void;
+  pollOnce(): Promise<TriggerEvent[]>;
+  getStats(): { totalEvents: number; matchedEvents: number; sources: number };
+}
+```
+
+A reentrancy guard prevents overlapping polling cycles.
+
+### `createTriggerPipeline()`
+
+Factory function to create a `TriggerPipeline` with built-in source adapters pre-registered.
+
+```typescript
+function createTriggerPipeline(config: TriggerConfig): TriggerPipeline;
+```
+
+### `matchEventToInterests()`
+
+Match a trigger event against a list of innovation interests using LLM-based semantic matching.
+
+```typescript
+async function matchEventToInterests(
+  event: TriggerEvent,
+  interests: InnovationInterest[],
+  model?: string,
+  signal?: AbortSignal
+): Promise<Array<{ interest: InnovationInterest; relevanceScore: number; reasoning: string }>>;
+```
+
+### `triggerEventToMarkdown()`
+
+Convert a trigger event to a human-readable Markdown summary.
+
+```typescript
+function triggerEventToMarkdown(event: TriggerEvent): string;
+```
+
+### Trigger Types
+
+```typescript
+type TriggerSource =
+  | "rss"
+  | "github-releases"
+  | "hacker-news"
+  | "arxiv"
+  | "patent-filings"
+  | "custom-webhook";
+
+interface TriggerFilter {
+  keywords?: string[];
+  categories?: string[];
+  minRelevance?: number; // 0–1
+}
+
+interface FrequencyCap {
+  maxPerHour?: number;
+  maxPerDay?: number;
+}
+
+interface TriggerConfig {
+  sources: TriggerSource[];
+  filter?: TriggerFilter;
+  frequencyCap?: FrequencyCap;
+  deduplication?: boolean;
+}
+
+interface TriggerEvent {
+  id: string;
+  source: TriggerSource;
+  title: string;
+  url?: string;
+  summary?: string;
+  publishedAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface InnovationInterest {
+  id: string;
+  topic: string;
+  description?: string;
+  keywords?: string[];
+}
+
+interface TriggerSourceAdapter {
+  fetch(): Promise<TriggerEvent[]>;
+}
+
+type TriggerCallback = (events: TriggerEvent[]) => void;
+```
+
+**Example:**
+
+```typescript
+import { createTriggerPipeline } from "@innovator/core";
+
+const pipeline = createTriggerPipeline({
+  sources: ["hacker-news", "arxiv"],
+  filter: { keywords: ["LLM", "innovation"], minRelevance: 0.7 },
+  frequencyCap: { maxPerHour: 5, maxPerDay: 20 },
+  deduplication: true,
+});
+
+pipeline.addInterest({ id: "ai-trends", topic: "AI agent frameworks" });
+pipeline.onTrigger((events) => {
+  for (const event of events) {
+    console.log(`Trigger: ${event.title} (${event.source})`);
+  }
+});
+
+pipeline.start(); // polls every 5 minutes
+```
+
+---
+
+## Widget
+
+Embeddable Innovation Widget — a framework-agnostic web component (`<innovator-widget>`) that can be embedded with a single script tag on any website. Also includes a micro-app system for creating focused innovation tools.
+
+### `generateEmbedCode()`
+
+Generate the HTML embed code for the innovator widget.
+
+```typescript
+function generateEmbedCode(options: {
+  apiEndpoint: string;
+  apiKey?: string;
+  angles?: string[];
+  theme?: "light" | "dark" | "auto";
+  title?: string;
+  maxHeight?: number;
+  cdnUrl?: string;
+}): string;
+```
+
+> **Security:** All option values are escaped via `escapeHtmlAttr()` to prevent attribute injection in the generated HTML.
+
+### `getWidgetSource()`
+
+Returns the JavaScript source code for the `<innovator-widget>` custom element.
+
+```typescript
+function getWidgetSource(): string;
+```
+
+### Micro-Apps
+
+Create and manage focused micro-apps (quick polls, idea boxes, trend dashboards, etc.).
+
+```typescript
+function createMicroApp(params: {
+  type: MicroAppType;
+  title: string;
+  subject: string;
+  settings?: Record<string, unknown>;
+}): MicroAppConfig;
+function getMicroApp(id: string): MicroAppConfig | undefined;
+function listMicroApps(): MicroAppConfig[];
+function deleteMicroApp(id: string): boolean;
+function clearMicroApps(): void;
+function generateInstallCode(config: MicroAppConfig): string;
+function getIntegrationGuides(config: MicroAppConfig): IntegrationGuide[];
+function validateWidgetConfig(config: unknown): { valid: boolean; errors?: string[] };
+```
+
+### Widget Types
+
+```typescript
+type MicroAppType =
+  | "quick-poll"
+  | "idea-box"
+  | "trend-dashboard"
+  | "innovation-feed"
+  | "brainstorm-board";
+
+interface MicroAppConfig {
+  id: string;
+  type: MicroAppType;
+  title: string;
+  subject: string;
+  settings?: Record<string, unknown>;
+  createdAt: string;
+}
+
+interface IntegrationGuide {
+  platform: string;
+  instructions: string;
+  code: string;
+}
+```
+
+---
+
+## Realtime
+
+WebSocket-based real-time collaboration transport layer. Room-based multiplexing with presence tracking, live voting, typing indicators, and optimistic conflict resolution.
+
+### `RealtimeRoomManager`
+
+Protocol-agnostic server that can be wired into any WebSocket library (ws, Socket.io, Partykit).
+
+```typescript
+class RealtimeRoomManager {
+  handleMessage(
+    userId: string,
+    message: RealtimeMessage,
+    send: SendToUser,
+    broadcast: BroadcastToRoom
+  ): RealtimeResponse;
+  createRoom(sessionId: string): RealtimeRoom;
+  joinRoom(roomId: string, user: RealtimeUser, send: SendToUser, broadcast: BroadcastToRoom): void;
+  leaveRoom(roomId: string, userId: string, broadcast: BroadcastToRoom): void;
+  getRoomUsers(roomId: string): RealtimeUser[];
+  vote(
+    roomId: string,
+    userId: string,
+    ideaId: string,
+    value: number,
+    broadcast: BroadcastToRoom
+  ): void;
+  getVotes(roomId: string, ideaId: string): Map<string, number>;
+}
+```
+
+> **Fix (recent):** `joinRoom()` now removes users from their previous room before reassigning, preventing stale memberships when users switch rooms.
+
+### Global Manager
+
+```typescript
+function getRealtimeManager(): RealtimeRoomManager;
+function resetRealtimeManager(): void;
+```
+
+### Realtime Types
+
+```typescript
+interface RealtimeUser {
+  userId: string;
+  displayName: string;
+  connectedAt: string;
+  cursor?: { x: number; y: number };
+  isTyping: boolean;
+  lastActivity: string;
+}
+
+interface RealtimeRoom {
+  id: string;
+  sessionId: string;
+  users: Map<string, RealtimeUser>;
+  createdAt: string;
+}
+
+type RealtimeMessageType =
+  | "join"
+  | "leave"
+  | "cursor_move"
+  | "typing_start"
+  | "typing_stop"
+  | "vote"
+  | "add_idea"
+  | "edit_idea"
+  | "delete_idea"
+  | "react"
+  | "lock"
+  | "unlock";
+
+interface RealtimeMessage {
+  type: RealtimeMessageType;
+  roomId: string;
+  userId: string;
+  payload?: Record<string, unknown>;
+}
+
+type SendToUser = (userId: string, message: RealtimeResponse) => void;
+type BroadcastToRoom = (roomId: string, message: RealtimeResponse, excludeUserId?: string) => void;
 ```
