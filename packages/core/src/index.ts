@@ -11,6 +11,7 @@ export {
   LlmError,
   LlmTimeoutError,
   LlmParseError,
+  RateLimitError,
   ValidationError,
   PipelineError,
   ConfigurationError,
@@ -103,12 +104,19 @@ export {
   wrapUserInput,
   /** Sanitize LLM output before displaying to users. */
   sanitizeLlmOutput,
+  /** Validate and sanitize an innovation subject string before pipeline use. */
+  validateSubject,
 } from "./prompts/sanitize.js";
+/** Result of {@link validateSubject} validation. */
+export type { SubjectValidationResult } from "./prompts/sanitize.js";
 
 /** Retry utility with exponential backoff for unreliable async operations. */
 export { withRetry, RetryExhaustedError } from "./copilot/retry.js";
 /** Configuration options for {@link withRetry}. */
 export type { RetryOptions } from "./copilot/retry.js";
+
+/** Timeout utility — race a promise against a deadline. */
+export { withTimeout } from "./copilot/timeout.js";
 
 /** Plugin system — register, discover, and load angle/exporter/visualizer plugins.
  * @see {@link file://docs/API.md#plugin-system} for plugin development guide

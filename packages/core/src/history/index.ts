@@ -81,12 +81,28 @@ export function saveSession(params: {
   return id;
 }
 
-/** Get a session by ID. */
+/** Minimal shape check for session records loaded from disk. */
+function isValidSessionRecord(data: unknown): data is SessionRecord {
+  if (typeof data !== "object" || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return (
+    typeof obj.id === "string" &&
+    typeof obj.subject === "string" &&
+    typeof obj.createdAt === "string" &&
+    typeof obj.updatedAt === "string" &&
+    Array.isArray(obj.angleResults) &&
+    Array.isArray(obj.tags)
+  );
+}
+
+/** Get a session by ID. Returns undefined for missing or malformed files. */
 export function getSession(id: string): SessionRecord | undefined {
   try {
     const path = sessionPath(id);
     if (!existsSync(path)) return undefined;
-    return JSON.parse(readFileSync(path, "utf-8")) as SessionRecord;
+    const data: unknown = JSON.parse(readFileSync(path, "utf-8"));
+    if (!isValidSessionRecord(data)) return undefined;
+    return data;
   } catch {
     return undefined;
   }
@@ -111,7 +127,7 @@ export function deleteSession(id: string): boolean {
   return true;
 }
 
-/** List all sessions, most recent first. */
+/** List all sessions, most recent first. Silently skips corrupt or malformed files. */
 export function listSessions(): SessionRecord[] {
   ensureHistoryDir();
   const files = readdirSync(HISTORY_DIR).filter((f) => f.endsWith(".json"));
@@ -119,7 +135,10 @@ export function listSessions(): SessionRecord[] {
   for (const file of files) {
     try {
       const raw = readFileSync(join(HISTORY_DIR, file), "utf-8");
-      sessions.push(JSON.parse(raw) as SessionRecord);
+      const data: unknown = JSON.parse(raw);
+      if (isValidSessionRecord(data)) {
+        sessions.push(data);
+      }
     } catch {
       // Skip corrupt files
     }

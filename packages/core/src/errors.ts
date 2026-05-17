@@ -28,6 +28,7 @@ export type InnovatorErrorCode =
   | "ERR_LLM"
   | "ERR_LLM_TIMEOUT"
   | "ERR_LLM_PARSE"
+  | "ERR_LLM_RATE_LIMIT"
   | "ERR_VALIDATION"
   | "ERR_PIPELINE"
   | "ERR_CONFIGURATION"
@@ -89,6 +90,25 @@ export class LlmParseError extends LlmError {
     this.name = "LlmParseError";
     Object.defineProperty(this, "code", { value: "ERR_LLM_PARSE" as InnovatorErrorCode });
     this.rawOutput = rawOutput.length > 500 ? rawOutput.slice(0, 500) + "…" : rawOutput;
+  }
+}
+
+/**
+ * Error thrown when an LLM API request is rate-limited (HTTP 429).
+ * Provides structured access to retry timing for automatic backoff.
+ */
+export class RateLimitError extends LlmError {
+  /** Suggested wait time in milliseconds before retrying, if provided by the API. */
+  readonly retryAfterMs?: number;
+
+  constructor(
+    message: string = "LLM request was rate-limited",
+    options?: { model?: string; retryAfterMs?: number; cause?: Error }
+  ) {
+    super(message, { model: options?.model, cause: options?.cause });
+    this.name = "RateLimitError";
+    Object.defineProperty(this, "code", { value: "ERR_LLM_RATE_LIMIT" as InnovatorErrorCode });
+    this.retryAfterMs = options?.retryAfterMs;
   }
 }
 

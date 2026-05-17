@@ -427,6 +427,9 @@ Respond with valid JSON only:
     }));
   }
 
+  // Build dimension lookup map once (avoids repeated O(n) finds per idea)
+  const dimensionMap = new Map(config.dimensions.map((d) => [d.id, d]));
+
   // Apply calibration and compute composite scores
   return rawScores.map((rawScore) => {
     const calibratedDimensions = rawScore.dimensions.map((dim) => {
@@ -434,7 +437,7 @@ Respond with valid JSON only:
         ? getCalibrationAdjustment(config.id, dim.dimensionId, config.calibration.feedbackWeight)
         : 0;
 
-      const dimension = config.dimensions.find((d) => d.id === dim.dimensionId);
+      const dimension = dimensionMap.get(dim.dimensionId);
       const maxScore = dimension?.maxScore ?? 10;
       const minScore = dimension?.minScore ?? 0;
 
@@ -448,7 +451,7 @@ Respond with valid JSON only:
     let compositeScore = 0;
     let totalWeight = 0;
     for (const dim of calibratedDimensions) {
-      const dimension = config.dimensions.find((d) => d.id === dim.dimensionId);
+      const dimension = dimensionMap.get(dim.dimensionId);
       if (dimension) {
         compositeScore += dim.score * dimension.weight;
         totalWeight += dimension.weight;
@@ -471,8 +474,10 @@ Respond with valid JSON only:
           break;
         }
         case "min-dimensions": {
+          // Count dimensions scoring above the threshold; require majority to pass
           const passingDims = calibratedDimensions.filter((d) => d.score >= gate.threshold);
-          passed = passingDims.length >= gate.threshold;
+          const requiredCount = Math.ceil(calibratedDimensions.length / 2);
+          passed = passingDims.length >= requiredCount;
           break;
         }
         case "max-risk": {

@@ -14,6 +14,7 @@ export interface RetryOptions {
 }
 
 import { AbortError } from "../errors.js";
+import { RateLimitError } from "../errors.js";
 
 /** Error thrown when all retry attempts are exhausted. Preserves the original error as `cause`. */
 export class RetryExhaustedError extends Error {
@@ -46,6 +47,7 @@ const DEFAULT_RETRYABLE_PATTERNS = [
 
 function defaultIsRetryable(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
+  if (error instanceof RateLimitError) return true;
   const msg = error.message.toLowerCase();
   return DEFAULT_RETRYABLE_PATTERNS.some((pattern) => msg.includes(pattern.toLowerCase()));
 }
@@ -102,8 +104,9 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
         throw error;
       }
 
-      const jitter = Math.random() * delay * 0.1;
-      const waitTime = Math.min(delay + jitter, maxDelayMs);
+      // Full jitter: randomize between 50%-100% of computed delay to spread retries
+      const jitter = delay * (0.5 + Math.random() * 0.5);
+      const waitTime = Math.min(jitter, maxDelayMs);
 
       await new Promise<void>((resolve, reject) => {
         let onAbort: (() => void) | undefined;

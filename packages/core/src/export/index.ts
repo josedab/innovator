@@ -12,12 +12,21 @@ function escapeMarkdownInline(text: string): string {
   return text.replace(/([\\*_`\[\]|~<>])/g, "\\$1");
 }
 
-/** Escape a value for CSV output (wrap in quotes if it contains commas, quotes, or newlines). */
-function csvEscape(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
+/** Escape a value for CSV output (RFC 4180 compliant). Handles non-string inputs, normalizes newlines. */
+function csvEscape(value: unknown): string {
+  const str = value == null ? "" : String(value);
+  // Normalize CRLF and CR to LF for consistent line endings
+  const normalized = str.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  // Always quote if the value contains commas, double quotes, or newlines
+  if (
+    normalized.includes(",") ||
+    normalized.includes('"') ||
+    normalized.includes("\n") ||
+    normalized.includes("\r")
+  ) {
+    return `"${normalized.replace(/"/g, '""')}"`;
   }
-  return value;
+  return normalized;
 }
 
 /** Export result containing the formatted output and metadata. */

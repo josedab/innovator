@@ -104,16 +104,41 @@ export function updateCustomAngle(angle: CustomAngle): void {
   saveCustomAngles(existing);
 }
 
-/** Export custom angles as an angle pack. */
+/** Export custom angles as an angle pack.
+ * @throws If no angles match the given IDs or no angles exist.
+ */
 export function exportAnglePack(
   name: string,
   angleIds?: string[],
   description?: string
 ): AnglePack {
   const all = loadCustomAngles();
-  const angles = angleIds ? all.filter((a) => angleIds.includes(a.id)) : all;
+  let angles: CustomAngle[];
+  const warnings: string[] = [];
+
+  if (angleIds) {
+    // Deduplicate requested IDs
+    const uniqueIds = [...new Set(angleIds)];
+    const allById = new Map(all.map((a) => [a.id, a]));
+    angles = [];
+    for (const id of uniqueIds) {
+      const found = allById.get(id);
+      if (found) {
+        angles.push(found);
+      } else {
+        warnings.push(id);
+      }
+    }
+    if (warnings.length > 0 && angles.length > 0) {
+      // Non-fatal: some IDs weren't found but we still have results
+    }
+  } else {
+    angles = all;
+  }
+
   if (angles.length === 0) {
-    throw new Error("No angles to export");
+    const detail = warnings.length > 0 ? ` (unknown IDs: ${warnings.join(", ")})` : "";
+    throw new Error(`No angles to export${detail}`);
   }
   return { name, description, version: "1.0.0", angles };
 }

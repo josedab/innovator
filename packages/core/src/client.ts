@@ -7,6 +7,7 @@ export {
   LlmError,
   LlmTimeoutError,
   LlmParseError,
+  RateLimitError,
   ValidationError,
   PipelineError,
   ConfigurationError,

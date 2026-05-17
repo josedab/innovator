@@ -67,6 +67,9 @@ export const ANGLES: AngleDefinition[] = [
   },
 ];
 
+/** Pre-built lookup map for O(1) angle retrieval by ID. */
+const ANGLE_MAP = new Map<string, AngleDefinition>(ANGLES.map((a) => [a.id, a]));
+
 /**
  * Look up an angle definition by its ID.
  *
@@ -80,5 +83,5 @@ export const ANGLES: AngleDefinition[] = [
  * ```
  */
 export function getAngleById(id: string): AngleDefinition | undefined {
-  return ANGLES.find((a) => a.id === id);
+  return ANGLE_MAP.get(id);
 }
