@@ -669,3 +669,12 @@ export function getConversionMetrics(): ConversionMetrics {
     trends,
   };
 }
+
+export {
+  DashboardMetricsSchema,
+  ExecutiveReportSchema,
+  aggregateDashboardMetrics,
+  generateExecutiveReport,
+  suggestPortfolioRebalance,
+} from "./dashboard.js";
+export type { DashboardMetrics, ExecutiveReport } from "./dashboard.js";

@@ -1242,6 +1242,19 @@ export type {
   PortfolioRiskResult,
 } from "./portfolio/strategic-intelligence.js";
 
+/** Portfolio Dashboard — executive metrics, narrative reporting, and rebalance suggestions. */
+export {
+  DashboardMetricsSchema,
+  ExecutiveReportSchema as PortfolioExecutiveReportSchema,
+  aggregateDashboardMetrics,
+  generateExecutiveReport as generatePortfolioExecutiveReport,
+  suggestPortfolioRebalance,
+} from "./portfolio/index.js";
+export type {
+  DashboardMetrics,
+  ExecutiveReport as PortfolioExecutiveReport,
+} from "./portfolio/index.js";
+
 /** Theming / white-label — customizable themes with CSS variables and prompt preambles. */
 export {
   loadTheme,
