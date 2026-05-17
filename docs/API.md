@@ -22,6 +22,7 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
   - [`generateText()`](#generatetext)
   - [`generateTextStream()`](#generatetextstream)
   - [`extractJson()`](#extractjson)
+  - [`extractJsonCacheStats()`](#extractjsoncachestats)
   - [`getCopilotClient()` / `stopCopilotClient()`](#getcopilotclient--stopcopilotclient)
 - [LLM Providers](#llm-providers)
   - [`LLMProvider` Interface](#llmprovider-interface)
@@ -43,6 +44,7 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
 - [LRU Cache](#lru-cache)
   - [`LRUCache`](#lrucache)
   - [`memoize()`](#memoize)
+  - [`memoizeAsync()`](#memoizeasync)
 - [Object Pool](#object-pool)
   - [`ObjectPool`](#objectpool)
   - [`withPooled()` / `withPooledAsync()`](#withpooled--withpooledasync)
@@ -78,6 +80,7 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
   - [Priority Scoring](#priority-scoring)
   - [Quadrant Analysis](#quadrant-analysis)
   - [Configurable Scoring Engine](#configurable-scoring-engine)
+  - [Scoring Comparison](#scoring-comparison)
 - [Validation](#validation)
   - [Built-in Validators](#built-in-validators)
   - [Custom Validators](#custom-validators)
@@ -391,6 +394,26 @@ const obj = extractJson('Here is the result: ```json\n{"key": "value"}\n```');
 // Extract array from free-form text
 const arr = extractJson('The items are: [{"id": 1}, {"id": 2}] — done.');
 ````
+
+### `extractJsonCacheStats()`
+
+Get hit/miss statistics for the internal `extractJson()` LRU cache. Useful for observability and performance tuning.
+
+```typescript
+function extractJsonCacheStats(): CacheStats;
+```
+
+**Returns:** A `CacheStats` object with `hits`, `misses`, `size`, `maxSize`, and `hitRate`.
+
+**Example:**
+
+```typescript
+import { extractJsonCacheStats } from "@innovator/core";
+
+const stats = extractJsonCacheStats();
+console.log(`Cache hit rate: ${(stats.hitRate * 100).toFixed(1)}%`);
+console.log(`Entries: ${stats.size}/${stats.maxSize}`);
+```
 
 ### `getCopilotClient()` / `stopCopilotClient()`
 
@@ -870,6 +893,51 @@ expensiveCalc.cache.stats(); // { hits: 1, misses: 1, ... }
 expensiveCalc.cache.clear(); // reset
 ```
 
+### `memoizeAsync()`
+
+Create a memoized version of an **async** function using an LRU cache. Concurrent calls for the same cache key are deduplicated — only one in-flight promise executes, and subsequent callers piggyback on its result. Failed calls are **not** cached.
+
+```typescript
+function memoizeAsync<Args extends unknown[], R>(
+  fn: (...args: Args) => Promise<R>,
+  options: LRUCacheOptions,
+  keyFn?: (...args: Args) => string
+): ((...args: Args) => Promise<R>) & { cache: LRUCache<string, R> };
+```
+
+**Parameters:**
+
+| Name      | Type                      | Description                                               |
+| --------- | ------------------------- | --------------------------------------------------------- |
+| `fn`      | `(...args) => Promise<R>` | The async function to memoize                             |
+| `options` | `LRUCacheOptions`         | Cache size and TTL configuration                          |
+| `keyFn`   | `(...args) => string`     | Optional key derivation (default: `JSON.stringify(args)`) |
+
+**Returns:** A memoized async wrapper with a `.cache` property exposing the underlying `LRUCache`.
+
+**Example:**
+
+```typescript
+import { memoizeAsync } from "@innovator/core";
+
+const fetchProfile = memoizeAsync(
+  async (userId: string) => {
+    const res = await fetch(`/api/users/${userId}`);
+    return res.json();
+  },
+  { maxSize: 100, ttlMs: 60_000 }
+);
+
+const profile = await fetchProfile("user-123"); // fetches
+const cached = await fetchProfile("user-123"); // cached
+
+// Concurrent calls for the same key are deduplicated (single fetch)
+const [a, b] = await Promise.all([fetchProfile("user-456"), fetchProfile("user-456")]);
+
+fetchProfile.cache.stats(); // { hits: 1, misses: 2, ... }
+fetchProfile.cache.clear(); // reset
+```
+
 ---
 
 ## Object Pool
@@ -1317,6 +1385,7 @@ function getSessionStats(): SessionStats;
 function exportSessionAsMarkdown(session: SessionRecord): string;
 function exportSessionAsJson(session: SessionRecord): string;
 function exportSessionAsCsv(session: SessionRecord): string;
+function exportSessionAsHtml(session: SessionRecord): string;
 
 // Session management
 function duplicateSession(id: string): string | undefined;
@@ -1367,6 +1436,24 @@ writeFileSync(`session-${session.id}.md`, md);
 // CSV for spreadsheet analysis
 const csv = exportSessionAsCsv(session);
 writeFileSync(`session-${session.id}.csv`, csv);
+```
+
+#### `exportSessionAsHtml()`
+
+Export a session record as a self-contained HTML document with embedded CSS styling. Produces a single-file report suitable for sharing via email or embedding in wikis.
+
+```typescript
+function exportSessionAsHtml(session: SessionRecord): string;
+```
+
+**Example:**
+
+```typescript
+import { getSession, exportSessionAsHtml } from "@innovator/core";
+
+const session = getSession("sess-abc")!;
+const html = exportSessionAsHtml(session);
+writeFileSync(`session-${session.id}.html`, html);
 ```
 
 ### `duplicateSession()`
@@ -1763,6 +1850,71 @@ function recordCalibrationFeedback(
 
 // Reset calibration data
 function clearCalibration(): void;
+```
+
+### Scoring Comparison
+
+Compare two sets of scored ideas to identify changes in scores and quadrant shifts. Useful for before/after analysis when re-scoring with a different model, after idea refinement, or when comparing alternative scoring configurations.
+
+#### `compareScoringSets()`
+
+```typescript
+function compareScoringSets(baseline: IdeaScore[], comparison: IdeaScore[]): ScoringComparison;
+```
+
+Ideas are matched by title (case-insensitive). Ideas present in only one set are reported separately.
+
+**Parameters:**
+
+| Name         | Type          | Description                                   |
+| ------------ | ------------- | --------------------------------------------- |
+| `baseline`   | `IdeaScore[]` | The original (reference) set of idea scores   |
+| `comparison` | `IdeaScore[]` | The new set of idea scores to compare against |
+
+**Returns:** A `ScoringComparison` with per-idea deltas and aggregate statistics.
+
+**`ScoringComparison` type:**
+
+```typescript
+interface ScoringComparison {
+  deltas: IdeaScoreDelta[]; // Per-idea deltas for matched ideas
+  onlyInBaseline: string[]; // Ideas only in the baseline set
+  onlyInComparison: string[]; // Ideas only in the comparison set
+  avgFeasibilityDelta: number; // Average feasibility change
+  avgImpactDelta: number; // Average impact change
+  avgNoveltyDelta: number; // Average novelty change
+  quadrantChanges: number; // Number of ideas that changed quadrant
+}
+
+interface IdeaScoreDelta {
+  ideaTitle: string;
+  feasibilityDelta: number; // Positive = improved
+  impactDelta: number; // Positive = improved
+  noveltyDelta: number; // Positive = improved
+  priorityDelta: number; // Composite priority score change
+  baselineQuadrant: Quadrant;
+  comparisonQuadrant: Quadrant;
+  quadrantChanged: boolean;
+}
+```
+
+**Example:**
+
+```typescript
+import { scoreIdeas, compareScoringSets } from "@innovator/core";
+
+// Score ideas with two different models
+const baselineScores = await scoreIdeas(ideas, domain, "gpt-4.1");
+const newScores = await scoreIdeas(ideas, domain, "gpt-5");
+
+const comparison = compareScoringSets(baselineScores.scores, newScores.scores);
+
+console.log(`Quadrant changes: ${comparison.quadrantChanges}`);
+console.log(`Avg impact delta: ${comparison.avgImpactDelta}`);
+
+for (const delta of comparison.deltas.filter((d) => d.quadrantChanged)) {
+  console.log(`"${delta.ideaTitle}": ${delta.baselineQuadrant} → ${delta.comparisonQuadrant}`);
+}
 ```
 
 ---
@@ -2577,6 +2729,38 @@ Query a model's capabilities by ID.
 
 ```typescript
 function getModelCapability(modelId: string): ModelCapability | undefined;
+```
+
+### `getAvailableModels()`
+
+Get a unified, deduplicated list of all available models from all sources: the built-in registry, custom models registered at runtime, and models from the `INNOVATOR_EXTRA_MODELS` environment variable. Registry entries take priority over environment-sourced entries with the same ID.
+
+```typescript
+function getAvailableModels(): AvailableModel[];
+```
+
+**Returns:** Array of `AvailableModel` sorted alphabetically by ID.
+
+**`AvailableModel` type:**
+
+```typescript
+interface AvailableModel {
+  id: string; // Model identifier
+  displayName: string; // Human-readable name (or derived from ID)
+  hasCapabilities: boolean; // Whether full capability metadata exists
+  source: "built-in" | "custom" | "env"; // Where the model entry originated
+}
+```
+
+**Example:**
+
+```typescript
+import { getAvailableModels } from "@innovator/core";
+
+const models = getAvailableModels();
+for (const m of models) {
+  console.log(`${m.displayName} (${m.source})${m.hasCapabilities ? "" : " — no capability data"}`);
+}
 ```
 
 ### `getSmartRouting()`

@@ -46,14 +46,17 @@ jobs:
 
 ## Inputs
 
-| Input          | Description                                | Default                             |
-| -------------- | ------------------------------------------ | ----------------------------------- |
-| `subject`      | Subject to investigate                     | Issue title (if triggered by issue) |
-| `angles`       | Comma-separated angle IDs                  | All 8 angles                        |
-| `depth`        | Investigation depth: shallow/standard/deep | `standard`                          |
-| `label`        | Issue label trigger                        | `needs-innovation`                  |
-| `model`        | LLM model to use                           | Default provider model              |
-| `post-comment` | Post results as issue comment              | `true`                              |
+| Input           | Description                                                    | Default                             |
+| --------------- | -------------------------------------------------------------- | ----------------------------------- |
+| `subject`       | Subject to investigate                                         | Issue title (if triggered by issue) |
+| `angles`        | Comma-separated angle IDs                                      | All 8 angles                        |
+| `depth`         | Investigation depth: shallow/standard/deep                     | `standard`                          |
+| `label`         | Issue label trigger                                            | `needs-innovation`                  |
+| `model`         | LLM model to use                                               | Default provider model              |
+| `post-comment`  | Post results as issue comment                                  | `true`                              |
+| `config-path`   | Path to `.innovator/config.yaml` for project-specific defaults | `.innovator/config.yaml`            |
+| `save-session`  | Save pipeline results to `.innovator/sessions/`                | `false`                             |
+| `novelty-check` | Score ideas for novelty against prior art                      | `false`                             |
 
 ## Outputs
 
@@ -123,6 +126,19 @@ jobs:
           subject: ${{ github.event.discussion.title }} — ${{ github.event.discussion.body }}
           depth: "standard"
           angles: "first-principles,cross-domain,trend-collision"
+```
+
+### Project-specific configuration
+
+Use a `.innovator/config.yaml` file in your repository to set default angles, model, and other settings. The action reads this file automatically (or specify a custom path with `config-path`). Explicit inputs override config file defaults.
+
+```yaml
+- uses: josedab/innovator/action@main
+  with:
+    subject: "API gateway architecture"
+    config-path: ".innovator/config.yaml"
+    save-session: "true"
+    novelty-check: "true"
 ```
 
 ```yaml
