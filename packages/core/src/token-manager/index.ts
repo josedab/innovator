@@ -62,7 +62,7 @@ export const ModelSuggestionSchema = z.object({
   currentModel: z.string().max(100),
   suggestedModel: z.string().max(100),
   reason: z.string().max(500),
-  estimatedSavingsPct: z.number().min(0).max(100),
+  estimatedSavingsPct: z.number().min(-100).max(100),
   tradeoff: z.string().max(500),
 });
 export type ModelSuggestion = z.infer<typeof ModelSuggestionSchema>;

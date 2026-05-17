@@ -76,6 +76,7 @@ export type QualityTrend = z.infer<typeof QualityTrendSchema>;
 const MAX_LOG_ENTRIES = 5_000;
 const effectivenessLog: PromptEffectiveness[] = [];
 const hallucinationLog: HallucinationCheck[] = [];
+const diversityLog: DiversityScore[] = [];
 
 // ---- Diversity Scoring ----
 
@@ -159,7 +160,7 @@ export function scoreIdeaDiversity(angleResults: AngleResult[]): DiversityScore 
   const overallDiversity =
     lexicalDiversity * 0.3 + conceptualSpread * 0.4 + angleDistribution * 0.3;
 
-  return {
+  const result: DiversityScore = {
     overallDiversity: Math.round(overallDiversity * 1000) / 1000,
     lexicalDiversity: Math.round(lexicalDiversity * 1000) / 1000,
     conceptualSpread: Math.round(conceptualSpread * 1000) / 1000,
@@ -169,6 +170,14 @@ export function scoreIdeaDiversity(angleResults: AngleResult[]): DiversityScore 
     duplicateCount,
     recommendations,
   };
+
+  // Record for quality trends
+  diversityLog.push(result);
+  if (diversityLog.length > MAX_LOG_ENTRIES) {
+    diversityLog.splice(0, diversityLog.length - MAX_LOG_ENTRIES);
+  }
+
+  return result;
 }
 
 function jaccardSimilarity(a: string, b: string): number {
@@ -402,9 +411,14 @@ export function getQualityTrends(): QualityTrend {
         ? "declining"
         : "stable";
 
+  const avgDiversity =
+    diversityLog.length > 0
+      ? diversityLog.reduce((s, d) => s + d.overallDiversity, 0) / diversityLog.length
+      : 0;
+
   return {
     period: "all-time",
-    averageDiversity: 0, // Populated when diversity scores are tracked
+    averageDiversity: Math.round(avgDiversity * 1000) / 1000,
     averageEffectiveness: Math.round(avgEffectiveness * 1000) / 1000,
     hallucinationRate: Math.round(hallucinationRate * 1000) / 1000,
     totalPipelines,
@@ -416,6 +430,7 @@ export function getQualityTrends(): QualityTrend {
 export function clearTelemetry(): void {
   effectivenessLog.length = 0;
   hallucinationLog.length = 0;
+  diversityLog.length = 0;
   spanStore.length = 0;
   metricsStore.length = 0;
 }

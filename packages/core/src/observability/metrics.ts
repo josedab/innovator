@@ -195,7 +195,12 @@ export function recordIdeasGenerated(angle: string, count: number): void {
 function formatLabels(labels: Record<string, string>): string {
   const entries = Object.entries(labels);
   if (entries.length === 0) return "";
-  return `{${entries.map(([k, v]) => `${k}="${v}"`).join(",")}}`;
+  return `{${entries.map(([k, v]) => `${k}="${escapeLabel(v)}"`).join(",")}}`;
+}
+
+/** Escape label values for Prometheus text format. */
+function escapeLabel(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 }
 
 /** Render all metrics in Prometheus text exposition format. */

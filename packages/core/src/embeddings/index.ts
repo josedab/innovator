@@ -348,6 +348,9 @@ export function findSimilar(documentId: string, limit: number = 10): SearchResul
  */
 export function clusterDocuments(numClusters: number = 5): Cluster[] {
   if (index.size === 0) return [];
+  if (!Number.isFinite(numClusters) || numClusters < 1) {
+    numClusters = 1;
+  }
 
   const docs = Array.from(index.values());
   const assignments = new Array<number>(docs.length);

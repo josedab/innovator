@@ -305,8 +305,12 @@ function computeModelWeights(): Record<string, number> {
 
   // Adjust weights based on which features correlate with success
   const computeCorrelation = (key: keyof TrainingDataPoint) => {
-    const successAvg = avg(successPoints.map((p) => Number(p[key]) || 0));
-    const failureAvg = avg(failurePoints.map((p) => Number(p[key]) || 0));
+    const toNum = (p: TrainingDataPoint) => {
+      const v = p[key];
+      return typeof v === "number" && Number.isFinite(v) ? v : 0;
+    };
+    const successAvg = avg(successPoints.map(toNum));
+    const failureAvg = avg(failurePoints.map(toNum));
     return (successAvg - failureAvg) / Math.max(successAvg + failureAvg, 0.01);
   };
 

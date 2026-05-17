@@ -10,9 +10,10 @@ export function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07]*\x07/g, "");
 }
 
-/** Validate that the subject is within the maximum length */
+/** Validate that the subject is non-empty and within the maximum length */
 export function validateSubject(subject: string): boolean {
-  return subject.length <= MAX_SUBJECT_LENGTH;
+  const trimmed = subject.trim();
+  return trimmed.length > 0 && trimmed.length <= MAX_SUBJECT_LENGTH;
 }
 
 /** Validate that the model (if provided) is in the known list */

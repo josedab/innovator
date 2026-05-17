@@ -50,8 +50,12 @@ describe("validateSubject", () => {
     expect(validateSubject(subject)).toBe(false);
   });
 
-  it("returns true for empty string", () => {
-    expect(validateSubject("")).toBe(true);
+  it("returns false for empty string", () => {
+    expect(validateSubject("")).toBe(false);
+  });
+
+  it("returns false for whitespace-only string", () => {
+    expect(validateSubject("   ")).toBe(false);
   });
 
   it("returns true for single character", () => {
