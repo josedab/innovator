@@ -55,7 +55,11 @@ ${outlines.join("\n")}
         ...SECURITY_HEADERS,
       },
     });
-  } catch {
+  } catch (err) {
+    console.error(
+      "[/api/feed/opml] Failed to generate OPML:",
+      err instanceof Error ? err.message : String(err)
+    );
     return new Response("Failed to generate OPML", { status: 500 });
   }
 }
