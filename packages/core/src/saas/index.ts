@@ -67,6 +67,33 @@ export {
 } from "./storage.js";
 export type { StorageAdapter, PostgresConfig } from "./storage.js";
 
+export {
+  TenantRoleSchema,
+  TenantMemberSchema,
+  TenantWorkspaceSchema,
+  BillingTierSchema as TenantWorkspaceBillingTierSchema,
+  UsageMeterSchema as TenantWorkspaceUsageMeterSchema,
+  createTenantWorkspace,
+  getTenantWorkspace,
+  listTenantWorkspaces as listOwnedTenantWorkspaces,
+  addTenantMember,
+  removeTenantMember,
+  updateTenantMemberRole,
+  getTierLimits as getTenantWorkspaceTierLimits,
+  recordUsage as recordTenantWorkspaceUsage,
+  getUsage as getTenantWorkspaceUsage,
+  isWithinLimits as isTenantWorkspaceWithinLimits,
+  deleteTenantWorkspace,
+  clearTenantData,
+} from "./multi-tenancy.js";
+export type {
+  TenantRole,
+  TenantMember,
+  TenantWorkspace,
+  BillingTier as TenantWorkspaceBillingTier,
+  UsageMeter as TenantWorkspaceUsageMeter,
+} from "./multi-tenancy.js";
+
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 

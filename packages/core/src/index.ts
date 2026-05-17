@@ -7200,6 +7200,34 @@ export {
 } from "./saas/index.js";
 export type { Workspace as SaasWorkspace, SharedResult } from "./saas/index.js";
 
+/** SaaS Multi-Tenancy — owner-scoped tenant workspaces, members, and usage controls. */
+export {
+  TenantRoleSchema,
+  TenantMemberSchema,
+  TenantWorkspaceSchema,
+  TenantWorkspaceBillingTierSchema,
+  TenantWorkspaceUsageMeterSchema,
+  createTenantWorkspace,
+  getTenantWorkspace,
+  listOwnedTenantWorkspaces as listTenantWorkspacesByOwner,
+  addTenantMember,
+  removeTenantMember,
+  updateTenantMemberRole,
+  getTenantWorkspaceTierLimits,
+  recordTenantWorkspaceUsage,
+  getTenantWorkspaceUsage,
+  isTenantWorkspaceWithinLimits,
+  deleteTenantWorkspace,
+  clearTenantData,
+} from "./saas/index.js";
+export type {
+  TenantRole,
+  TenantMember,
+  TenantWorkspace,
+  TenantWorkspaceBillingTier as SaasBillingTier,
+  TenantWorkspaceUsageMeter as SaasUsageMeter,
+} from "./saas/index.js";
+
 /** SaaS Auth — GitHub OAuth, session tokens, Stripe billing, storage adapters. */
 export {
   type GitHubUser,
