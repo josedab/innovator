@@ -44,22 +44,72 @@ export type MultiModalPipelineResult = z.infer<typeof MultiModalPipelineResultSc
 
 // ---- Quality Assessment ----
 
+const PLACEHOLDER_PATTERNS = [
+  /\[(?:pdf|image|audio|video|content).+pending\]/i,
+  /placeholder/i,
+  /lorem ipsum/i,
+  /tbd/i,
+];
+
+const LANGUAGE_HINTS: Record<string, string[]> = {
+  en: ["the", "and", "is", "in", "to", "of", "for", "with"],
+  es: ["el", "la", "de", "que", "y", "en", "para", "con"],
+  fr: ["le", "la", "de", "et", "dans", "pour", "avec", "les"],
+};
+
+function countWords(content: string): number {
+  return content.trim().match(/[a-z0-9]+(?:['-][a-z0-9]+)*/gi)?.length ?? 0;
+}
+
+function detectLanguage(content: string): string {
+  const words = content.toLowerCase().match(/[a-záéíóúüñàâçèéêëîïôùûüÿæœ]+/gi) ?? [];
+  if (words.length === 0) return "unknown";
+
+  let bestLanguage = "unknown";
+  let bestScore = 0;
+  for (const [language, hints] of Object.entries(LANGUAGE_HINTS)) {
+    const score = words.filter((word) => hints.includes(word)).length / words.length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestLanguage = language;
+    }
+  }
+
+  return bestScore >= 0.04 ? bestLanguage : "unknown";
+}
+
 /** Assess the quality of a single input source. */
 export function assessSourceQuality(source: InputSource): SourceQualityReport {
   const issues: SourceQualityReport["issues"] = [];
-  const recommendations: string[] = [];
+  const recommendations = new Set<string>();
   let qualityScore = source.confidence;
+  const trimmedContent = source.content.trim();
+  const wordCount = countWords(source.content);
 
-  const wordCount = source.content.trim().split(/\s+/).length;
+  if (trimmedContent.length === 0) {
+    issues.push({
+      severity: "critical",
+      message: "Empty content after extraction",
+    });
+    qualityScore = 0;
+  }
 
-  // Check content length
-  if (wordCount < 10) {
+  if (PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(trimmedContent))) {
+    issues.push({
+      severity: "critical",
+      message: "Content still contains extraction placeholders instead of usable evidence",
+    });
+    qualityScore *= 0.15;
+    recommendations.add("Re-run extraction so the source contains real text before fusion");
+  }
+
+  if (wordCount > 0 && wordCount < 10) {
     issues.push({
       severity: "critical",
       message: `Very short content (${wordCount} words). May not contain enough information.`,
     });
     qualityScore *= 0.3;
-    recommendations.push("Consider providing more detailed input");
+    recommendations.add("Consider providing more detailed input");
   } else if (wordCount < 50) {
     issues.push({
       severity: "warning",
@@ -68,33 +118,23 @@ export function assessSourceQuality(source: InputSource): SourceQualityReport {
     qualityScore *= 0.7;
   }
 
-  // Check for extraction artifacts
-  if (source.type === "pdf" || source.type === "image") {
+  if ((source.type === "pdf" || source.type === "image") && trimmedContent.length > 0) {
     const garbledRatio =
-      (source.content.match(/[^\x20-\x7E\n\r\t]/g) || []).length / source.content.length;
+      (source.content.match(/[^\x20-\x7E\n\r\t]/g) || []).length /
+      Math.max(trimmedContent.length, 1);
     if (garbledRatio > 0.1) {
       issues.push({
         severity: "warning",
         message: "Content contains possible OCR/extraction artifacts",
       });
       qualityScore *= 0.8;
-      recommendations.push("Verify extracted text accuracy");
+      recommendations.add("Verify extracted text accuracy");
     }
   }
 
-  // Check for empty or placeholder content
-  if (source.content.trim().length === 0) {
-    issues.push({
-      severity: "critical",
-      message: "Empty content after extraction",
-    });
-    qualityScore = 0;
-  }
-
-  // Check for repetitive content
-  const lines = source.content.split("\n").filter((l) => l.trim().length > 0);
+  const lines = source.content.split("\n").filter((line) => line.trim().length > 0);
   if (lines.length > 5) {
-    const uniqueLines = new Set(lines.map((l) => l.trim().toLowerCase()));
+    const uniqueLines = new Set(lines.map((line) => line.trim().toLowerCase()));
     const uniqueRatio = uniqueLines.size / lines.length;
     if (uniqueRatio < 0.5) {
       issues.push({
@@ -102,27 +142,19 @@ export function assessSourceQuality(source: InputSource): SourceQualityReport {
         message: "High content repetition detected",
       });
       qualityScore *= 0.75;
+      recommendations.add("Trim repeated headers or duplicated OCR blocks before fusion");
     }
   }
 
-  // Audio-specific checks
-  if (source.type === "audio") {
-    if (source.confidence < 0.6) {
-      issues.push({
-        severity: "warning",
-        message: "Low transcription confidence. Audio quality may be poor.",
-      });
-      recommendations.push("Consider using higher quality audio recording");
-    }
+  if (source.type === "audio" && source.confidence < 0.6) {
+    issues.push({
+      severity: "warning",
+      message: "Low transcription confidence. Audio quality may be poor.",
+    });
+    recommendations.add("Consider using higher quality audio recording");
   }
 
-  // Detect language (simple heuristic)
-  const commonEnglishWords = ["the", "and", "is", "in", "to", "of", "a", "that", "it", "for"];
-  const words = source.content.toLowerCase().split(/\s+/);
-  const englishWordCount = words.filter((w) => commonEnglishWords.includes(w)).length;
-  const englishRatio = words.length > 0 ? englishWordCount / words.length : 0;
-  const languageDetected = englishRatio > 0.05 ? "en" : "unknown";
-
+  const languageDetected = detectLanguage(source.content);
   if (languageDetected === "unknown" && source.type === "text") {
     issues.push({
       severity: "info",
@@ -130,15 +162,17 @@ export function assessSourceQuality(source: InputSource): SourceQualityReport {
     });
   }
 
+  const boundedScore = Math.max(0, Math.min(1, +qualityScore.toFixed(3)));
+
   return {
     sourceId: source.id,
     sourceType: source.type,
-    qualityScore: Math.max(0, Math.min(1, +qualityScore.toFixed(3))),
+    qualityScore: boundedScore,
     issues,
-    recommendations,
+    recommendations: Array.from(recommendations),
     wordCount,
     languageDetected,
-    isUsable: qualityScore > 0.2,
+    isUsable: boundedScore > 0.2,
   };
 }
 
@@ -218,49 +252,78 @@ export interface DiagramAnalysisResult {
 }
 
 /**
- * Analyze a diagram/sketch image and extract structure.
- * This is a stub that returns a structural analysis template — real implementation
- * would call a vision model API (e.g., GPT-4V, Claude Vision).
+ * Analyze a diagram/sketch image and extract structure using text heuristics.
+ * The analyzer infers likely diagram type, entities, connectors, and decision points
+ * from OCR/transcribed content so downstream fusion can weight the source appropriately.
  */
 export function analyzeDiagram(source: InputSource): DiagramAnalysisResult {
   const content = source.content.toLowerCase();
+  const entityMatches = Array.from(
+    new Set(source.content.match(/\b[A-Z][A-Za-z0-9_-]{2,}\b/g)?.map((token) => token.trim()) ?? [])
+  );
+  const connectorCount = (
+    source.content.match(/(?:->|-->|=>|→|↔|connects to|flows to|sends to|returns to)/gi) ?? []
+  ).length;
+  const decisionCount = (content.match(/\b(if|else|decision|approve|reject|branch)\b/g) ?? [])
+    .length;
+  const actorCount = (
+    content.match(/\b(user|actor|service|system|client|screen|database|api)\b/g) ?? []
+  ).length;
 
-  // Detect diagram type from content hints
-  let diagramType: DiagramAnalysisResult["diagramType"] = "unknown";
-  if (content.includes("flow") || content.includes("→") || content.includes("arrow")) {
-    diagramType = "flowchart";
-  } else if (
-    content.includes("component") ||
-    content.includes("service") ||
-    content.includes("api")
-  ) {
-    diagramType = "architecture";
-  } else if (
-    content.includes("sequence") ||
-    content.includes("actor") ||
-    content.includes("message")
-  ) {
-    diagramType = "sequence";
-  } else if (content.includes("branch") || content.includes("topic") || content.includes("mind")) {
-    diagramType = "mindmap";
-  } else if (content.includes("button") || content.includes("screen") || content.includes("ui")) {
-    diagramType = "wireframe";
-  }
+  const diagramSignals: Record<DiagramAnalysisResult["diagramType"], number> = {
+    flowchart:
+      connectorCount * 2 +
+      (content.match(/\b(flow|step|process|start|end|decision|branch)\b/g) ?? []).length,
+    architecture:
+      actorCount * 2 +
+      (content.match(/\b(component|service|database|cache|queue|api)\b/g) ?? []).length,
+    sequence:
+      connectorCount +
+      (content.match(/\b(sequence|actor|message|request|response|interaction)\b/g) ?? []).length,
+    mindmap:
+      entityMatches.length + (content.match(/\b(topic|idea|theme|branch|cluster)\b/g) ?? []).length,
+    wireframe:
+      (content.match(/\b(button|screen|page|modal|form|navigation|layout|ui)\b/g) ?? []).length * 2,
+    unknown: 0,
+  };
 
-  const words = content.split(/\s+/).filter((w) => w.length > 2);
-  const detectedElements = Math.min(words.length, 50);
+  const rankedSignals = Object.entries(diagramSignals)
+    .filter(([type]) => type !== "unknown")
+    .sort((a, b) => b[1] - a[1]);
+  const [bestType = "unknown", bestScore = 0] = rankedSignals[0] ?? [];
+  const [, secondScore = 0] = rankedSignals[1] ?? [];
+  const diagramType =
+    bestScore >= 2 ? (bestType as DiagramAnalysisResult["diagramType"]) : "unknown";
+  const detectedElements = Math.min(
+    50,
+    Math.max(entityMatches.length, connectorCount + actorCount + decisionCount, 1)
+  );
+  const confidenceBase = diagramType === "unknown" ? 0.35 : 0.55;
+  const confidenceBoost = Math.min(
+    0.35,
+    bestScore * 0.05 + Math.max(0, bestScore - secondScore) * 0.03
+  );
+  const structureHighlights = [
+    entityMatches.length > 0 ? `${entityMatches.length} labeled entities` : undefined,
+    connectorCount > 0 ? `${connectorCount} connectors` : undefined,
+    decisionCount > 0 ? `${decisionCount} decision nodes` : undefined,
+  ].filter((value): value is string => Boolean(value));
 
   return {
     sourceId: source.id,
     diagramType,
     detectedElements,
     textExtracted: source.content.slice(0, 2000),
-    structureDescription: `Detected ${diagramType} diagram with ~${detectedElements} elements. ${
-      diagramType !== "unknown"
-        ? `Structural pattern suggests a ${diagramType} layout.`
-        : "Could not determine diagram type."
-    }`,
-    confidence: diagramType !== "unknown" ? source.confidence * 0.8 : source.confidence * 0.4,
+    structureDescription:
+      diagramType === "unknown"
+        ? "Could not confidently infer diagram structure from the extracted text. Add more labels or OCR context."
+        : `Detected a ${diagramType} with ${
+            structureHighlights.join(", ") || `${detectedElements} structural elements`
+          }. Key entities: ${entityMatches.slice(0, 6).join(", ") || "unlabeled components"}.`,
+    confidence: +Math.min(
+      1,
+      Math.max(0, source.confidence * (confidenceBase + confidenceBoost))
+    ).toFixed(3),
   };
 }
 
@@ -278,39 +341,62 @@ export interface VideoInputResult {
 
 /**
  * Process a video input source.
- * Extracts metadata and any available transcription. Real implementation would
- * use Whisper API for audio track + vision model for key frames.
+ * Extracts transcript richness, timing markers, and likely scene changes to give
+ * downstream modules a useful structural summary even without full media decoding.
  */
 export function processVideoInput(source: InputSource): VideoInputResult {
   const notes: string[] = [];
-  let durationSeconds: number | null = null;
   let confidence = source.confidence;
+  const transcriptWordCount = countWords(source.content);
+  const timestampMatches = Array.from(
+    source.content.matchAll(/\b(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\b/g)
+  );
+  const parsedTimestamps = timestampMatches.map((match) => {
+    const hours = Number.parseInt(match[1] ?? "0", 10);
+    const minutes = Number.parseInt(match[2] ?? "0", 10);
+    const seconds = Number.parseInt(match[3] ?? "0", 10);
+    return hours * 3600 + minutes * 60 + seconds;
+  });
 
-  // Extract duration from metadata if available
-  const metaDuration = source.metadata.durationSeconds as number | undefined;
-  if (metaDuration != null) {
-    durationSeconds = metaDuration;
+  let durationSeconds =
+    typeof source.metadata.durationSeconds === "number" ? source.metadata.durationSeconds : null;
+  if (durationSeconds == null && parsedTimestamps.length > 0) {
+    durationSeconds = Math.max(...parsedTimestamps);
+    notes.push(`Estimated duration from transcript timestamps: ${durationSeconds} seconds`);
   }
 
-  // Check content quality
-  const wordCount = source.content.trim().split(/\s+/).length;
-  const transcriptAvailable = wordCount > 20;
-
+  const transcriptAvailable = transcriptWordCount >= 12;
   if (!transcriptAvailable) {
     notes.push("No transcript available — consider providing audio transcription via Whisper API");
     confidence *= 0.5;
   } else {
-    notes.push(`Transcript contains ${wordCount} words`);
+    notes.push(`Transcript contains ${transcriptWordCount} words`);
+  }
+
+  if (parsedTimestamps.length >= 3) {
+    notes.push(`Detected ${parsedTimestamps.length} timestamp markers for scene segmentation`);
+    confidence *= 1.05;
+  }
+
+  const actionMoments = (
+    source.content.match(/\b(decision|action item|next step|owner|follow-up)\b/gi) ?? []
+  ).length;
+  if (actionMoments > 0) {
+    notes.push(`Found ${actionMoments} action-oriented moments in the transcript`);
   }
 
   if (durationSeconds != null && durationSeconds > 3600) {
     notes.push("Video exceeds 1 hour — consider splitting into segments for better analysis");
+    confidence *= 0.9;
   }
 
-  // Estimate key frames (1 per 30 seconds, or from metadata)
   const keyFrameCount =
-    (source.metadata.keyFrameCount as number) ??
-    (durationSeconds ? Math.ceil(durationSeconds / 30) : 0);
+    (typeof source.metadata.keyFrameCount === "number"
+      ? source.metadata.keyFrameCount
+      : undefined) ??
+    (durationSeconds != null
+      ? Math.max(1, Math.ceil(durationSeconds / 30))
+      : Math.max(0, parsedTimestamps.length));
 
   return {
     sourceId: source.id,
@@ -352,6 +438,9 @@ export function assessSourceQualityExtended(source: InputSource): SourceQualityR
       baseReport.qualityScore = +(baseReport.qualityScore * 0.6).toFixed(3);
     }
   }
+
+  baseReport.qualityScore = +Math.max(0, Math.min(1, baseReport.qualityScore)).toFixed(3);
+  baseReport.isUsable = baseReport.qualityScore > 0.2;
 
   return { ...baseReport, diagramAnalysis, videoAnalysis };
 }

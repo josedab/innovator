@@ -14,11 +14,16 @@ import {
   facetedSearch,
   ingestBatch,
   computeEmbeddingStub,
+  getKnowledgeLakeSummary,
 } from "../knowledge-lake/faceted-search.js";
 
 function makeArtifact(id: string, title: string, content: string, type = "idea" as const) {
   const now = new Date().toISOString();
   return { id, type, title, content, tags: [], metadata: {}, createdAt: now, updatedAt: now };
+}
+
+function cosineSimilarity(left: number[], right: number[]): number {
+  return left.reduce((sum, value, index) => sum + value * right[index], 0);
 }
 
 describe("knowledge-lake/faceted-search", () => {
@@ -56,22 +61,44 @@ describe("knowledge-lake/faceted-search", () => {
     expect(results.query).toBe("artificial intelligence healthcare");
   });
 
-  it("performs faceted search with type filter", () => {
-    indexArtifact(makeArtifact("1", "AI Idea", "Machine learning approach", "idea"));
+  it("performs faceted search with type, session, tag, and date filters", () => {
     indexArtifact({
-      ...makeArtifact("2", "AI Investigation", "Research into ML"),
-      type: "investigation",
+      ...makeArtifact(
+        "1",
+        "AI diagnostics idea",
+        "Machine learning diagnostics workflow for clinician copilots",
+        "idea"
+      ),
+      sessionId: "session-a",
+      tags: ["ai", "healthcare"],
+      createdAt: "2024-01-15T00:00:00.000Z",
+      updatedAt: "2024-01-15T00:00:00.000Z",
+    });
+    indexArtifact({
+      ...makeArtifact("2", "AI Investigation", "Research into ML and diagnostics", "investigation"),
+      sessionId: "session-b",
+      tags: ["research"],
+      createdAt: "2023-01-15T00:00:00.000Z",
+      updatedAt: "2023-01-15T00:00:00.000Z",
     });
 
     const results = facetedSearch({
-      query: "machine learning",
-      facets: [{ field: "type", values: ["idea"] }],
+      query: "machine learning diagnostics",
+      facets: [
+        { field: "type", values: ["idea"] },
+        { field: "session", values: ["session-a"] },
+        { field: "tag", values: ["healthcare"] },
+        { field: "dateRange", values: ["2024-01-01:2024-12-31"] },
+      ],
       limit: 10,
       offset: 0,
       sortBy: "relevance",
-      boostRecent: false,
+      boostRecent: true,
     });
-    expect(results.facetCounts.types.length).toBeGreaterThanOrEqual(0);
+
+    expect(results.total).toBe(1);
+    expect(results.results[0].id).toBe("1");
+    expect(results.facetCounts.types).toEqual([{ value: "idea", count: 1 }]);
   });
 
   it("detects duplicate artifacts", () => {
@@ -118,7 +145,12 @@ describe("knowledge-lake/faceted-search", () => {
     expect(trends.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("ingests a batch of items", () => {
+  it("ingests a batch of items and skips duplicates already in the lake", () => {
+    indexArtifact({
+      ...makeArtifact("existing", "Batch Idea 1", "Idea about batch processing of data"),
+      tags: ["automation"],
+    });
+
     const result = ingestBatch([
       {
         id: "b1",
@@ -127,10 +159,10 @@ describe("knowledge-lake/faceted-search", () => {
         content: "Idea about batch processing of data",
       },
       { id: "b2", type: "idea", title: "Batch Idea 2", content: "Idea about automated testing" },
-      { id: "b3", type: "idea", title: "Batch Idea 1", content: "Duplicate title" }, // duplicate
+      { id: "b3", type: "idea", title: "Batch Idea 1", content: "Duplicate title" },
     ]);
-    expect(result.indexedCount).toBe(2);
-    expect(result.duplicatesDetected).toBe(1);
+    expect(result.indexedCount).toBe(1);
+    expect(result.duplicatesDetected).toBe(2);
     expect(result.errors).toHaveLength(0);
   });
 
@@ -146,5 +178,33 @@ describe("knowledge-lake/faceted-search", () => {
     const e1 = computeEmbeddingStub("same input");
     const e2 = computeEmbeddingStub("same input");
     expect(e1).toEqual(e2);
+  });
+
+  it("keeps semantically similar texts closer than unrelated ones", () => {
+    const similarA = computeEmbeddingStub("AI healthcare diagnosis workflow");
+    const similarB = computeEmbeddingStub("healthcare AI diagnosis workflow");
+    const unrelated = computeEmbeddingStub("agricultural irrigation forecast");
+
+    expect(cosineSimilarity(similarA, similarB)).toBeGreaterThan(
+      cosineSimilarity(similarA, unrelated)
+    );
+  });
+
+  it("summarizes indexed tags and recent activity", () => {
+    indexArtifact({
+      ...makeArtifact("summary-1", "AI Backlog", "Notes about copilots"),
+      tags: ["ai", "roadmap"],
+      updatedAt: new Date().toISOString(),
+    });
+    indexArtifact({
+      ...makeArtifact("summary-2", "Market Watch", "Signals from competitors"),
+      tags: ["ai", "signals"],
+      updatedAt: new Date().toISOString(),
+    });
+
+    const summary = getKnowledgeLakeSummary();
+    expect(summary.topTags[0]).toEqual({ tag: "ai", count: 2 });
+    expect(summary.recentCount).toBe(2);
+    expect(summary.stats.totalArtifacts).toBe(2);
   });
 });

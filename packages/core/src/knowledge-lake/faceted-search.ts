@@ -6,8 +6,8 @@
  */
 
 import { z } from "zod";
-import type { ArtifactType, LakeSearchResponse, IndexedArtifact } from "./index.js";
-import { searchLake, getLakeStats, indexArtifact } from "./index.js";
+import type { ArtifactType, IndexedArtifact } from "./index.js";
+import { searchLake, getLakeStats, indexArtifact, listIndexedArtifacts } from "./index.js";
 
 // ---- Faceted Filter Schemas ----
 
@@ -59,77 +59,120 @@ export type FacetedSearchResponse = z.infer<typeof FacetedSearchResponseSchema>;
 
 // ---- Faceted Search Implementation ----
 
+function parseDateFacet(values: string[]): { start?: number; end?: number } {
+  if (values.length === 0) return {};
+
+  const [raw] = values;
+  if (raw.startsWith("last-")) {
+    const amount = Number.parseInt(raw.slice(5), 10);
+    if (!Number.isNaN(amount) && raw.endsWith("d")) {
+      return { start: Date.now() - amount * 24 * 60 * 60 * 1000 };
+    }
+  }
+
+  const [startRaw, endRaw] = raw.split(":", 2);
+  const start = startRaw ? new Date(startRaw).getTime() : Number.NaN;
+  const end = endRaw ? new Date(endRaw).getTime() : Number.NaN;
+
+  return {
+    start: Number.isNaN(start) ? undefined : start,
+    end: Number.isNaN(end) ? undefined : end,
+  };
+}
+
+function isWithinDateRange(
+  artifact: IndexedArtifact,
+  range: { start?: number; end?: number }
+): boolean {
+  if (range.start == null && range.end == null) return true;
+  const artifactTime = new Date(artifact.updatedAt || artifact.createdAt).getTime();
+  if (Number.isNaN(artifactTime)) return false;
+  if (range.start != null && artifactTime < range.start) return false;
+  if (range.end != null && artifactTime > range.end) return false;
+  return true;
+}
+
 /** Perform a faceted search with relevance boosting and aggregation. */
 export function facetedSearch(request: FacetedSearchRequest): FacetedSearchResponse {
-  // Build type filter from facets
-  const typeFacet = request.facets.find((f) => f.field === "type");
-  const typeFilter = typeFacet?.values as ArtifactType[] | undefined;
+  const parsed = FacetedSearchRequestSchema.parse(request);
+  const typeFacet = parsed.facets.find((facet) => facet.field === "type");
+  const sessionFacet = parsed.facets.find((facet) => facet.field === "session");
+  const tagFacet = parsed.facets.find((facet) => facet.field === "tag");
+  const dateFacet = parsed.facets.find((facet) => facet.field === "dateRange");
+  const sessionFilter = new Set((sessionFacet?.values ?? []).map((value) => value.toLowerCase()));
+  const tagFilter = new Set((tagFacet?.values ?? []).map((value) => value.toLowerCase()));
+  const dateRange = parseDateFacet(dateFacet?.values ?? []);
 
-  const sessionFacet = request.facets.find((f) => f.field === "session");
-
-  // Perform base search with generous limit to allow post-filtering
-  const baseResults = searchLake(request.query, {
-    limit: Math.min(request.limit + request.offset + 50, 100),
-    typeFilter,
-    sessionFilter: sessionFacet?.values[0],
+  const baseResults = searchLake(parsed.query, {
+    limit: Math.min(parsed.limit + parsed.offset + 100, 200),
+    typeFilter: typeFacet?.values as ArtifactType[] | undefined,
     minScore: 0.005,
   });
 
-  // Post-filter by tag facets
-  const tagFacet = request.facets.find((f) => f.field === "tag");
-  let filtered = baseResults.results;
-  if (tagFacet && tagFacet.values.length > 0) {
-    const tagSet = new Set(tagFacet.values);
-    filtered = filtered.filter((r) => r.artifact.tags.some((t) => tagSet.has(t)));
-  }
+  let filtered = baseResults.results.filter((result) => {
+    if (sessionFilter.size > 0) {
+      const sessionId = result.artifact.sessionId?.toLowerCase();
+      if (!sessionId || !sessionFilter.has(sessionId)) return false;
+    }
 
-  // Apply recency boost
-  if (request.boostRecent) {
+    if (tagFilter.size > 0) {
+      const resultTags = result.artifact.tags.map((tag) => tag.toLowerCase());
+      if (!resultTags.some((tag) => tagFilter.has(tag))) return false;
+    }
+
+    return isWithinDateRange(result.artifact, dateRange);
+  });
+
+  if (parsed.boostRecent) {
     const now = Date.now();
-    filtered = filtered.map((r) => {
-      const age = now - new Date(r.artifact.createdAt).getTime();
-      const dayAge = age / (1000 * 60 * 60 * 24);
-      const recencyBoost = Math.max(0, 1 - dayAge / 365);
-      return { ...r, score: r.score * (1 + recencyBoost * 0.3) };
+    filtered = filtered.map((result) => {
+      const ageDays = Math.max(
+        0,
+        (now - new Date(result.artifact.updatedAt || result.artifact.createdAt).getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+      const recencyBoost = Math.max(0, 1 - ageDays / 180);
+      return { ...result, score: result.score * (1 + recencyBoost * 0.35) };
     });
   }
 
-  // Sort
-  if (request.sortBy === "date") {
+  if (parsed.sortBy === "date") {
     filtered.sort((a, b) => b.artifact.createdAt.localeCompare(a.artifact.createdAt));
-  } else if (request.sortBy === "type") {
+  } else if (parsed.sortBy === "type") {
     filtered.sort((a, b) => a.artifact.type.localeCompare(b.artifact.type));
+  } else {
+    filtered.sort((a, b) => b.score - a.score);
   }
-  // relevance is already sorted by score from searchLake
 
-  // Compute facet counts
   const typeCounts = new Map<string, number>();
   const tagCounts = new Map<string, number>();
   const sessionCounts = new Map<string, number>();
 
-  for (const r of baseResults.results) {
-    typeCounts.set(r.artifact.type, (typeCounts.get(r.artifact.type) ?? 0) + 1);
-    for (const tag of r.artifact.tags) {
+  for (const result of filtered) {
+    typeCounts.set(result.artifact.type, (typeCounts.get(result.artifact.type) ?? 0) + 1);
+    for (const tag of result.artifact.tags) {
       tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
     }
-    if (r.artifact.sessionId) {
-      sessionCounts.set(r.artifact.sessionId, (sessionCounts.get(r.artifact.sessionId) ?? 0) + 1);
+    if (result.artifact.sessionId) {
+      sessionCounts.set(
+        result.artifact.sessionId,
+        (sessionCounts.get(result.artifact.sessionId) ?? 0) + 1
+      );
     }
   }
 
-  // Paginate
-  const paged = filtered.slice(request.offset, request.offset + request.limit);
+  const paged = filtered.slice(parsed.offset, parsed.offset + parsed.limit);
 
   return {
-    results: paged.map((r) => ({
-      id: r.artifact.id,
-      type: r.artifact.type,
-      title: r.artifact.title,
-      snippet: r.snippet,
-      score: +r.score.toFixed(4),
-      sessionId: r.artifact.sessionId,
-      tags: r.artifact.tags,
-      createdAt: r.artifact.createdAt,
+    results: paged.map((result) => ({
+      id: result.artifact.id,
+      type: result.artifact.type,
+      title: result.artifact.title,
+      snippet: result.snippet,
+      score: +result.score.toFixed(4),
+      sessionId: result.artifact.sessionId,
+      tags: result.artifact.tags,
+      createdAt: result.artifact.createdAt,
     })),
     total: filtered.length,
     facetCounts: {
@@ -145,9 +188,9 @@ export function facetedSearch(request: FacetedSearchRequest): FacetedSearchRespo
         .sort((a, b) => b.count - a.count)
         .slice(0, 10),
     },
-    query: request.query,
-    offset: request.offset,
-    limit: request.limit,
+    query: parsed.query,
+    offset: parsed.offset,
+    limit: parsed.limit,
   };
 }
 
@@ -183,17 +226,28 @@ export function ingestBatch(
   let duplicatesDetected = 0;
   const errors: IngestionResult["errors"] = [];
 
-  // Simple dedup via title+type hash
-  const existingTitles = new Set<string>();
+  const normalizeKey = (value: string) => value.toLowerCase().replace(/\s+/g, " ").trim();
+  const existingDedupKeys = new Set(
+    listIndexedArtifacts().map((artifact) => `${artifact.type}:${normalizeKey(artifact.title)}`)
+  );
+  const existingContentKeys = new Set(
+    listIndexedArtifacts().map((artifact) => normalizeKey(artifact.content).slice(0, 500))
+  );
+  const batchKeys = new Set<string>();
 
   for (const item of items) {
-    const dedupKey = `${item.type}:${item.title.toLowerCase().trim()}`;
-    if (existingTitles.has(dedupKey)) {
+    const dedupKey = `${item.type}:${normalizeKey(item.title)}`;
+    const contentKey = normalizeKey(item.content).slice(0, 500);
+    if (
+      batchKeys.has(dedupKey) ||
+      existingDedupKeys.has(dedupKey) ||
+      (contentKey.length > 0 && existingContentKeys.has(contentKey))
+    ) {
       duplicatesDetected++;
       skippedCount++;
       continue;
     }
-    existingTitles.add(dedupKey);
+    batchKeys.add(dedupKey);
 
     try {
       const now = new Date().toISOString();
@@ -208,6 +262,8 @@ export function ingestBatch(
         createdAt: now,
         updatedAt: now,
       });
+      existingDedupKeys.add(dedupKey);
+      if (contentKey.length > 0) existingContentKeys.add(contentKey);
       indexedCount++;
     } catch (err) {
       errors.push({
@@ -228,22 +284,40 @@ export function ingestBatch(
   };
 }
 
-/** Stub: compute vector embedding for text (returns simulated fixed-length vector). */
+/** Compute a deterministic semantic-ish embedding using token and trigram hashing. */
 export function computeEmbeddingStub(text: string, _model?: string): number[] {
-  // Deterministic pseudo-embedding from text hash
   const dimension = 128;
-  const embedding: number[] = [];
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+  const embedding = Array.from({ length: dimension }, () => 0);
+  const normalized = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return embedding;
+
+  const features = new Map<string, number>();
+  const tokens = normalized.split(" ").filter(Boolean);
+  for (const token of tokens) {
+    features.set(`tok:${token}`, (features.get(`tok:${token}`) ?? 0) + 1.25);
+    const padded = `^${token}$`;
+    for (let i = 0; i <= padded.length - 3; i++) {
+      const trigram = padded.slice(i, i + 3);
+      features.set(`tri:${trigram}`, (features.get(`tri:${trigram}`) ?? 0) + 0.35);
+    }
   }
-  for (let i = 0; i < dimension; i++) {
-    hash = ((hash << 5) - hash + i) | 0;
-    embedding.push(((hash & 0xffff) / 0xffff) * 2 - 1);
+
+  for (const [feature, weight] of features) {
+    let hash = 0;
+    for (let i = 0; i < feature.length; i++) {
+      hash = (hash * 31 + feature.charCodeAt(i)) | 0;
+    }
+    const index = Math.abs(hash) % dimension;
+    const sign = (hash & 1) === 0 ? 1 : -1;
+    embedding[index] += sign * Math.log1p(weight);
   }
-  // Normalize to unit vector
-  const mag = Math.sqrt(embedding.reduce((s, v) => s + v * v, 0));
-  return mag > 0 ? embedding.map((v) => +(v / mag).toFixed(6)) : embedding;
+
+  const magnitude = Math.sqrt(embedding.reduce((sum, value) => sum + value * value, 0));
+  return magnitude > 0 ? embedding.map((value) => +(value / magnitude).toFixed(6)) : embedding;
 }
 
 /** Get a summary of what's indexed in the knowledge lake. */
@@ -253,18 +327,28 @@ export function getKnowledgeLakeSummary(): {
   recentCount: number;
 } {
   const stats = getLakeStats();
-
-  // Aggregate top tags from search results
+  const artifacts = listIndexedArtifacts();
   const tagCounts = new Map<string, number>();
-  // Use getLakeStats byType to infer tags from the index
-  const totalArtifacts = stats.totalArtifacts;
+  const recentThreshold = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  let recentCount = 0;
+
+  for (const artifact of artifacts) {
+    for (const tag of artifact.tags) {
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+    }
+
+    const updatedAt = new Date(artifact.updatedAt || artifact.createdAt).getTime();
+    if (!Number.isNaN(updatedAt) && updatedAt >= recentThreshold) {
+      recentCount++;
+    }
+  }
 
   return {
     stats,
     topTags: Array.from(tagCounts.entries())
       .map(([tag, count]) => ({ tag, count }))
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => (b.count === a.count ? a.tag.localeCompare(b.tag) : b.count - a.count))
       .slice(0, 20),
-    recentCount: totalArtifacts,
+    recentCount,
   };
 }

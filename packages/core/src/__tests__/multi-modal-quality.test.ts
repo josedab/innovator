@@ -44,6 +44,15 @@ describe("multi-modal/source-quality", () => {
       const report = assessSourceQuality(makeSource({ content: "" }));
       expect(report.qualityScore).toBe(0);
       expect(report.isUsable).toBe(false);
+      expect(report.wordCount).toBe(0);
+    });
+
+    it("flags placeholder extraction output", () => {
+      const report = assessSourceQuality(
+        makeSource({ type: "pdf", content: "[PDF content extraction pending]" })
+      );
+      expect(report.isUsable).toBe(false);
+      expect(report.issues.some((issue) => issue.message.includes("placeholders"))).toBe(true);
     });
 
     it("flags low audio confidence", () => {
@@ -114,10 +123,12 @@ describe("multi-modal/source-quality", () => {
       const source = makeSource({
         id: "d2",
         type: "image",
-        content: "API service connects to database component and cache service layer",
+        content: "API Gateway connects to UserService -> Cache -> Database component",
       });
       const result = analyzeDiagram(source);
       expect(result.diagramType).toBe("architecture");
+      expect(result.detectedElements).toBeGreaterThan(2);
+      expect(result.structureDescription).toContain("connectors");
     });
 
     it("returns unknown for unrecognized diagrams", () => {
@@ -155,6 +166,20 @@ describe("multi-modal/source-quality", () => {
       const result = processVideoInput(source);
       expect(result.transcriptAvailable).toBe(false);
       expect(result.processingNotes.some((n) => n.includes("Whisper"))).toBe(true);
+    });
+
+    it("infers duration and segmentation from transcript timestamps", () => {
+      const source = makeSource({
+        id: "v3",
+        type: "video" as InputSource["type"],
+        content:
+          "00:00 Intro and goals\n00:45 Discuss prototype decisions\n01:30 Action item assign owner\n02:10 Wrap up next steps",
+        metadata: {},
+      });
+      const result = processVideoInput(source);
+      expect(result.durationSeconds).toBe(130);
+      expect(result.keyFrameCount).toBeGreaterThan(0);
+      expect(result.processingNotes.some((note) => note.includes("timestamp markers"))).toBe(true);
     });
   });
 

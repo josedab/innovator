@@ -94,6 +94,7 @@ export type CrossSessionInsight = z.infer<typeof CrossSessionInsightSchema>;
 
 interface InternalEntry {
   artifact: IndexedArtifact;
+  tf: Map<string, number>;
   terms: Map<string, number>; // term -> TF-IDF weight
 }
 
@@ -124,13 +125,10 @@ function computeTF(tokens: string[]): Map<string, number> {
 
 function rebuildIDF(): void {
   for (const entry of index.values()) {
-    const tokens = tokenize(`${entry.artifact.title} ${entry.artifact.content}`);
-    const uniqueTerms = new Set(tokens);
-    for (const term of uniqueTerms) {
-      entry.terms.set(
-        term,
-        (entry.terms.get(term) ?? 0.5) * Math.log((totalDocuments + 1) / ((documentFrequency.get(term) ?? 0) + 1))
-      );
+    entry.terms.clear();
+    for (const [term, tfVal] of entry.tf) {
+      const idf = Math.log((totalDocuments + 1) / ((documentFrequency.get(term) ?? 0) + 1));
+      entry.terms.set(term, tfVal * idf);
     }
   }
 }
@@ -142,25 +140,22 @@ function rebuildIDF(): void {
  */
 export function indexArtifact(artifact: IndexedArtifact): void {
   const validated = IndexedArtifactSchema.parse(artifact);
+  if (index.has(validated.id)) {
+    removeFromIndex(validated.id);
+  }
+
   const text = `${validated.title} ${validated.content} ${validated.tags.join(" ")}`;
   const tokens = tokenize(text);
   const tf = computeTF(tokens);
 
-  // Update document frequency
   const uniqueTerms = new Set(tokens);
   for (const term of uniqueTerms) {
     documentFrequency.set(term, (documentFrequency.get(term) ?? 0) + 1);
   }
 
-  if (!index.has(validated.id)) totalDocuments++;
-
-  const tfidf = new Map<string, number>();
-  for (const [term, tfVal] of tf) {
-    const idf = Math.log((totalDocuments + 1) / ((documentFrequency.get(term) ?? 0) + 1));
-    tfidf.set(term, tfVal * idf);
-  }
-
-  index.set(validated.id, { artifact: validated, terms: tfidf });
+  totalDocuments++;
+  index.set(validated.id, { artifact: validated, tf, terms: new Map() });
+  rebuildIDF();
 }
 
 /**
@@ -197,6 +192,7 @@ export function removeFromIndex(artifactId: string): boolean {
 
   index.delete(artifactId);
   totalDocuments = Math.max(0, totalDocuments - 1);
+  rebuildIDF();
   return true;
 }
 
@@ -284,7 +280,11 @@ function extractSnippet(content: string, terms: string[]): string {
     if (idx >= 0) {
       const start = Math.max(0, idx - 80);
       const end = Math.min(content.length, idx + term.length + 80);
-      return (start > 0 ? "..." : "") + content.slice(start, end).trim() + (end < content.length ? "..." : "");
+      return (
+        (start > 0 ? "..." : "") +
+        content.slice(start, end).trim() +
+        (end < content.length ? "..." : "")
+      );
     }
   }
   return content.slice(0, 200) + (content.length > 200 ? "..." : "");
@@ -297,7 +297,10 @@ function generateSearchSuggestions(queryTokens: string[]): string[] {
   for (const entry of index.values()) {
     let hasOverlap = false;
     for (const qt of queryTokens) {
-      if (entry.terms.has(qt)) { hasOverlap = true; break; }
+      if (entry.terms.has(qt)) {
+        hasOverlap = true;
+        break;
+      }
     }
     if (!hasOverlap) continue;
 
@@ -379,12 +382,15 @@ function computeSimilarity(a: InternalEntry, b: InternalEntry): number {
  * Surface trending topics across all indexed artifacts.
  */
 export function surfaceTrends(minFrequency: number = 3): Trend[] {
-  const topicData = new Map<string, {
-    frequency: number;
-    firstSeen: string;
-    lastSeen: string;
-    artifactIds: string[];
-  }>();
+  const topicData = new Map<
+    string,
+    {
+      frequency: number;
+      firstSeen: string;
+      lastSeen: string;
+      artifactIds: string[];
+    }
+  >();
 
   for (const entry of index.values()) {
     // Extract significant terms as topics
@@ -400,8 +406,10 @@ export function surfaceTrends(minFrequency: number = 3): Trend[] {
         artifactIds: [],
       };
       existing.frequency++;
-      if (entry.artifact.createdAt < existing.firstSeen) existing.firstSeen = entry.artifact.createdAt;
-      if (entry.artifact.createdAt > existing.lastSeen) existing.lastSeen = entry.artifact.createdAt;
+      if (entry.artifact.createdAt < existing.firstSeen)
+        existing.firstSeen = entry.artifact.createdAt;
+      if (entry.artifact.createdAt > existing.lastSeen)
+        existing.lastSeen = entry.artifact.createdAt;
       existing.artifactIds.push(entry.artifact.id);
       topicData.set(term, existing);
     }
@@ -422,7 +430,11 @@ export function surfaceTrends(minFrequency: number = 3): Trend[] {
     .slice(0, 50);
 }
 
-function determineMomentum(firstSeen: string, lastSeen: string, frequency: number): Trend["momentum"] {
+function determineMomentum(
+  firstSeen: string,
+  lastSeen: string,
+  frequency: number
+): Trend["momentum"] {
   const first = new Date(firstSeen).getTime();
   const last = new Date(lastSeen).getTime();
   const span = last - first;
@@ -480,6 +492,15 @@ export function getLakeStats(): {
     uniqueTerms: documentFrequency.size,
     bySessions: sessions.size,
   };
+}
+
+/**
+ * List all indexed artifacts ordered by most recently updated.
+ */
+export function listIndexedArtifacts(): IndexedArtifact[] {
+  return Array.from(index.values())
+    .map((entry) => entry.artifact)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 /**
