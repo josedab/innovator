@@ -372,3 +372,7 @@ export function resetRealtimeManager(): void {
   globalRoomManager?.clear();
   globalRoomManager = undefined;
 }
+
+export * from "./operational-transform.js";
+export * from "./workshop-templates.js";
+export * from "./session-summary.js";
