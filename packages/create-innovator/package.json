@@ -1,6 +1,6 @@
 {
   "name": "create-innovator",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Scaffold a new Innovator project with config, custom angles, and presets",
   "type": "module",
   "bin": {

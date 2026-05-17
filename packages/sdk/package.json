@@ -1,6 +1,6 @@
 {
   "name": "@innovator/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Framework-agnostic SDK for the Innovator innovation platform",
   "license": "MIT",

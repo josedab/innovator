@@ -1,6 +1,6 @@
 {
   "name": "@innovator/mcp-server",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Model Context Protocol (MCP) server for Innovator AI tools",
   "keywords": [

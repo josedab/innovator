@@ -1,6 +1,6 @@
 {
   "name": "@innovator/cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Command-line interface for the Innovator AI platform",
   "keywords": [

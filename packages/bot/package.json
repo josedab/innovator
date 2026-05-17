@@ -1,6 +1,6 @@
 {
   "name": "@innovator/bot",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Chat bot interface for the Innovator AI platform",
   "keywords": [

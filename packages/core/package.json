@@ -1,6 +1,6 @@
 {
   "name": "@innovator/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Core engine for AI-powered innovation analysis, prompts, and angle evaluation",
   "keywords": [
@@ -32,6 +32,46 @@
     "./storage/sqlite": {
       "import": "./dist/storage/sqlite.js",
       "types": "./dist/storage/sqlite.d.ts"
+    },
+    "./dist/api-economy/developer-portal.js": {
+      "import": "./dist/api-economy/developer-portal.js",
+      "types": "./dist/api-economy/developer-portal.d.ts"
+    },
+    "./dist/cross-org-benchmark/privacy-analytics.js": {
+      "import": "./dist/cross-org-benchmark/privacy-analytics.js",
+      "types": "./dist/cross-org-benchmark/privacy-analytics.d.ts"
+    },
+    "./dist/knowledge-lake/faceted-search.js": {
+      "import": "./dist/knowledge-lake/faceted-search.js",
+      "types": "./dist/knowledge-lake/faceted-search.d.ts"
+    },
+    "./dist/maturity-assessment/learning-paths.js": {
+      "import": "./dist/maturity-assessment/learning-paths.js",
+      "types": "./dist/maturity-assessment/learning-paths.d.ts"
+    },
+    "./dist/multi-modal/source-quality.js": {
+      "import": "./dist/multi-modal/source-quality.js",
+      "types": "./dist/multi-modal/source-quality.d.ts"
+    },
+    "./dist/multi-modal/context-fusion.js": {
+      "import": "./dist/multi-modal/context-fusion.js",
+      "types": "./dist/multi-modal/context-fusion.d.ts"
+    },
+    "./dist/outcome-tracking/telemetry.js": {
+      "import": "./dist/outcome-tracking/telemetry.js",
+      "types": "./dist/outcome-tracking/telemetry.d.ts"
+    },
+    "./dist/portfolio/strategic-intelligence.js": {
+      "import": "./dist/portfolio/strategic-intelligence.js",
+      "types": "./dist/portfolio/strategic-intelligence.d.ts"
+    },
+    "./dist/sentinel/automation.js": {
+      "import": "./dist/sentinel/automation.js",
+      "types": "./dist/sentinel/automation.d.ts"
+    },
+    "./dist/realtime/facilitation-ai.js": {
+      "import": "./dist/realtime/facilitation-ai.js",
+      "types": "./dist/realtime/facilitation-ai.d.ts"
     }
   },
   "scripts": {
