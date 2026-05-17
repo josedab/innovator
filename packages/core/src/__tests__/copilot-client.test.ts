@@ -243,6 +243,26 @@ describe("copilot/client", () => {
       const deep = '{"a":{"b":{"c":{"d":{"e":"val"}}}}}';
       expect(extractJson(deep)).toBe(deep);
     });
+
+    it("handles objects containing arrays", () => {
+      const raw = '{"items": [1, 2, {"nested": [3, 4]}]}';
+      expect(extractJson(raw)).toBe('{"items": [1, 2, {"nested": [3, 4]}]}');
+    });
+
+    it("handles arrays containing objects", () => {
+      const raw = 'Result: [{"a": 1}, {"b": 2}] done';
+      expect(extractJson(raw)).toBe('[{"a": 1}, {"b": 2}]');
+    });
+
+    it("handles deeply mixed nesting of arrays and objects", () => {
+      const raw = '{"data": [{"items": [{"id": 1, "tags": ["a", "b"]}]}]}';
+      expect(extractJson(raw)).toBe(raw);
+    });
+
+    it("extracts array with closing braces inside strings", () => {
+      const raw = '[{"msg": "use {x} and [y]"}, {"val": 2}]';
+      expect(extractJson(raw)).toBe(raw);
+    });
   });
 
   describe("generateText edge cases", () => {

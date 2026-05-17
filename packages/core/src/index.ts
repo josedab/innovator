@@ -176,6 +176,16 @@ export {
   getSessionStats,
   /** Search sessions with pagination metadata (totalCount). */
   querySessionsPaginated,
+  /** Export a session as a formatted JSON string. */
+  exportSessionAsJson,
+  /** Export a session as a Markdown document. */
+  exportSessionAsMarkdown,
+  /** Export a session as CSV for spreadsheet import. */
+  exportSessionAsCsv,
+  /** Duplicate a session with a fresh ID and timestamps. */
+  duplicateSession,
+  /** Delete all sessions from history. */
+  clearHistory,
 } from "./history/index.js";
 /** Aggregate statistics across all stored sessions. */
 export type { SessionStats, PaginatedSessionResult } from "./history/index.js";

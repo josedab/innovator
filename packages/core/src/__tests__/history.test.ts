@@ -22,6 +22,9 @@ const {
   getSessionStats,
   exportSessionAsMarkdown,
   exportSessionAsCsv,
+  exportSessionAsJson,
+  duplicateSession,
+  clearHistory,
 } = await import("../history/index.js");
 
 const sampleAngleResult = {
@@ -321,5 +324,78 @@ describe("history", () => {
     // Verify that commas and quotes are escaped
     expect(lines[1]).toContain('"Solar, Wind & More"');
     expect(lines[1]).toContain('"Idea with ""quotes"""');
+  });
+
+  // ---- Security: Path traversal prevention ----
+
+  it("rejects session IDs with path traversal characters", () => {
+    expect(() => getSession("../../../etc/passwd")).toThrow("invalid characters");
+    expect(() => deleteSession("foo/bar")).toThrow("invalid characters");
+    expect(() => updateSession("a..b", { notes: "x" })).toThrow("invalid characters");
+  });
+
+  it("rejects empty session IDs", () => {
+    expect(() => getSession("")).toThrow("non-empty string");
+  });
+
+  it("rejects overly long session IDs", () => {
+    const longId = "a".repeat(201);
+    expect(() => getSession(longId)).toThrow("must not exceed 200 characters");
+  });
+
+  // ---- Export as JSON ----
+
+  it("exports a session as JSON", () => {
+    const id = saveSession({
+      subject: "JSON Export Test",
+      angleResults: [sampleAngleResult],
+      tags: ["test"],
+    });
+    const session = getSession(id)!;
+    const json = exportSessionAsJson(session);
+    const parsed = JSON.parse(json);
+    expect(parsed.subject).toBe("JSON Export Test");
+    expect(parsed.tags).toEqual(["test"]);
+    expect(parsed.angleResults).toHaveLength(1);
+    expect(parsed.id).toBe(id);
+  });
+
+  // ---- Duplicate session ----
+
+  it("duplicates an existing session with a new ID", () => {
+    const originalId = saveSession({
+      subject: "Original Session",
+      angleResults: [sampleAngleResult],
+      tags: ["original"],
+      notes: "Original notes",
+    });
+    const newId = duplicateSession(originalId);
+    expect(newId).toBeDefined();
+    expect(newId).not.toBe(originalId);
+    const newSession = getSession(newId!)!;
+    expect(newSession.subject).toBe("Original Session");
+    expect(newSession.tags).toEqual(["original"]);
+    expect(newSession.notes).toBe("Original notes");
+    expect(newSession.angleResults).toHaveLength(1);
+  });
+
+  it("returns undefined when duplicating non-existent session", () => {
+    expect(duplicateSession("nonexistent-id")).toBeUndefined();
+  });
+
+  // ---- Clear history ----
+
+  it("clears all sessions", () => {
+    saveSession({ subject: "A", angleResults: [] });
+    saveSession({ subject: "B", angleResults: [] });
+    saveSession({ subject: "C", angleResults: [] });
+    const deleted = clearHistory();
+    expect(deleted).toBe(3);
+    expect(listSessions()).toHaveLength(0);
+  });
+
+  it("returns 0 when clearing empty history", () => {
+    const deleted = clearHistory();
+    expect(deleted).toBe(0);
   });
 });

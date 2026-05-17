@@ -49,7 +49,9 @@ class MemorySessionStorage implements SessionStorage {
   }
 
   async listSessions(): Promise<SessionRecord[]> {
-    return Array.from(this.store.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return Array.from(this.store.values())
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((s) => structuredClone(s));
   }
 
   async querySessions(query: HistoryQuery): Promise<SessionRecord[]> {
@@ -110,7 +112,9 @@ class MemoryWorkspaceStorage implements WorkspaceStorage {
   }
 
   async listWorkspaces(): Promise<Workspace[]> {
-    return Array.from(this.store.values()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return Array.from(this.store.values())
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .map((w) => structuredClone(w));
   }
 }
 
@@ -126,18 +130,19 @@ class MemoryApiGatewayStorage implements ApiGatewayStorage {
   }
 
   async getApiKey(id: string): Promise<ApiKey | undefined> {
-    return this.keys.get(id);
+    const k = this.keys.get(id);
+    return k ? structuredClone(k) : undefined;
   }
 
   async findApiKeyByValue(keyValue: string): Promise<ApiKey | undefined> {
     for (const k of this.keys.values()) {
-      if (k.key === keyValue) return k;
+      if (k.key === keyValue) return structuredClone(k);
     }
     return undefined;
   }
 
   async listApiKeys(): Promise<ApiKey[]> {
-    return Array.from(this.keys.values());
+    return Array.from(this.keys.values()).map((k) => structuredClone(k));
   }
 
   async deleteApiKey(id: string): Promise<boolean> {
@@ -189,12 +194,13 @@ class MemoryCollaborationStorage implements CollaborationStorage {
   }
 
   async getSession(id: string): Promise<CollaborativeSession | undefined> {
-    return this.store.get(id);
+    const s = this.store.get(id);
+    return s ? structuredClone(s) : undefined;
   }
 
   async findByCode(roomCode: string): Promise<CollaborativeSession | undefined> {
     for (const s of this.store.values()) {
-      if (s.roomCode === roomCode) return s;
+      if (s.roomCode === roomCode) return structuredClone(s);
     }
     return undefined;
   }

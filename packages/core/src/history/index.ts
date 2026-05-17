@@ -43,7 +43,23 @@ function ensureHistoryDir(): void {
   }
 }
 
+/** Validate that a session ID is a safe filename (UUID format or alphanumeric with hyphens). */
+function validateSessionId(id: string): void {
+  if (typeof id !== "string" || id.length === 0) {
+    throw new Error("Session ID must be a non-empty string");
+  }
+  if (!/^[a-zA-Z0-9-]+$/.test(id)) {
+    throw new Error(
+      "Session ID contains invalid characters (only alphanumeric and hyphens allowed)"
+    );
+  }
+  if (id.length > 200) {
+    throw new Error("Session ID must not exceed 200 characters");
+  }
+}
+
 function sessionPath(id: string): string {
+  validateSessionId(id);
   return join(HISTORY_DIR, `${id}.json`);
 }
 
@@ -95,8 +111,12 @@ function isValidSessionRecord(data: unknown): data is SessionRecord {
   );
 }
 
-/** Get a session by ID. Returns undefined for missing or malformed files. */
+/** Get a session by ID. Returns undefined for missing or malformed files.
+ * @throws If the ID contains invalid characters (security validation)
+ */
 export function getSession(id: string): SessionRecord | undefined {
+  // Validate ID outside try/catch so security errors propagate
+  validateSessionId(id);
   try {
     const path = sessionPath(id);
     if (!existsSync(path)) return undefined;
@@ -373,6 +393,55 @@ export function exportSessionAsMarkdown(session: SessionRecord): string {
   }
 
   return lines.join("\n");
+}
+
+/**
+ * Export a session record as a formatted JSON string.
+ *
+ * @param session - The session record to export
+ * @returns A pretty-printed JSON string of the full session
+ */
+export function exportSessionAsJson(session: SessionRecord): string {
+  return JSON.stringify(session, null, 2);
+}
+
+/**
+ * Duplicate an existing session, creating a new copy with a fresh ID and timestamps.
+ * Useful for re-analysis workflows where you want to iterate on a previous session.
+ *
+ * @param id - The ID of the session to duplicate
+ * @returns The new session ID, or undefined if the source session was not found
+ */
+export function duplicateSession(id: string): string | undefined {
+  const source = getSession(id);
+  if (!source) return undefined;
+  return saveSession({
+    subject: source.subject,
+    investigation: source.investigation,
+    angleResults: source.angleResults,
+    synthesis: source.synthesis,
+    tags: [...source.tags],
+    notes: source.notes,
+    presetId: source.presetId,
+  });
+}
+
+/**
+ * Delete all sessions from history. Useful for development and testing cleanup.
+ *
+ * @returns The number of sessions deleted
+ */
+export function clearHistory(): number {
+  ensureHistoryDir();
+  const files = readdirSync(HISTORY_DIR).filter((f) => f.endsWith(".json"));
+  for (const file of files) {
+    try {
+      unlinkSync(join(HISTORY_DIR, file));
+    } catch {
+      // Skip files that can't be deleted
+    }
+  }
+  return files.length;
 }
 
 /**

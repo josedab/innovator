@@ -14,7 +14,7 @@ export interface RetryOptions {
 }
 
 import { AbortError } from "../errors.js";
-import { RateLimitError } from "../errors.js";
+import { RateLimitError, LlmParseError } from "../errors.js";
 
 /** Error thrown when all retry attempts are exhausted. Preserves the original error as `cause`. */
 export class RetryExhaustedError extends Error {
@@ -48,6 +48,8 @@ const DEFAULT_RETRYABLE_PATTERNS = [
 function defaultIsRetryable(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   if (error instanceof RateLimitError) return true;
+  // LLM output is non-deterministic, so parse failures are worth retrying
+  if (error instanceof LlmParseError) return true;
   const msg = error.message.toLowerCase();
   return DEFAULT_RETRYABLE_PATTERNS.some((pattern) => msg.includes(pattern.toLowerCase()));
 }

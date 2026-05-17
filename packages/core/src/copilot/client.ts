@@ -243,38 +243,25 @@ export function extractJson(raw: string): string {
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) return trimmed;
   }
 
-  // Find the first { or [ to determine JSON type
+  // Find the first { or [ to determine JSON start
   const braceStart = raw.indexOf("{");
   const bracketStart = raw.indexOf("[");
 
   let start: number;
-  let openChar: string;
-  let closeChar: string;
 
   if (braceStart === -1 && bracketStart === -1) {
     throw new LlmParseError("No JSON object found in response", raw);
   } else if (braceStart === -1) {
     start = bracketStart;
-    openChar = "[";
-    closeChar = "]";
   } else if (bracketStart === -1) {
     start = braceStart;
-    openChar = "{";
-    closeChar = "}";
   } else {
-    // Pick whichever comes first
-    if (braceStart <= bracketStart) {
-      start = braceStart;
-      openChar = "{";
-      closeChar = "}";
-    } else {
-      start = bracketStart;
-      openChar = "[";
-      closeChar = "]";
-    }
+    start = Math.min(braceStart, bracketStart);
   }
 
-  let depth = 0;
+  // Track depth for both bracket types to handle nested arrays in objects and vice versa
+  let braceDepth = 0;
+  let bracketDepth = 0;
   let inString = false;
   let escape = false;
 
@@ -295,12 +282,13 @@ export function extractJson(raw: string): string {
     }
     if (inString) continue;
 
-    if (ch === openChar) depth++;
-    else if (ch === closeChar) {
-      depth--;
-      if (depth === 0) {
-        return raw.slice(start, i + 1);
-      }
+    if (ch === "{") braceDepth++;
+    else if (ch === "}") braceDepth--;
+    else if (ch === "[") bracketDepth++;
+    else if (ch === "]") bracketDepth--;
+
+    if (braceDepth === 0 && bracketDepth === 0) {
+      return raw.slice(start, i + 1);
     }
   }
 

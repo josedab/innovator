@@ -6,6 +6,7 @@ vi.mock("@github/copilot-sdk", () => ({
 }));
 
 import { withRetry, RetryExhaustedError } from "../copilot/retry.js";
+import { LlmParseError } from "../errors.js";
 
 describe("withRetry", () => {
   it("returns the result on first success", async () => {
@@ -340,5 +341,25 @@ describe("withRetry", () => {
       })
     ).rejects.toThrow("Retry aborted");
     expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries on LlmParseError since LLM output is non-deterministic", async () => {
+    const fn = vi
+      .fn()
+      .mockRejectedValueOnce(new LlmParseError("Invalid JSON", "bad output"))
+      .mockResolvedValue("ok");
+
+    const result = await withRetry(fn, { initialDelayMs: 1 });
+    expect(result).toBe("ok");
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("exhausts retries on persistent LlmParseError", async () => {
+    const fn = vi.fn().mockRejectedValue(new LlmParseError("Invalid JSON", "bad output"));
+
+    await expect(withRetry(fn, { maxAttempts: 2, initialDelayMs: 1 })).rejects.toThrow(
+      "retry attempts exhausted"
+    );
+    expect(fn).toHaveBeenCalledTimes(2);
   });
 });
