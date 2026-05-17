@@ -505,6 +505,32 @@ export type {
   TranscriptionProvider,
 } from "./transcription.js";
 
+// ---- Extraction Interfaces ----
+
+export {
+  ExtractedImageContextSchema,
+  ExtractedDocumentContextSchema,
+  TranscriptionResultSchema as ExtractorTranscriptionResultSchema,
+  EnrichedContextSchema,
+  registerImageExtractor,
+  registerPDFExtractor,
+  registerAudioTranscriber,
+  listImageExtractors,
+  listPDFExtractors,
+  listAudioTranscribers,
+  mergeExtractedContexts,
+  clearExtractorRegistries,
+} from "./extraction-interfaces.js";
+export type {
+  ImageExtractor,
+  PDFExtractor,
+  AudioTranscriber,
+  ExtractedImageContext,
+  ExtractedDocumentContext,
+  TranscriptionResult as ExtractorTranscriptionResult,
+  EnrichedContext,
+} from "./extraction-interfaces.js";
+
 // ---- Vision Model Integration ----
 
 export {

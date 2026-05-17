@@ -5926,6 +5926,31 @@ export type {
   TranscriptionProvider,
 } from "./multi-modal/index.js";
 
+/** Multi-Modal extractor interfaces — pluggable image, PDF, and audio enrichment hooks. */
+export {
+  ExtractedImageContextSchema,
+  ExtractedDocumentContextSchema,
+  ExtractorTranscriptionResultSchema,
+  EnrichedContextSchema,
+  registerImageExtractor,
+  registerPDFExtractor,
+  registerAudioTranscriber,
+  listImageExtractors,
+  listPDFExtractors,
+  listAudioTranscribers,
+  mergeExtractedContexts,
+  clearExtractorRegistries,
+} from "./multi-modal/index.js";
+export type {
+  ImageExtractor,
+  PDFExtractor,
+  AudioTranscriber,
+  ExtractedImageContext,
+  ExtractedDocumentContext,
+  ExtractorTranscriptionResult,
+  EnrichedContext,
+} from "./multi-modal/index.js";
+
 /** Sprint Automation — time-boxed sprints with phases, templates, voting, and retrospectives. */
 export {
   SPRINT_TEMPLATES as AUTO_SPRINT_TEMPLATES,
