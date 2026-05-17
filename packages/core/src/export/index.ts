@@ -688,11 +688,130 @@ export function exportToCsv(data: ExportData): ExportResult {
   };
 }
 
+/** Escape HTML special characters to prevent XSS. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Export to a self-contained HTML report. */
+export function exportToHtml(data: ExportData): ExportResult {
+  const subject = escapeHtml(data.subject);
+  const date = new Date().toISOString().split("T")[0];
+
+  const sections: string[] = [];
+
+  if (data.investigation) {
+    sections.push(`<section><h2>Investigation</h2>`);
+    sections.push(`<h3>Summary</h3><p>${escapeHtml(data.investigation.summary)}</p>`);
+
+    if (data.investigation.keyAspects.length > 0) {
+      sections.push(`<h3>Key Aspects</h3><ul>`);
+      for (const aspect of data.investigation.keyAspects) {
+        sections.push(
+          `<li><strong>${escapeHtml(aspect.title)}</strong>: ${escapeHtml(aspect.description)}</li>`
+        );
+      }
+      sections.push(`</ul>`);
+    }
+
+    if (data.investigation.challenges.length > 0) {
+      sections.push(`<h3>Challenges</h3><ul>`);
+      for (const c of data.investigation.challenges) {
+        sections.push(`<li>${escapeHtml(c)}</li>`);
+      }
+      sections.push(`</ul>`);
+    }
+
+    if (data.investigation.opportunities.length > 0) {
+      sections.push(`<h3>Opportunities</h3><ul>`);
+      for (const o of data.investigation.opportunities) {
+        sections.push(`<li>${escapeHtml(o)}</li>`);
+      }
+      sections.push(`</ul>`);
+    }
+    sections.push(`</section>`);
+  }
+
+  if (data.synthesis) {
+    sections.push(`<section><h2>Top Ideas</h2>`);
+    for (const idea of data.synthesis.topIdeas) {
+      sections.push(`<article>`);
+      sections.push(`<h3>${escapeHtml(idea.title)}</h3>`);
+      sections.push(`<p>${escapeHtml(idea.description)}</p>`);
+      sections.push(
+        `<p><strong>Impact:</strong> ${escapeHtml(idea.potentialImpact)} | <strong>Feasibility:</strong> ${escapeHtml(idea.feasibility)} | <strong>Source:</strong> ${escapeHtml(idea.sourceAngle)}</p>`
+      );
+      sections.push(`</article>`);
+    }
+    sections.push(
+      `<h2>Recommendation</h2><p>${escapeHtml(data.synthesis.recommendation)}</p></section>`
+    );
+  }
+
+  for (const angle of data.angleResults) {
+    sections.push(
+      `<section><h2>${escapeHtml(angle.angleName)}</h2><p><em>${escapeHtml(angle.reasoning)}</em></p>`
+    );
+    for (const idea of angle.ideas) {
+      sections.push(`<article>`);
+      sections.push(`<h3>${escapeHtml(idea.title)}</h3>`);
+      sections.push(`<p>${escapeHtml(idea.description)}</p>`);
+      sections.push(`<p><strong>Impact:</strong> ${escapeHtml(idea.potentialImpact)}</p>`);
+      sections.push(
+        `<p><strong>Implementation:</strong> ${escapeHtml(idea.implementationHint)}</p>`
+      );
+      sections.push(`</article>`);
+    }
+    sections.push(`</section>`);
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Innovation Report: ${subject}</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1a1a2e; }
+  h1 { border-bottom: 2px solid #e0e0e0; padding-bottom: 0.5rem; }
+  h2 { color: #16213e; margin-top: 2rem; }
+  article { background: #f8f9fa; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  article h3 { margin-top: 0; color: #0f3460; }
+  strong { color: #533483; }
+  .meta { color: #666; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<h1>Innovation Report: ${subject}</h1>
+<p class="meta">Generated on ${date}</p>
+${sections.join("\n")}
+</body>
+</html>`;
+
+  const slug = data.subject
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 50);
+
+  return {
+    content: html,
+    mimeType: "text/html",
+    extension: ".html",
+    filename: `innovation-${slug}.html`,
+  };
+}
+
 /** Get all available export formats. */
 export function getAvailableFormats(): Array<{ id: string; name: string; extension: string }> {
   return [
     { id: "markdown", name: "Markdown", extension: ".md" },
     { id: "json", name: "JSON", extension: ".json" },
+    { id: "html", name: "HTML Report", extension: ".html" },
     { id: "github-issue", name: "GitHub Issue", extension: ".md" },
     { id: "clipboard", name: "Clipboard Text", extension: ".txt" },
     { id: "csv", name: "CSV (Spreadsheet)", extension: ".csv" },

@@ -180,12 +180,16 @@ export {
 /** Aggregate statistics across all stored sessions. */
 export type { SessionStats, PaginatedSessionResult } from "./history/index.js";
 
-/** Export — render sessions as Markdown, JSON, GitHub Issues, PowerPoint, Jira, Confluence, Notion, and Google Slides. */
+/** Export — render sessions as Markdown, JSON, HTML, GitHub Issues, PowerPoint, Jira, Confluence, Notion, and Google Slides. */
 export {
   /** Export a session to a Markdown document. */
   exportToMarkdown,
   /** Export a session to a JSON file. */
   exportToJson,
+  /** Export a session to a self-contained HTML report. */
+  exportToHtml,
+  /** Export a session to CSV format (spreadsheet-compatible). */
+  exportToCsv,
   /** Generate a GitHub Issue body from session data. */
   generateGitHubIssueBody,
   /** Copy session output to the system clipboard. */
@@ -324,8 +328,16 @@ export {
   scoreIdeas,
   /** Compute a weighted priority score from individual dimension scores. */
   computePriorityScore,
+  /** Compute a weighted priority score with custom weights. */
+  computeWeightedPriorityScore,
   /** Classify an idea into a priority quadrant (quick-win, strategic, etc.). */
   getQuadrant,
+  /** Filter scored ideas by quadrant(s). */
+  filterIdeasByQuadrant,
+  /** Get top N ideas by a single dimension. */
+  getTopByDimension,
+  /** Compute summary statistics across scored ideas. */
+  getIdeaSummaryStats,
   /** Rank ideas by composite score. */
   rankIdeas,
   /** Score ideas using a configurable scoring engine with custom dimensions. */
@@ -355,6 +367,9 @@ export type {
   ScoringDimension,
   ScoringEngineConfig,
   MultiDimensionalScore,
+  PriorityWeights,
+  Quadrant as ScoringQuadrant,
+  IdeaSummaryStats,
 } from "./scoring/index.js";
 
 /** Predictive Innovation Scoring — ML-powered success prediction and prescriptive actions. */

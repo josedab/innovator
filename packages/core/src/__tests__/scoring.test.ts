@@ -25,7 +25,11 @@ import { withRetry } from "../copilot/retry.js";
 
 import {
   computePriorityScore,
+  computeWeightedPriorityScore,
   getQuadrant,
+  filterIdeasByQuadrant,
+  getTopByDimension,
+  getIdeaSummaryStats,
   rankIdeas,
   scoreIdeas,
   IdeaScoreSchema,
@@ -33,7 +37,7 @@ import {
   recordCalibrationFeedback,
   clearCalibration,
 } from "../scoring/index.js";
-import type { IdeaScore } from "../scoring/index.js";
+import type { IdeaScore, Quadrant } from "../scoring/index.js";
 import type { AngleResult, Investigation } from "../types.js";
 
 function makeScore(overrides: Partial<IdeaScore> = {}): IdeaScore {
@@ -430,6 +434,105 @@ describe("scoring", () => {
 
       await scoreIdeas("test", angleResults);
       expect(withRetry).toHaveBeenCalled();
+    });
+  });
+
+  describe("computeWeightedPriorityScore", () => {
+    it("uses default weights when none provided", () => {
+      const score = makeScore({ impact: 8, feasibility: 7, novelty: 6 });
+      expect(computeWeightedPriorityScore(score)).toBe(computePriorityScore(score));
+    });
+
+    it("applies custom weights", () => {
+      const score = makeScore({ impact: 10, feasibility: 1, novelty: 1 });
+      const impactHeavy = computeWeightedPriorityScore(score, {
+        impact: 0.9,
+        feasibility: 0.05,
+        novelty: 0.05,
+        speed: 0,
+      });
+      const feasibilityHeavy = computeWeightedPriorityScore(score, {
+        impact: 0.05,
+        feasibility: 0.9,
+        novelty: 0.05,
+        speed: 0,
+      });
+      expect(impactHeavy).toBeGreaterThan(feasibilityHeavy);
+    });
+  });
+
+  describe("filterIdeasByQuadrant", () => {
+    it("filters to specified quadrants", () => {
+      const scores = [
+        makeScore({ feasibility: 8, impact: 9 }), // quick-wins
+        makeScore({ feasibility: 3, impact: 9 }), // strategic-bets
+        makeScore({ feasibility: 8, impact: 3 }), // low-hanging-fruit
+        makeScore({ feasibility: 3, impact: 3 }), // reconsider
+      ];
+      const quickWins = filterIdeasByQuadrant(scores, ["quick-wins"]);
+      expect(quickWins).toHaveLength(1);
+      expect(quickWins[0].feasibility).toBe(8);
+      expect(quickWins[0].impact).toBe(9);
+    });
+
+    it("supports multiple quadrants", () => {
+      const scores = [
+        makeScore({ feasibility: 8, impact: 9 }),
+        makeScore({ feasibility: 3, impact: 9 }),
+        makeScore({ feasibility: 3, impact: 3 }),
+      ];
+      const result = filterIdeasByQuadrant(scores, ["quick-wins", "strategic-bets"]);
+      expect(result).toHaveLength(2);
+    });
+
+    it("returns empty for no matches", () => {
+      const scores = [makeScore({ feasibility: 3, impact: 3 })];
+      expect(filterIdeasByQuadrant(scores, ["quick-wins"])).toHaveLength(0);
+    });
+  });
+
+  describe("getTopByDimension", () => {
+    it("returns top N by specified dimension", () => {
+      const scores = [
+        makeScore({ ideaTitle: "A", impact: 3 }),
+        makeScore({ ideaTitle: "B", impact: 9 }),
+        makeScore({ ideaTitle: "C", impact: 6 }),
+      ];
+      const top = getTopByDimension(scores, "impact", 2);
+      expect(top).toHaveLength(2);
+      expect(top[0].impact).toBe(9);
+      expect(top[1].impact).toBe(6);
+    });
+
+    it("defaults to limit 5", () => {
+      const scores = Array.from({ length: 10 }, (_, i) =>
+        makeScore({ ideaTitle: `Idea ${i}`, novelty: i + 1 })
+      );
+      expect(getTopByDimension(scores, "novelty")).toHaveLength(5);
+    });
+  });
+
+  describe("getIdeaSummaryStats", () => {
+    it("returns zeroes for empty array", () => {
+      const stats = getIdeaSummaryStats([]);
+      expect(stats.total).toBe(0);
+      expect(stats.averageImpact).toBe(0);
+      expect(stats.topPriorityTitle).toBeUndefined();
+    });
+
+    it("computes correct averages and quadrant counts", () => {
+      const scores = [
+        makeScore({ ideaTitle: "QW", feasibility: 8, impact: 9, novelty: 7 }),
+        makeScore({ ideaTitle: "SB", feasibility: 3, impact: 8, novelty: 5 }),
+      ];
+      const stats = getIdeaSummaryStats(scores);
+      expect(stats.total).toBe(2);
+      expect(stats.averageFeasibility).toBe(5.5);
+      expect(stats.averageImpact).toBe(8.5);
+      expect(stats.averageNovelty).toBe(6);
+      expect(stats.quadrantCounts["quick-wins"]).toBe(1);
+      expect(stats.quadrantCounts["strategic-bets"]).toBe(1);
+      expect(stats.topPriorityTitle).toBeDefined();
     });
   });
 });

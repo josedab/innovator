@@ -4,6 +4,7 @@ import {
   exportToJson,
   exportToClipboard,
   exportToCsv,
+  exportToHtml,
   generateGitHubIssueBody,
   exportToPowerPoint,
   exportToJira,
@@ -226,6 +227,46 @@ describe("export", () => {
       const text = exportToClipboard(data);
       expect(text).toContain("Angle 1:");
       expect(text).toContain("Idea1");
+    });
+  });
+
+  describe("exportToHtml", () => {
+    it("generates a valid HTML document", () => {
+      const result = exportToHtml(sampleData);
+      expect(result.content).toContain("<!DOCTYPE html>");
+      expect(result.content).toContain("<title>Innovation Report: Solar Energy Innovation</title>");
+      expect(result.content).toContain("Solar Paint");
+      expect(result.extension).toBe(".html");
+      expect(result.mimeType).toBe("text/html");
+    });
+
+    it("escapes HTML special characters", () => {
+      const data: ExportData = {
+        subject: "Test <script>alert(1)</script>",
+        angleResults: [],
+      };
+      const result = exportToHtml(data);
+      expect(result.content).not.toContain("<script>");
+      expect(result.content).toContain("&lt;script&gt;");
+    });
+
+    it("includes investigation details", () => {
+      const result = exportToHtml(sampleData);
+      expect(result.content).toContain("Investigation");
+      expect(result.content).toContain("Key Aspects");
+      expect(result.content).toContain("Challenges");
+      expect(result.content).toContain("Opportunities");
+    });
+
+    it("handles data without synthesis", () => {
+      const data: ExportData = {
+        subject: "Test",
+        angleResults: sampleData.angleResults,
+      };
+      const result = exportToHtml(data);
+      expect(result.content).toContain("SCAMPER");
+      expect(result.content).toContain("Solar Paint");
+      expect(result.content).not.toContain("Top Ideas");
     });
   });
 
@@ -491,9 +532,9 @@ describe("export", () => {
   });
 
   describe("getAvailableFormats", () => {
-    it("returns all 10 formats", () => {
+    it("returns all 11 formats", () => {
       const formats = getAvailableFormats();
-      expect(formats).toHaveLength(10);
+      expect(formats).toHaveLength(11);
     });
 
     it("includes all expected format IDs", () => {
@@ -501,6 +542,7 @@ describe("export", () => {
       const ids = formats.map((f) => f.id);
       expect(ids).toContain("markdown");
       expect(ids).toContain("json");
+      expect(ids).toContain("html");
       expect(ids).toContain("github-issue");
       expect(ids).toContain("clipboard");
       expect(ids).toContain("powerpoint");

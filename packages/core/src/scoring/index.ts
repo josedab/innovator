@@ -209,6 +209,109 @@ export function rankIdeas(scores: IdeaScore[]): IdeaScore[] {
   return [...scores].sort((a, b) => computePriorityScore(b) - computePriorityScore(a));
 }
 
+/** Custom weights for priority score computation. All weights should sum to ~1.0. */
+export interface PriorityWeights {
+  impact?: number;
+  feasibility?: number;
+  novelty?: number;
+  speed?: number;
+}
+
+/**
+ * Compute a composite priority score with custom weights.
+ * Falls back to default weights (impact: 0.35, feasibility: 0.3, novelty: 0.2, speed: 0.15).
+ */
+export function computeWeightedPriorityScore(score: IdeaScore, weights?: PriorityWeights): number {
+  const w = {
+    impact: weights?.impact ?? 0.35,
+    feasibility: weights?.feasibility ?? 0.3,
+    novelty: weights?.novelty ?? 0.2,
+    speed: weights?.speed ?? 0.15,
+  };
+  return (
+    score.impact * w.impact +
+    score.feasibility * w.feasibility +
+    score.novelty * w.novelty +
+    (6 - TIME_TO_IMPLEMENT_ORDER[score.timeToImplement]) * w.speed * 2
+  );
+}
+
+/** Quadrant type for filtering. */
+export type Quadrant = "quick-wins" | "strategic-bets" | "low-hanging-fruit" | "reconsider";
+
+/** Filter scored ideas to only those in the specified quadrant(s). */
+export function filterIdeasByQuadrant(scores: IdeaScore[], quadrants: Quadrant[]): IdeaScore[] {
+  const allowed = new Set(quadrants);
+  return scores.filter((s) => allowed.has(getQuadrant(s)));
+}
+
+/** Get the top N ideas sorted by a single dimension (descending). */
+export function getTopByDimension(
+  scores: IdeaScore[],
+  dimension: "feasibility" | "impact" | "novelty",
+  limit = 5
+): IdeaScore[] {
+  return [...scores].sort((a, b) => b[dimension] - a[dimension]).slice(0, limit);
+}
+
+/** Summary statistics for a set of scored ideas. */
+export interface IdeaSummaryStats {
+  total: number;
+  averageFeasibility: number;
+  averageImpact: number;
+  averageNovelty: number;
+  quadrantCounts: Record<Quadrant, number>;
+  topPriorityTitle: string | undefined;
+}
+
+/** Compute summary statistics across a set of scored ideas. */
+export function getIdeaSummaryStats(scores: IdeaScore[]): IdeaSummaryStats {
+  if (scores.length === 0) {
+    return {
+      total: 0,
+      averageFeasibility: 0,
+      averageImpact: 0,
+      averageNovelty: 0,
+      quadrantCounts: {
+        "quick-wins": 0,
+        "strategic-bets": 0,
+        "low-hanging-fruit": 0,
+        reconsider: 0,
+      },
+      topPriorityTitle: undefined,
+    };
+  }
+
+  const quadrantCounts: Record<Quadrant, number> = {
+    "quick-wins": 0,
+    "strategic-bets": 0,
+    "low-hanging-fruit": 0,
+    reconsider: 0,
+  };
+
+  let totalFeasibility = 0;
+  let totalImpact = 0;
+  let totalNovelty = 0;
+
+  for (const s of scores) {
+    totalFeasibility += s.feasibility;
+    totalImpact += s.impact;
+    totalNovelty += s.novelty;
+    quadrantCounts[getQuadrant(s)]++;
+  }
+
+  const ranked = rankIdeas(scores);
+
+  return {
+    total: scores.length,
+    averageFeasibility: Math.round((totalFeasibility / scores.length) * 100) / 100,
+    averageImpact: Math.round((totalImpact / scores.length) * 100) / 100,
+    averageNovelty: Math.round((totalNovelty / scores.length) * 100) / 100,
+    quadrantCounts,
+    topPriorityTitle: ranked[0]?.ideaTitle,
+  };
+}
+
 // ---- Configurable Multi-Dimensional Scoring Engine ----
 
 export const ScoringDimensionSchema = z.object({
