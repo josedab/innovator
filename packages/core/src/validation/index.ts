@@ -110,24 +110,29 @@ You MUST respond with valid JSON only:
   "references": ["Relevant patent area or known patent"]
 }`;
 
-    const raw = await generateText({ prompt, serverMode: true, signal });
-    const jsonStr = extractJson(raw);
-    const parsed = JSON.parse(jsonStr) as {
-      score: number;
-      summary: string;
-      details?: string;
-      references?: string[];
-    };
+    return withRetry(
+      async () => {
+        const raw = await generateText({ prompt, serverMode: true, signal });
+        const jsonStr = extractJson(raw);
+        const parsed = JSON.parse(jsonStr) as {
+          score: number;
+          summary: string;
+          details?: string;
+          references?: string[];
+        };
 
-    return {
-      source: "Patent Database Analysis",
-      category: "patent",
-      status: parsed.score > 70 ? "fail" : parsed.score > 40 ? "warn" : "pass",
-      score: parsed.score,
-      summary: parsed.summary,
-      details: parsed.details,
-      references: parsed.references,
-    };
+        return {
+          source: "Patent Database Analysis",
+          category: "patent",
+          status: parsed.score > 70 ? "fail" : parsed.score > 40 ? "warn" : "pass",
+          score: parsed.score,
+          summary: parsed.summary,
+          details: parsed.details,
+          references: parsed.references,
+        };
+      },
+      { signal }
+    );
   },
 };
 
@@ -155,24 +160,29 @@ You MUST respond with valid JSON only:
   "references": ["Known competitor or product"]
 }`;
 
-    const raw = await generateText({ prompt, serverMode: true, signal });
-    const jsonStr = extractJson(raw);
-    const parsed = JSON.parse(jsonStr) as {
-      score: number;
-      summary: string;
-      details?: string;
-      references?: string[];
-    };
+    return withRetry(
+      async () => {
+        const raw = await generateText({ prompt, serverMode: true, signal });
+        const jsonStr = extractJson(raw);
+        const parsed = JSON.parse(jsonStr) as {
+          score: number;
+          summary: string;
+          details?: string;
+          references?: string[];
+        };
 
-    return {
-      source: "Market & Competitor Analysis",
-      category: "competitor",
-      status: parsed.score > 70 ? "fail" : parsed.score > 40 ? "warn" : "pass",
-      score: parsed.score,
-      summary: parsed.summary,
-      details: parsed.details,
-      references: parsed.references,
-    };
+        return {
+          source: "Market & Competitor Analysis",
+          category: "competitor",
+          status: parsed.score > 70 ? "fail" : parsed.score > 40 ? "warn" : "pass",
+          score: parsed.score,
+          summary: parsed.summary,
+          details: parsed.details,
+          references: parsed.references,
+        };
+      },
+      { signal }
+    );
   },
 };
 
@@ -202,24 +212,29 @@ You MUST respond with valid JSON only:
   "references": ["Relevant technology or framework"]
 }`;
 
-    const raw = await generateText({ prompt, serverMode: true, signal });
-    const jsonStr = extractJson(raw);
-    const parsed = JSON.parse(jsonStr) as {
-      score: number;
-      summary: string;
-      details?: string;
-      references?: string[];
-    };
+    return withRetry(
+      async () => {
+        const raw = await generateText({ prompt, serverMode: true, signal });
+        const jsonStr = extractJson(raw);
+        const parsed = JSON.parse(jsonStr) as {
+          score: number;
+          summary: string;
+          details?: string;
+          references?: string[];
+        };
 
-    return {
-      source: "Technical Feasibility Assessment",
-      category: "feasibility",
-      status: parsed.score > 70 ? "fail" : parsed.score > 40 ? "warn" : "pass",
-      score: parsed.score,
-      summary: parsed.summary,
-      details: parsed.details,
-      references: parsed.references,
-    };
+        return {
+          source: "Technical Feasibility Assessment",
+          category: "feasibility",
+          status: parsed.score > 70 ? "fail" : parsed.score > 40 ? "warn" : "pass",
+          score: parsed.score,
+          summary: parsed.summary,
+          details: parsed.details,
+          references: parsed.references,
+        };
+      },
+      { signal }
+    );
   },
 };
 
