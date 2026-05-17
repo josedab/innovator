@@ -38,6 +38,9 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
 - [Plugin System](#plugin-system)
 - [Presets](#presets)
 - [Session History](#session-history)
+  - [Session Export Helpers](#session-export-helpers)
+  - [`duplicateSession()`](#duplicatesession)
+  - [`clearHistory()`](#clearhistory)
   - [`querySessionsPaginated()`](#querysessionspaginated)
   - [`getSessionStats()`](#getsessionstats)
   - [`compareSessions()`](#comparesessions)
@@ -462,22 +465,32 @@ classDiagram
     InnovatorError <|-- PipelineError
     InnovatorError <|-- ConfigurationError
     InnovatorError <|-- AbortError
+    InnovatorError <|-- RetryExhaustedError
     LlmError <|-- LlmTimeoutError
     LlmError <|-- LlmParseError
     LlmError <|-- RateLimitError
 ```
 
-| Error Class          | Code                 | When Thrown                                    | Extra Properties                          |
-| -------------------- | -------------------- | ---------------------------------------------- | ----------------------------------------- |
-| `InnovatorError`     | `ERR_INNOVATOR`      | Base class for all Innovator errors            | `code: InnovatorErrorCode`                |
-| `LlmError`           | `ERR_LLM`            | LLM API call failures (network, unknown)       | `model?: string`                          |
-| `LlmTimeoutError`    | `ERR_LLM_TIMEOUT`    | LLM request exceeds configured timeout         | `timeoutMs: number`, `model?: string`     |
-| `LlmParseError`      | `ERR_LLM_PARSE`      | LLM output fails JSON parsing                  | `rawOutput: string` (truncated to 500c)   |
-| `RateLimitError`     | `ERR_LLM_RATE_LIMIT` | LLM API returns HTTP 429                       | `retryAfterMs?: number`, `model?: string` |
-| `ValidationError`    | `ERR_VALIDATION`     | Data fails Zod schema validation               | `issues?: Array<{path, message}>`         |
-| `PipelineError`      | `ERR_PIPELINE`       | A pipeline stage fails                         | `stage: string`                           |
-| `ConfigurationError` | `ERR_CONFIGURATION`  | Invalid config (missing env vars, bad options) | `configKey?: string`                      |
-| `AbortError`         | `ERR_ABORT`          | Operation cancelled via `AbortSignal`          | —                                         |
+| Error Class           | Code                  | When Thrown                                    | Extra Properties                          |
+| --------------------- | --------------------- | ---------------------------------------------- | ----------------------------------------- |
+| `InnovatorError`      | `ERR_INNOVATOR`       | Base class for all Innovator errors            | `code: InnovatorErrorCode`                |
+| `LlmError`            | `ERR_LLM`             | LLM API call failures (network, unknown)       | `model?: string`                          |
+| `LlmTimeoutError`     | `ERR_LLM_TIMEOUT`     | LLM request exceeds configured timeout         | `timeoutMs: number`, `model?: string`     |
+| `LlmParseError`       | `ERR_LLM_PARSE`       | LLM output fails JSON parsing                  | `rawOutput: string` (truncated to 500c)   |
+| `RateLimitError`      | `ERR_LLM_RATE_LIMIT`  | LLM API returns HTTP 429                       | `retryAfterMs?: number`, `model?: string` |
+| `RetryExhaustedError` | `ERR_RETRY_EXHAUSTED` | All `withRetry()` attempts exhausted           | `cause: Error`, `attempts: number`        |
+| `ValidationError`     | `ERR_VALIDATION`      | Data fails Zod schema validation               | `issues?: Array<{path, message}>`         |
+| `PipelineError`       | `ERR_PIPELINE`        | A pipeline stage fails                         | `stage: string`                           |
+| `ConfigurationError`  | `ERR_CONFIGURATION`   | Invalid config (missing env vars, bad options) | `configKey?: string`                      |
+| `AbortError`          | `ERR_ABORT`           | Operation cancelled via `AbortSignal`          | —                                         |
+
+All `InnovatorError` subclasses support `.toJSON()` for structured serialization in logging and API responses:
+
+```typescript
+const err = new LlmTimeoutError(90000, { model: "gpt-4.1" });
+console.log(JSON.stringify(err));
+// → {"name":"LlmTimeoutError","code":"ERR_LLM_TIMEOUT","message":"LLM request timed out after 90s"}
+```
 
 **Example:**
 
@@ -553,25 +566,36 @@ function withRetry<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<T>;
 
 ### `RetryExhaustedError`
 
-Error class thrown when all retry attempts are exhausted. Provides structured access to failure details.
+Error class thrown when all retry attempts are exhausted. Extends `InnovatorError` with code `ERR_RETRY_EXHAUSTED`. Provides structured access to the underlying failure and attempt count.
 
 ```typescript
-class RetryExhaustedError extends Error {
+class RetryExhaustedError extends InnovatorError {
+  readonly code: "ERR_RETRY_EXHAUSTED";
   readonly cause: Error; // The underlying error from the last attempt
   readonly attempts: number; // Total attempts made (including the first)
+
+  /** Includes `attempts` in addition to standard InnovatorError fields. */
+  toJSON(): Record<string, unknown>;
 }
 ```
 
 **Example:**
 
 ```typescript
-import { withRetry, RetryExhaustedError } from "@innovator/core";
+import { withRetry, RetryExhaustedError, isInnovatorError } from "@innovator/core";
 
 try {
   const result = await withRetry(() => fetchData(), { maxAttempts: 3 });
 } catch (error) {
   if (error instanceof RetryExhaustedError) {
     console.error(`Failed after ${error.attempts} attempts: ${error.cause.message}`);
+    // Structured logging
+    console.log(JSON.stringify(error));
+    // → {"name":"RetryExhaustedError","code":"ERR_RETRY_EXHAUSTED","message":"All 3 retry attempts exhausted: ...","cause":"...","attempts":3}
+  }
+  // Also works with the generic type guard
+  if (isInnovatorError(error)) {
+    console.error(`[${error.code}] ${error.message}`);
   }
 }
 ```
@@ -664,16 +688,108 @@ const BUILT_IN_PRESETS: Preset[];
 Persist and query innovation sessions:
 
 ```typescript
+// CRUD
 function saveSession(session: SessionRecord): void;
 function getSession(id: string): SessionRecord | undefined;
 function updateSession(id: string, updates: Partial<SessionRecord>): void;
 function deleteSession(id: string): boolean;
 function listSessions(limit?: number, offset?: number): SessionRecord[];
+
+// Search & pagination
 function querySessions(query: HistoryQuery): SessionRecord[];
 function querySessionsPaginated(query: HistoryQuery): PaginatedSessionResult;
+
+// Comparison & analytics
 function compareSessions(id1: string, id2: string): CompareResult | undefined;
 function getSessionStats(): SessionStats;
+
+// Export helpers
+function exportSessionAsMarkdown(session: SessionRecord): string;
+function exportSessionAsJson(session: SessionRecord): string;
+function exportSessionAsCsv(session: SessionRecord): string;
+
+// Session management
+function duplicateSession(id: string): string | undefined;
+function clearHistory(): number;
 ```
+
+### Session Export Helpers
+
+Export individual session records directly from the history module (distinct from the `export/` module which exports `ExportData` objects).
+
+#### `exportSessionAsMarkdown()`
+
+Export a session record as a structured Markdown document with investigation, ideas, and synthesis.
+
+```typescript
+function exportSessionAsMarkdown(session: SessionRecord): string;
+```
+
+#### `exportSessionAsJson()`
+
+Export a session record as a pretty-printed JSON string.
+
+```typescript
+function exportSessionAsJson(session: SessionRecord): string;
+```
+
+#### `exportSessionAsCsv()`
+
+Export a session's ideas as CSV rows for spreadsheet import. Includes CSV formula injection protection (dangerous leading characters like `=`, `+`, `-`, `@` are prefixed with a single quote).
+
+```typescript
+function exportSessionAsCsv(session: SessionRecord): string;
+```
+
+**CSV columns:** `Subject`, `Angle`, `Idea Title`, `Description`, `Impact`, `Implementation Hint`
+
+**Example:**
+
+```typescript
+import { getSession, exportSessionAsMarkdown, exportSessionAsCsv } from "@innovator/core";
+
+const session = getSession("sess-abc")!;
+
+// Markdown for documentation
+const md = exportSessionAsMarkdown(session);
+writeFileSync(`session-${session.id}.md`, md);
+
+// CSV for spreadsheet analysis
+const csv = exportSessionAsCsv(session);
+writeFileSync(`session-${session.id}.csv`, csv);
+```
+
+### `duplicateSession()`
+
+Duplicate an existing session, creating a new copy with a fresh ID and timestamps. Useful for re-analysis workflows.
+
+```typescript
+function duplicateSession(id: string): string | undefined;
+```
+
+**Returns:** The new session ID, or `undefined` if the source session was not found.
+
+**Example:**
+
+```typescript
+import { duplicateSession, getSession } from "@innovator/core";
+
+const newId = duplicateSession("sess-abc");
+if (newId) {
+  const copy = getSession(newId);
+  console.log(`Duplicated to ${newId}, created at ${copy?.createdAt}`);
+}
+```
+
+### `clearHistory()`
+
+Delete all sessions from history. Useful for development and testing cleanup.
+
+```typescript
+function clearHistory(): number;
+```
+
+**Returns:** The number of sessions deleted.
 
 ### Pagination
 

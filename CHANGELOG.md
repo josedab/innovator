@@ -14,14 +14,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`querySessionsPaginated()`** — Paginated session search returning `{ sessions, totalCount }` for building pagination UIs
 - **`extractJson()` JSON array support** — Now extracts both JSON objects (`{...}`) and JSON arrays (`[...]`) from LLM responses; whichever bracket type appears first is extracted
 - **`compareSessions()` angle coverage** — Now returns `sharedAngles`, `uniqueAngles1`, and `uniqueAngles2` alongside shared themes
+- **`exportSessionAsMarkdown()`** — Export a session record as a structured Markdown document with investigation, ideas, and synthesis sections
+- **`exportSessionAsJson()`** — Export a session record as a formatted JSON string
+- **`exportSessionAsCsv()`** — Export a session's ideas as CSV rows for spreadsheet import, with CSV formula injection protection
+- **`duplicateSession()`** — Duplicate an existing session with a fresh ID and timestamps for re-analysis workflows
+- **`clearHistory()`** — Delete all sessions from history (development and testing cleanup)
+- **`exportToHtml()`** — Export innovation results as a self-contained HTML report
+- **`exportToCsv()`** — Export innovation results as RFC 4180 CSV for spreadsheet analysis
+- **`computeWeightedPriorityScore()`** — Compute priority score with custom dimension weights
+- **`filterIdeasByQuadrant()`** — Filter scored ideas by one or more priority quadrants
+- **`getTopByDimension()`** — Get top N ideas sorted by a single scoring dimension
+- **`getIdeaSummaryStats()`** — Compute summary statistics (averages, quadrant counts, top idea) across scored ideas
+- **`InnovatorError.toJSON()`** — All error classes now serialize to structured JSON for logging and API responses
+- **`ERR_RETRY_EXHAUSTED`** — New error code for `RetryExhaustedError`, added to `InnovatorErrorCode` union
+- **`PriorityWeights`** — New type for custom priority weight configuration
+- **`IdeaSummaryStats`** — New type for scored idea summary statistics
+- **`ScoringQuadrant`** — Re-exported `Quadrant` type for priority quadrant filtering
 
 ### Changed
 
 - **`withRetry()` input validation** — Now validates that `maxAttempts ≥ 1`, `initialDelayMs ≥ 0`, `backoffMultiplier ≥ 1`, and `maxDelayMs ≥ 0` are finite numbers; throws immediately on invalid options
 - **`withRetry()` error type** — Now throws `RetryExhaustedError` (instead of re-throwing the last error) when all attempts are exhausted, providing structured access to `cause` and `attempts`
+- **`RetryExhaustedError`** — Now extends `InnovatorError` (was plain `Error`), inheriting `code`, `toJSON()`, and `isInnovatorError()` compatibility
 
 ### Documentation
 
+- **API Reference** — Added Session Export Helpers section (`exportSessionAsMarkdown`, `exportSessionAsJson`, `exportSessionAsCsv`)
+- **API Reference** — Added `duplicateSession()` and `clearHistory()` documentation
+- **API Reference** — Added `InnovatorError.toJSON()` serialization documentation with example
+- **API Reference** — Added `RetryExhaustedError` to error hierarchy diagram and error table with `ERR_RETRY_EXHAUSTED` code
+- **API Reference** — Fixed `RetryExhaustedError` to show correct base class (`InnovatorError`, not `Error`)
 - **API Reference** — Added comprehensive Error Handling section with error hierarchy diagram, all error codes, and properties
 - **API Reference** — Added `withTimeout()` documentation for standardized LLM timeout handling
 - **API Reference** — Expanded Scoring section with priority scoring, quadrant analysis, summary stats, and configurable scoring engine
