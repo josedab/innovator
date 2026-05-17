@@ -166,6 +166,7 @@ export type {
   TaskResult,
   BatchResult as ConcurrencyBatchResult,
   TaskRunnerOptions,
+  TaskProgress,
 } from "./concurrency/index.js";
 
 /** String interning pool for memory-efficient storage of repeated strings.

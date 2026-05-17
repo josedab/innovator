@@ -22,11 +22,13 @@ interface CacheEntry<V> {
 }
 
 /** Configuration options for {@link LRUCache}. */
-export interface LRUCacheOptions {
+export interface LRUCacheOptions<K = unknown, V = unknown> {
   /** Maximum number of entries the cache will hold. Oldest entries are evicted when exceeded. */
   maxSize: number;
   /** Optional time-to-live in milliseconds. Entries older than this are treated as expired. */
   ttlMs?: number;
+  /** Optional callback invoked when an entry is evicted (due to capacity or TTL expiration). */
+  onEvict?: (key: K, value: V) => void;
 }
 
 /** Hit/miss statistics snapshot from {@link LRUCache.stats}. */
@@ -57,15 +59,17 @@ export class LRUCache<K, V> {
   private readonly map = new Map<K, CacheEntry<V>>();
   private readonly maxSize: number;
   private readonly ttlMs: number | undefined;
+  private readonly onEvict?: (key: K, value: V) => void;
   private hitCount = 0;
   private missCount = 0;
 
-  constructor(options: LRUCacheOptions) {
+  constructor(options: LRUCacheOptions<K, V>) {
     if (options.maxSize < 1 || !Number.isFinite(options.maxSize)) {
       throw new ValidationError("LRUCache: maxSize must be a finite number >= 1");
     }
     this.maxSize = Math.floor(options.maxSize);
     this.ttlMs = options.ttlMs;
+    this.onEvict = options.onEvict;
   }
 
   /**
@@ -81,6 +85,7 @@ export class LRUCache<K, V> {
     }
     if (this.isExpired(entry)) {
       this.map.delete(key);
+      this.onEvict?.(key, entry.value);
       this.missCount++;
       return undefined;
     }
@@ -102,7 +107,9 @@ export class LRUCache<K, V> {
       // Evict the least-recently-used entry (first key in Map iteration order)
       const oldest = this.map.keys().next().value;
       if (oldest !== undefined) {
+        const evicted = this.map.get(oldest);
         this.map.delete(oldest);
+        if (evicted) this.onEvict?.(oldest, evicted.value);
       }
     }
     this.map.set(key, { value, createdAt: Date.now() });
@@ -114,6 +121,7 @@ export class LRUCache<K, V> {
     if (!entry) return false;
     if (this.isExpired(entry)) {
       this.map.delete(key);
+      this.onEvict?.(key, entry.value);
       return false;
     }
     return true;
@@ -133,7 +141,10 @@ export class LRUCache<K, V> {
       return entry.value;
     }
     // Miss or expired
-    if (entry) this.map.delete(key);
+    if (entry) {
+      this.map.delete(key);
+      this.onEvict?.(key, entry.value);
+    }
     this.missCount++;
     const value = factory();
     this.set(key, value);
@@ -177,6 +188,7 @@ export class LRUCache<K, V> {
     for (const [key, entry] of this.map) {
       if (this.isExpired(entry)) {
         this.map.delete(key);
+        this.onEvict?.(key, entry.value);
         pruned++;
       }
     }
@@ -201,7 +213,7 @@ export class LRUCache<K, V> {
  */
 export function memoize<Args extends unknown[], R>(
   fn: (...args: Args) => R,
-  options: LRUCacheOptions,
+  options: LRUCacheOptions<string, R>,
   keyFn?: (...args: Args) => string
 ): ((...args: Args) => R) & { cache: LRUCache<string, R> } {
   const cache = new LRUCache<string, R>(options);
@@ -232,7 +244,7 @@ export function memoize<Args extends unknown[], R>(
  */
 export function memoizeAsync<Args extends unknown[], R>(
   fn: (...args: Args) => Promise<R>,
-  options: LRUCacheOptions,
+  options: LRUCacheOptions<string, R>,
   keyFn?: (...args: Args) => string
 ): ((...args: Args) => Promise<R>) & { cache: LRUCache<string, R> } {
   const cache = new LRUCache<string, R>(options);

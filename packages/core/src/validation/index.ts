@@ -13,6 +13,16 @@ import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 import type { InnovationIdea } from "../types.js";
 import { ValidationError } from "../errors.js";
 
+// ---- LLM Response Schema ----
+
+/** Schema for the raw JSON response from LLM-based validators. */
+const ValidatorResponseSchema = z.object({
+  score: z.number().min(0).max(100),
+  summary: z.string().max(5000),
+  details: z.string().max(10000).optional(),
+  references: z.array(z.string().max(500)).max(20).optional(),
+});
+
 // ---- Zod Schemas ----
 
 /** Schema for a single validation check result. */
@@ -59,7 +69,12 @@ export interface IdeaValidator {
   id: string;
   name: string;
   category: ValidationCheck["category"];
-  validate(idea: InnovationIdea, domain: string, signal?: AbortSignal): Promise<ValidationCheck>;
+  validate(
+    idea: InnovationIdea,
+    domain: string,
+    signal?: AbortSignal,
+    model?: string
+  ): Promise<ValidationCheck>;
 }
 
 // Registry of validators
@@ -99,7 +114,7 @@ export const PatentValidator: IdeaValidator = {
   id: "patent-search",
   name: "Patent Database Search",
   category: "patent",
-  async validate(idea, domain, signal) {
+  async validate(idea, domain, signal, model) {
     const prompt = `You are a patent research analyst. Evaluate whether the following idea likely has existing patents or prior art.
 
 ${wrapUserInput("IDEA", `${idea.title}: ${idea.description}`)}
@@ -120,14 +135,9 @@ You MUST respond with valid JSON only:
 
     return withRetry(
       async () => {
-        const raw = await generateText({ prompt, serverMode: true, signal });
+        const raw = await generateText({ prompt, model, serverMode: true, signal });
         const jsonStr = extractJson(sanitizeLlmOutput(raw));
-        const parsed = JSON.parse(jsonStr) as {
-          score: number;
-          summary: string;
-          details?: string;
-          references?: string[];
-        };
+        const parsed = ValidatorResponseSchema.parse(JSON.parse(jsonStr));
 
         return {
           source: "Patent Database Analysis",
@@ -149,7 +159,7 @@ export const MarketValidator: IdeaValidator = {
   id: "market-analysis",
   name: "Market & Competitor Analysis",
   category: "competitor",
-  async validate(idea, domain, signal) {
+  async validate(idea, domain, signal, model) {
     const prompt = `You are a market research analyst. Evaluate whether the following idea has existing competitors or market presence.
 
 ${wrapUserInput("IDEA", `${idea.title}: ${idea.description}`)}
@@ -170,14 +180,9 @@ You MUST respond with valid JSON only:
 
     return withRetry(
       async () => {
-        const raw = await generateText({ prompt, serverMode: true, signal });
+        const raw = await generateText({ prompt, model, serverMode: true, signal });
         const jsonStr = extractJson(sanitizeLlmOutput(raw));
-        const parsed = JSON.parse(jsonStr) as {
-          score: number;
-          summary: string;
-          details?: string;
-          references?: string[];
-        };
+        const parsed = ValidatorResponseSchema.parse(JSON.parse(jsonStr));
 
         return {
           source: "Market & Competitor Analysis",
@@ -199,7 +204,7 @@ export const FeasibilityValidator: IdeaValidator = {
   id: "feasibility-check",
   name: "Technical Feasibility Assessment",
   category: "feasibility",
-  async validate(idea, domain, signal) {
+  async validate(idea, domain, signal, model) {
     const prompt = `You are a technical feasibility analyst. Evaluate whether the following idea is technically feasible with current technology.
 
 ${wrapUserInput("IDEA", `${idea.title}: ${idea.description}`)}
@@ -222,14 +227,9 @@ You MUST respond with valid JSON only:
 
     return withRetry(
       async () => {
-        const raw = await generateText({ prompt, serverMode: true, signal });
+        const raw = await generateText({ prompt, model, serverMode: true, signal });
         const jsonStr = extractJson(sanitizeLlmOutput(raw));
-        const parsed = JSON.parse(jsonStr) as {
-          score: number;
-          summary: string;
-          details?: string;
-          references?: string[];
-        };
+        const parsed = ValidatorResponseSchema.parse(JSON.parse(jsonStr));
 
         return {
           source: "Technical Feasibility Assessment",
@@ -287,7 +287,7 @@ export async function validateIdea(
   const validatorPromises = activeValidators.map(async (validator) => {
     if (signal?.aborted) return null;
     try {
-      return await validator.validate(idea, domain, signal);
+      return await validator.validate(idea, domain, signal, model);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       return {
@@ -393,7 +393,7 @@ export const MarketSizingValidator: IdeaValidator = {
   id: "market-sizing",
   name: "Market Sizing Assessment",
   category: "market",
-  async validate(idea, domain, signal) {
+  async validate(idea, domain, signal, model) {
     const prompt = `You are a market sizing analyst. Estimate the market opportunity for the following idea.
 
 ${wrapUserInput("IDEA", `${idea.title}: ${idea.description}`)}
@@ -416,17 +416,12 @@ You MUST respond with valid JSON only:
 
     const raw = await withRetry(
       async () => {
-        const result = await generateText({ prompt, serverMode: true, signal });
+        const result = await generateText({ prompt, model, serverMode: true, signal });
         return extractJson(sanitizeLlmOutput(result));
       },
       { signal }
     );
-    const parsed = JSON.parse(raw) as {
-      score: number;
-      summary: string;
-      details?: string;
-      references?: string[];
-    };
+    const parsed = ValidatorResponseSchema.parse(JSON.parse(raw));
 
     return {
       source: "Market Sizing Assessment",
@@ -445,7 +440,7 @@ export const RegulatoryValidator: IdeaValidator = {
   id: "regulatory-check",
   name: "Regulatory Compliance Check",
   category: "regulatory",
-  async validate(idea, domain, signal) {
+  async validate(idea, domain, signal, model) {
     const prompt = `You are a regulatory compliance analyst. Evaluate potential regulatory risks for the following idea.
 
 ${wrapUserInput("IDEA", `${idea.title}: ${idea.description}`)}
@@ -468,17 +463,12 @@ You MUST respond with valid JSON only:
 
     const raw = await withRetry(
       async () => {
-        const result = await generateText({ prompt, serverMode: true, signal });
+        const result = await generateText({ prompt, model, serverMode: true, signal });
         return extractJson(sanitizeLlmOutput(result));
       },
       { signal }
     );
-    const parsed = JSON.parse(raw) as {
-      score: number;
-      summary: string;
-      details?: string;
-      references?: string[];
-    };
+    const parsed = ValidatorResponseSchema.parse(JSON.parse(raw));
 
     return {
       source: "Regulatory Compliance Check",

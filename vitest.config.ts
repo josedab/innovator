@@ -29,9 +29,9 @@ export default defineConfig({
       exclude: ["**/__tests__/**", "**/*.test.ts", "**/*.d.ts", "**/node_modules/**"],
       // Coverage thresholds — ratcheted to current levels to prevent regression
       thresholds: {
-        lines: 70,
-        functions: 70,
-        branches: 55,
+        lines: 72,
+        functions: 73,
+        branches: 58,
       },
     },
   },

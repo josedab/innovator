@@ -138,6 +138,18 @@ export interface BatchResult<T> {
   totalDurationMs: number;
 }
 
+/** Progress snapshot emitted during batch execution. */
+export interface TaskProgress {
+  /** Number of tasks completed so far. */
+  completed: number;
+  /** Total number of tasks in the batch. */
+  total: number;
+  /** Number of tasks that failed. */
+  failed: number;
+  /** Completion percentage (0–100). */
+  percent: number;
+}
+
 /** Configuration for {@link TaskRunner}. */
 export interface TaskRunnerOptions {
   /** Maximum concurrent tasks. Default: 2 */
@@ -150,6 +162,8 @@ export interface TaskRunnerOptions {
   minConcurrency?: number;
   /** AbortSignal to cancel all pending tasks. */
   signal?: AbortSignal;
+  /** Optional callback invoked after each task completes. */
+  onProgress?: (progress: TaskProgress) => void;
 }
 
 /**
@@ -165,6 +179,7 @@ export class TaskRunner {
   private readonly errorThreshold: number;
   private readonly minConcurrency: number;
   private readonly signal?: AbortSignal;
+  private readonly onProgress?: (progress: TaskProgress) => void;
 
   constructor(options: TaskRunnerOptions = {}) {
     this.concurrency = options.concurrency ?? 2;
@@ -172,6 +187,7 @@ export class TaskRunner {
     this.errorThreshold = options.errorThreshold ?? 0.5;
     this.minConcurrency = options.minConcurrency ?? 1;
     this.signal = options.signal;
+    this.onProgress = options.onProgress;
 
     if (!Number.isFinite(this.concurrency) || this.concurrency < 1) {
       throw new ConfigurationError(
@@ -274,6 +290,12 @@ export class TaskRunner {
         } finally {
           completedCount++;
           semaphore.release();
+          this.onProgress?.({
+            completed: completedCount,
+            total: tasks.length,
+            failed: errorCount,
+            percent: Math.round((completedCount / tasks.length) * 100),
+          });
         }
       })();
 

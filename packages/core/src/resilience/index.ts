@@ -211,23 +211,24 @@ export class CostGuardrailManager {
       this.guardrail.perRequestMaxUsd !== undefined &&
       estimatedCostUsd > this.guardrail.perRequestMaxUsd
     ) {
-      return {
-        allowed: false,
-        reason: `Estimated cost $${estimatedCostUsd.toFixed(4)} exceeds per-request limit $${this.guardrail.perRequestMaxUsd.toFixed(4)}`,
-      };
+      const reason = `Estimated cost $${estimatedCostUsd.toFixed(4)} exceeds per-request limit $${this.guardrail.perRequestMaxUsd.toFixed(4)}`;
+      this.warnings.push(reason);
+      return { allowed: false, reason };
     }
 
     // Session budget check
     if (this.guardrail.sessionBudgetUsd !== undefined) {
       const projected = this.sessionSpend + estimatedCostUsd;
       if (projected > this.guardrail.sessionBudgetUsd) {
-        return {
-          allowed: false,
-          reason: `Session budget exceeded: $${projected.toFixed(4)} > $${this.guardrail.sessionBudgetUsd.toFixed(4)}`,
-        };
+        const reason = `Session budget exceeded: $${projected.toFixed(4)} > $${this.guardrail.sessionBudgetUsd.toFixed(4)}`;
+        this.warnings.push(reason);
+        return { allowed: false, reason };
       }
       const pct = (projected / this.guardrail.sessionBudgetUsd) * 100;
       if (pct >= this.guardrail.warningThresholdPct) {
+        this.warnings.push(
+          `Session budget warning: ${pct.toFixed(1)}% of $${this.guardrail.sessionBudgetUsd.toFixed(2)} budget used`
+        );
         return { allowed: true, warningPct: pct };
       }
     }
@@ -236,10 +237,15 @@ export class CostGuardrailManager {
     if (this.guardrail.monthlyBudgetUsd !== undefined) {
       const projected = this.monthlySpend + estimatedCostUsd;
       if (projected > this.guardrail.monthlyBudgetUsd) {
-        return {
-          allowed: false,
-          reason: `Monthly budget exceeded: $${projected.toFixed(4)} > $${this.guardrail.monthlyBudgetUsd.toFixed(4)}`,
-        };
+        const reason = `Monthly budget exceeded: $${projected.toFixed(4)} > $${this.guardrail.monthlyBudgetUsd.toFixed(4)}`;
+        this.warnings.push(reason);
+        return { allowed: false, reason };
+      }
+      const monthlyPct = (projected / this.guardrail.monthlyBudgetUsd) * 100;
+      if (monthlyPct >= this.guardrail.warningThresholdPct) {
+        this.warnings.push(
+          `Monthly budget warning: ${monthlyPct.toFixed(1)}% of $${this.guardrail.monthlyBudgetUsd.toFixed(2)} budget used`
+        );
       }
     }
 
@@ -275,14 +281,20 @@ export class CostGuardrailManager {
     };
   }
 
-  /** Reset session spend. */
+  /** Reset session spend and warnings. */
   resetSession(): void {
     this.sessionSpend = 0;
+    this.warnings = [];
   }
 
-  /** Get warnings. */
+  /** Get accumulated warnings. */
   getWarnings(): string[] {
     return [...this.warnings];
+  }
+
+  /** Clear all accumulated warnings. */
+  clearWarnings(): void {
+    this.warnings = [];
   }
 }
 
