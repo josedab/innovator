@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`RetryExhaustedError`** — New error class thrown when all `withRetry()` attempts are exhausted; preserves the original error as `cause` and exposes the `attempts` count
+- **`getSessionStats()`** — Compute aggregate statistics (total sessions, idea count, tag/angle frequency, date range) across all stored sessions
+- **`querySessionsPaginated()`** — Paginated session search returning `{ sessions, totalCount }` for building pagination UIs
+- **`extractJson()` JSON array support** — Now extracts both JSON objects (`{...}`) and JSON arrays (`[...]`) from LLM responses; whichever bracket type appears first is extracted
+- **`compareSessions()` angle coverage** — Now returns `sharedAngles`, `uniqueAngles1`, and `uniqueAngles2` alongside shared themes
+
+### Changed
+
+- **`withRetry()` input validation** — Now validates that `maxAttempts ≥ 1`, `initialDelayMs ≥ 0`, `backoffMultiplier ≥ 1`, and `maxDelayMs ≥ 0` are finite numbers; throws immediately on invalid options
+- **`withRetry()` error type** — Now throws `RetryExhaustedError` (instead of re-throwing the last error) when all attempts are exhausted, providing structured access to `cause` and `attempts`
+
 ## [0.3.0] — 2026-05-14
 
 ### Added

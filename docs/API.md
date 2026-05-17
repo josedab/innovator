@@ -29,9 +29,14 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
   - [Provider Registry](#provider-registry)
   - [Configuration](#provider-configuration)
 - [Prompt Utilities](#prompt-utilities)
+  - [`withRetry()`](#withretry)
+  - [`RetryExhaustedError`](#retryexhaustederror)
 - [Plugin System](#plugin-system)
 - [Presets](#presets)
 - [Session History](#session-history)
+  - [`querySessionsPaginated()`](#querysessionspaginated)
+  - [`getSessionStats()`](#getsessionstats)
+  - [`compareSessions()`](#comparesessions)
 - [Export](#export)
 - [Scoring](#scoring)
 - [Collaborative Sessions](#collaborative-sessions)
@@ -314,7 +319,7 @@ interface GenerateOptions {
 
 ### `extractJson()`
 
-Extract a JSON object from an LLM response that may contain markdown or extra text. Uses brace-balanced extraction instead of greedy regex.
+Extract a JSON object or array from an LLM response that may contain markdown or extra text. Uses bracket-balanced extraction instead of greedy regex. Supports both `{...}` objects and `[...]` arrays — whichever appears first is extracted.
 
 ```typescript
 function extractJson(raw: string): string;
@@ -323,8 +328,22 @@ function extractJson(raw: string): string;
 Handles:
 
 - Fenced JSON code blocks (` ```json ... ``` `)
-- Embedded JSON in free-form text
-- Throws `Error` if no JSON object is found or braces are unbalanced
+- Embedded JSON objects (`{...}`) in free-form text
+- Embedded JSON arrays (`[...]`) in free-form text
+- When both `{` and `[` are present, extracts whichever appears first
+- Throws `Error` if no JSON object or array is found, or brackets are unbalanced
+
+**Example:**
+
+````typescript
+import { extractJson } from "@innovator/core";
+
+// Extract object from markdown
+const obj = extractJson('Here is the result: ```json\n{"key": "value"}\n```');
+
+// Extract array from free-form text
+const arr = extractJson('The items are: [{"id": 1}, {"id": 2}] — done.');
+````
 
 ### `getCopilotClient()` / `stopCopilotClient()`
 
@@ -432,6 +451,55 @@ function sanitizeLlmOutput(output: string): string; // Clean LLM responses
 function withRetry<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<T>;
 ```
 
+### `withRetry()`
+
+Retry an async function with exponential backoff on transient failures. All LLM calls in the pipeline are wrapped with `withRetry()`.
+
+```typescript
+function withRetry<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<T>;
+```
+
+**Parameters:**
+
+| Name                        | Type                          | Default                  | Description                                         |
+| --------------------------- | ----------------------------- | ------------------------ | --------------------------------------------------- |
+| `fn`                        | `() => Promise<T>`            | —                        | The async function to retry                         |
+| `options.maxAttempts`       | `number`                      | `3`                      | Max attempts including the first (must be ≥ 1)      |
+| `options.initialDelayMs`    | `number`                      | `1000`                   | Delay before first retry in ms                      |
+| `options.backoffMultiplier` | `number`                      | `2`                      | Multiplier for delay after each retry (must be ≥ 1) |
+| `options.maxDelayMs`        | `number`                      | `30000`                  | Maximum delay cap in ms                             |
+| `options.isRetryable`       | `(error: unknown) => boolean` | Network/timeout detector | Predicate to decide if an error is retryable        |
+| `options.signal`            | `AbortSignal?`                | —                        | Cancel retries early                                |
+
+**Throws:** `RetryExhaustedError` when all attempts are exhausted (preserves the original error as `cause`).
+
+**Input validation:** Throws immediately if `maxAttempts < 1`, `initialDelayMs < 0`, `backoffMultiplier < 1`, or `maxDelayMs < 0`, or if any of these are not finite numbers.
+
+### `RetryExhaustedError`
+
+Error class thrown when all retry attempts are exhausted. Provides structured access to failure details.
+
+```typescript
+class RetryExhaustedError extends Error {
+  readonly cause: Error; // The underlying error from the last attempt
+  readonly attempts: number; // Total attempts made (including the first)
+}
+```
+
+**Example:**
+
+```typescript
+import { withRetry, RetryExhaustedError } from "@innovator/core";
+
+try {
+  const result = await withRetry(() => fetchData(), { maxAttempts: 3 });
+} catch (error) {
+  if (error instanceof RetryExhaustedError) {
+    console.error(`Failed after ${error.attempts} attempts: ${error.cause.message}`);
+  }
+}
+```
+
 ---
 
 ## Plugin System
@@ -484,12 +552,14 @@ function updateSession(id: string, updates: Partial<SessionRecord>): void;
 function deleteSession(id: string): boolean;
 function listSessions(limit?: number, offset?: number): SessionRecord[];
 function querySessions(query: HistoryQuery): SessionRecord[];
-function compareSessions(ids: string[]): object;
+function querySessionsPaginated(query: HistoryQuery): PaginatedSessionResult;
+function compareSessions(id1: string, id2: string): CompareResult | undefined;
+function getSessionStats(): SessionStats;
 ```
 
 ### Pagination
 
-`querySessions()` supports offset-based pagination via the `HistoryQuery` interface:
+`querySessions()` supports offset-based pagination via the `HistoryQuery` interface. For UIs that need a total count (e.g., to render page numbers), use `querySessionsPaginated()` instead.
 
 ```typescript
 interface HistoryQuery {
@@ -515,6 +585,38 @@ const page1 = querySessions({ limit: 20, offset: 0, tags: ["ai"] });
 const page2 = querySessions({ limit: 20, offset: 20, tags: ["ai"] });
 ```
 
+### `querySessionsPaginated()`
+
+Like `querySessions()`, but returns the total matching count alongside the page results. Use this when building pagination UIs that need to know the total number of pages.
+
+```typescript
+function querySessionsPaginated(query: HistoryQuery): PaginatedSessionResult;
+```
+
+**Returns:**
+
+```typescript
+interface PaginatedSessionResult {
+  sessions: SessionRecord[]; // Sessions for the current page (sliced by offset/limit)
+  totalCount: number; // Total matching sessions before pagination
+}
+```
+
+**Example:**
+
+```typescript
+import { querySessionsPaginated } from "@innovator/core";
+
+const { sessions, totalCount } = querySessionsPaginated({
+  limit: 20,
+  offset: 0,
+  tags: ["ai"],
+});
+
+const totalPages = Math.ceil(totalCount / 20);
+console.log(`Showing page 1 of ${totalPages} (${totalCount} total results)`);
+```
+
 **HTTP API (`GET /api/history`):**
 
 ```
@@ -537,6 +639,79 @@ GET /api/history?limit=20&offset=0&search=packaging&tags=sustainability&from=202
 | ------- | ----------------- | -------------------------------------------------- |
 | `data`  | `SessionRecord[]` | Array of sessions for the current page             |
 | `total` | `number`          | Total matching sessions (for computing page count) |
+
+### `getSessionStats()`
+
+Compute aggregate statistics across all stored sessions. Useful for dashboards and analytics.
+
+```typescript
+function getSessionStats(): SessionStats;
+```
+
+**Returns:**
+
+```typescript
+interface SessionStats {
+  totalSessions: number; // Total number of sessions
+  tagFrequency: Record<string, number>; // Frequency count for each tag
+  angleFrequency: Record<string, number>; // Frequency count for each angle
+  totalIdeas: number; // Total ideas generated across all sessions
+  earliestSession?: string; // ISO 8601 timestamp of first session
+  latestSession?: string; // ISO 8601 timestamp of most recent session
+}
+```
+
+**Example:**
+
+```typescript
+import { getSessionStats } from "@innovator/core";
+
+const stats = getSessionStats();
+console.log(`${stats.totalSessions} sessions, ${stats.totalIdeas} ideas generated`);
+console.log(
+  "Most used angles:",
+  Object.entries(stats.angleFrequency)
+    .sort((a, b) => b[1] - a[1])
+    .map(([angle, count]) => `${angle}: ${count}`)
+    .join(", ")
+);
+```
+
+### `compareSessions()`
+
+Compare two sessions side-by-side, identifying shared themes and angle coverage differences.
+
+```typescript
+function compareSessions(
+  id1: string,
+  id2: string
+):
+  | {
+      session1: SessionRecord;
+      session2: SessionRecord;
+      sharedThemes: string[];
+      sharedAngles: string[];
+      uniqueAngles1: string[];
+      uniqueAngles2: string[];
+    }
+  | undefined;
+```
+
+**Returns:** `undefined` if either session is not found. Otherwise returns both sessions, shared synthesis themes, shared angles, and angles unique to each session.
+
+**Example:**
+
+```typescript
+import { compareSessions } from "@innovator/core";
+
+const comparison = compareSessions("sess-abc", "sess-xyz");
+if (comparison) {
+  console.log("Shared themes:", comparison.sharedThemes);
+  console.log("Shared angles:", comparison.sharedAngles);
+  console.log("Only in session 1:", comparison.uniqueAngles1);
+  console.log("Only in session 2:", comparison.uniqueAngles2);
+}
+```
 
 Render sessions in multiple output formats:
 
