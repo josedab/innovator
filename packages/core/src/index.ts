@@ -4691,6 +4691,30 @@ export {
 } from "./autonomous-agent/index.js";
 export type { ConfidenceAssessment, StrategyDocument } from "./autonomous-agent/index.js";
 
+/** Agentic Orchestration — objective decomposition, budgeted execution, and strategy outputs. */
+export {
+  createObjective as createAgentObjective,
+  decomposeOrchestrationObjective as decomposeAgentObjective,
+  executeOrchestrationStep as executeAgentOrchestrationStep,
+  advancePlan as advanceAgentPlan,
+  branchExploration as branchAgentExploration,
+  getOrchestrationPlan as getAgentOrchestrationPlan,
+  generateStrategyOutput as generateAgentStrategyOutput,
+  getStrategyOutput as getAgentStrategyOutput,
+  getBudgetStatus as getAgentBudgetStatus,
+  clearOrchestratorData,
+  ObjectiveSchema as AgentObjectiveSchema,
+  ExecutionStepSchema as AgentExecutionStepSchema,
+  OrchestrationPlanSchema as AgentOrchestrationPlanSchema,
+  StrategyOutputSchema as AgentStrategyOutputSchema,
+} from "./autonomous-agent/index.js";
+export type {
+  Objective as AgentObjective,
+  ExecutionStep as AgentExecutionStep,
+  OrchestrationPlan as AgentOrchestrationPlan,
+  StrategyOutput as AgentStrategyOutput,
+} from "./autonomous-agent/index.js";
+
 /** Innovation Monitor — long-running domain monitoring with opportunity detection and digest generation. */
 export {
   addMonitorSource,

@@ -107,3 +107,22 @@ export {
   StrategyDocumentSchema,
 } from "./strategy-report.js";
 export type { ConfidenceAssessment, StrategyDocument } from "./strategy-report.js";
+
+/** Agentic orchestration — objective management, execution plans, branching, and strategy outputs. */
+export {
+  createObjective,
+  decomposeObjective as decomposeOrchestrationObjective,
+  executeStep as executeOrchestrationStep,
+  advancePlan,
+  branchExploration,
+  getPlan as getOrchestrationPlan,
+  generateStrategyOutput,
+  getStrategyOutput,
+  getBudgetStatus,
+  clearOrchestratorData,
+  ObjectiveSchema,
+  ExecutionStepSchema,
+  OrchestrationPlanSchema,
+  StrategyOutputSchema,
+} from "./orchestrator.js";
+export type { Objective, ExecutionStep, OrchestrationPlan, StrategyOutput } from "./orchestrator.js";
