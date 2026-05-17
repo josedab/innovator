@@ -11,6 +11,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -462,7 +463,7 @@ export function createFacilitatedSprint(params: {
 }): FacilitatedSprint {
   const template = SPRINT_TEMPLATES.find((t) => t.id === params.templateId);
   if (!template) {
-    throw new Error(`Unknown sprint template: ${params.templateId}`);
+    throw new ValidationError(`Unknown sprint template: ${params.templateId}`);
   }
 
   const id = randomUUID();
@@ -663,7 +664,10 @@ async function runSprintLlm(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse sprint response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse sprint response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

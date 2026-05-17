@@ -11,6 +11,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { ValidationError } from "../errors.js";
 import { sanitizeUserInput } from "../prompts/sanitize.js";
 
 // ---- Meeting Source Types ----
@@ -171,7 +172,7 @@ export async function extractSignals(
   signal?: AbortSignal
 ): Promise<ExtractionResult> {
   const transcript = transcripts.get(transcriptId);
-  if (!transcript) throw new Error(`Transcript not found: ${transcriptId}`);
+  if (!transcript) throw new ValidationError(`Transcript not found: ${transcriptId}`);
 
   // Build condensed transcript for LLM (respect context limits)
   const condensed = transcript.segments

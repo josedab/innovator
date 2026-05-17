@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 import { createHash, randomBytes, createCipheriv, createDecipheriv, scryptSync } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -470,7 +471,7 @@ export function importVault(
 
   if (typeof data === "string") {
     // Encrypted import — would need salt/iv/tag passed separately
-    throw new Error("For encrypted imports, decrypt first using decryptData()");
+    throw new ValidationError("For encrypted imports, decrypt first using decryptData()");
   }
 
   exportData = VaultExportSchema.parse(data);
@@ -478,7 +479,7 @@ export function importVault(
   // Verify checksum
   const expectedChecksum = computeChecksum(exportData.documents);
   if (expectedChecksum !== exportData.checksum) {
-    throw new Error("Vault export checksum mismatch — data may be corrupted");
+    throw new ValidationError("Vault export checksum mismatch — data may be corrupted");
   }
 
   const allConflicts: ConflictResolution[] = [];

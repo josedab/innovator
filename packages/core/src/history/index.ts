@@ -25,6 +25,7 @@ import type {
   AngleResult,
   Synthesis,
 } from "../types.js";
+import { ValidationError } from "../errors.js";
 
 const HISTORY_DIR = join(homedir(), ".innovator", "history");
 
@@ -46,15 +47,15 @@ function ensureHistoryDir(): void {
 /** Validate that a session ID is a safe filename (UUID format or alphanumeric with hyphens). */
 function validateSessionId(id: string): void {
   if (typeof id !== "string" || id.length === 0) {
-    throw new Error("Session ID must be a non-empty string");
+    throw new ValidationError("Session ID must be a non-empty string");
   }
   if (!/^[a-zA-Z0-9-]+$/.test(id)) {
-    throw new Error(
+    throw new ValidationError(
       "Session ID contains invalid characters (only alphanumeric and hyphens allowed)"
     );
   }
   if (id.length > 200) {
-    throw new Error("Session ID must not exceed 200 characters");
+    throw new ValidationError("Session ID must not exceed 200 characters");
   }
 }
 
@@ -76,7 +77,7 @@ export function saveSession(params: {
   presetId?: string;
 }): string {
   if (!params.subject || !params.subject.trim()) {
-    throw new Error("saveSession: subject must be a non-empty string");
+    throw new ValidationError("saveSession: subject must be a non-empty string");
   }
   ensureHistoryDir();
   const id = randomUUID();

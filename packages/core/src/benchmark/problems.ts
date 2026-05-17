@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -470,7 +471,7 @@ export function scoreBenchmarkRun(
   scores: Record<string, number>
 ): { overallScore: number; weightedScores: Record<string, number> } {
   const problem = BENCHMARK_PROBLEMS.find((p) => p.id === problemId);
-  if (!problem) throw new Error(`Problem not found: ${problemId}`);
+  if (!problem) throw new ValidationError(`Problem not found: ${problemId}`);
 
   const weightedScores: Record<string, number> = {};
   let overallScore = 0;

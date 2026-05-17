@@ -7,6 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -148,7 +149,7 @@ export function scimUpdateUser(
     // Validate email format before updating
     for (const email of updates.emails) {
       if (!email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-        throw new Error(`Invalid email: ${email.value}`);
+        throw new ValidationError(`Invalid email: ${email.value}`);
       }
     }
     user.emails = updates.emails;

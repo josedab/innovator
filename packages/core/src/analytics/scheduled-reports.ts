@@ -18,6 +18,7 @@ import {
   generateAngleHeatmap,
   velocityTrendToMarkdown,
 } from "./velocity-heatmap.js";
+import { ValidationError } from "../errors.js";
 
 const ANALYTICS_DIR = join(homedir(), ".innovator", "analytics");
 const REPORT_SCHEDULES_FILE = join(ANALYTICS_DIR, "report-schedules.json");
@@ -300,7 +301,7 @@ export function generateScheduledReport(scheduleId: string): GeneratedReport {
   const schedules = loadSchedules();
   const index = schedules.findIndex((schedule) => schedule.id === scheduleId);
   if (index === -1) {
-    throw new Error(`Report schedule not found: ${scheduleId}`);
+    throw new ValidationError(`Report schedule not found: ${scheduleId}`);
   }
 
   const schedule = schedules[index];

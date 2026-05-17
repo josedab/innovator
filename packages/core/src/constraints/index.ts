@@ -10,6 +10,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 import type { AngleResult } from "../types.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -191,7 +192,10 @@ export async function evaluateConstraints(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse constraint evaluation as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse constraint evaluation as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {
@@ -247,7 +251,7 @@ export function parseConstraintString(str: string): Constraint {
     }
   }
 
-  throw new Error(
+  throw new ValidationError(
     `Cannot parse constraint: "${str}". Use format: dimension<value, dimension=value, etc.`
   );
 }

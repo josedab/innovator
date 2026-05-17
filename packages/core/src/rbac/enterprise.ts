@@ -7,6 +7,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- SSO Types ----
 
@@ -146,7 +147,7 @@ export function configureSSOProvider(
 
   // Validate domains
   if (ssoConfig.allowedDomains.length === 0) {
-    throw new Error("At least one allowed domain is required");
+    throw new ValidationError("At least one allowed domain is required");
   }
 
   ssoConfigs.set(ssoConfig.id, ssoConfig);

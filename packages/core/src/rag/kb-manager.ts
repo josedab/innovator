@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { cosineSimilarity } from "./embeddings.js";
 import { KnowledgeBase } from "./knowledge-base.js";
 import type { DocumentChunk, KnowledgeBaseConfig, KnowledgeDocument } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 type InternalKnowledgeBaseState = {
   documents: Map<string, KnowledgeDocument>;
@@ -115,7 +116,7 @@ export class KnowledgeBaseManager {
   private requireBase(id: string): KnowledgeBase {
     const base = this.bases.get(id);
     if (!base) {
-      throw new Error(`Knowledge base not found: ${id}`);
+      throw new ValidationError(`Knowledge base not found: ${id}`);
     }
     return base;
   }

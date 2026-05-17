@@ -10,6 +10,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 import { ANGLE_IDS } from "../types.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Multi-Step DAG Schemas ----
 
@@ -255,11 +256,11 @@ export async function parseMultiStepInstruction(
   signal?: AbortSignal
 ): Promise<ComposerDAG> {
   if (!instruction || instruction.trim().length === 0) {
-    throw new Error("Instruction cannot be empty");
+    throw new ValidationError("Instruction cannot be empty");
   }
 
   if (instruction.length > 5000) {
-    throw new Error("Instruction too long (max 5000 characters)");
+    throw new ValidationError("Instruction too long (max 5000 characters)");
   }
 
   const prompt = buildMultiStepPrompt(instruction);
@@ -272,7 +273,10 @@ export async function parseMultiStepInstruction(
       try {
         return JSON.parse(jsonStr) as Record<string, unknown>;
       } catch {
-        throw new Error(`Failed to parse multi-step DAG as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse multi-step DAG as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {
@@ -482,7 +486,7 @@ export function filterTemplatesByCategory(
  */
 export function instantiateTemplate(templateId: string, subject: string): string {
   const template = CONVERSATIONAL_TEMPLATES.find((t) => t.id === templateId);
-  if (!template) throw new Error(`Template not found: ${templateId}`);
+  if (!template) throw new ValidationError(`Template not found: ${templateId}`);
   return template.instruction.replace(/\{subject\}/g, subject);
 }
 

@@ -14,6 +14,7 @@ import type {
   AngleResult,
   Investigation,
 } from "../types.js";
+import { ValidationError } from "../errors.js";
 
 /** Built-in model capability registry. */
 const MODEL_REGISTRY: ModelCapability[] = [
@@ -78,7 +79,7 @@ export function getModelRegistry(): ModelCapability[] {
 /** Register a custom model capability. */
 export function registerModel(model: ModelCapability): void {
   if (getModelRegistry().some((m) => m.modelId === model.modelId)) {
-    throw new Error(`Model "${model.modelId}" is already registered`);
+    throw new ValidationError(`Model "${model.modelId}" is already registered`);
   }
   customModels.push(model);
 }

@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -270,7 +271,7 @@ export function buildComparisonUIData(
  * @param epsilon — privacy budget for this query
  */
 export function laplaceMechanismNoise(value: number, sensitivity: number, epsilon: number): number {
-  if (epsilon <= 0) throw new Error("Epsilon must be positive");
+  if (epsilon <= 0) throw new ValidationError("Epsilon must be positive");
   const scale = sensitivity / epsilon;
   // Sample from Laplace distribution: -scale * sign(u) * ln(1 - 2|u|)
   const u = Math.random() - 0.5;
@@ -291,7 +292,7 @@ export function privatizeMetrics(
   // Check budget
   const budget = getPrivacyBudgetSummary(orgId);
   if (budget.remaining < totalEpsilon) {
-    throw new Error(
+    throw new ValidationError(
       `Insufficient privacy budget: need ${totalEpsilon.toFixed(4)}, have ${budget.remaining.toFixed(4)}`
     );
   }

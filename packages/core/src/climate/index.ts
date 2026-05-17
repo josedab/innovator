@@ -20,6 +20,7 @@ import {
   type BenchmarkComparison,
   type Intervention,
 } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 export {
   CLIMATE_DIMENSIONS,
@@ -235,7 +236,7 @@ export async function assessClimate(
   config: ClimateAssessmentConfig
 ): Promise<ClimateAssessment> {
   if (surveyData.length === 0) {
-    throw new Error("No survey data provided");
+    throw new ValidationError("No survey data provided");
   }
 
   const prompt = buildAssessmentPrompt(surveyData, config);

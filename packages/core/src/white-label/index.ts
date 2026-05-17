@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 
 // ---- Branding Configuration ----
 
@@ -151,7 +152,7 @@ export function registerTenant(config: TenantConfig): void {
   if (config.customDomain) {
     const existingTenant = domainIndex.get(config.customDomain);
     if (existingTenant && existingTenant !== config.tenantId) {
-      throw new Error(
+      throw new ValidationError(
         `Domain "${config.customDomain}" is already registered to tenant "${existingTenant}"`
       );
     }
@@ -166,13 +167,13 @@ export function registerTenant(config: TenantConfig): void {
 /** Update an existing tenant configuration. */
 export function updateTenant(tenantId: string, updates: Partial<TenantConfig>): TenantConfig {
   const existing = tenants.get(tenantId);
-  if (!existing) throw new Error(`Tenant not found: ${tenantId}`);
+  if (!existing) throw new ValidationError(`Tenant not found: ${tenantId}`);
 
   // Validate domain uniqueness when changing domain
   if (updates.customDomain && updates.customDomain !== existing.customDomain) {
     const existingOwner = domainIndex.get(updates.customDomain);
     if (existingOwner && existingOwner !== tenantId) {
-      throw new Error(
+      throw new ValidationError(
         `Domain "${updates.customDomain}" is already registered to tenant "${existingOwner}"`
       );
     }
@@ -211,7 +212,7 @@ export function removeTenant(tenantId: string): boolean {
 
 /** Set the default tenant for requests that don't match any specific tenant. */
 export function setDefaultTenant(tenantId: string): void {
-  if (!tenants.has(tenantId)) throw new Error(`Tenant not found: ${tenantId}`);
+  if (!tenants.has(tenantId)) throw new ValidationError(`Tenant not found: ${tenantId}`);
   defaultTenantId = tenantId;
 }
 

@@ -12,6 +12,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -103,7 +104,7 @@ export async function groundInnovation(
   options?: { model?: string; signal?: AbortSignal; providerId?: string }
 ): Promise<WebSearchGrounding> {
   if (!subject || !idea?.title || !idea?.description) {
-    throw new Error("subject, idea.title, and idea.description are required");
+    throw new ValidationError("subject, idea.title, and idea.description are required");
   }
   const searchQuery = `${subject}: ${idea.title}`;
   let searchResults: SearchResult[] = [];

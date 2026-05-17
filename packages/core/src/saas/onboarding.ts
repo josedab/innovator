@@ -6,6 +6,7 @@
 
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 
 /** Zod schema for an onboarding step definition. */
 export const OnboardingStepSchema = z.object({
@@ -115,7 +116,7 @@ export function startOnboarding(userId: string): OnboardingProgress {
 export function completeStep(userId: string, stepId: string): OnboardingProgress {
   const step = ONBOARDING_STEPS.find((candidate) => candidate.id === stepId);
   if (!step) {
-    throw new Error(`Unknown onboarding step: ${stepId}`);
+    throw new ValidationError(`Unknown onboarding step: ${stepId}`);
   }
 
   const current = startOnboarding(userId);

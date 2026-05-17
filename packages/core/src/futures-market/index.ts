@@ -17,6 +17,7 @@ import type {
   MarketConfig,
 } from "./types.js";
 import { MarketSchema, OrderSchema, TradeSchema, MarketAnalyticsSchema } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 export * from "./types.js";
 
@@ -135,10 +136,11 @@ export function placeLimitOrder(
   displayName?: string
 ): Order {
   const market = markets.get(marketId);
-  if (!market) throw new Error(`Market ${marketId} not found`);
-  if (market.status !== "open") throw new Error(`Market ${marketId} is not open`);
-  if (quantity <= 0) throw new Error("Quantity must be positive");
-  if (limitPrice < 0 || limitPrice > 1) throw new Error("Limit price must be between 0 and 1");
+  if (!market) throw new ValidationError(`Market ${marketId} not found`);
+  if (market.status !== "open") throw new ValidationError(`Market ${marketId} is not open`);
+  if (quantity <= 0) throw new ValidationError("Quantity must be positive");
+  if (limitPrice < 0 || limitPrice > 1)
+    throw new ValidationError("Limit price must be between 0 and 1");
 
   const portfolio = ensurePortfolio(traderId, displayName);
   const now = new Date().toISOString();
@@ -222,7 +224,7 @@ export function placeMarketOrder(
   displayName?: string
 ): Order {
   const market = markets.get(marketId);
-  if (!market) throw new Error(`Market ${marketId} not found`);
+  if (!market) throw new ValidationError(`Market ${marketId} not found`);
 
   const currentPrice = side === "yes" ? market.currentPrice : 1 - market.currentPrice;
   return placeLimitOrder(marketId, traderId, side, quantity, currentPrice + 0.01, displayName);
@@ -231,7 +233,7 @@ export function placeMarketOrder(
 /** Get current market price (implied probability). */
 export function getMarketPrice(marketId: string): number {
   const market = markets.get(marketId);
-  if (!market) throw new Error(`Market ${marketId} not found`);
+  if (!market) throw new ValidationError(`Market ${marketId} not found`);
   return market.currentPrice;
 }
 
@@ -242,7 +244,7 @@ export function getOrderBook(marketId: string): {
   recentTrades: Trade[];
 } {
   const market = markets.get(marketId);
-  if (!market) throw new Error(`Market ${marketId} not found`);
+  if (!market) throw new ValidationError(`Market ${marketId} not found`);
   const marketOrders = orders.get(marketId) ?? [];
   const marketTrades = trades.get(marketId) ?? [];
   return {
@@ -260,7 +262,7 @@ export function getTraderPortfolio(traderId: string): TraderPortfolio | undefine
 /** Get analytics for a market. */
 export function getMarketAnalytics(marketId: string): MarketAnalytics {
   const market = markets.get(marketId);
-  if (!market) throw new Error(`Market ${marketId} not found`);
+  if (!market) throw new ValidationError(`Market ${marketId} not found`);
 
   const marketTrades = trades.get(marketId) ?? [];
   const history = priceHistory.get(marketId) ?? [];

@@ -10,6 +10,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Capture Types ----
 
@@ -182,7 +183,7 @@ export async function processVoiceCapture(
   model?: string,
   signal?: AbortSignal
 ): Promise<MobileCapture> {
-  if (!transcript.trim()) throw new Error("Empty transcript");
+  if (!transcript.trim()) throw new ValidationError("Empty transcript");
 
   const prompt = `Extract an innovation investigation subject from this voice memo transcript. 
 Identify the core topic, clean up speech artifacts, and suggest a clear investigation subject.
@@ -215,7 +216,7 @@ export async function processCameraCapture(
   model?: string,
   signal?: AbortSignal
 ): Promise<MobileCapture> {
-  if (!ocrText.trim()) throw new Error("Empty OCR text");
+  if (!ocrText.trim()) throw new ValidationError("Empty OCR text");
 
   const prompt = `Extract an innovation investigation subject from this whiteboard/document OCR text.
 Identify key ideas, structure the content, and suggest an investigation subject.
@@ -244,7 +245,7 @@ Respond in JSON:
 
 /** Create a quick text capture. */
 export function createTextCapture(text: string, subject?: string): MobileCapture {
-  if (!text.trim()) throw new Error("Empty text");
+  if (!text.trim()) throw new ValidationError("Empty text");
 
   const capture: MobileCapture = {
     id: `text-${++captureIdCounter}-${Date.now()}`,
@@ -278,7 +279,7 @@ export function enqueueOfflineAction(
     // Remove oldest synced items first
     const syncedIdx = offlineQueue.findIndex((i) => i.status === "synced");
     if (syncedIdx >= 0) offlineQueue.splice(syncedIdx, 1);
-    else throw new Error("Offline queue is full");
+    else throw new ValidationError("Offline queue is full");
   }
 
   const queueItem: OfflineQueueItem = {

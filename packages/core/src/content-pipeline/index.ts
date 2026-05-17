@@ -12,6 +12,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeUserInput } from "../prompts/sanitize.js";
 import type { InnovationIdea, Investigation } from "../types.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Content Format Types ----
 
@@ -216,7 +217,7 @@ export async function generateContent(
   const ctx: ContentContext = options.context ?? { subject: idea.title };
 
   const promptBuilder = FORMAT_PROMPTS[format];
-  if (!promptBuilder) throw new Error(`Unknown content format: ${format}`);
+  if (!promptBuilder) throw new ValidationError(`Unknown content format: ${format}`);
 
   const prompt = promptBuilder(idea, ctx, tone, audience);
   const raw = await withRetry(() =>
@@ -260,7 +261,7 @@ export async function reviseContent(
   RevisionRequestSchema.parse(revision);
 
   const original = contentStore.get(revision.contentId);
-  if (!original) throw new Error(`Content piece not found: ${revision.contentId}`);
+  if (!original) throw new ValidationError(`Content piece not found: ${revision.contentId}`);
 
   const prompt = `Revise the following ${original.format} content based on the feedback provided.
 
@@ -313,8 +314,8 @@ export async function generateContentBundle(
     signal?: AbortSignal;
   } = {}
 ): Promise<ContentPiece[]> {
-  if (formats.length === 0) throw new Error("At least one format is required");
-  if (formats.length > 6) throw new Error("Maximum 6 formats per bundle");
+  if (formats.length === 0) throw new ValidationError("At least one format is required");
+  if (formats.length > 6) throw new ValidationError("Maximum 6 formats per bundle");
 
   const results: ContentPiece[] = [];
   for (const format of formats) {

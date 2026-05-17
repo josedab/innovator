@@ -11,6 +11,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeUserInput } from "../prompts/sanitize.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -298,7 +299,7 @@ export async function buildEmbeddingSpace(
   options: BuildEmbeddingSpaceOptions = {}
 ): Promise<EmbeddingSpace> {
   if (ideas.length === 0) {
-    throw new Error("At least one idea is required");
+    throw new ValidationError("At least one idea is required");
   }
 
   const documents = ideas.map((i) => `${i.title} ${i.description} ${(i.tags ?? []).join(" ")}`);
@@ -354,7 +355,10 @@ Respond with JSON array:
         try {
           return JSON.parse(jsonStr) as unknown;
         } catch {
-          throw new Error(`Failed to parse cluster labels: ${jsonStr.slice(0, 200)}`);
+          throw new LlmParseError(
+            `Failed to parse cluster labels: ${jsonStr.slice(0, 200)}`,
+            jsonStr.slice(0, 200)
+          );
         }
       },
       {
@@ -485,7 +489,10 @@ Generate 3-5 novel ideas that bridge this gap. Respond with JSON:
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse gap ideas: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse gap ideas: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

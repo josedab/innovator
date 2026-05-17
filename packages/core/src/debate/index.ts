@@ -11,6 +11,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 import type { Investigation, InnovationIdea } from "../types.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -246,7 +247,7 @@ export async function runDebate(
   const conPersona = config.personas?.con ?? DEFAULT_CON_PERSONA;
 
   if (rounds < 1 || rounds > 5) {
-    throw new Error("Debate rounds must be between 1 and 5");
+    throw new ValidationError("Debate rounds must be between 1 and 5");
   }
 
   const debateRounds: DebateRound[] = [];

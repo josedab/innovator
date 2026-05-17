@@ -10,6 +10,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Ecosystem Data Model ----
 
@@ -250,8 +251,9 @@ Respond in JSON matching this schema:
     const parsed = JSON.parse(extractJson(raw));
     return SimulationResultSchema.parse(parsed);
   } catch (parseErr) {
-    throw new Error(
-      `Failed to parse simulation result: ${parseErr instanceof Error ? parseErr.message : "invalid JSON"}`
+    throw new LlmParseError(
+      `Failed to parse simulation result: ${parseErr instanceof Error ? parseErr.message : "invalid JSON"}`,
+      raw
     );
   }
 }
@@ -263,8 +265,8 @@ export async function compareStrategies(
   model?: string,
   signal?: AbortSignal
 ): Promise<StrategyComparison> {
-  if (strategies.length === 0) throw new Error("At least one strategy is required");
-  if (strategies.length > 10) throw new Error("Maximum 10 strategies per comparison");
+  if (strategies.length === 0) throw new ValidationError("At least one strategy is required");
+  if (strategies.length > 10) throw new ValidationError("Maximum 10 strategies per comparison");
 
   const results: SimulationResult[] = [];
   for (const strategy of strategies) {

@@ -8,6 +8,7 @@
  */
 
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
@@ -309,8 +310,8 @@ export function createAutomatedSprint(
   facilitatorName: string
 ): AutomatedSprint {
   const template = SPRINT_TEMPLATES.find((t) => t.id === templateId);
-  if (!template) throw new Error(`Sprint template "${templateId}" not found`);
-  if (!subject.trim()) throw new Error("Sprint subject is required");
+  if (!template) throw new ValidationError(`Sprint template "${templateId}" not found`);
+  if (!subject.trim()) throw new ValidationError("Sprint subject is required");
 
   const now = new Date().toISOString();
   const firstPhase = template.phases[0];
@@ -346,8 +347,9 @@ export function createAutomatedSprint(
 /** Start an automated sprint (transition from draft to active). */
 export function startAutomatedSprint(sprintId: string): AutomatedSprint {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
-  if (sprint.status !== "draft") throw new Error("Sprint must be in draft status to start");
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
+  if (sprint.status !== "draft")
+    throw new ValidationError("Sprint must be in draft status to start");
 
   const now = new Date();
   const template = SPRINT_TEMPLATES.find((t) => t.id === sprint.templateId)!;
@@ -374,9 +376,9 @@ export function joinAutomatedSprint(
   displayName: string
 ): AutomatedSprint {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
   if (sprint.participants.some((p) => p.id === participantId)) {
-    throw new Error("Participant already joined this sprint");
+    throw new ValidationError("Participant already joined this sprint");
   }
 
   sprint.participants.push({
@@ -397,10 +399,10 @@ export function submitSprintIdea(
   description: string
 ): SprintIdea {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
-  if (sprint.status !== "active") throw new Error("Sprint is not active");
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
+  if (sprint.status !== "active") throw new ValidationError("Sprint is not active");
   if (!sprint.participants.some((p) => p.id === participantId)) {
-    throw new Error("Participant must join the sprint first");
+    throw new ValidationError("Participant must join the sprint first");
   }
 
   const idea: SprintIdea = {
@@ -421,8 +423,8 @@ export function submitSprintIdea(
 /** Open a voting round in the current phase. */
 export function openVotingRound(sprintId: string, ideaIds?: string[]): VotingRound {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
-  if (sprint.status !== "active") throw new Error("Sprint is not active");
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
+  if (sprint.status !== "active") throw new ValidationError("Sprint is not active");
 
   const activeIdeaIds =
     ideaIds ??
@@ -458,15 +460,15 @@ export function castVote(
   score: number
 ): void {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
 
   const round = sprint.votingRounds.find((r) => r.id === roundId);
-  if (!round) throw new Error(`Voting round ${roundId} not found`);
-  if (round.status !== "open") throw new Error("Voting round is closed");
-  if (!round.ideaIds.includes(ideaId)) throw new Error("Idea not in this voting round");
+  if (!round) throw new ValidationError(`Voting round ${roundId} not found`);
+  if (round.status !== "open") throw new ValidationError("Voting round is closed");
+  if (!round.ideaIds.includes(ideaId)) throw new ValidationError("Idea not in this voting round");
 
   if (round.votes.some((v) => v.participantId === participantId && v.ideaId === ideaId)) {
-    throw new Error("Already voted for this idea in this round");
+    throw new ValidationError("Already voted for this idea in this round");
   }
 
   round.votes.push({ participantId, ideaId, score, timestamp: new Date().toISOString() });
@@ -482,10 +484,10 @@ export function castVote(
 /** Close a voting round and update idea statuses. */
 export function closeVotingRound(sprintId: string, roundId: string, topN?: number): VotingRound {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
 
   const round = sprint.votingRounds.find((r) => r.id === roundId);
-  if (!round) throw new Error(`Voting round ${roundId} not found`);
+  if (!round) throw new ValidationError(`Voting round ${roundId} not found`);
 
   round.status = "closed";
   round.closedAt = new Date().toISOString();
@@ -507,8 +509,8 @@ export function closeVotingRound(sprintId: string, roundId: string, topN?: numbe
 /** Advance to the next sprint phase. */
 export function advanceSprintPhase(sprintId: string): AutomatedSprint {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
-  if (sprint.status !== "active") throw new Error("Sprint is not active");
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
+  if (sprint.status !== "active") throw new ValidationError("Sprint is not active");
 
   const template = SPRINT_TEMPLATES.find((t) => t.id === sprint.templateId)!;
   const nextIndex = sprint.currentPhaseIndex + 1;
@@ -576,7 +578,7 @@ export async function generateFacilitatorMessage(
   options?: { model?: string; signal?: AbortSignal }
 ): Promise<string> {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
 
   const template = SPRINT_TEMPLATES.find((t) => t.id === sprint.templateId)!;
   const phaseConfig = template.phases[sprint.currentPhaseIndex];
@@ -622,7 +624,7 @@ export async function generateRetrospective(
   options?: { model?: string; signal?: AbortSignal }
 ): Promise<RetrospectiveReport> {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
 
   const template = SPRINT_TEMPLATES.find((t) => t.id === sprint.templateId)!;
   const selectedIdeas = sprint.ideas.filter(

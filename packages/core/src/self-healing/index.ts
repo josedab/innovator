@@ -13,6 +13,7 @@ import type {
   PipelineHealth,
   RecoveryStrategy,
 } from "./types.js";
+import { PipelineError } from "../errors.js";
 
 export {
   CircuitStateSchema,
@@ -285,7 +286,7 @@ export async function withSelfHealing<T>(
     }
   }
 
-  throw new Error("Self-healing exhausted all recovery attempts");
+  throw new PipelineError("Self-healing exhausted all recovery attempts", "self-healing");
 }
 
 // ---- Health Monitoring ----

@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Zod Schemas ----
 
@@ -110,7 +111,7 @@ const businessCases = new Map<string, BusinessCase>();
 
 /** Calculate Net Present Value from cash flows. */
 export function calculateNPV(cashFlows: CashFlow[], discountRate: number): number {
-  if (discountRate < -1) throw new Error("Discount rate must be >= -1");
+  if (discountRate < -1) throw new ValidationError("Discount rate must be >= -1");
   return cashFlows.reduce((npv, cf) => {
     return npv + cf.amount / Math.pow(1 + discountRate, cf.period);
   }, 0);

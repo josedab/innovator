@@ -11,6 +11,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 import type { InnovationIdea } from "../types.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -355,10 +356,10 @@ export async function runEvolution(
   const eliteCount = config.eliteCount ?? 2;
 
   if (generations < 1 || generations > 10) {
-    throw new Error("Generations must be between 1 and 10");
+    throw new ValidationError("Generations must be between 1 and 10");
   }
   if (initialPopulation.length < 2) {
-    throw new Error("Need at least 2 ideas for evolution");
+    throw new ValidationError("Need at least 2 ideas for evolution");
   }
 
   const mutationTypes: MutationType[] = [

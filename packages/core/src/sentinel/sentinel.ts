@@ -33,6 +33,7 @@ import {
   type SentinelProgress,
   type SignalSource,
 } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Constants ----
 
@@ -281,19 +282,19 @@ export async function runSentinel(
 ): Promise<DailyBrief> {
   // Validate config
   if (!config.sources || config.sources.length === 0) {
-    throw new Error("At least one signal source is required");
+    throw new ValidationError("At least one signal source is required");
   }
   if (!config.topics || config.topics.length === 0) {
-    throw new Error("At least one topic is required for relevance filtering");
+    throw new ValidationError("At least one topic is required for relevance filtering");
   }
   if (
     config.relevanceThreshold !== undefined &&
     (config.relevanceThreshold < 0 || config.relevanceThreshold > 1)
   ) {
-    throw new Error("Relevance threshold must be between 0 and 1");
+    throw new ValidationError("Relevance threshold must be between 0 and 1");
   }
   if (config.dailyCostBudget !== undefined && config.dailyCostBudget < 0) {
-    throw new Error("Daily cost budget must be non-negative");
+    throw new ValidationError("Daily cost budget must be non-negative");
   }
 
   const state = loadState();

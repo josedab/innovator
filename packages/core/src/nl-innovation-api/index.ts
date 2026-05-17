@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { ValidationError, PipelineError } from "../errors.js";
 import { wrapUserInput } from "../prompts/sanitize.js";
 import { investigate } from "../innovation/index.js";
 import { generateForAngle } from "../innovation/index.js";
@@ -257,7 +258,7 @@ async function executeStep(
 
     case "score": {
       if (ctx.angleResults.length === 0) {
-        throw new Error("No ideas to score — run a generate step first.");
+        throw new ValidationError("No ideas to score — run a generate step first.");
       }
       const sr = await withRetry(
         () => scoreIdeas(ctx.subject, ctx.angleResults, ctx.investigation, ctx.model, ctx.signal),
@@ -270,7 +271,7 @@ async function executeStep(
     case "debate": {
       const allIdeas = ctx.angleResults.flatMap((ar) => ar.ideas);
       if (allIdeas.length === 0) {
-        throw new Error("No ideas to debate — run a generate step first.");
+        throw new ValidationError("No ideas to debate — run a generate step first.");
       }
       const topN = (params.topN as number) ?? 1;
       const ideaIndex = params.ideaIndex as number | undefined;
@@ -298,7 +299,7 @@ async function executeStep(
       const artifactType = (params.artifactType as ArtifactType) ?? "prd";
       const allIdeas = ctx.angleResults.flatMap((ar) => ar.ideas);
       if (allIdeas.length === 0) {
-        throw new Error("No ideas available — run a generate step first.");
+        throw new ValidationError("No ideas available — run a generate step first.");
       }
       const idea = allIdeas[0]!;
       const artifact = await withRetry(
@@ -331,7 +332,7 @@ async function executeStep(
     }
 
     default:
-      throw new Error(`Unknown step type: ${type as string}`);
+      throw new PipelineError(`Unknown step type: ${type as string}`, String(type));
   }
 }
 

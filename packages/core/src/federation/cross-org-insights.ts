@@ -8,6 +8,7 @@
 
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 
 // ---- Types ----
 
@@ -100,7 +101,7 @@ export function privatizeValue(
   const budget = getPrivacyBudget(orgId);
 
   if (budget.queriesRemaining <= 0) {
-    throw new Error("Privacy budget exhausted. Wait for reset.");
+    throw new ValidationError("Privacy budget exhausted. Wait for reset.");
   }
 
   budget.queriesRemaining--;

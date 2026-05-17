@@ -10,6 +10,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 import type { Investigation } from "../types.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -101,7 +102,7 @@ export async function scoreInvestigationQuality(
   signal?: AbortSignal
 ): Promise<ConfidenceScore> {
   if (!subject || subject.trim().length === 0) {
-    throw new Error("Subject cannot be empty");
+    throw new ValidationError("Subject cannot be empty");
   }
 
   const prompt = buildConfidencePrompt(subject, investigation);
@@ -113,7 +114,10 @@ export async function scoreInvestigationQuality(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse confidence score as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse confidence score as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

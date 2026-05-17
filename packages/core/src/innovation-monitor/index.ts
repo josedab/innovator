@@ -15,6 +15,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Persistence ----
 
@@ -157,7 +158,7 @@ export function addMonitorSource(source: MonitorSource): MonitorSource {
 
 /** Unregister a monitor source by ID. */
 export function removeMonitorSource(id: string): void {
-  if (!sources.has(id)) throw new Error(`Monitor source ${id} not found`);
+  if (!sources.has(id)) throw new ValidationError(`Monitor source ${id} not found`);
   sources.delete(id);
   const timer = pollTimers.get(id);
   if (timer) {
@@ -177,7 +178,7 @@ export function updateMonitorSource(
   updates: Partial<Omit<MonitorSource, "id">>
 ): MonitorSource {
   const existing = sources.get(id);
-  if (!existing) throw new Error(`Monitor source ${id} not found`);
+  if (!existing) throw new ValidationError(`Monitor source ${id} not found`);
   const updated = MonitorSourceSchema.parse({ ...existing, ...updates });
   sources.set(id, updated);
   return updated;
@@ -192,7 +193,7 @@ export async function detectOpportunities(
   signal?: AbortSignal
 ): Promise<OpportunitySignal[]> {
   const source = sources.get(sourceId);
-  if (!source) throw new Error(`Monitor source ${sourceId} not found`);
+  if (!source) throw new ValidationError(`Monitor source ${sourceId} not found`);
   if (!source.enabled) return [];
 
   const prompt = `You are an innovation opportunity detector monitoring a ${source.type} source.
@@ -578,7 +579,7 @@ export function digestToHtml(digest: InnovationDigest): string {
 /** Start the monitoring loop with setInterval-based polling. */
 export function startMonitor(config: MonitorConfig): MonitorState {
   if (monitorState.status === "running") {
-    throw new Error("Monitor is already running");
+    throw new ValidationError("Monitor is already running");
   }
 
   const validated = MonitorConfigSchema.parse(config);

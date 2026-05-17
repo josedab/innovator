@@ -9,6 +9,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { generateTextStream } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 import { wrapUserInput, sanitizeUserInput } from "../prompts/sanitize.js";
 import type { InnovationIdea, Investigation } from "../types.js";
 
@@ -206,7 +207,7 @@ export async function generateArtifact(
 ): Promise<Artifact> {
   const buildPrompt = ARTIFACT_PROMPTS[artifactType];
   if (!buildPrompt) {
-    throw new Error(`Unknown artifact type: ${artifactType}`);
+    throw new ValidationError(`Unknown artifact type: ${artifactType}`);
   }
 
   const prompt = buildPrompt(idea, context);
@@ -218,7 +219,10 @@ export async function generateArtifact(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse artifact response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse artifact response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr
+        );
       }
     },
     {
@@ -254,7 +258,7 @@ export async function generateArtifactStream(
 ): Promise<Artifact> {
   const buildPrompt = ARTIFACT_PROMPTS[artifactType];
   if (!buildPrompt) {
-    throw new Error(`Unknown artifact type: ${artifactType}`);
+    throw new ValidationError(`Unknown artifact type: ${artifactType}`);
   }
 
   const prompt = buildPrompt(idea, context);
@@ -266,7 +270,10 @@ export async function generateArtifactStream(
   try {
     parsedJson = JSON.parse(jsonStr);
   } catch {
-    throw new Error(`Failed to parse artifact response as JSON: ${jsonStr.slice(0, 200)}`);
+    throw new LlmParseError(
+      `Failed to parse artifact response as JSON: ${jsonStr.slice(0, 200)}`,
+      jsonStr
+    );
   }
 
   const artifact = ArtifactSchema.parse(parsedJson);

@@ -12,6 +12,7 @@ import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -139,7 +140,7 @@ export async function analyzeMeeting(
   config: { model?: string; signal?: AbortSignal } = {}
 ): Promise<MeetingAnalysis> {
   if (inputs.length === 0) {
-    throw new Error("At least one meeting input is required");
+    throw new ValidationError("At least one meeting input is required");
   }
 
   // Combine all input content

@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { type BillingTier } from "./index.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -420,10 +421,10 @@ export function getUsageForBilling(
 /** Generate an invoice for a billing period. */
 export function generateInvoice(tenantId: string, subscriptionId: string): Invoice {
   const sub = subscriptions.get(subscriptionId);
-  if (!sub) throw new Error(`Subscription not found: ${subscriptionId}`);
+  if (!sub) throw new ValidationError(`Subscription not found: ${subscriptionId}`);
 
   const plan = PRICING_PLANS.find((p) => p.tier === sub.tier);
-  if (!plan) throw new Error(`Unknown tier: ${sub.tier}`);
+  if (!plan) throw new ValidationError(`Unknown tier: ${sub.tier}`);
 
   const usage = getUsageForBilling(tenantId, sub.currentPeriodStart, sub.currentPeriodEnd);
 

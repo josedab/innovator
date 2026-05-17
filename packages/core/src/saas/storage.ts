@@ -8,6 +8,7 @@
 import { z } from "zod";
 import type { PlaygroundSession } from "../playground/index.js";
 import type { Tenant, UsageRecord } from "./index.js";
+import { ConfigurationError } from "../errors.js";
 
 // ---- Storage Interface ----
 
@@ -169,7 +170,9 @@ export class PostgresStorageAdapter implements StorageAdapter {
     // const pool = new Pool({ connectionString: this.config.connectionString });
     // const result = await pool.query(sql, params);
     // return result.rows as T[];
-    throw new Error("PostgresStorageAdapter requires pg driver. Install with: npm install pg");
+    throw new ConfigurationError(
+      "PostgresStorageAdapter requires pg driver. Install with: npm install pg"
+    );
   }
 
   async saveSession(session: PlaygroundSession): Promise<void> {

@@ -7,6 +7,7 @@
  */
 
 import type { InnovatorPlugin, AnglePlugin, ExporterPlugin, VisualizerPlugin } from "../types.js";
+import { ConfigurationError, ValidationError } from "../errors.js";
 
 /** Context provided to plugins during lifecycle events. */
 export interface PluginContext {
@@ -61,17 +62,19 @@ function buildContext(pluginId: string): PluginContext {
  */
 export function registerPlugin(plugin: LifecyclePlugin): void {
   if (!plugin.id || !plugin.name || !plugin.type) {
-    throw new Error("Plugin must have id, name, and type");
+    throw new ValidationError("Plugin must have id, name, and type");
   }
   if (plugins.has(plugin.id)) {
-    throw new Error(`Plugin "${plugin.id}" is already registered`);
+    throw new ValidationError(`Plugin "${plugin.id}" is already registered`);
   }
 
   // Check dependencies
   if (plugin.dependencies) {
     const missing = plugin.dependencies.filter((dep) => !plugins.has(dep));
     if (missing.length > 0) {
-      throw new Error(`Plugin "${plugin.id}" has unmet dependencies: ${missing.join(", ")}`);
+      throw new ConfigurationError(
+        `Plugin "${plugin.id}" has unmet dependencies: ${missing.join(", ")}`
+      );
     }
   }
 
@@ -89,7 +92,7 @@ export function registerPlugin(plugin: LifecyclePlugin): void {
 export async function initPlugin(id: string): Promise<void> {
   const plugin = plugins.get(id);
   if (!plugin) {
-    throw new Error(`Plugin "${id}" is not registered`);
+    throw new ValidationError(`Plugin "${id}" is not registered`);
   }
   if (initState.get(id) === "initialized") return;
 
@@ -99,7 +102,7 @@ export async function initPlugin(id: string): Promise<void> {
       initState.set(id, "initialized");
     } catch (err) {
       initState.set(id, "failed");
-      throw new Error(
+      throw new ConfigurationError(
         `Plugin "${id}" initialization failed: ${err instanceof Error ? err.message : String(err)}`
       );
     }
@@ -258,7 +261,7 @@ export async function loadPlugin(source: string): Promise<InnovatorPlugin> {
     const mod = await import(source);
     const plugin: LifecyclePlugin = mod.default ?? mod;
     if (!plugin.id || !plugin.type) {
-      throw new Error(`Invalid plugin at "${source}": missing id or type`);
+      throw new ValidationError(`Invalid plugin at "${source}": missing id or type`);
     }
     registerPlugin(plugin);
     return plugin;
@@ -266,7 +269,7 @@ export async function loadPlugin(source: string): Promise<InnovatorPlugin> {
     if (err instanceof Error && err.message.includes("already registered")) {
       throw err;
     }
-    throw new Error(
+    throw new ConfigurationError(
       `Failed to load plugin from "${source}": ${err instanceof Error ? err.message : String(err)}`
     );
   }

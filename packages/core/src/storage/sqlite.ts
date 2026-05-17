@@ -22,6 +22,7 @@ import type { Workspace } from "../workspaces/index.js";
 import type { ApiKey, UsageRecord } from "../api-gateway/index.js";
 import type { AnalyticsEvent } from "../analytics/index.js";
 import type { KnowledgeGraph } from "../knowledge-graph/index.js";
+import { ConfigurationError } from "../errors.js";
 
 // ---- Generic DB interface to abstract better-sqlite3 vs libsql ----
 
@@ -70,14 +71,25 @@ export interface TursoConfig {
 
 export async function createTursoDB(config: TursoConfig): Promise<SQLiteDB> {
   // @libsql/client is an optional peer dependency — dynamic require to avoid hard TS dependency
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let createClient: any;
+  let createClient: (config: { url: string; authToken?: string }) => LibsqlClient;
+
+  /** Minimal interface for @libsql/client instance. */
+  interface LibsqlClient {
+    executeMultiple(sql: string): Promise<void>;
+    execute(query: {
+      sql: string;
+      args: Array<string | number | null>;
+    }): Promise<{ rows: unknown[] }>;
+    close(): void;
+  }
+
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod: any = await Function('return import("@libsql/client")')();
+    const mod = (await Function('return import("@libsql/client")')()) as {
+      createClient: typeof createClient;
+    };
     createClient = mod.createClient;
   } catch {
-    throw new Error(
+    throw new ConfigurationError(
       "Turso adapter requires @libsql/client. Install it with: npm install @libsql/client"
     );
   }
@@ -93,10 +105,10 @@ export async function createTursoDB(config: TursoConfig): Promise<SQLiteDB> {
     },
     get<T>(_sql: string, ..._params: unknown[]): T | undefined {
       // Sync shim — callers should use the async wrappers in SQLiteStorage
-      throw new Error("Use async methods with Turso adapter");
+      throw new ConfigurationError("Use async methods with Turso adapter");
     },
     all<T>(_sql: string, ..._params: unknown[]): T[] {
-      throw new Error("Use async methods with Turso adapter");
+      throw new ConfigurationError("Use async methods with Turso adapter");
     },
     close() {
       client.close();

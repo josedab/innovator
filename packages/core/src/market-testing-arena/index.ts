@@ -11,6 +11,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeUserInput } from "../prompts/sanitize.js";
 import type { InnovationIdea, Investigation } from "../types.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -223,7 +224,7 @@ export async function runMarketTest(
   context?: { investigation?: Investigation }
 ): Promise<MarketTestResult> {
   if (!idea.title || idea.title.trim().length === 0) {
-    throw new Error("Idea title is required");
+    throw new ValidationError("Idea title is required");
   }
 
   // Get LLM assessment for idea appeal and insights
@@ -259,7 +260,10 @@ Respond with JSON:
       try {
         return JSON.parse(jsonStr) as Record<string, unknown>;
       } catch {
-        throw new Error(`Failed to parse market assessment: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse market assessment: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

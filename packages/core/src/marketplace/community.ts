@@ -12,6 +12,7 @@ import {
   listDomainPacks,
   type DomainPack,
 } from "./domain-packs.js";
+import { ValidationError } from "../errors.js";
 
 export const PackReviewSchema = z.object({
   id: z.string().max(200),
@@ -113,7 +114,7 @@ function toSearchResult(pack: DomainPack): PackSearchResult {
 export function submitReview(input: SubmitPackReviewInput): PackReview {
   const pack = getDomainPack(input.packId);
   if (!pack) {
-    throw new Error(`Unknown domain pack: ${input.packId}`);
+    throw new ValidationError(`Unknown domain pack: ${input.packId}`);
   }
 
   const validatedInput = SubmitPackReviewInputSchema.parse(input);

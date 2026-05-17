@@ -7,6 +7,7 @@
  */
 
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 import { randomUUID } from "node:crypto";
 
 // ---- Schemas ----
@@ -193,8 +194,8 @@ export function joinWarRoom(
   role: WarRoomRole = "participant"
 ): WarRoom {
   const room = warRooms.get(roomId);
-  if (!room) throw new Error(`War room "${roomId}" not found`);
-  if (room.phase === "closed") throw new Error("War room is closed");
+  if (!room) throw new ValidationError(`War room "${roomId}" not found`);
+  if (room.phase === "closed") throw new ValidationError("War room is closed");
 
   const existing = room.members.find((m) => m.userId === userId);
   if (existing) {
@@ -206,7 +207,7 @@ export function joinWarRoom(
 
   const activeCount = room.members.filter((m) => m.isActive).length;
   if (activeCount >= room.settings.maxParticipants) {
-    throw new Error("War room is at capacity");
+    throw new ValidationError("War room is at capacity");
   }
 
   const now = new Date().toISOString();
@@ -227,7 +228,7 @@ export function joinWarRoom(
  */
 export function leaveWarRoom(roomId: string, userId: string): WarRoom {
   const room = warRooms.get(roomId);
-  if (!room) throw new Error(`War room "${roomId}" not found`);
+  if (!room) throw new ValidationError(`War room "${roomId}" not found`);
 
   const member = room.members.find((m) => m.userId === userId);
   if (member) {
@@ -248,15 +249,15 @@ export function setMemberRole(
   newRole: WarRoomRole
 ): WarRoom {
   const room = warRooms.get(roomId);
-  if (!room) throw new Error(`War room "${roomId}" not found`);
+  if (!room) throw new ValidationError(`War room "${roomId}" not found`);
 
   const requester = room.members.find((m) => m.userId === requesterId);
   if (!requester || requester.role !== "facilitator") {
-    throw new Error("Only facilitators can change roles");
+    throw new ValidationError("Only facilitators can change roles");
   }
 
   const target = room.members.find((m) => m.userId === targetUserId);
-  if (!target) throw new Error(`Member "${targetUserId}" not found`);
+  if (!target) throw new ValidationError(`Member "${targetUserId}" not found`);
 
   target.role = newRole;
   room.updatedAt = new Date().toISOString();
@@ -280,16 +281,16 @@ const PHASE_ORDER: WarRoomPhase[] = [
  */
 export function advanceWarRoomPhase(roomId: string, facilitatorId: string): WarRoom {
   const room = warRooms.get(roomId);
-  if (!room) throw new Error(`War room "${roomId}" not found`);
+  if (!room) throw new ValidationError(`War room "${roomId}" not found`);
 
   const facilitator = room.members.find((m) => m.userId === facilitatorId);
   if (!facilitator || facilitator.role !== "facilitator") {
-    throw new Error("Only facilitators can advance phases");
+    throw new ValidationError("Only facilitators can advance phases");
   }
 
   const currentIdx = PHASE_ORDER.indexOf(room.phase);
   if (currentIdx >= PHASE_ORDER.length - 1) {
-    throw new Error("War room is already in final phase");
+    throw new ValidationError("War room is already in final phase");
   }
 
   room.phase = PHASE_ORDER[currentIdx + 1];
@@ -305,11 +306,11 @@ export function advanceWarRoomPhase(roomId: string, facilitatorId: string): WarR
  */
 export function applyCanvasOperation(roomId: string, operation: Operation): WarRoom {
   const room = warRooms.get(roomId);
-  if (!room) throw new Error(`War room "${roomId}" not found`);
+  if (!room) throw new ValidationError(`War room "${roomId}" not found`);
 
   const member = room.members.find((m) => m.userId === operation.userId);
-  if (!member) throw new Error("Not a member of this war room");
-  if (member.role === "observer") throw new Error("Observers cannot modify the canvas");
+  if (!member) throw new ValidationError("Not a member of this war room");
+  if (member.role === "observer") throw new ValidationError("Observers cannot modify the canvas");
 
   // Version conflict detection
   if (operation.version < room.version) {
@@ -318,7 +319,7 @@ export function applyCanvasOperation(roomId: string, operation: Operation): WarR
       (op) => op.version >= operation.version && op.id !== operation.id
     );
     if (conflicting.some((op) => op.targetId === operation.targetId && op.type === "delete")) {
-      throw new Error("Target object was deleted by a concurrent operation");
+      throw new ValidationError("Target object was deleted by a concurrent operation");
     }
   }
 
@@ -338,7 +339,7 @@ export function applyCanvasOperation(roomId: string, operation: Operation): WarR
     }
     case "update": {
       const idx = room.canvas.findIndex((o) => o.id === operation.targetId);
-      if (idx === -1) throw new Error(`Canvas object "${operation.targetId}" not found`);
+      if (idx === -1) throw new ValidationError(`Canvas object "${operation.targetId}" not found`);
       Object.assign(room.canvas[idx], operation.data);
       break;
     }
@@ -349,7 +350,7 @@ export function applyCanvasOperation(roomId: string, operation: Operation): WarR
     }
     case "move": {
       const mIdx = room.canvas.findIndex((o) => o.id === operation.targetId);
-      if (mIdx === -1) throw new Error(`Canvas object "${operation.targetId}" not found`);
+      if (mIdx === -1) throw new ValidationError(`Canvas object "${operation.targetId}" not found`);
       if (operation.data.position) {
         room.canvas[mIdx].position = operation.data.position as { x: number; y: number };
       }
@@ -380,11 +381,11 @@ export function castWarRoomVote(
   comment?: string
 ): WarRoom {
   const room = warRooms.get(roomId);
-  if (!room) throw new Error(`War room "${roomId}" not found`);
-  if (!room.settings.votingEnabled) throw new Error("Voting is not enabled");
+  if (!room) throw new ValidationError(`War room "${roomId}" not found`);
+  if (!room.settings.votingEnabled) throw new ValidationError("Voting is not enabled");
 
   const member = room.members.find((m) => m.userId === userId);
-  if (!member || member.role === "observer") throw new Error("Cannot vote as observer");
+  if (!member || member.role === "observer") throw new ValidationError("Cannot vote as observer");
 
   // Remove existing vote from this user on this idea
   room.votes = room.votes.filter((v) => !(v.userId === userId && v.ideaId === ideaId));

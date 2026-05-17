@@ -12,6 +12,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput } from "../prompts/sanitize.js";
 import type { Investigation } from "../types.js";
+import { LlmParseError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -257,7 +258,10 @@ export async function analyzeHypothesis(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse hypothesis response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse hypothesis response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

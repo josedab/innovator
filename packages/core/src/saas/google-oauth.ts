@@ -7,6 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { ConfigurationError, LlmError } from "../errors.js";
 
 /** Zod schema for a Google user profile returned after OAuth. */
 export const GoogleUserSchema = z.object({
@@ -60,7 +61,7 @@ function getConfig(): GoogleOAuthConfig {
 export function getGoogleAuthorizationUrl(returnTo?: string): { url: string; state: string } {
   const config = getConfig();
   if (!config.clientId) {
-    throw new Error("GOOGLE_CLIENT_ID not configured");
+    throw new ConfigurationError("GOOGLE_CLIENT_ID not configured");
   }
 
   const state = randomUUID();
@@ -130,7 +131,7 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleUser> {
   });
 
   if (!tokenResponse.ok) {
-    throw new Error(`Token exchange failed: ${tokenResponse.status}`);
+    throw new LlmError(`Token exchange failed: ${tokenResponse.status}`);
   }
 
   const tokenData = (await tokenResponse.json()) as {
@@ -139,7 +140,7 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleUser> {
     error_description?: string;
   };
   if (tokenData.error || !tokenData.access_token) {
-    throw new Error(
+    throw new LlmError(
       `Google OAuth error: ${tokenData.error_description ?? tokenData.error ?? "no access token"}`
     );
   }
@@ -152,7 +153,7 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleUser> {
   });
 
   if (!userResponse.ok) {
-    throw new Error(`User fetch failed: ${userResponse.status}`);
+    throw new LlmError(`User fetch failed: ${userResponse.status}`);
   }
 
   const userData = (await userResponse.json()) as {

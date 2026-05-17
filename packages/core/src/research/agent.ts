@@ -1,5 +1,6 @@
 import { generateText, extractJson } from "../copilot/client.js";
 import { wrapUserInput } from "../prompts/sanitize.js";
+import { AbortError } from "../errors.js";
 import type {
   ResearchBrief,
   ResearchConfig,
@@ -57,7 +58,7 @@ export class ResearchAgent {
     for (let i = 0; i < Math.min(queries.length, totalSteps); i++) {
       if (this.config.signal?.aborted) {
         emitProgress("error");
-        throw new Error("Research was aborted");
+        throw new AbortError("Research was aborted");
       }
 
       const query = queries[i];

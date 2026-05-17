@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- Connector Schemas ----
 
@@ -168,8 +169,8 @@ export function removeConnectorConfig(id: string): boolean {
  */
 export function simulateSync(connectorId: string, itemCount: number = 0): SyncEvent {
   const connector = connectors.get(connectorId);
-  if (!connector) throw new Error(`Connector "${connectorId}" not found`);
-  if (!connector.enabled) throw new Error(`Connector "${connectorId}" is disabled`);
+  if (!connector) throw new ValidationError(`Connector "${connectorId}" not found`);
+  if (!connector.enabled) throw new ValidationError(`Connector "${connectorId}" is disabled`);
 
   const event: SyncEvent = {
     id: randomUUID(),

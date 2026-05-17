@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from "
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 import {
   PrivacyBudgetSchema,
   type DPConfig,
@@ -54,10 +55,10 @@ export function laplaceMechanism(
   epsilon: number
 ): { noisedValue: number; noise: number } {
   if (epsilon <= 0) {
-    throw new Error("Epsilon must be positive for Laplace mechanism");
+    throw new ValidationError("Epsilon must be positive for Laplace mechanism");
   }
   if (sensitivity < 0) {
-    throw new Error("Sensitivity must be non-negative");
+    throw new ValidationError("Sensitivity must be non-negative");
   }
   const b = sensitivity / epsilon;
   // Generate uniform random in (-0.5, 0.5)
@@ -116,7 +117,7 @@ export function spendBudget(
   dir: string = DEFAULT_DIR
 ): boolean {
   if (epsilon <= 0) {
-    throw new Error("Epsilon must be positive");
+    throw new ValidationError("Epsilon must be positive");
   }
   const budget = loadPrivacyBudget(dir);
   if (budget.totalSpent + epsilon > budget.maxBudget) {

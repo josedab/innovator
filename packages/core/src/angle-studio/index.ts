@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 import { ANGLE_IDS, type AngleId } from "../types.js";
 
 // ---- Schemas ----
@@ -147,7 +148,7 @@ export function addNode(pipelineId: string, node: StudioNode): AnglePipeline | u
 
   // Validate no duplicate IDs
   if (pipeline.nodes.some((n) => n.id === node.id)) {
-    throw new Error(`Node with ID "${node.id}" already exists`);
+    throw new ValidationError(`Node with ID "${node.id}" already exists`);
   }
 
   pipeline.nodes.push(StudioNodeSchema.parse(node));
@@ -249,15 +250,15 @@ export function addConnection(
 
   // Validate nodes exist
   if (!pipeline.nodes.some((n) => n.id === sourceNodeId)) {
-    throw new Error(`Source node "${sourceNodeId}" not found`);
+    throw new ValidationError(`Source node "${sourceNodeId}" not found`);
   }
   if (!pipeline.nodes.some((n) => n.id === targetNodeId)) {
-    throw new Error(`Target node "${targetNodeId}" not found`);
+    throw new ValidationError(`Target node "${targetNodeId}" not found`);
   }
 
   // Prevent self-connections
   if (sourceNodeId === targetNodeId) {
-    throw new Error("Cannot connect a node to itself");
+    throw new ValidationError("Cannot connect a node to itself");
   }
 
   // Prevent duplicate connections
@@ -266,7 +267,7 @@ export function addConnection(
       (c) => c.sourceNodeId === sourceNodeId && c.targetNodeId === targetNodeId
     )
   ) {
-    throw new Error("Connection already exists");
+    throw new ValidationError("Connection already exists");
   }
 
   const id = `conn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

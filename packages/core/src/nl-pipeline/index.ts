@@ -17,6 +17,7 @@ import type {
   PipelinePhase,
 } from "../pipeline-builder/index.js";
 import { parsePipelineRequest, compilePipelineDAG } from "../pipeline-builder/index.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- NL Intent Schema ----
 
@@ -175,7 +176,7 @@ export async function parseNLIntent(
   signal?: AbortSignal
 ): Promise<NLIntent> {
   if (!input || input.trim().length === 0) {
-    throw new Error("Intent input cannot be empty");
+    throw new ValidationError("Intent input cannot be empty");
   }
 
   const prompt = buildIntentPrompt(input);
@@ -188,7 +189,10 @@ export async function parseNLIntent(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse intent as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse intent as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {
@@ -251,7 +255,7 @@ export async function refinePipeline(
   signal?: AbortSignal
 ): Promise<Refinement> {
   if (!naturalLanguage || naturalLanguage.trim().length === 0) {
-    throw new Error("Refinement request cannot be empty");
+    throw new ValidationError("Refinement request cannot be empty");
   }
 
   const prompt = buildRefinementPrompt(currentConfig, naturalLanguage);
@@ -264,7 +268,10 @@ export async function refinePipeline(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse refinement as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse refinement as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {
@@ -321,7 +328,7 @@ export class NLPipelineSession {
    */
   async refine(naturalLanguage: string, signal?: AbortSignal): Promise<Refinement> {
     if (!this.currentConfig) {
-      throw new Error("No pipeline to refine. Call describe() first.");
+      throw new ValidationError("No pipeline to refine. Call describe() first.");
     }
 
     this.addTurn("user", naturalLanguage);
@@ -641,7 +648,7 @@ export async function suggestPipelineFromGoal(
   signal?: AbortSignal
 ): Promise<PipelineConfig> {
   if (!goal || goal.trim().length === 0) {
-    throw new Error("Goal cannot be empty");
+    throw new ValidationError("Goal cannot be empty");
   }
 
   const prompt = buildGoalPrompt(goal);
@@ -654,7 +661,10 @@ export async function suggestPipelineFromGoal(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse pipeline suggestion as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse pipeline suggestion as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

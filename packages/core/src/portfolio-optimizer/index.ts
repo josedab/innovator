@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 import type { IdeaScore } from "../scoring/index.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -115,6 +116,12 @@ export function computePortfolioMetrics(
   correlationMatrix: number[][]
 ): { returnVal: number; risk: number } {
   const n = assets.length;
+  if (weights.length !== n) {
+    throw new ValidationError(`Weights length (${weights.length}) must match assets length (${n})`);
+  }
+  if (correlationMatrix.length !== n || correlationMatrix.some((row) => row.length !== n)) {
+    throw new ValidationError(`Correlation matrix dimensions must match assets length (${n})`);
+  }
   let portfolioReturn = 0;
 
   for (let i = 0; i < n; i++) {
@@ -264,7 +271,7 @@ export function optimizePortfolio(
   config?: PortfolioOptimizerConfig
 ): PortfolioOptimization {
   if (scores.length === 0) {
-    throw new Error("No ideas to optimize");
+    throw new ValidationError("No ideas to optimize");
   }
 
   const assets = ideasToAssets(scores);

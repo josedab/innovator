@@ -25,6 +25,7 @@ import {
   type ActionContext,
   type ActionFormat,
 } from "./types.js";
+import { LlmError } from "../errors.js";
 
 // ---- Prompt Templates ----
 
@@ -387,7 +388,7 @@ export async function createGitHubIssue(
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => "unknown error");
-    throw new Error(`GitHub API error ${response.status}: ${errorBody}`);
+    throw new LlmError(`GitHub API error ${response.status}: ${errorBody}`);
   }
 
   const data = (await response.json()) as {

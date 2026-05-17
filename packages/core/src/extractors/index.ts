@@ -8,6 +8,7 @@
 
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, extname, basename } from "node:path";
+import { LlmError, ValidationError } from "../errors.js";
 
 // ---- Types ----
 
@@ -69,7 +70,7 @@ export class UrlExtractor implements ContentExtractor {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
+      throw new LlmError(`Failed to fetch URL: ${response.status} ${response.statusText}`);
     }
 
     const contentType = response.headers.get("content-type") ?? "";
@@ -396,7 +397,7 @@ export async function extractContent(
       return extractor.extract(source, options);
     }
   }
-  throw new Error(
+  throw new ValidationError(
     `Cannot extract content from "${source}". Supported: URLs (http/https), files, or directories.`
   );
 }

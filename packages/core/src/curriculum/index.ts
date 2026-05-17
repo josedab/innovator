@@ -11,6 +11,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Skill & Difficulty ----
 
@@ -182,7 +183,7 @@ export async function generateLearningPath(
     signal?: AbortSignal;
   } = {}
 ): Promise<LearningPath> {
-  if (weakSkills.length === 0) throw new Error("At least one target skill is required");
+  if (weakSkills.length === 0) throw new ValidationError("At least one target skill is required");
 
   const difficulty = options.difficulty ?? "intermediate";
   const maxModules = options.maxModules ?? 10;

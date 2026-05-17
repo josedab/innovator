@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 export const TenantRoleSchema = z.enum(["owner", "admin", "member", "viewer"]);
 export type TenantRole = z.infer<typeof TenantRoleSchema>;
@@ -111,7 +112,7 @@ export function createTenantWorkspace(params: {
   billingTier?: BillingTier;
 }): TenantWorkspace {
   if (Array.from(tenantWorkspaces.values()).some((workspace) => workspace.slug === params.slug)) {
-    throw new Error(`Tenant workspace slug "${params.slug}" already exists`);
+    throw new ValidationError(`Tenant workspace slug "${params.slug}" already exists`);
   }
 
   const now = new Date().toISOString();
@@ -164,7 +165,7 @@ export function addTenantMember(
 
   const tier = getOrCreateUsageMeter(workspaceId).tier;
   if (workspace.members.length >= getTierLimits(tier).maxMembers) {
-    throw new Error(`Tenant workspace has reached the ${tier} member limit`);
+    throw new ValidationError(`Tenant workspace has reached the ${tier} member limit`);
   }
 
   const updated = TenantWorkspaceSchema.parse({
@@ -198,7 +199,7 @@ export function removeTenantMember(
 
   const ownerCount = workspace.members.filter((existing) => existing.role === "owner").length;
   if (member.role === "owner" && ownerCount <= 1) {
-    throw new Error("Cannot remove the last owner from a tenant workspace");
+    throw new ValidationError("Cannot remove the last owner from a tenant workspace");
   }
 
   const updated = TenantWorkspaceSchema.parse({
@@ -225,7 +226,7 @@ export function updateTenantMemberRole(
 
   const ownerCount = workspace.members.filter((member) => member.role === "owner").length;
   if (currentMember.role === "owner" && role !== "owner" && ownerCount <= 1) {
-    throw new Error("Cannot demote the last owner of a tenant workspace");
+    throw new ValidationError("Cannot demote the last owner of a tenant workspace");
   }
 
   const updated = TenantWorkspaceSchema.parse({
@@ -255,7 +256,7 @@ export function recordUsage(
   tokens: number = 0
 ): UsageMeter {
   const workspace = tenantWorkspaces.get(workspaceId);
-  if (!workspace) throw new Error(`Tenant workspace "${workspaceId}" not found`);
+  if (!workspace) throw new ValidationError(`Tenant workspace "${workspaceId}" not found`);
 
   const current = getOrCreateUsageMeter(workspaceId);
   const updated = UsageMeterSchema.parse({

@@ -26,6 +26,7 @@ import type {
   Migration,
   MigrationStatus,
 } from "./types.js";
+import { ConfigurationError } from "../../errors.js";
 
 export class FilesystemDriver implements DatabaseDriver {
   readonly name = "filesystem";
@@ -181,11 +182,11 @@ export class FilesystemDriver implements DatabaseDriver {
   }
 
   async rawQuery<T = Record<string, unknown>>(_sql: string, _params?: unknown[]): Promise<T[]> {
-    throw new Error("Raw SQL queries not supported by filesystem driver");
+    throw new ConfigurationError("Raw SQL queries not supported by filesystem driver");
   }
 
   async rawExec(_sql: string, _params?: unknown[]): Promise<void> {
-    throw new Error("Raw SQL execution not supported by filesystem driver");
+    throw new ConfigurationError("Raw SQL execution not supported by filesystem driver");
   }
 
   async getMigrationStatus(): Promise<MigrationStatus> {

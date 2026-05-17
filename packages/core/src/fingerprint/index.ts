@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 import { wrapUserInput } from "../prompts/sanitize.js";
 import type { InnovationIdea, Investigation } from "../types.js";
 
@@ -167,7 +168,10 @@ export async function generateFingerprint(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse fingerprint response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse fingerprint response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr
+        );
       }
     },
     {
@@ -211,7 +215,7 @@ export function findSimilar(
   maxResults: number = 10
 ): SimilarityMatch[] {
   if (threshold < 0 || threshold > 1) {
-    throw new Error("Threshold must be between 0 and 1");
+    throw new ValidationError("Threshold must be between 0 and 1");
   }
 
   const matches: SimilarityMatch[] = [];

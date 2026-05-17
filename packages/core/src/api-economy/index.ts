@@ -15,6 +15,7 @@ import {
   UsageSummarySchema,
   PricingTierSchema,
 } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 export * from "./types.js";
 
@@ -162,7 +163,7 @@ export function createApiClient(
  */
 export function generateApiKey(clientId: string): { key: ApiKey; rawKey: string } {
   const client = clients.get(clientId);
-  if (!client) throw new Error(`Client ${clientId} not found`);
+  if (!client) throw new ValidationError(`Client ${clientId} not found`);
 
   const tierConfig = getTierConfig(client.tier);
   const rawKey = `inno_${randomUUID().replace(/-/g, "")}`;
@@ -209,18 +210,18 @@ export function validateApiKey(
     }
   }
 
-  if (!matchedKey) throw new Error("Invalid API key");
-  if (matchedKey.status !== "active") throw new Error("API key is revoked");
+  if (!matchedKey) throw new ValidationError("Invalid API key");
+  if (matchedKey.status !== "active") throw new ValidationError("API key is revoked");
 
   // Check endpoint access
   if (!matchedKey.allowedEndpoints.includes(endpoint)) {
-    throw new Error(`Endpoint ${endpoint} not allowed on this tier`);
+    throw new ValidationError(`Endpoint ${endpoint} not allowed on this tier`);
   }
 
   // Check client status
   const client = clients.get(matchedKey.clientId);
-  if (!client) throw new Error("Client not found");
-  if (client.status !== "active") throw new Error(`Client account is ${client.status}`);
+  if (!client) throw new ValidationError("Client not found");
+  if (client.status !== "active") throw new ValidationError(`Client account is ${client.status}`);
 
   // Check rate limits
   const now = Date.now();
@@ -236,11 +237,11 @@ export function validateApiKey(
   ).length;
 
   if (recentMinute >= matchedKey.rateLimit) {
-    throw new Error(`Rate limit exceeded: ${matchedKey.rateLimit} requests/minute`);
+    throw new ValidationError(`Rate limit exceeded: ${matchedKey.rateLimit} requests/minute`);
   }
 
   if (todayTotal >= matchedKey.dailyQuota) {
-    throw new Error(`Daily quota exceeded: ${matchedKey.dailyQuota} requests/day`);
+    throw new ValidationError(`Daily quota exceeded: ${matchedKey.dailyQuota} requests/day`);
   }
 
   return {
@@ -263,7 +264,7 @@ export function generateSessionToken(
   expiresInSeconds: number = 3600
 ): string {
   const client = clients.get(clientId);
-  if (!client) throw new Error(`Client ${clientId} not found`);
+  if (!client) throw new ValidationError(`Client ${clientId} not found`);
 
   const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
   const payload = Buffer.from(
@@ -288,7 +289,7 @@ export function validateSessionToken(
   secret: string
 ): { clientId: string; tier: string; expired: boolean } {
   const parts = token.split(".");
-  if (parts.length !== 3) throw new Error("Invalid token format");
+  if (parts.length !== 3) throw new ValidationError("Invalid token format");
 
   const [header, payload, signature] = parts;
 
@@ -296,7 +297,7 @@ export function validateSessionToken(
     .update(`${header}.${payload}`)
     .digest("base64url");
 
-  if (signature !== expectedSig) throw new Error("Invalid token signature");
+  if (signature !== expectedSig) throw new ValidationError("Invalid token signature");
 
   const data = JSON.parse(Buffer.from(payload, "base64url").toString());
   const expired = data.exp < Math.floor(Date.now() / 1000);
@@ -341,7 +342,7 @@ export function recordUsage(params: {
  */
 export function getUsageSummary(clientId: string, period?: string): UsageSummary {
   const client = clients.get(clientId);
-  if (!client) throw new Error(`Client ${clientId} not found`);
+  if (!client) throw new ValidationError(`Client ${clientId} not found`);
 
   const currentPeriod = period ?? new Date().toISOString().slice(0, 7);
   const records = usageRecords.filter(

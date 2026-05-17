@@ -11,6 +11,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, sanitizeUserInput, wrapUserInput } from "../prompts/sanitize.js";
 import type { AngleResult, Investigation } from "../types.js";
+import { LlmParseError } from "../errors.js";
 
 /** Zod schema for a scored idea. */
 export const IdeaScoreSchema = z.object({
@@ -139,7 +140,10 @@ export async function scoreIdeas(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse scoring response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse scoring response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

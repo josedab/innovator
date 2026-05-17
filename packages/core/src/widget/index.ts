@@ -50,6 +50,14 @@ export function generateEmbedCode(options: {
  */
 export const WIDGET_SOURCE = `
 (function() {
+  class LlmError extends Error {
+    constructor(message) {
+      super(message);
+      this.name = 'LlmError';
+      this.code = 'ERR_LLM';
+    }
+  }
+
   class InnovatorWidget extends HTMLElement {
     constructor() {
       super();
@@ -108,7 +116,7 @@ export const WIDGET_SOURCE = `
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({ error: 'Request failed' }));
-          throw new Error(data.error || 'Request failed');
+          throw new LlmError(data.error || 'Request failed');
         }
 
         this._result = await res.json();

@@ -13,6 +13,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 import type { InnovationIdea } from "../types.js";
 import {
   GenomeTraitSchema,
@@ -84,10 +85,10 @@ export async function sequenceIdea(
   } = {}
 ): Promise<IdeaGenome> {
   if (!idea.title?.trim()) {
-    throw new Error("Idea title is required for genome sequencing");
+    throw new ValidationError("Idea title is required for genome sequencing");
   }
   if (!idea.description?.trim()) {
-    throw new Error("Idea description is required for genome sequencing");
+    throw new ValidationError("Idea description is required for genome sequencing");
   }
 
   const prompt = `Decompose the following innovation idea into its fundamental "genome" traits.
@@ -259,7 +260,7 @@ export async function recombine(
   options: { model?: string; signal?: AbortSignal } = {}
 ): Promise<RecombinantIdea> {
   if (genomeA.traits.length === 0 && genomeB.traits.length === 0) {
-    throw new Error("At least one genome must have traits for recombination");
+    throw new ValidationError("At least one genome must have traits for recombination");
   }
 
   const traitSources: RecombinantIdea["traitSources"] = [];

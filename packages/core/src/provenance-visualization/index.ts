@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 import type { Investigation, AngleResult, Synthesis } from "../types.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -168,8 +169,8 @@ export function buildProvenanceChain(
     novelty?: number;
   }>
 ): VisualizationProvenanceChain {
-  if (!subject) throw new Error("Subject is required for provenance chain");
-  if (!investigation) throw new Error("Investigation is required for provenance chain");
+  if (!subject) throw new ValidationError("Subject is required for provenance chain");
+  if (!investigation) throw new ValidationError("Investigation is required for provenance chain");
 
   const findings: VisualizationProvenanceChain["investigationFindings"] = [];
   const connections: ProvenanceConnection[] = [];

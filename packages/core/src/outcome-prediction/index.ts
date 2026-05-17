@@ -12,6 +12,7 @@ import { z } from "zod";
 import { generateText } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Zod Schemas ----
 
@@ -158,7 +159,7 @@ export function trainModel(options?: { learningRate?: number; epochs?: number })
   const epochs = options?.epochs ?? 100;
 
   if (trainingData.length < 5) {
-    throw new Error("Insufficient training data (minimum 5 samples required)");
+    throw new ValidationError("Insufficient training data (minimum 5 samples required)");
   }
 
   // Prepare training data

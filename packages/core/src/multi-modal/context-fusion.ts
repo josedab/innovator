@@ -12,6 +12,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
 import type { Attachment } from "./index.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -53,7 +54,7 @@ export type FusedContext = z.infer<typeof FusedContextSchema>;
  * Process a PDF attachment and extract text content.
  */
 export function processPdfInput(attachment: Attachment): InputSource {
-  if (attachment.type !== "pdf") throw new Error("Expected PDF attachment");
+  if (attachment.type !== "pdf") throw new ValidationError("Expected PDF attachment");
 
   return {
     id: attachment.id,
@@ -70,7 +71,7 @@ export function processPdfInput(attachment: Attachment): InputSource {
  * Process an image attachment with OCR/description.
  */
 export function processImageInput(attachment: Attachment): InputSource {
-  if (attachment.type !== "image") throw new Error("Expected image attachment");
+  if (attachment.type !== "image") throw new ValidationError("Expected image attachment");
 
   return {
     id: attachment.id,
@@ -87,7 +88,7 @@ export function processImageInput(attachment: Attachment): InputSource {
  * Process an audio attachment with transcription.
  */
 export function processAudioInput(attachment: Attachment): InputSource {
-  if (attachment.type !== "audio") throw new Error("Expected audio attachment");
+  if (attachment.type !== "audio") throw new ValidationError("Expected audio attachment");
 
   return {
     id: attachment.id,
@@ -104,7 +105,7 @@ export function processAudioInput(attachment: Attachment): InputSource {
  * Process a URL attachment by extracting page content.
  */
 export function processUrlInput(attachment: Attachment): InputSource {
-  if (attachment.type !== "url") throw new Error("Expected URL attachment");
+  if (attachment.type !== "url") throw new ValidationError("Expected URL attachment");
 
   return {
     id: attachment.id,

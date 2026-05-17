@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { runRegulatoryPreScreening, detectBias, addAuditEntry } from "./governance.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Constraint Set Schemas ----
 
@@ -337,7 +338,7 @@ export function screenIdea(
   initializePreBuiltSets();
   const constraintSet = constraintSets.get(constraintSetId);
   if (!constraintSet) {
-    throw new Error(`Constraint set "${constraintSetId}" not found`);
+    throw new ValidationError(`Constraint set "${constraintSetId}" not found`);
   }
 
   const exempt = new Set(exemptConstraints ?? []);
@@ -486,7 +487,7 @@ export function createExperiment(input: {
 }): SandboxExperiment {
   initializePreBuiltSets();
   if (!constraintSets.has(input.constraintSetId)) {
-    throw new Error(`Constraint set "${input.constraintSetId}" not found`);
+    throw new ValidationError(`Constraint set "${input.constraintSetId}" not found`);
   }
 
   const experiment = SandboxExperimentSchema.parse({
@@ -534,8 +535,8 @@ export function screenIdeaInSandbox(
   ideaDescription: string
 ): ScreeningResult {
   const experiment = experiments.get(experimentId);
-  if (!experiment) throw new Error(`Experiment "${experimentId}" not found`);
-  if (experiment.status !== "active") throw new Error("Experiment is not active");
+  if (!experiment) throw new ValidationError(`Experiment "${experimentId}" not found`);
+  if (experiment.status !== "active") throw new ValidationError("Experiment is not active");
 
   return screenIdea(
     ideaTitle,

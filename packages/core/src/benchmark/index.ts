@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
 import { investigate } from "../innovation/investigate.js";
 import { generateForAngle } from "../innovation/generate.js";
@@ -139,7 +140,10 @@ export async function evaluateAngleResult(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse evaluation response: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse evaluation response: ${jsonStr.slice(0, 200)}`,
+          jsonStr
+        );
       }
     },
     {
@@ -175,7 +179,7 @@ export async function runBenchmark(
   signal?: AbortSignal
 ): Promise<BenchmarkReport> {
   if (models.length === 0) {
-    throw new Error("At least one model is required for benchmarking");
+    throw new ValidationError("At least one model is required for benchmarking");
   }
 
   const angles: AngleId[] = angleIds ?? [...ANGLE_IDS];

@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ConfigurationError, LlmError } from "../errors.js";
 
 /** Zod schema for a GitHub user profile returned after OAuth. */
 export const GitHubUserSchema = z.object({
@@ -57,7 +58,7 @@ function getConfig(): OAuthConfig {
 export function getAuthorizationUrl(returnTo?: string): { url: string; state: string } {
   const config = getConfig();
   if (!config.clientId) {
-    throw new Error("GITHUB_CLIENT_ID not configured");
+    throw new ConfigurationError("GITHUB_CLIENT_ID not configured");
   }
 
   const state = randomUUID();
@@ -114,12 +115,12 @@ export async function exchangeCodeForUser(code: string): Promise<GitHubUser> {
   });
 
   if (!tokenResponse.ok) {
-    throw new Error(`Token exchange failed: ${tokenResponse.status}`);
+    throw new LlmError(`Token exchange failed: ${tokenResponse.status}`);
   }
 
   const tokenData = (await tokenResponse.json()) as { access_token?: string; error?: string };
   if (tokenData.error || !tokenData.access_token) {
-    throw new Error(`OAuth error: ${tokenData.error ?? "no access token"}`);
+    throw new LlmError(`OAuth error: ${tokenData.error ?? "no access token"}`);
   }
 
   const userResponse = await fetch("https://api.github.com/user", {
@@ -130,7 +131,7 @@ export async function exchangeCodeForUser(code: string): Promise<GitHubUser> {
   });
 
   if (!userResponse.ok) {
-    throw new Error(`User fetch failed: ${userResponse.status}`);
+    throw new LlmError(`User fetch failed: ${userResponse.status}`);
   }
 
   const userData = (await userResponse.json()) as {

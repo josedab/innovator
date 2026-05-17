@@ -8,6 +8,7 @@
  */
 
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -172,7 +173,7 @@ export function selectModel(
   complexity?: "low" | "medium" | "high"
 ): RoutingDecision {
   if (availableModels.length === 0) {
-    throw new Error("No models available for selection");
+    throw new ValidationError("No models available for selection");
   }
 
   // For low complexity, bias toward cheaper models

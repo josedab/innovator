@@ -10,6 +10,7 @@
 import { z } from "zod";
 import { getModelRegistry } from "../models/index.js";
 import type { ModelCapability } from "../types.js";
+import { PipelineError } from "../errors.js";
 
 // ---- Zod Schemas ----
 
@@ -224,7 +225,7 @@ export function routeModel(
   }
 
   if (candidates.length === 0) {
-    throw new Error(`No models available for stage "${stage}"`);
+    throw new PipelineError(`No models available for stage "${stage}"`, stage);
   }
 
   // Thompson sampling

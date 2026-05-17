@@ -15,6 +15,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput } from "../prompts/sanitize.js";
 import type { AngleResult, Investigation, Synthesis } from "../types.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Zod Schemas ----
 
@@ -270,7 +271,7 @@ export async function advancePhase(
 
   const { canAdvance, reason } = canAdvancePhase(sprint);
   if (!canAdvance) {
-    throw new Error(reason ?? "Cannot advance phase");
+    throw new ValidationError(reason ?? "Cannot advance phase");
   }
 
   // Generate checkpoint for current phase

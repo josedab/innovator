@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -129,8 +130,8 @@ export function createABTest(
   metrics: TestMetric[],
   config?: Partial<ABTestConfig>
 ): ABTest {
-  if (variants.length < 2) throw new Error("At least two variants are required");
-  if (metrics.length < 1) throw new Error("At least one metric is required");
+  if (variants.length < 2) throw new ValidationError("At least two variants are required");
+  if (metrics.length < 1) throw new ValidationError("At least one metric is required");
 
   const id = `ab_${Date.now().toString(36)}_${randomUUID().slice(0, 8)}`;
   const resolvedConfig = ABTestConfigSchema.parse(config ?? {});
@@ -191,9 +192,9 @@ export async function runABTest(
   }>
 ): Promise<ABTest> {
   const test = abTests.get(testId);
-  if (!test) throw new Error(`A/B test not found: ${testId}`);
-  if (test.status === "completed") throw new Error("Test already completed");
-  if (test.status === "cancelled") throw new Error("Test has been cancelled");
+  if (!test) throw new ValidationError(`A/B test not found: ${testId}`);
+  if (test.status === "completed") throw new ValidationError("Test already completed");
+  if (test.status === "cancelled") throw new ValidationError("Test has been cancelled");
 
   test.status = "running";
   test.startedAt = test.startedAt ?? new Date().toISOString();
@@ -244,10 +245,10 @@ export function recordTestResult(
   }
 ): TestResult {
   const test = abTests.get(testId);
-  if (!test) throw new Error(`A/B test not found: ${testId}`);
+  if (!test) throw new ValidationError(`A/B test not found: ${testId}`);
 
   const variant = test.variants.find((v) => v.id === variantId);
-  if (!variant) throw new Error(`Variant not found: ${variantId}`);
+  if (!variant) throw new ValidationError(`Variant not found: ${variantId}`);
 
   if (test.status === "draft") {
     test.status = "running";
@@ -272,9 +273,9 @@ export function recordTestResult(
 /** Run full statistical analysis on an A/B test. */
 export function analyzeResults(testId: string): StatisticalAnalysis {
   const test = abTests.get(testId);
-  if (!test) throw new Error(`A/B test not found: ${testId}`);
+  if (!test) throw new ValidationError(`A/B test not found: ${testId}`);
 
-  if (test.metrics.length === 0) throw new Error("Test has no metrics defined");
+  if (test.metrics.length === 0) throw new ValidationError("Test has no metrics defined");
   const primaryMetrics = test.metrics.filter((m) => m.primary);
   const metricsToAnalyze = primaryMetrics.length > 0 ? primaryMetrics : [test.metrics[0]!];
 
@@ -543,7 +544,7 @@ export function checkEarlyStop(test: ABTest): {
 /** Generate a human-readable markdown summary of the test. */
 export function getTestSummary(testId: string): string {
   const test = abTests.get(testId);
-  if (!test) throw new Error(`A/B test not found: ${testId}`);
+  if (!test) throw new ValidationError(`A/B test not found: ${testId}`);
 
   const lines: string[] = [];
   lines.push(`# A/B Test: ${test.name}`);
@@ -702,7 +703,7 @@ export async function compareAngleStrategies(
 /** Export test report in the specified format. */
 export function exportTestReport(testId: string, format: "markdown" | "json" = "markdown"): string {
   const test = abTests.get(testId);
-  if (!test) throw new Error(`A/B test not found: ${testId}`);
+  if (!test) throw new ValidationError(`A/B test not found: ${testId}`);
 
   if (format === "json") {
     const analysis = test.variants.some((v) => v.results.length >= 2)

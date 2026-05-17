@@ -96,6 +96,7 @@ export type {
 
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 
 // ---- Plan Definitions ----
 
@@ -309,7 +310,7 @@ export function createTenant(input: {
   billingEmail?: string;
 }): Tenant {
   if (Array.from(tenants.values()).some((t) => t.slug === input.slug)) {
-    throw new Error(`Tenant slug "${input.slug}" already exists`);
+    throw new ValidationError(`Tenant slug "${input.slug}" already exists`);
   }
 
   const now = new Date().toISOString();
@@ -713,7 +714,7 @@ export function createWorkspace(input: {
       (w) => w.slug === input.slug && w.tenantId === input.tenantId
     )
   ) {
-    throw new Error(`Workspace slug "${input.slug}" already exists in this tenant`);
+    throw new ValidationError(`Workspace slug "${input.slug}" already exists in this tenant`);
   }
 
   const now = new Date().toISOString();
@@ -765,7 +766,7 @@ export function removeWorkspaceMember(workspaceId: string, userId: string): bool
   const ownerCount = ws.members.filter((m) => m.role === "owner").length;
   const member = ws.members.find((m) => m.userId === userId);
   if (member?.role === "owner" && ownerCount <= 1) {
-    throw new Error("Cannot remove the last owner of a workspace");
+    throw new ValidationError("Cannot remove the last owner of a workspace");
   }
 
   ws.members = ws.members.filter((m) => m.userId !== userId);

@@ -10,6 +10,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeUserInput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -186,10 +187,10 @@ export async function publishListing(
   options: PublishListingOptions = {}
 ): Promise<IdeaListing> {
   if (!idea.title || idea.title.trim().length === 0) {
-    throw new Error("Idea title is required");
+    throw new ValidationError("Idea title is required");
   }
   if (!orgName || orgName.trim().length === 0) {
-    throw new Error("Organization name is required");
+    throw new ValidationError("Organization name is required");
   }
 
   const anonymizationLevel = config.anonymizationLevel ?? "moderate";
@@ -328,7 +329,7 @@ export function getListing(id: string): IdeaListing | undefined {
  */
 export function createTransaction(listingId: string, buyerOrg: string): Transaction {
   const listing = listings.get(listingId);
-  if (!listing) throw new Error(`Listing not found: ${listingId}`);
+  if (!listing) throw new ValidationError(`Listing not found: ${listingId}`);
 
   const transaction: Transaction = {
     id: `tx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -351,9 +352,9 @@ export function createTransaction(listingId: string, buyerOrg: string): Transact
  */
 export function completeTransaction(transactionId: string): Transaction {
   const tx = transactions.get(transactionId);
-  if (!tx) throw new Error(`Transaction not found: ${transactionId}`);
+  if (!tx) throw new ValidationError(`Transaction not found: ${transactionId}`);
   if (tx.status !== "escrow" && tx.status !== "pending") {
-    throw new Error(`Cannot complete transaction in ${tx.status} status`);
+    throw new ValidationError(`Cannot complete transaction in ${tx.status} status`);
   }
 
   tx.status = "completed";
@@ -366,9 +367,9 @@ export function completeTransaction(transactionId: string): Transaction {
  */
 export function cancelTransaction(transactionId: string): Transaction {
   const tx = transactions.get(transactionId);
-  if (!tx) throw new Error(`Transaction not found: ${transactionId}`);
+  if (!tx) throw new ValidationError(`Transaction not found: ${transactionId}`);
   if (tx.status === "completed") {
-    throw new Error("Cannot cancel a completed transaction");
+    throw new ValidationError("Cannot cancel a completed transaction");
   }
 
   tx.status = "cancelled";
@@ -380,7 +381,7 @@ export function cancelTransaction(transactionId: string): Transaction {
  */
 export function createInquiry(listingId: string, fromOrg: string, message: string): Inquiry {
   const listing = listings.get(listingId);
-  if (!listing) throw new Error(`Listing not found: ${listingId}`);
+  if (!listing) throw new ValidationError(`Listing not found: ${listingId}`);
 
   const inquiry: Inquiry = {
     id: `inquiry-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

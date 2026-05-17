@@ -12,6 +12,7 @@ import {
   type RiskCategory,
   type RiskClassification,
 } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 export interface GenerateDossierOptions {
   conceptDescription?: string;
@@ -272,7 +273,7 @@ function uniqueRegulations(
 function requireClassification(classificationId: string): RiskClassification {
   const classification = classifications.get(classificationId);
   if (!classification) {
-    throw new Error(`Risk classification not found: ${classificationId}`);
+    throw new ValidationError(`Risk classification not found: ${classificationId}`);
   }
   return classification;
 }

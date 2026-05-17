@@ -6,6 +6,7 @@
  */
 
 import { createHmac } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- Types ----
 
@@ -43,7 +44,7 @@ export class WebhookRegistry {
     try {
       new URL(url);
     } catch {
-      throw new Error(`Invalid webhook URL: ${url}`);
+      throw new ValidationError(`Invalid webhook URL: ${url}`);
     }
 
     const id = `wh_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;

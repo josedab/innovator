@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 import type { Investigation, AngleResult, Synthesis, PipelineProgress } from "../types.js";
 
@@ -129,7 +130,10 @@ Provide 3-4 roadmap phases, 4-6 risks, and 3-5 next steps.`;
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse playbook sections: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse playbook sections: ${jsonStr.slice(0, 200)}`,
+          jsonStr
+        );
       }
     },
     {
@@ -341,7 +345,7 @@ export async function generatePlaybook(
   signal?: AbortSignal
 ): Promise<Playbook> {
   if (!subject || !investigation || angleResults.length === 0 || !synthesis) {
-    throw new Error("Complete pipeline results required to generate a playbook");
+    throw new ValidationError("Complete pipeline results required to generate a playbook");
   }
 
   const sections = await generatePlaybookSections(
@@ -384,7 +388,7 @@ export async function generatePlaybookFromPipeline(
   signal?: AbortSignal
 ): Promise<Playbook> {
   if (progress.stage !== "complete" || !progress.investigation || !progress.synthesis) {
-    throw new Error(
+    throw new ValidationError(
       "Pipeline must be complete with investigation and synthesis to generate a playbook"
     );
   }

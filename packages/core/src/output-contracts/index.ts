@@ -7,6 +7,7 @@
  */
 
 import { z, type ZodType, type ZodObject, type ZodRawShape } from "zod";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -99,7 +100,7 @@ export function registerContract(
   }
 ): OutputContract {
   if (!/^[a-z0-9-]+$/.test(id)) {
-    throw new Error("Contract ID must be lowercase alphanumeric with hyphens");
+    throw new ValidationError("Contract ID must be lowercase alphanumeric with hyphens");
   }
 
   const contract: OutputContract = {

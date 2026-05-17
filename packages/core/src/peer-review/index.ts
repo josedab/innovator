@@ -12,6 +12,7 @@ import { randomUUID } from "node:crypto";
 import { generateText } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Zod Schemas ----
 
@@ -328,7 +329,7 @@ export function computeMatchScore(profile: ExpertiseProfile, request: ReviewRequ
 /** Match reviewers to a review request, returning top N matches. */
 export function matchReviewers(requestId: string, maxReviewers: number = 3): string[] {
   const request = requests.get(requestId);
-  if (!request) throw new Error(`Review request ${requestId} not found`);
+  if (!request) throw new ValidationError(`Review request ${requestId} not found`);
 
   const candidates = listAvailableReviewers();
   const scored = candidates
@@ -400,12 +401,12 @@ export function submitReview(
   verdict: ReviewForm["verdict"]
 ): ReviewForm {
   const request = requests.get(requestId);
-  if (!request) throw new Error(`Review request ${requestId} not found`);
+  if (!request) throw new ValidationError(`Review request ${requestId} not found`);
   if (!request.matchedReviewers.includes(reviewerId)) {
-    throw new Error("Reviewer is not matched to this request.");
+    throw new ValidationError("Reviewer is not matched to this request.");
   }
   if (request.reviews.some((r) => r.reviewerId === reviewerId)) {
-    throw new Error("Reviewer has already submitted a review for this request.");
+    throw new ValidationError("Reviewer has already submitted a review for this request.");
   }
 
   const now = new Date().toISOString();
@@ -423,7 +424,8 @@ export function submitReview(
   };
 
   const errors = validateAntiGaming(reviewerId, request, form);
-  if (errors.length > 0) throw new Error(`Anti-gaming validation failed: ${errors.join("; ")}`);
+  if (errors.length > 0)
+    throw new ValidationError(`Anti-gaming validation failed: ${errors.join("; ")}`);
 
   const validated = ReviewFormSchema.parse(form);
   request.reviews.push(validated);
@@ -451,9 +453,11 @@ export function submitReview(
 /** Respond to reviews and close the request. */
 export function closeReviewRequest(requestId: string, authorId: string): ReviewRequest {
   const request = requests.get(requestId);
-  if (!request) throw new Error(`Review request ${requestId} not found`);
-  if (request.authorId !== authorId) throw new Error("Only the author can close a review request.");
-  if (request.reviews.length === 0) throw new Error("Cannot close request with no reviews.");
+  if (!request) throw new ValidationError(`Review request ${requestId} not found`);
+  if (request.authorId !== authorId)
+    throw new ValidationError("Only the author can close a review request.");
+  if (request.reviews.length === 0)
+    throw new ValidationError("Cannot close request with no reviews.");
 
   request.status = "closed";
   request.closedAt = new Date().toISOString();
@@ -574,9 +578,9 @@ export async function generateReviewGuidance(
   options?: { model?: string; signal?: AbortSignal }
 ): Promise<string> {
   const request = requests.get(requestId);
-  if (!request) throw new Error(`Review request ${requestId} not found`);
+  if (!request) throw new ValidationError(`Review request ${requestId} not found`);
   const profile = profiles.get(reviewerId);
-  if (!profile) throw new Error(`Reviewer profile ${reviewerId} not found`);
+  if (!profile) throw new ValidationError(`Reviewer profile ${reviewerId} not found`);
 
   const prompt = `You are an innovation review coach. Generate review guidance for a peer reviewer.
 

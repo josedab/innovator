@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 import { wrapUserInput } from "../prompts/sanitize.js";
 
 // ---- Schemas ----
@@ -240,9 +241,9 @@ export async function evaluateWithPersona(
   personaId: string,
   options: EvaluationOptions = {}
 ): Promise<PersonaScorecard> {
-  if (!idea || idea.trim().length === 0) throw new Error("Idea cannot be empty");
+  if (!idea || idea.trim().length === 0) throw new ValidationError("Idea cannot be empty");
   const persona = getPersona(personaId);
-  if (!persona) throw new Error(`Persona not found: ${personaId}`);
+  if (!persona) throw new ValidationError(`Persona not found: ${personaId}`);
 
   return withRetry(
     async () => {
@@ -256,7 +257,7 @@ export async function evaluateWithPersona(
       try {
         parsed = JSON.parse(jsonStr);
       } catch {
-        throw new Error(`Failed to parse persona evaluation response as JSON`);
+        throw new LlmParseError("Failed to parse persona evaluation response as JSON", jsonStr);
       }
       return PersonaScorecardSchema.parse({
         personaId,
@@ -274,8 +275,9 @@ export async function evaluateWithMultiplePersonas(
   personaIds: string[],
   options: EvaluationOptions = {}
 ): Promise<PersonaScorecard[]> {
-  if (!idea || idea.trim().length === 0) throw new Error("Idea cannot be empty");
-  if (!personaIds || personaIds.length === 0) throw new Error("At least one persona ID required");
+  if (!idea || idea.trim().length === 0) throw new ValidationError("Idea cannot be empty");
+  if (!personaIds || personaIds.length === 0)
+    throw new ValidationError("At least one persona ID required");
   const results = await Promise.allSettled(
     personaIds.map((id) => evaluateWithPersona(idea, id, options))
   );

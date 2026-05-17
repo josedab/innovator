@@ -20,6 +20,7 @@ import {
   type OutputModeDefinition,
   getOutputMode,
 } from "../prompts/output-modes/index.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // Re-export types and definitions
 export {
@@ -64,7 +65,9 @@ export async function transformForAudience(
 ): Promise<AudienceOutput> {
   const modeDef = getOutputMode(mode);
   if (!modeDef) {
-    throw new Error(`Unknown output mode: ${mode}. Valid modes: ${OUTPUT_MODES.join(", ")}`);
+    throw new ValidationError(
+      `Unknown output mode: ${mode}. Valid modes: ${OUTPUT_MODES.join(", ")}`
+    );
   }
 
   const buildPrompt = OUTPUT_MODE_PROMPTS[mode];
@@ -78,7 +81,10 @@ export async function transformForAudience(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse ${mode} output as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse ${mode} output as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

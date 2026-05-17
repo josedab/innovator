@@ -7,6 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 
 // ---- Types ----
 
@@ -113,11 +114,11 @@ export function createTeam(input: {
   description?: string;
 }): Team {
   if ([...teams.values()].some((t) => t.slug === input.slug)) {
-    throw new Error(`Team slug "${input.slug}" already exists`);
+    throw new ValidationError(`Team slug "${input.slug}" already exists`);
   }
 
   if (input.parentId && !teams.has(input.parentId)) {
-    throw new Error(`Parent team "${input.parentId}" not found`);
+    throw new ValidationError(`Parent team "${input.parentId}" not found`);
   }
 
   const now = new Date().toISOString();
@@ -170,7 +171,7 @@ export function addTeamMember(teamId: string, userId: string): boolean {
     team.settings.maxMembers > 0 &&
     team.memberIds.length >= team.settings.maxMembers
   ) {
-    throw new Error(
+    throw new ValidationError(
       `Team "${team.name}" has reached its member limit (${team.settings.maxMembers})`
     );
   }
@@ -198,7 +199,7 @@ export function deleteTeam(id: string): boolean {
   // Check for child teams
   const children = [...teams.values()].filter((t) => t.parentId === id);
   if (children.length > 0) {
-    throw new Error("Cannot delete team with child teams. Remove children first.");
+    throw new ValidationError("Cannot delete team with child teams. Remove children first.");
   }
 
   return teams.delete(id);

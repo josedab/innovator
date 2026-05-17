@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- Package Standard ----
 
@@ -197,7 +198,7 @@ export function searchCatalog(opts?: {
  */
 export function installPackage(packageId: string): PackageListing {
   const listing = catalog.get(packageId);
-  if (!listing) throw new Error(`Package "${packageId}" not found`);
+  if (!listing) throw new ValidationError(`Package "${packageId}" not found`);
 
   listing.downloads++;
   listing.installCount++;
@@ -220,7 +221,7 @@ export function submitReview(params: {
   body?: string;
 }): Review {
   const listing = catalog.get(params.packageId);
-  if (!listing) throw new Error(`Package "${params.packageId}" not found`);
+  if (!listing) throw new ValidationError(`Package "${params.packageId}" not found`);
 
   // Check for duplicate review
   const existingIdx = listing.reviews.findIndex((r) => r.userId === params.userId);
@@ -255,7 +256,7 @@ export function submitReview(params: {
  */
 export function featurePackage(packageId: string, featured: boolean = true): PackageListing {
   const listing = catalog.get(packageId);
-  if (!listing) throw new Error(`Package "${packageId}" not found`);
+  if (!listing) throw new ValidationError(`Package "${packageId}" not found`);
   listing.featured = featured;
   return listing;
 }
@@ -265,7 +266,7 @@ export function featurePackage(packageId: string, featured: boolean = true): Pac
  */
 export function verifyPackage(packageId: string, verified: boolean = true): PackageListing {
   const listing = catalog.get(packageId);
-  if (!listing) throw new Error(`Package "${packageId}" not found`);
+  if (!listing) throw new ValidationError(`Package "${packageId}" not found`);
   listing.manifest.verified = verified;
   return listing;
 }

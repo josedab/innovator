@@ -10,6 +10,7 @@
 import { z } from "zod";
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join, extname, relative } from "node:path";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -787,7 +788,7 @@ export async function analyzeCodebase(options: CodebaseAnalysisOptions): Promise
   } = options;
 
   if (!existsSync(rootPath)) {
-    throw new Error(`Root path does not exist: ${rootPath}`);
+    throw new ValidationError(`Root path does not exist: ${rootPath}`);
   }
 
   // Discover files
@@ -879,7 +880,7 @@ export function analyzeCodebaseSync(
   options?: Partial<CodebaseAnalysisOptions>
 ): Omit<CodebaseAnalysis, "subjects"> & { subjects: CodebaseSubject[] } {
   if (!existsSync(rootPath)) {
-    throw new Error(`Root path does not exist: ${rootPath}`);
+    throw new ValidationError(`Root path does not exist: ${rootPath}`);
   }
 
   const exclude = options?.exclude ?? DEFAULT_EXCLUDE;

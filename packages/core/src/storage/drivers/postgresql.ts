@@ -20,6 +20,7 @@ import type {
   Migration,
   MigrationStatus,
 } from "./types.js";
+import { ConfigurationError, PipelineError, ValidationError } from "../../errors.js";
 
 export interface PostgreSQLConfig {
   host: string;
@@ -35,18 +36,27 @@ export interface PostgreSQLConfig {
 const SAFE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 function assertSafeIdentifier(name: string, label: string): void {
   if (!SAFE_IDENTIFIER.test(name) || name.length > 128) {
-    throw new Error(
+    throw new ValidationError(
       `Invalid ${label}: "${name}". Identifiers must be alphanumeric/underscore and ≤128 chars.`
     );
   }
+}
+
+/** Minimal interface for pg Pool (avoids `any` for dynamic import). */
+interface PgPool {
+  query(
+    sql: string,
+    params?: unknown[]
+  ): Promise<{ rows: Record<string, unknown>[]; rowCount: number }>;
+  connect(): Promise<{ release(): void }>;
+  end(): Promise<void>;
 }
 
 export class PostgreSQLDriver implements DatabaseDriver {
   readonly name = "postgresql";
   readonly type = "postgresql" as const;
   private config: PostgreSQLConfig;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private pool: any = null;
+  private pool: PgPool | null = null;
   private connected = false;
 
   constructor(config: PostgreSQLConfig) {
@@ -55,9 +65,10 @@ export class PostgreSQLDriver implements DatabaseDriver {
 
   async connect(): Promise<void> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pg: any = await Function('return import("pg")')();
-      const Pool = pg.Pool ?? pg.default?.Pool;
+      const pg = (await Function('return import("pg")')()) as Record<string, unknown>;
+      const Pool = (pg.Pool ?? (pg.default as Record<string, unknown>)?.Pool) as new (
+        config: Record<string, unknown>
+      ) => PgPool;
 
       this.pool = new Pool({
         host: this.config.host,
@@ -72,11 +83,11 @@ export class PostgreSQLDriver implements DatabaseDriver {
       });
 
       // Verify connection
-      const client = await this.pool.connect();
+      const client = await this.getPool().connect();
       client.release();
       this.connected = true;
     } catch (error) {
-      throw new Error(
+      throw new ConfigurationError(
         `PostgreSQL connection failed: ${error instanceof Error ? error.message : "Unknown error"}. ` +
           "Install pg: npm install pg"
       );
@@ -93,6 +104,13 @@ export class PostgreSQLDriver implements DatabaseDriver {
 
   isConnected(): boolean {
     return this.connected;
+  }
+
+  private getPool(): PgPool {
+    if (!this.pool) {
+      throw new ConfigurationError("PostgreSQL is not connected. Call connect() first.");
+    }
+    return this.pool;
   }
 
   private buildWhere(conditions: QueryCondition[]): { clause: string; params: unknown[] } {
@@ -165,8 +183,8 @@ export class PostgreSQLDriver implements DatabaseDriver {
     const placeholders = fields.map((_, i) => `$${i + 1}`);
 
     const sql = `INSERT INTO "${options.table}" (${fields.map((f) => `"${f}"`).join(", ")}) VALUES (${placeholders.join(", ")}) RETURNING id`;
-    const result = await this.pool.query(sql, values);
-    return result.rows[0]?.id ?? id;
+    const result = await this.getPool().query(sql, values);
+    return String(result.rows[0]?.id ?? id);
   }
 
   async query<T = Record<string, unknown>>(options: QueryOptions): Promise<T[]> {
@@ -188,7 +206,7 @@ export class PostgreSQLDriver implements DatabaseDriver {
     if (options.limit) sql += ` LIMIT ${Number(options.limit)}`;
     if (options.offset) sql += ` OFFSET ${Number(options.offset)}`;
 
-    const result = await this.pool.query(sql, params);
+    const result = await this.getPool().query(sql, params);
     return result.rows as T[];
   }
 
@@ -209,7 +227,7 @@ export class PostgreSQLDriver implements DatabaseDriver {
     const sets = fields.map((f, i) => `"${f}" = $${whereParams.length + i + 1}`);
     const sql = `UPDATE "${options.table}" SET ${sets.join(", ")}${clause}`;
 
-    const result = await this.pool.query(sql, [...whereParams, ...values]);
+    const result = await this.getPool().query(sql, [...whereParams, ...values]);
     return result.rowCount ?? 0;
   }
 
@@ -217,34 +235,34 @@ export class PostgreSQLDriver implements DatabaseDriver {
     assertSafeIdentifier(options.table, "table name");
     const { clause, params } = this.buildWhere(options.conditions);
     const sql = `DELETE FROM "${options.table}"${clause}`;
-    const result = await this.pool.query(sql, params);
+    const result = await this.getPool().query(sql, params);
     return result.rowCount ?? 0;
   }
 
   async beginTransaction(): Promise<void> {
-    await this.pool.query("BEGIN");
+    await this.getPool().query("BEGIN");
   }
 
   async commitTransaction(): Promise<void> {
-    await this.pool.query("COMMIT");
+    await this.getPool().query("COMMIT");
   }
 
   async rollbackTransaction(): Promise<void> {
-    await this.pool.query("ROLLBACK");
+    await this.getPool().query("ROLLBACK");
   }
 
   async rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]> {
-    const result = await this.pool.query(sql, params);
+    const result = await this.getPool().query(sql, params);
     return result.rows as T[];
   }
 
   async rawExec(sql: string, params?: unknown[]): Promise<void> {
-    await this.pool.query(sql, params);
+    await this.getPool().query(sql, params);
   }
 
   async getMigrationStatus(): Promise<MigrationStatus> {
     // Ensure migrations table exists
-    await this.pool.query(`
+    await this.getPool().query(`
       CREATE TABLE IF NOT EXISTS _innovator_migrations (
         version INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
@@ -252,25 +270,21 @@ export class PostgreSQLDriver implements DatabaseDriver {
       )
     `);
 
-    const applied = await this.pool.query(
+    const applied = await this.getPool().query(
       "SELECT version, name, applied_at FROM _innovator_migrations ORDER BY version"
     );
 
     const currentVersion =
-      applied.rows.length > 0
-        ? Math.max(...applied.rows.map((r: { version: number }) => r.version))
-        : 0;
+      applied.rows.length > 0 ? Math.max(...applied.rows.map((r) => Number(r.version))) : 0;
 
     return {
       currentVersion,
       pendingMigrations: [],
-      appliedMigrations: applied.rows.map(
-        (r: { version: number; name: string; applied_at: string }) => ({
-          version: r.version,
-          name: r.name,
-          appliedAt: r.applied_at,
-        })
-      ),
+      appliedMigrations: applied.rows.map((r) => ({
+        version: Number(r.version),
+        name: String(r.name),
+        appliedAt: String(r.applied_at),
+      })),
     };
   }
 
@@ -283,17 +297,18 @@ export class PostgreSQLDriver implements DatabaseDriver {
 
     for (const migration of pending) {
       try {
-        await this.pool.query("BEGIN");
-        await this.pool.query(migration.up);
-        await this.pool.query("INSERT INTO _innovator_migrations (version, name) VALUES ($1, $2)", [
-          migration.version,
-          migration.name,
-        ]);
-        await this.pool.query("COMMIT");
+        await this.getPool().query("BEGIN");
+        await this.getPool().query(migration.up);
+        await this.getPool().query(
+          "INSERT INTO _innovator_migrations (version, name) VALUES ($1, $2)",
+          [migration.version, migration.name]
+        );
+        await this.getPool().query("COMMIT");
       } catch (error) {
-        await this.pool.query("ROLLBACK");
-        throw new Error(
-          `Migration ${migration.version} (${migration.name}) failed: ${error instanceof Error ? error.message : "Unknown error"}`
+        await this.getPool().query("ROLLBACK");
+        throw new PipelineError(
+          `Migration ${migration.version} (${migration.name}) failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+          migration.name
         );
       }
     }
@@ -301,6 +316,6 @@ export class PostgreSQLDriver implements DatabaseDriver {
 
   async rollbackMigration(version: number): Promise<void> {
     // This would need the migration's down SQL — left as a placeholder
-    await this.pool.query("DELETE FROM _innovator_migrations WHERE version = $1", [version]);
+    await this.getPool().query("DELETE FROM _innovator_migrations WHERE version = $1", [version]);
   }
 }

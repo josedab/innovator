@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -85,17 +86,17 @@ function parseField(field: string, min: number, max: number): CronField {
       const [range, stepStr] = part.split("/");
       const step = parseInt(stepStr, 10);
       const start = range === "*" ? min : parseInt(range, 10);
-      if (isNaN(step) || isNaN(start)) throw new Error(`Invalid cron field: ${field}`);
+      if (isNaN(step) || isNaN(start)) throw new ValidationError(`Invalid cron field: ${field}`);
       for (let i = start; i <= max; i += step) values.push(i);
     } else if (part.includes("-")) {
       const [startStr, endStr] = part.split("-");
       const start = parseInt(startStr, 10);
       const end = parseInt(endStr, 10);
-      if (isNaN(start) || isNaN(end)) throw new Error(`Invalid cron field: ${field}`);
+      if (isNaN(start) || isNaN(end)) throw new ValidationError(`Invalid cron field: ${field}`);
       for (let i = start; i <= end; i++) values.push(i);
     } else {
       const val = parseInt(part, 10);
-      if (isNaN(val)) throw new Error(`Invalid cron field: ${field}`);
+      if (isNaN(val)) throw new ValidationError(`Invalid cron field: ${field}`);
       values.push(val);
     }
   }
@@ -107,7 +108,7 @@ function parseField(field: string, min: number, max: number): CronField {
 export function parseCron(expression: string): ParsedCron {
   const fields = expression.trim().split(/\s+/);
   if (fields.length !== 5) {
-    throw new Error(`Invalid cron expression: expected 5 fields, got ${fields.length}`);
+    throw new ValidationError(`Invalid cron expression: expected 5 fields, got ${fields.length}`);
   }
 
   return {
@@ -144,7 +145,7 @@ export function getNextRunTime(expression: string, from = new Date()): Date {
     next.setUTCMinutes(next.getUTCMinutes() + 1);
   }
 
-  throw new Error("No matching time found within 1 year");
+  throw new ValidationError("No matching time found within 1 year");
 }
 
 // ---- Natural Language to Cron ----

@@ -11,6 +11,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeUserInput } from "../prompts/sanitize.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -177,10 +178,10 @@ export async function analyzeProduct(
   options: AnalyzeProductOptions = {}
 ): Promise<InnovationRecipe> {
   if (!productDescription || productDescription.trim().length === 0) {
-    throw new Error("Product description is required");
+    throw new ValidationError("Product description is required");
   }
   if (productDescription.length > 5000) {
-    throw new Error("Product description must be under 5000 characters");
+    throw new ValidationError("Product description must be under 5000 characters");
   }
 
   const prompt = buildAnalysisPrompt(productDescription.trim());
@@ -191,7 +192,10 @@ export async function analyzeProduct(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse recipe response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse recipe response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

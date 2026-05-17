@@ -21,6 +21,7 @@ import {
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 const IS_TEST_ENV =
   process.env.NODE_ENV === "test" ||
@@ -722,9 +723,10 @@ export function resolveDependencies(templateId: string): TemplatePackage[] {
 
   function visit(id: string): void {
     if (visited.has(id)) return;
-    if (visiting.has(id)) throw new Error(`Circular dependency detected involving "${id}"`);
+    if (visiting.has(id))
+      throw new ValidationError(`Circular dependency detected involving "${id}"`);
     const tpl = byId.get(id);
-    if (!tpl) throw new Error(`Template "${id}" not found in registry`);
+    if (!tpl) throw new ValidationError(`Template "${id}" not found in registry`);
     visiting.add(id);
     for (const dep of tpl.dependencies) visit(dep);
     visiting.delete(id);
@@ -819,7 +821,7 @@ export function searchTemplates(options?: {
 export function installTemplate(templateId: string): TemplatePackage {
   const deps = resolveDependencies(templateId);
   const target = deps[deps.length - 1];
-  if (!target) throw new Error(`Template "${templateId}" not found`);
+  if (!target) throw new ValidationError(`Template "${templateId}" not found`);
 
   const installDir = INSTALLED_TEMPLATES_DIR;
   if (!existsSync(installDir)) mkdirSync(installDir, { recursive: true });
@@ -853,7 +855,7 @@ export function createTemplateFromDirectory(
   dirPath: string,
   author: string
 ): Omit<TemplatePackage, "id" | "publishedAt" | "updatedAt"> {
-  if (!existsSync(dirPath)) throw new Error(`Directory "${dirPath}" does not exist`);
+  if (!existsSync(dirPath)) throw new ValidationError(`Directory "${dirPath}" does not exist`);
 
   const files: Record<string, string> = {};
 
@@ -927,7 +929,7 @@ export function updateTemplate(
 ): TemplatePackage {
   const registry = loadTemplateRegistry();
   const idx = registry.templates.findIndex((t) => t.id === templateId);
-  if (idx === -1) throw new Error(`Template "${templateId}" not found`);
+  if (idx === -1) throw new ValidationError(`Template "${templateId}" not found`);
   const updated: TemplatePackage = {
     ...registry.templates[idx],
     ...updates,
@@ -986,8 +988,8 @@ export function diffTemplates(
   const registry = loadTemplateRegistry();
   const a = registry.templates.find((t) => t.id === templateIdA);
   const b = registry.templates.find((t) => t.id === templateIdB);
-  if (!a) throw new Error(`Template "${templateIdA}" not found`);
-  if (!b) throw new Error(`Template "${templateIdB}" not found`);
+  if (!a) throw new ValidationError(`Template "${templateIdA}" not found`);
+  if (!b) throw new ValidationError(`Template "${templateIdB}" not found`);
 
   const filesA = new Set(Object.keys(a.files));
   const filesB = new Set(Object.keys(b.files));
@@ -1014,7 +1016,7 @@ export function exportBundle(templateIds: string[]): string {
   const registry = loadTemplateRegistry();
   const templates = templateIds.map((id) => {
     const tpl = registry.templates.find((t) => t.id === id);
-    if (!tpl) throw new Error(`Template "${id}" not found`);
+    if (!tpl) throw new ValidationError(`Template "${id}" not found`);
     return tpl;
   });
 
@@ -1030,7 +1032,7 @@ export function exportBundle(templateIds: string[]): string {
 export function importBundle(bundleJson: string): TemplatePackage[] {
   const bundle = JSON.parse(bundleJson) as TemplateBundle;
   if (!bundle.templates || !Array.isArray(bundle.templates)) {
-    throw new Error("Invalid bundle: missing templates array");
+    throw new ValidationError("Invalid bundle: missing templates array");
   }
 
   const registry = loadTemplateRegistry();

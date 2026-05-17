@@ -12,6 +12,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeUserInput } from "../prompts/sanitize.js";
 import type { InnovationIdea } from "../types.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -440,7 +441,7 @@ export async function simulateRegulatory(
   options: RegulatorySimulationOptions = {}
 ): Promise<RegulatorySimulation> {
   if (!idea.title || idea.title.trim().length === 0) {
-    throw new Error("Idea title is required");
+    throw new ValidationError("Idea title is required");
   }
 
   const targetJurisdictions = options.jurisdictions ?? [
@@ -463,7 +464,10 @@ export async function simulateRegulatory(
       try {
         return JSON.parse(jsonStr) as Record<string, unknown>;
       } catch {
-        throw new Error(`Failed to parse regulatory simulation: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse regulatory simulation: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

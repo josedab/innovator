@@ -12,6 +12,7 @@ import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Zod Schemas ----
 
@@ -145,7 +146,7 @@ export function listConnectors(): ConnectorConfig[] {
 /** Enable/disable a connector. */
 export function toggleConnector(connectorId: string, enabled: boolean): void {
   const connector = connectors.get(connectorId);
-  if (!connector) throw new Error(`Connector ${connectorId} not found`);
+  if (!connector) throw new ValidationError(`Connector ${connectorId} not found`);
   connector.enabled = enabled;
 }
 

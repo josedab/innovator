@@ -13,6 +13,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeUserInput } from "../prompts/sanitize.js";
 import type { Investigation, AngleResult, Synthesis } from "../types.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -157,7 +158,7 @@ export async function generateCinematicScript(
   options: GenerateScriptOptions = {}
 ): Promise<CinematicScript> {
   if (!session.subject || session.subject.trim().length === 0) {
-    throw new Error("Session subject is required");
+    throw new ValidationError("Session subject is required");
   }
 
   const prompt = buildScriptPrompt(session);
@@ -168,7 +169,10 @@ export async function generateCinematicScript(
       try {
         return JSON.parse(jsonStr) as Record<string, unknown>;
       } catch {
-        throw new Error(`Failed to parse cinematic script: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse cinematic script: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

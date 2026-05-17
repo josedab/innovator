@@ -11,6 +11,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
 import type { Investigation } from "../types.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -187,7 +188,7 @@ export async function analyzeCompetitors(
   signal?: AbortSignal
 ): Promise<CompetitiveAnalysis> {
   if (competitors.length === 0) {
-    throw new Error("At least one competitor is required for analysis");
+    throw new ValidationError("At least one competitor is required for analysis");
   }
 
   const prompt = buildCompetitivePrompt(subject, competitors, investigation);
@@ -199,7 +200,10 @@ export async function analyzeCompetitors(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse competitive analysis as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse competitive analysis as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

@@ -21,6 +21,7 @@
  */
 
 /** Configuration for {@link ObjectPool}. */
+import { ValidationError } from "../errors.js";
 export interface ObjectPoolOptions<T> {
   /** Factory function to create a new object when the pool is empty. */
   factory: () => T;
@@ -68,7 +69,7 @@ export class ObjectPool<T> {
     this.maxSize = options.maxSize ?? 32;
 
     if (this.maxSize < 1 || !Number.isFinite(this.maxSize)) {
-      throw new Error("ObjectPool: maxSize must be a finite number >= 1");
+      throw new ValidationError("ObjectPool: maxSize must be a finite number >= 1");
     }
   }
 

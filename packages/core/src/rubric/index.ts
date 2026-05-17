@@ -11,6 +11,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 import type { AngleResult, Investigation } from "../types.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -221,7 +222,7 @@ export function createRubric(
   // Validate weights sum to ~1.0
   const totalWeight = rubric.dimensions.reduce((sum, d) => sum + d.weight, 0);
   if (Math.abs(totalWeight - 1.0) > 0.01) {
-    throw new Error(`Dimension weights must sum to 1.0, got ${totalWeight.toFixed(2)}`);
+    throw new ValidationError(`Dimension weights must sum to 1.0, got ${totalWeight.toFixed(2)}`);
   }
 
   const now = Date.now();
@@ -257,7 +258,7 @@ export function updateRubric(
   if (updates.dimensions) {
     const totalWeight = updates.dimensions.reduce((sum, d) => sum + d.weight, 0);
     if (Math.abs(totalWeight - 1.0) > 0.01) {
-      throw new Error(`Dimension weights must sum to 1.0, got ${totalWeight.toFixed(2)}`);
+      throw new ValidationError(`Dimension weights must sum to 1.0, got ${totalWeight.toFixed(2)}`);
     }
   }
 
@@ -297,7 +298,7 @@ export async function scoreWithRubric(
 ): Promise<RubricScoringResult> {
   const rubric = rubricStore.get(rubricId);
   if (!rubric) {
-    throw new Error(`Rubric not found: ${rubricId}`);
+    throw new ValidationError(`Rubric not found: ${rubricId}`);
   }
 
   if (angleResults.length === 0) {
@@ -365,7 +366,10 @@ Return valid JSON only:
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse rubric scores: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse rubric scores: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { ValidationError } from "../errors.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
 import {
   TemporalGraphSchema,
@@ -154,13 +155,13 @@ export function ingestSession(
   dir: string = DEFAULT_DIR
 ): { nodesCreated: number; edgesCreated: number; recurrences: ConceptRecurrence[] } {
   if (!session.sessionId?.trim()) {
-    throw new Error("Session ID is required for ingestion");
+    throw new ValidationError("Session ID is required for ingestion");
   }
   if (!session.subject?.trim()) {
-    throw new Error("Subject is required for ingestion");
+    throw new ValidationError("Subject is required for ingestion");
   }
   if (!session.timestamp) {
-    throw new Error("Timestamp is required for ingestion");
+    throw new ValidationError("Timestamp is required for ingestion");
   }
 
   const graph = loadTemporalGraph(dir);

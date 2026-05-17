@@ -15,6 +15,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 
 // ---- Constants ----
 
@@ -193,10 +194,10 @@ export function recordOutcome(
   }
 ): OutcomeSignal {
   if (!sessionId || !subject || !angleId) {
-    throw new Error("sessionId, subject, and angleId are required");
+    throw new ValidationError("sessionId, subject, and angleId are required");
   }
   if (outcome.rating !== undefined && (outcome.rating < 0 || outcome.rating > 10)) {
-    throw new Error("rating must be between 0 and 10");
+    throw new ValidationError("rating must be between 0 and 10");
   }
   const data = loadData();
   const domain = extractDomain(subject);

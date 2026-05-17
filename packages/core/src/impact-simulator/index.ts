@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { LlmParseError } from "../errors.js";
 import { wrapUserInput } from "../prompts/sanitize.js";
 import type { InnovationIdea, Investigation } from "../types.js";
 
@@ -180,7 +181,10 @@ export async function simulateImpact(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse simulation response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse simulation response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr
+        );
       }
     },
     {

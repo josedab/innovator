@@ -9,6 +9,7 @@ import {
   type OpeningCeremony,
   type TimeCapsuleConfig,
 } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 // In-memory store (replace with persistent storage in production)
 const capsuleStore: Map<string, TimeCapsule> = new Map();
@@ -133,7 +134,7 @@ export async function openTimeCapsule(
   config: TimeCapsuleConfig = {}
 ): Promise<OpeningCeremony> {
   const capsule = capsuleStore.get(capsuleId);
-  if (!capsule) throw new Error(`Time capsule not found: ${capsuleId}`);
+  if (!capsule) throw new ValidationError(`Time capsule not found: ${capsuleId}`);
 
   config.onProgress?.({
     stage: "predicting-future",

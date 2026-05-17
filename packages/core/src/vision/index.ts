@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -193,7 +194,7 @@ export async function extractFromImage(
 ): Promise<ImageExtraction> {
   const validation = validateImage(imageBuffer, metadata);
   if (!validation.valid) {
-    throw new Error(`Invalid image: ${validation.errors.join(", ")}`);
+    throw new ValidationError(`Invalid image: ${validation.errors.join(", ")}`);
   }
 
   const format = metadata?.format ?? detectImageFormat(imageBuffer) ?? "png";
@@ -208,7 +209,10 @@ export async function extractFromImage(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse vision response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse vision response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

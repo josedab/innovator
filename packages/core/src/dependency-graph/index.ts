@@ -12,6 +12,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 import type { AngleResult, InnovationIdea } from "../types.js";
+import { LlmParseError } from "../errors.js";
 
 // ---- Zod Schemas ----
 
@@ -185,7 +186,10 @@ Only include meaningful relationships (strength > 0.3). Identify 2-5 clusters.`;
             clusters?: Array<{ label: string; nodeIds: string[] }>;
           };
         } catch {
-          throw new Error(`Failed to parse dependency graph response as JSON`);
+          throw new LlmParseError(
+            `Failed to parse dependency graph response as JSON`,
+            jsonStr.slice(0, 200)
+          );
         }
       },
       {

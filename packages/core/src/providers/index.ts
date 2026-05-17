@@ -10,6 +10,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
+import { ConfigurationError, LlmError } from "../errors.js";
 
 // ---- Provider Interface ----
 
@@ -101,7 +102,8 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   async generateText(options: LLMGenerateOptions): Promise<string> {
-    if (!this.apiKey) throw new Error("OpenAI API key not configured");
+    if (!this.apiKey)
+      throw new ConfigurationError("OpenAI API key not configured", "OPENAI_API_KEY");
 
     const model = options.model ?? "gpt-4.1";
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -119,7 +121,7 @@ export class OpenAIProvider implements LLMProvider {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      throw new LlmError(`OpenAI API error: ${response.status} ${response.statusText}`, { model });
     }
 
     const data = (await response.json()) as {
@@ -132,7 +134,8 @@ export class OpenAIProvider implements LLMProvider {
     options: LLMGenerateOptions,
     onChunk: (chunk: string) => void
   ): Promise<string> {
-    if (!this.apiKey) throw new Error("OpenAI API key not configured");
+    if (!this.apiKey)
+      throw new ConfigurationError("OpenAI API key not configured", "OPENAI_API_KEY");
 
     const model = options.model ?? "gpt-4.1";
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -151,12 +154,12 @@ export class OpenAIProvider implements LLMProvider {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      throw new LlmError(`OpenAI API error: ${response.status} ${response.statusText}`, { model });
     }
 
     let fullText = "";
     const reader = response.body?.getReader();
-    if (!reader) throw new Error("No response body");
+    if (!reader) throw new LlmError("No response body", { model });
     const decoder = new TextDecoder();
 
     while (true) {
@@ -218,7 +221,8 @@ export class AnthropicProvider implements LLMProvider {
   }
 
   async generateText(options: LLMGenerateOptions): Promise<string> {
-    if (!this.apiKey) throw new Error("Anthropic API key not configured");
+    if (!this.apiKey)
+      throw new ConfigurationError("Anthropic API key not configured", "ANTHROPIC_API_KEY");
 
     const model = options.model ?? "claude-sonnet-4-20250514";
     const response = await fetch(`${this.baseUrl}/messages`, {
@@ -237,7 +241,9 @@ export class AnthropicProvider implements LLMProvider {
     });
 
     if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
+      throw new LlmError(`Anthropic API error: ${response.status} ${response.statusText}`, {
+        model,
+      });
     }
 
     const data = (await response.json()) as {
@@ -250,7 +256,8 @@ export class AnthropicProvider implements LLMProvider {
     options: LLMGenerateOptions,
     onChunk: (chunk: string) => void
   ): Promise<string> {
-    if (!this.apiKey) throw new Error("Anthropic API key not configured");
+    if (!this.apiKey)
+      throw new ConfigurationError("Anthropic API key not configured", "ANTHROPIC_API_KEY");
 
     const model = options.model ?? "claude-sonnet-4-20250514";
     const response = await fetch(`${this.baseUrl}/messages`, {
@@ -270,12 +277,14 @@ export class AnthropicProvider implements LLMProvider {
     });
 
     if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
+      throw new LlmError(`Anthropic API error: ${response.status} ${response.statusText}`, {
+        model,
+      });
     }
 
     let fullText = "";
     const reader = response.body?.getReader();
-    if (!reader) throw new Error("No response body");
+    if (!reader) throw new LlmError("No response body", { model });
     const decoder = new TextDecoder();
 
     while (true) {
@@ -336,7 +345,7 @@ export class OllamaProvider implements LLMProvider {
     });
 
     if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+      throw new LlmError(`Ollama API error: ${response.status} ${response.statusText}`, { model });
     }
 
     const data = (await response.json()) as { response: string };
@@ -360,12 +369,12 @@ export class OllamaProvider implements LLMProvider {
     });
 
     if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+      throw new LlmError(`Ollama API error: ${response.status} ${response.statusText}`, { model });
     }
 
     let fullText = "";
     const reader = response.body?.getReader();
-    if (!reader) throw new Error("No response body");
+    if (!reader) throw new LlmError("No response body", { model });
     const decoder = new TextDecoder();
 
     while (true) {
@@ -503,7 +512,7 @@ export function getActiveProvider(): LLMProvider {
  */
 export function setActiveProvider(id: string): void {
   if (!providers.has(id)) {
-    throw new Error(`Provider "${id}" is not registered`);
+    throw new ConfigurationError(`Provider "${id}" is not registered`, id);
   }
   activeProviderId = id;
 }

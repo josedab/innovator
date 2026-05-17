@@ -12,6 +12,7 @@ import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 import type { InnovationIdea } from "../types.js";
 import { createHash } from "node:crypto";
+import { LlmParseError, PipelineError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -291,7 +292,7 @@ export async function semanticDiff(
   const to = versionLog.find((v) => v.id === toVersionId);
 
   if (!from || !to) {
-    throw new Error("Version not found");
+    throw new ValidationError("Version not found");
   }
 
   const prompt = `You are an expert at analyzing semantic differences between two versions of an innovation idea.
@@ -329,7 +330,10 @@ Return valid JSON only:
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse semantic diff: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse semantic diff: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {
@@ -360,11 +364,11 @@ export async function mergeVersions(
   const target = versionLog.find((v) => v.id === targetVersionId);
 
   if (!source || !target) {
-    throw new Error("Version not found");
+    throw new ValidationError("Version not found");
   }
 
   if (source.ideaId !== target.ideaId) {
-    throw new Error("Cannot merge versions from different ideas");
+    throw new ValidationError("Cannot merge versions from different ideas");
   }
 
   const prompt = `You are merging two variants of an innovation idea into a single improved version.
@@ -399,7 +403,10 @@ Return valid JSON only:
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse merge result: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse merge result: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {
@@ -431,7 +438,7 @@ Return valid JSON only:
   );
 
   if (!mergedVersion) {
-    throw new Error("Failed to create merged version");
+    throw new PipelineError("Failed to create merged version", "pipeline");
   }
 
   return {

@@ -10,6 +10,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -343,7 +344,10 @@ export async function generateRetrospectiveReport(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse retrospective response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse retrospective response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {
@@ -802,8 +806,8 @@ export function compareRetrospectives(
 ): RetrospectiveComparison {
   const a = reports.get(reportIdA);
   const b = reports.get(reportIdB);
-  if (!a) throw new Error(`Report not found: ${reportIdA}`);
-  if (!b) throw new Error(`Report not found: ${reportIdB}`);
+  if (!a) throw new ValidationError(`Report not found: ${reportIdA}`);
+  if (!b) throw new ValidationError(`Report not found: ${reportIdB}`);
 
   const healthScoreChange = Math.round((b.overallHealthScore - a.overallHealthScore) * 100) / 100;
 

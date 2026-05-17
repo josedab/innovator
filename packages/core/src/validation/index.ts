@@ -11,6 +11,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 import type { InnovationIdea } from "../types.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Zod Schemas ----
 
@@ -69,7 +70,7 @@ const validators: Map<string, IdeaValidator> = new Map();
  */
 export function registerValidator(validator: IdeaValidator): void {
   if (validators.has(validator.id)) {
-    throw new Error(
+    throw new ValidationError(
       `registerValidator: a validator with id "${validator.id}" is already registered`
     );
   }

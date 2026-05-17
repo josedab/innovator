@@ -11,6 +11,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeUserInput } from "../prompts/sanitize.js";
+import { LlmParseError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -319,7 +320,10 @@ Make it specific to their subject and state. Be creative and engaging.`;
       try {
         return JSON.parse(jsonStr) as Record<string, unknown>;
       } catch {
-        throw new Error(`Failed to parse intervention: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse intervention: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

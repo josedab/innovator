@@ -7,6 +7,7 @@
  */
 
 import { z } from "zod";
+import { AbortError, ValidationError } from "../errors.js";
 
 // ---- DAG Node Types ----
 
@@ -153,14 +154,14 @@ function topologicalSort(nodes: DAGNode[]): string[] {
   function visit(id: string): void {
     if (visited.has(id)) return;
     if (visiting.has(id)) {
-      throw new Error(`Circular dependency detected involving node '${id}'`);
+      throw new ValidationError(`Circular dependency detected involving node '${id}'`);
     }
     visiting.add(id);
     const node = nodeMap.get(id);
     if (node) {
       for (const dep of node.dependsOn) {
         if (!nodeMap.has(dep)) {
-          throw new Error(`Node '${id}' depends on unknown node '${dep}'`);
+          throw new ValidationError(`Node '${id}' depends on unknown node '${dep}'`);
         }
         visit(dep);
       }
@@ -492,7 +493,7 @@ async function defaultNodeExecutor(
   _context: Record<string, unknown>,
   signal?: AbortSignal
 ): Promise<Record<string, unknown>> {
-  if (signal?.aborted) throw new Error("Aborted");
+  if (signal?.aborted) throw new AbortError("Aborted");
   // Default executor returns empty output; callers provide real executors
   return { stage: node.type, nodeId: node.id, executedAt: new Date().toISOString() };
 }

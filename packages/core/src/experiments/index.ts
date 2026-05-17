@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -192,8 +193,8 @@ export async function runExperiment(
   onProgress?: ExperimentProgressCallback
 ): Promise<Experiment> {
   const experiment = experiments.get(experimentId);
-  if (!experiment) throw new Error(`Experiment not found: ${experimentId}`);
-  if (experiment.status === "completed") throw new Error("Experiment already completed");
+  if (!experiment) throw new ValidationError(`Experiment not found: ${experimentId}`);
+  if (experiment.status === "completed") throw new ValidationError("Experiment already completed");
 
   experiment.status = "running";
   experiment.updatedAt = new Date().toISOString();

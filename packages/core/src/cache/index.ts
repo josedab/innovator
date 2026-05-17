@@ -15,6 +15,7 @@
  */
 
 /** Cache entry wrapping a value with insertion metadata. */
+import { ValidationError } from "../errors.js";
 interface CacheEntry<V> {
   value: V;
   createdAt: number;
@@ -61,7 +62,7 @@ export class LRUCache<K, V> {
 
   constructor(options: LRUCacheOptions) {
     if (options.maxSize < 1 || !Number.isFinite(options.maxSize)) {
-      throw new Error("LRUCache: maxSize must be a finite number >= 1");
+      throw new ValidationError("LRUCache: maxSize must be a finite number >= 1");
     }
     this.maxSize = Math.floor(options.maxSize);
     this.ttlMs = options.ttlMs;

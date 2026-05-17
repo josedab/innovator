@@ -8,6 +8,7 @@
 
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -451,10 +452,10 @@ export function tagIdeaOutcome(params: {
   pivotReason?: string;
 }): IdeaOutcome {
   if (!outcomes.has(params.outcomeId)) {
-    throw new Error(`Outcome not found: ${params.outcomeId}`);
+    throw new ValidationError(`Outcome not found: ${params.outcomeId}`);
   }
   if (params.status === "pivoted" && !params.pivotReason) {
-    throw new Error("pivotReason is required when status is 'pivoted'");
+    throw new ValidationError("pivotReason is required when status is 'pivoted'");
   }
 
   const now = new Date().toISOString();
@@ -500,7 +501,7 @@ export function updateIdeaOutcome(
   const nextStatus = updates.status ?? current.status;
   const nextPivotReason = updates.pivotReason ?? current.pivotReason;
   if (nextStatus === "pivoted" && !nextPivotReason) {
-    throw new Error("pivotReason is required when status is 'pivoted'");
+    throw new ValidationError("pivotReason is required when status is 'pivoted'");
   }
 
   const now = new Date().toISOString();

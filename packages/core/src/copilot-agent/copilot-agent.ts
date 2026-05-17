@@ -35,6 +35,7 @@ import {
   type DetectedChange,
   type Proposal,
 } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Constants ----
 
@@ -65,7 +66,7 @@ const VALID_TRANSITIONS: Record<CopilotAgentState, CopilotAgentState[]> = {
 function transition(run: CopilotAgentRun, newState: CopilotAgentState): CopilotAgentRun {
   const allowed = VALID_TRANSITIONS[run.state];
   if (!allowed.includes(newState)) {
-    throw new Error(
+    throw new ValidationError(
       `Invalid state transition: ${run.state} → ${newState}. Allowed: ${allowed.join(", ")}`
     );
   }
@@ -383,10 +384,10 @@ export function respondToProposal(
 ): CopilotAgentRun {
   const proposal = run.proposals.find((p) => p.id === proposalId);
   if (!proposal) {
-    throw new Error(`Proposal ${proposalId} not found`);
+    throw new ValidationError(`Proposal ${proposalId} not found`);
   }
   if (proposal.status !== "pending") {
-    throw new Error(`Proposal ${proposalId} already responded to (${proposal.status})`);
+    throw new ValidationError(`Proposal ${proposalId} already responded to (${proposal.status})`);
   }
 
   proposal.status = action;
@@ -423,10 +424,10 @@ export async function runCopilotAgentCycle(
 ): Promise<CopilotAgentRun> {
   // Validate config
   if (!config.sources || config.sources.length === 0) {
-    throw new Error("At least one monitoring source is required");
+    throw new ValidationError("At least one monitoring source is required");
   }
   if (!config.topics || config.topics.length === 0) {
-    throw new Error("At least one topic is required");
+    throw new ValidationError("At least one topic is required");
   }
 
   // Load or create run

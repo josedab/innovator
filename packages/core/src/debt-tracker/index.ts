@@ -23,6 +23,7 @@ import {
   CompetitiveMatchSchema,
   DebtReportSchema,
 } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 export * from "./types.js";
 
@@ -78,7 +79,7 @@ export function updateDebtItem(
   updates: Partial<Pick<DebtItem, "severity" | "status" | "monthlyCostOfDelay" | "tags">>
 ): DebtItem {
   const item = debtItems.get(id);
-  if (!item) throw new Error(`Debt item ${id} not found`);
+  if (!item) throw new ValidationError(`Debt item ${id} not found`);
 
   const updated = DebtItemSchema.parse({
     ...item,
@@ -105,7 +106,7 @@ const SEVERITY_WEIGHTS: Record<DebtItem["severity"], number> = {
  */
 export function calculateDebtScore(itemId: string): DebtScore {
   const item = debtItems.get(itemId);
-  if (!item) throw new Error(`Debt item ${itemId} not found`);
+  if (!item) throw new ValidationError(`Debt item ${itemId} not found`);
 
   const now = Date.now();
   const deferredAt = new Date(item.deferredAt).getTime();
@@ -161,7 +162,7 @@ export async function detectCompetitiveMatch(
   config: DebtTrackerConfig = {}
 ): Promise<CompetitiveMatch | null> {
   const item = debtItems.get(itemId);
-  if (!item) throw new Error(`Debt item ${itemId} not found`);
+  if (!item) throw new ValidationError(`Debt item ${itemId} not found`);
 
   const prompt = `You are an innovation strategy analyst. Compare a shelved innovation idea against a competitor's recent move.
 

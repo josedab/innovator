@@ -11,6 +11,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Zod Schemas ----
 
@@ -132,7 +133,7 @@ export async function parseImage(
   attachment: Attachment,
   options?: { model?: string; signal?: AbortSignal }
 ): Promise<ParseResult> {
-  if (attachment.type !== "image") throw new Error("Not an image attachment");
+  if (attachment.type !== "image") throw new ValidationError("Not an image attachment");
 
   const prompt = `You are analyzing an image for innovation insights.
 
@@ -181,7 +182,7 @@ export async function parsePDF(
   attachment: Attachment,
   options?: { model?: string; signal?: AbortSignal }
 ): Promise<ParseResult> {
-  if (attachment.type !== "pdf") throw new Error("Not a PDF attachment");
+  if (attachment.type !== "pdf") throw new ValidationError("Not a PDF attachment");
 
   // In a real implementation, we'd use a PDF parsing library.
   // Here we use the LLM to process any extracted text.
@@ -234,8 +235,8 @@ export async function parseURL(
   attachment: Attachment,
   options?: { model?: string; signal?: AbortSignal }
 ): Promise<ParseResult> {
-  if (attachment.type !== "url") throw new Error("Not a URL attachment");
-  if (!attachment.sourceUrl) throw new Error("URL attachment missing sourceUrl");
+  if (attachment.type !== "url") throw new ValidationError("Not a URL attachment");
+  if (!attachment.sourceUrl) throw new ValidationError("URL attachment missing sourceUrl");
 
   // In production, we'd fetch the URL content. Here we use LLM to analyze the URL.
   const pageContent = attachment.extractedText ?? `[Content from ${attachment.sourceUrl}]`;
@@ -288,7 +289,7 @@ export async function parseAudio(
   attachment: Attachment,
   options?: { model?: string; signal?: AbortSignal }
 ): Promise<ParseResult> {
-  if (attachment.type !== "audio") throw new Error("Not an audio attachment");
+  if (attachment.type !== "audio") throw new ValidationError("Not an audio attachment");
 
   // In production, we'd use Whisper or similar for transcription.
   const transcript = attachment.extractedText ?? "[Audio transcript not yet available]";
@@ -344,7 +345,7 @@ export async function parseAttachment(
 ): Promise<ParseResult> {
   const errors = validateAttachment(attachment);
   if (errors.length > 0) {
-    throw new Error(`Attachment validation failed: ${errors.join("; ")}`);
+    throw new ValidationError(`Attachment validation failed: ${errors.join("; ")}`);
   }
 
   switch (attachment.type) {
@@ -357,7 +358,7 @@ export async function parseAttachment(
     case "audio":
       return parseAudio(attachment, options);
     default:
-      throw new Error(`Unsupported attachment type: ${attachment.type}`);
+      throw new ValidationError(`Unsupported attachment type: ${attachment.type}`);
   }
 }
 

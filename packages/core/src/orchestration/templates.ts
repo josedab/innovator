@@ -8,6 +8,7 @@
 
 import { type DAGWorkflow, DAGWorkflowSchema } from "./dag-engine.js";
 import type { z } from "zod";
+import { ValidationError } from "../errors.js";
 
 export interface WorkflowTemplate {
   id: string;
@@ -424,7 +425,7 @@ export function getWorkflowTemplate(id: string): WorkflowTemplate | undefined {
 
 /** Register a custom workflow template. */
 export function registerWorkflowTemplate(template: WorkflowTemplate): void {
-  if (template.id.length > 100) throw new Error("Template ID too long");
+  if (template.id.length > 100) throw new ValidationError("Template ID too long");
   customTemplates.set(template.id, template);
 }
 

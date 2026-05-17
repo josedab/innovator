@@ -19,6 +19,7 @@
  */
 
 /** Configuration for {@link StringPool}. */
+import { ValidationError } from "../errors.js";
 export interface StringPoolOptions {
   /** Maximum number of unique strings to intern. Default: 4096. */
   maxSize?: number;
@@ -59,7 +60,7 @@ export class StringPool {
   constructor(options: StringPoolOptions = {}) {
     this.maxSize = options.maxSize ?? 4096;
     if (this.maxSize < 1 || !Number.isFinite(this.maxSize)) {
-      throw new Error("StringPool: maxSize must be a finite number >= 1");
+      throw new ValidationError("StringPool: maxSize must be a finite number >= 1");
     }
   }
 

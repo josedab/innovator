@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -233,6 +234,21 @@ export function recordPromptExecution(
     success: boolean;
   }
 ): void {
+  if (!templateId?.trim()) {
+    throw new ValidationError("Template ID is required");
+  }
+  if (version < 1 || !Number.isInteger(version)) {
+    throw new ValidationError("Version must be a positive integer");
+  }
+  if (result.qualityScore < 0 || result.qualityScore > 100) {
+    throw new ValidationError("Quality score must be between 0 and 100");
+  }
+  if (result.responseTimeMs < 0) {
+    throw new ValidationError("Response time must be non-negative");
+  }
+  if (result.tokenCount < 0) {
+    throw new ValidationError("Token count must be non-negative");
+  }
   if (!performanceData.has(templateId)) {
     performanceData.set(templateId, new Map());
   }
@@ -378,7 +394,7 @@ export function interpolateTemplate(
   for (const variable of template.variables) {
     const value = variables[variable.name] ?? variable.defaultValue ?? "";
     if (variable.required && !value) {
-      throw new Error(`Required variable "${variable.name}" is missing`);
+      throw new ValidationError(`Required variable "${variable.name}" is missing`);
     }
     result = result.replace(new RegExp(`\\{${variable.name}\\}`, "g"), value);
   }

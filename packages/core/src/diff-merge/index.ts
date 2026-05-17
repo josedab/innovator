@@ -14,6 +14,7 @@ import { wrapUserInput } from "../prompts/sanitize.js";
 import { indexDocument, findSimilar } from "../embeddings/index.js";
 import { DiffItemSchema } from "../diff/index.js";
 import { InnovationIdeaSchema } from "../types.js";
+import { LlmParseError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -486,7 +487,10 @@ You MUST respond with valid JSON only — no markdown, no explanation outside th
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse synthesis response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse synthesis response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

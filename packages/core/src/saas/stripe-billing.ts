@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import type { BillingProvider, BillingEvent, Invoice, PlanId } from "./index.js";
+import { ConfigurationError, LlmError, ValidationError } from "../errors.js";
 
 /** Zod schema for Stripe configuration. */
 export const StripeConfigSchema = z.object({
@@ -34,7 +35,7 @@ interface StripeApiOptions {
 async function stripeRequest<T>(options: StripeApiOptions): Promise<T> {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) {
-    throw new Error("STRIPE_SECRET_KEY not configured");
+    throw new ConfigurationError("STRIPE_SECRET_KEY not configured");
   }
 
   const url = `https://api.stripe.com/v1${options.path}`;
@@ -53,7 +54,7 @@ async function stripeRequest<T>(options: StripeApiOptions): Promise<T> {
 
   if (!response.ok) {
     const errorData = await response.text();
-    throw new Error(`Stripe API error (${response.status}): ${errorData}`);
+    throw new LlmError(`Stripe API error (${response.status}): ${errorData}`);
   }
 
   return response.json() as Promise<T>;
@@ -82,7 +83,7 @@ export class StripeBillingProvider implements BillingProvider {
 
     const priceId = PLAN_TO_PRICE_ID[planId];
     if (!priceId) {
-      throw new Error(`No price configured for plan: ${planId}`);
+      throw new ConfigurationError(`No price configured for plan: ${planId}`);
     }
 
     const result = await stripeRequest<{ id: string }>({
@@ -114,7 +115,7 @@ export class StripeBillingProvider implements BillingProvider {
 
     const priceId = PLAN_TO_PRICE_ID[planId];
     if (!priceId) {
-      throw new Error(`No price configured for plan: ${planId}`);
+      throw new ConfigurationError(`No price configured for plan: ${planId}`);
     }
 
     // Get subscription items first
@@ -125,7 +126,7 @@ export class StripeBillingProvider implements BillingProvider {
 
     const itemId = sub.items.data[0]?.id;
     if (!itemId) {
-      throw new Error("No subscription item found");
+      throw new ValidationError("No subscription item found");
     }
 
     await stripeRequest({
@@ -171,12 +172,12 @@ export class StripeBillingProvider implements BillingProvider {
   async processWebhook(payload: string, signature: string): Promise<BillingEvent> {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      throw new Error("STRIPE_WEBHOOK_SECRET not configured");
+      throw new ConfigurationError("STRIPE_WEBHOOK_SECRET not configured");
     }
 
     // Verify webhook signature (simplified - in production use stripe SDK)
     if (!signature || !payload) {
-      throw new Error("Invalid webhook signature");
+      throw new ValidationError("Invalid webhook signature");
     }
 
     const event = JSON.parse(payload) as {
@@ -195,7 +196,7 @@ export class StripeBillingProvider implements BillingProvider {
 
     const mappedType = typeMap[event.type];
     if (!mappedType) {
-      throw new Error(`Unhandled webhook type: ${event.type}`);
+      throw new ValidationError(`Unhandled webhook type: ${event.type}`);
     }
 
     return {

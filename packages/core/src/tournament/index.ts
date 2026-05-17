@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -242,10 +243,10 @@ export function createTournament(input: {
   ideas: Array<{ title: string; description?: string; angleId?: string }>;
 }): Tournament {
   if (input.ideas.length < 2) {
-    throw new Error("Tournament requires at least 2 participants");
+    throw new ValidationError("Tournament requires at least 2 participants");
   }
   if (input.ideas.length > 64) {
-    throw new Error("Tournament supports at most 64 participants");
+    throw new ValidationError("Tournament supports at most 64 participants");
   }
 
   const participants: TournamentParticipant[] = input.ideas.map((idea, i) => ({

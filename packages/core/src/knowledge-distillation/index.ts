@@ -11,6 +11,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeUserInput } from "../prompts/sanitize.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -144,7 +145,7 @@ export async function extractPattern(
   options: ExtractPatternOptions = {}
 ): Promise<InvestigationPattern> {
   if (!input || !output) {
-    throw new Error("Both input and output are required for pattern extraction");
+    throw new ValidationError("Both input and output are required for pattern extraction");
   }
 
   const prompt = buildPatternExtractionPrompt(input, output, category);
@@ -155,7 +156,10 @@ export async function extractPattern(
       try {
         return JSON.parse(jsonStr) as Record<string, unknown>;
       } catch {
-        throw new Error(`Failed to parse pattern response: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse pattern response: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {
@@ -200,7 +204,7 @@ export function buildDataset(
     : Array.from(patterns.values());
 
   if (selectedPatterns.length === 0) {
-    throw new Error("No patterns available to build dataset");
+    throw new ValidationError("No patterns available to build dataset");
   }
 
   const examples: TrainingExample[] = selectedPatterns.map((p) => ({
@@ -242,7 +246,7 @@ export function generateFineTuneConfig(
 ): FineTuneConfig {
   const dataset = datasets.get(datasetId);
   if (!dataset) {
-    throw new Error(`Dataset not found: ${datasetId}`);
+    throw new ValidationError(`Dataset not found: ${datasetId}`);
   }
 
   const exampleCount = dataset.totalExamples;
@@ -401,7 +405,7 @@ export function clearDistillationData(): void {
  */
 export function exportDatasetJsonl(datasetId: string): string {
   const dataset = datasets.get(datasetId);
-  if (!dataset) throw new Error(`Dataset not found: ${datasetId}`);
+  if (!dataset) throw new ValidationError(`Dataset not found: ${datasetId}`);
 
   return dataset.examples
     .map((e) =>

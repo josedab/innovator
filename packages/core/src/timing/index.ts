@@ -11,6 +11,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -91,7 +92,7 @@ export async function analyzeTimings(
   signal?: AbortSignal
 ): Promise<TimingAnalysis> {
   if (ideaTitles.length === 0) {
-    throw new Error("No ideas to analyze timing for");
+    throw new ValidationError("No ideas to analyze timing for");
   }
 
   const ideasList = ideaTitles
@@ -157,7 +158,10 @@ Return valid JSON only:
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse timing analysis: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse timing analysis: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

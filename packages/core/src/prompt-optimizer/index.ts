@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -309,7 +310,7 @@ export function evolveGeneration(
   const population = getVariantsByAngle(angleId).filter((v) => v.active);
 
   if (population.length < 2) {
-    throw new Error("Need at least 2 active variants to evolve");
+    throw new ValidationError("Need at least 2 active variants to evolve");
   }
 
   const currentGen = Math.max(...population.map((v) => v.generation), 0);

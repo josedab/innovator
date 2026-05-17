@@ -9,6 +9,7 @@
 
 import { randomUUID } from "node:crypto";
 import type { AngleResult } from "../types.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Types ----
 
@@ -250,7 +251,7 @@ export function createCluster(
 ): CanvasCluster {
   const nodes = canvas.nodes.filter((n) => nodeIds.includes(n.id));
   if (nodes.length === 0) {
-    throw new Error("No valid nodes found for cluster");
+    throw new ValidationError("No valid nodes found for cluster");
   }
 
   // Compute bounding box

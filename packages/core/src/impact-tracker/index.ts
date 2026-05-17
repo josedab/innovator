@@ -12,6 +12,7 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { ValidationError } from "../errors.js";
 
 // ---------------------------------------------------------------------------
 // Persistence helpers
@@ -185,7 +186,7 @@ export function updateIdeaStatus(ideaId: string, status: IdeaStatus): TrackedIde
   loadStores();
   const idea = ideasStore.get(ideaId);
   if (!idea) {
-    throw new Error(`Tracked idea not found: ${ideaId}`);
+    throw new ValidationError(`Tracked idea not found: ${ideaId}`);
   }
   idea.status = status;
   ideasStore.set(ideaId, idea);
@@ -195,11 +196,11 @@ export function updateIdeaStatus(ideaId: string, status: IdeaStatus): TrackedIde
 
 /** Link a GitHub PR to an idea. */
 export function linkPR(ideaId: string, prUrl: string): TrackedIdea {
-  if (!prUrl || prUrl.trim().length === 0) throw new Error("PR URL cannot be empty");
+  if (!prUrl || prUrl.trim().length === 0) throw new ValidationError("PR URL cannot be empty");
   loadStores();
   const idea = ideasStore.get(ideaId);
   if (!idea) {
-    throw new Error(`Tracked idea not found: ${ideaId}`);
+    throw new ValidationError(`Tracked idea not found: ${ideaId}`);
   }
   if (!idea.linkedPRs.includes(prUrl)) {
     idea.linkedPRs.push(prUrl);
@@ -211,11 +212,12 @@ export function linkPR(ideaId: string, prUrl: string): TrackedIdea {
 
 /** Link a Jira or GitHub issue to an idea. */
 export function linkIssue(ideaId: string, issueUrl: string): TrackedIdea {
-  if (!issueUrl || issueUrl.trim().length === 0) throw new Error("Issue URL cannot be empty");
+  if (!issueUrl || issueUrl.trim().length === 0)
+    throw new ValidationError("Issue URL cannot be empty");
   loadStores();
   const idea = ideasStore.get(ideaId);
   if (!idea) {
-    throw new Error(`Tracked idea not found: ${ideaId}`);
+    throw new ValidationError(`Tracked idea not found: ${ideaId}`);
   }
   if (!idea.linkedIssues.includes(issueUrl)) {
     idea.linkedIssues.push(issueUrl);
@@ -253,7 +255,7 @@ export function recordOutcome(outcome: OutcomeRecord): OutcomeRecord {
   loadStores();
   const parsed = OutcomeRecordSchema.parse(outcome);
   if (!ideasStore.has(parsed.ideaId)) {
-    throw new Error(`Tracked idea not found: ${parsed.ideaId}`);
+    throw new ValidationError(`Tracked idea not found: ${parsed.ideaId}`);
   }
   const list = outcomesStore.get(parsed.ideaId) ?? [];
   list.push(parsed);
@@ -275,7 +277,7 @@ export async function autoDetectOutcomes(
   loadStores();
   const idea = ideasStore.get(ideaId);
   if (!idea) {
-    throw new Error(`Tracked idea not found: ${ideaId}`);
+    throw new ValidationError(`Tracked idea not found: ${ideaId}`);
   }
 
   const detected: OutcomeRecord[] = [];
@@ -309,7 +311,7 @@ export function calculateImpactScore(ideaId: string): ImpactScore {
   loadStores();
   const idea = ideasStore.get(ideaId);
   if (!idea) {
-    throw new Error(`Tracked idea not found: ${ideaId}`);
+    throw new ValidationError(`Tracked idea not found: ${ideaId}`);
   }
 
   const outcomes = outcomesStore.get(ideaId) ?? [];

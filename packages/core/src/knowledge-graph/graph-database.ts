@@ -8,6 +8,39 @@
 
 import { z } from "zod";
 import type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./index.js";
+import { ConfigurationError } from "../errors.js";
+
+/** Minimal interface for Neo4j driver session (avoids `any` for dynamic import). */
+interface Neo4jSession {
+  run(cypher: string, params?: Record<string, unknown>): Promise<{ records: Neo4jRecord[] }>;
+  beginTransaction(): Neo4jSession;
+  commit(): Promise<void>;
+  rollback(): Promise<void>;
+  close(): Promise<void>;
+}
+
+/** Minimal interface for Neo4j query result record. */
+interface Neo4jRecord {
+  keys: string[];
+  get(key: string): Neo4jNode | Neo4jNode[] | Neo4jRel[] | unknown;
+}
+
+/** Minimal interface for Neo4j node. */
+interface Neo4jNode {
+  properties: Record<string, unknown>;
+}
+
+/** Minimal interface for Neo4j relationship. */
+interface Neo4jRel {
+  properties: Record<string, unknown>;
+}
+
+/** Minimal interface for Neo4j driver instance. */
+interface Neo4jDriverInstance {
+  session(options?: { database?: string }): Neo4jSession;
+  verifyConnectivity(): Promise<void>;
+  close(): Promise<void>;
+}
 
 // ---- Configuration ----
 
@@ -61,8 +94,7 @@ export interface GraphDatabaseDriver {
 
 export class Neo4jDriver implements GraphDatabaseDriver {
   protected config: GraphDatabaseConfig;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected driver: any = null;
+  protected driver: Neo4jDriverInstance | null = null;
   protected connected = false;
 
   constructor(config: GraphDatabaseConfigInput) {
@@ -71,9 +103,11 @@ export class Neo4jDriver implements GraphDatabaseDriver {
 
   async connect(): Promise<void> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const neo4j: any = await Function('return import("neo4j-driver")')();
-      const mod = neo4j.default ?? neo4j;
+      const neo4j = (await Function('return import("neo4j-driver")')()) as Record<string, unknown>;
+      const mod = (neo4j.default ?? neo4j) as {
+        driver: (uri: string, auth: unknown) => Neo4jDriverInstance;
+        auth: { basic: (user: string, pass: string) => unknown };
+      };
 
       const uri = `${this.config.protocol}://${this.config.host}:${this.config.port}`;
       this.driver = mod.driver(uri, mod.auth.basic(this.config.username, this.config.password));
@@ -82,7 +116,7 @@ export class Neo4jDriver implements GraphDatabaseDriver {
       await this.driver.verifyConnectivity();
       this.connected = true;
     } catch (error) {
-      throw new Error(
+      throw new ConfigurationError(
         `Neo4j connection failed: ${error instanceof Error ? error.message : "Unknown error"}. ` +
           "Install neo4j-driver: npm install neo4j-driver"
       );
@@ -101,10 +135,9 @@ export class Neo4jDriver implements GraphDatabaseDriver {
     return this.connected;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected getSession(): any {
+  protected getSession(): Neo4jSession {
     if (!this.driver) {
-      throw new Error("Neo4j driver is not connected. Call connect() first.");
+      throw new ConfigurationError("Neo4j driver is not connected. Call connect() first.");
     }
     return this.driver.session({ database: this.config.database });
   }
@@ -183,7 +216,7 @@ export class Neo4jDriver implements GraphDatabaseDriver {
       const result = await session.run("MATCH (n:Entity {id: $id}) RETURN n", { id });
 
       if (result.records.length === 0) return undefined;
-      return this.recordToEntityNode(result.records[0].get("n"));
+      return this.recordToEntityNode(result.records[0].get("n") as Neo4jNode);
     } finally {
       await session.close();
     }
@@ -232,7 +265,7 @@ export class Neo4jDriver implements GraphDatabaseDriver {
     const session = this.getSession();
     try {
       const result = await session.run(cypher, params);
-      return result.records.map((record: { keys: string[]; get: (key: string) => unknown }) => {
+      return result.records.map((record) => {
         const row: Record<string, unknown> = {};
         for (const key of record.keys) {
           row[key] = record.get(key);
@@ -290,7 +323,7 @@ export class Neo4jDriver implements GraphDatabaseDriver {
       const nodes: EntityNode[] = [];
       const nodeIds = new Set<string>();
       for (const record of bfsResult.records) {
-        const node = this.recordToEntityNode(record.get("neighbor"));
+        const node = this.recordToEntityNode(record.get("neighbor") as Neo4jNode);
         if (!nodeIds.has(node.id)) {
           nodeIds.add(node.id);
           nodes.push(node);
@@ -329,10 +362,12 @@ export class Neo4jDriver implements GraphDatabaseDriver {
       if (result.records.length === 0) return undefined;
 
       const record = result.records[0];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pathNodes = record.get("pathNodes").map((n: any) => this.recordToEntityNode(n));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pathRels = record.get("pathRels").map((r: any) => this.recordToRelationshipEdge(r));
+      const pathNodes = (record.get("pathNodes") as Neo4jNode[]).map((n) =>
+        this.recordToEntityNode(n)
+      );
+      const pathRels = (record.get("pathRels") as Neo4jRel[]).map((r) =>
+        this.recordToRelationshipEdge(r)
+      );
 
       return { nodes: pathNodes, edges: pathRels };
     } finally {
@@ -349,9 +384,8 @@ export class Neo4jDriver implements GraphDatabaseDriver {
         nodeIds,
       });
 
-      const nodes = nodeResult.records.map(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (record: any) => this.recordToEntityNode(record.get("n"))
+      const nodes = nodeResult.records.map((record: Neo4jRecord) =>
+        this.recordToEntityNode(record.get("n") as Neo4jNode)
       );
 
       const edges = await this.fetchEdgesBetween(session, nodeIds);
@@ -436,18 +470,15 @@ export class Neo4jDriver implements GraphDatabaseDriver {
         "MATCH ()-[r:RELATIONSHIP]->() RETURN r, startNode(r).id AS source, endNode(r).id AS target"
       );
 
-      const nodes = nodeResult.records.map(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (record: any) => this.recordToEntityNode(record.get("n"))
+      const nodes = nodeResult.records.map((record: Neo4jRecord) =>
+        this.recordToEntityNode(record.get("n") as Neo4jNode)
       );
 
-      const edges = edgeResult.records.map(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (record: any) =>
-          this.recordToRelationshipEdge(record.get("r"), {
-            source: record.get("source"),
-            target: record.get("target"),
-          })
+      const edges = edgeResult.records.map((record: Neo4jRecord) =>
+        this.recordToRelationshipEdge(record.get("r") as Neo4jRel, {
+          source: record.get("source") as string,
+          target: record.get("target") as string,
+        })
       );
 
       return {
@@ -463,8 +494,10 @@ export class Neo4jDriver implements GraphDatabaseDriver {
 
   // ---- Helpers ----
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async fetchEdgesBetween(session: any, nodeIds: string[]): Promise<RelationshipEdge[]> {
+  private async fetchEdgesBetween(
+    session: Neo4jSession,
+    nodeIds: string[]
+  ): Promise<RelationshipEdge[]> {
     const edgeResult = await session.run(
       `MATCH (a:Entity)-[r:RELATIONSHIP]->(b:Entity)
        WHERE a.id IN $nodeIds AND b.id IN $nodeIds
@@ -472,52 +505,52 @@ export class Neo4jDriver implements GraphDatabaseDriver {
       { nodeIds }
     );
 
-    return edgeResult.records.map(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (record: any) =>
-        this.recordToRelationshipEdge(record.get("r"), {
-          source: record.get("source"),
-          target: record.get("target"),
-        })
+    return edgeResult.records.map((record: Neo4jRecord) =>
+      this.recordToRelationshipEdge(record.get("r") as Neo4jRel, {
+        source: record.get("source") as string,
+        target: record.get("target") as string,
+      })
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected recordToEntityNode(record: any): EntityNode {
+  protected recordToEntityNode(record: Neo4jNode): EntityNode {
     const props = record.properties ?? record;
+    const occurrenceCount = props.occurrenceCount;
     return {
-      id: props.id,
-      label: props.label,
-      type: props.type,
-      description: props.description ?? undefined,
+      id: String(props.id),
+      label: String(props.label),
+      type: String(props.type) as EntityNode["type"],
+      description: (props.description as string | undefined) ?? undefined,
       sourceSessionIds: Array.isArray(props.sourceSessionIds) ? props.sourceSessionIds : [],
-      firstSeen: props.firstSeen,
-      lastSeen: props.lastSeen,
+      firstSeen: String(props.firstSeen),
+      lastSeen: String(props.lastSeen),
       occurrenceCount:
-        typeof props.occurrenceCount === "object" && props.occurrenceCount.toNumber
-          ? props.occurrenceCount.toNumber()
-          : Number(props.occurrenceCount),
-      metadata: props.metadata ? JSON.parse(props.metadata) : undefined,
+        typeof occurrenceCount === "object" &&
+        occurrenceCount !== null &&
+        "toNumber" in occurrenceCount
+          ? (occurrenceCount as { toNumber(): number }).toNumber()
+          : Number(occurrenceCount),
+      metadata: props.metadata ? JSON.parse(String(props.metadata)) : undefined,
     };
   }
 
   protected recordToRelationshipEdge(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    record: any,
+    record: Neo4jRel,
     endpoints?: { source: string; target: string }
   ): RelationshipEdge {
     const props = record.properties ?? record;
+    const weight = props.weight;
     return {
-      id: props.id,
-      source: endpoints?.source ?? props.source,
-      target: endpoints?.target ?? props.target,
-      type: props.type,
+      id: String(props.id),
+      source: endpoints?.source ?? String(props.source),
+      target: endpoints?.target ?? String(props.target),
+      type: String(props.type) as RelationshipEdge["type"],
       weight:
-        typeof props.weight === "object" && props.weight.toNumber
-          ? props.weight.toNumber()
-          : Number(props.weight),
+        typeof weight === "object" && weight !== null && "toNumber" in weight
+          ? (weight as { toNumber(): number }).toNumber()
+          : Number(weight),
       sourceSessionIds: Array.isArray(props.sourceSessionIds) ? props.sourceSessionIds : [],
-      label: props.label ?? undefined,
+      label: (props.label as string | undefined) ?? undefined,
     };
   }
 }
@@ -542,7 +575,7 @@ export class MemgraphDriver extends Neo4jDriver {
 
   protected override getSession() {
     if (!this.driver) {
-      throw new Error("Memgraph driver is not connected. Call connect() first.");
+      throw new ConfigurationError("Memgraph driver is not connected. Call connect() first.");
     }
     // Memgraph does not use named databases, so omit the database option
     return this.driver.session();

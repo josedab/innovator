@@ -9,6 +9,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { ValidationError } from "../errors.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 import type { InnovationIdea } from "../types.js";
 import type {
@@ -206,7 +207,7 @@ export async function runPatentScan(
   config: PatentScanConfig = {}
 ): Promise<PatentScanResult> {
   if (ideas.length === 0) {
-    throw new Error("No ideas to scan");
+    throw new ValidationError("No ideas to scan");
   }
 
   const databases = config.databases ?? ["USPTO", "EPO", "WIPO"];

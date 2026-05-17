@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import type { KnowledgeDocument } from "./types.js";
+import { ConfigurationError, ValidationError } from "../errors.js";
 
 // ---- Connector Schemas ----
 
@@ -50,7 +51,8 @@ export const GitHubConnector: KnowledgeConnector = {
   type: "github",
   async fetchDocuments(config): Promise<KnowledgeDocument[]> {
     const { repo, token, branch } = config;
-    if (!repo) throw new Error("GitHub connector requires 'repo' config (owner/repo)");
+    if (!repo)
+      throw new ConfigurationError("GitHub connector requires 'repo' config (owner/repo)", "repo");
 
     const headers: Record<string, string> = {
       Accept: "application/vnd.github.v3+json",
@@ -61,7 +63,7 @@ export const GitHubConnector: KnowledgeConnector = {
     try {
       const url = `https://api.github.com/repos/${repo}/readme${branch ? `?ref=${branch}` : ""}`;
       const res = await fetch(url, { headers });
-      if (!res.ok) throw new Error(`GitHub API ${res.status}: ${res.statusText}`);
+      if (!res.ok) throw new ConfigurationError(`GitHub API ${res.status}: ${res.statusText}`);
       const data = (await res.json()) as { content?: string; name?: string; path?: string };
       const content = data.content ? Buffer.from(data.content, "base64").toString("utf-8") : "";
 
@@ -78,7 +80,7 @@ export const GitHubConnector: KnowledgeConnector = {
         },
       ];
     } catch (err) {
-      throw new Error(
+      throw new ConfigurationError(
         `GitHub connector error: ${err instanceof Error ? err.message : String(err)}`
       );
     }
@@ -93,7 +95,7 @@ export const ConfluenceConnector: KnowledgeConnector = {
   async fetchDocuments(config): Promise<KnowledgeDocument[]> {
     const { baseUrl, spaceKey, token } = config;
     if (!baseUrl || !spaceKey) {
-      throw new Error("Confluence connector requires 'baseUrl' and 'spaceKey' config");
+      throw new ConfigurationError("Confluence connector requires 'baseUrl' and 'spaceKey' config");
     }
 
     try {
@@ -104,7 +106,7 @@ export const ConfluenceConnector: KnowledgeConnector = {
 
       const url = `${baseUrl}/rest/api/content?spaceKey=${spaceKey}&limit=10&expand=body.storage`;
       const res = await fetch(url, { headers });
-      if (!res.ok) throw new Error(`Confluence API ${res.status}`);
+      if (!res.ok) throw new ConfigurationError(`Confluence API ${res.status}`);
 
       const data = (await res.json()) as {
         results?: Array<{
@@ -125,7 +127,7 @@ export const ConfluenceConnector: KnowledgeConnector = {
         metadata: { spaceKey, pageId: page.id },
       }));
     } catch (err) {
-      throw new Error(
+      throw new ConfigurationError(
         `Confluence connector error: ${err instanceof Error ? err.message : String(err)}`
       );
     }
@@ -140,7 +142,7 @@ export const NotionConnector: KnowledgeConnector = {
   async fetchDocuments(config): Promise<KnowledgeDocument[]> {
     const { apiKey, databaseId } = config;
     if (!apiKey || !databaseId) {
-      throw new Error("Notion connector requires 'apiKey' and 'databaseId' config");
+      throw new ConfigurationError("Notion connector requires 'apiKey' and 'databaseId' config");
     }
 
     try {
@@ -154,7 +156,7 @@ export const NotionConnector: KnowledgeConnector = {
         body: JSON.stringify({ page_size: 10 }),
       });
 
-      if (!res.ok) throw new Error(`Notion API ${res.status}`);
+      if (!res.ok) throw new ConfigurationError(`Notion API ${res.status}`);
       const data = (await res.json()) as {
         results?: Array<{
           id: string;
@@ -177,7 +179,7 @@ export const NotionConnector: KnowledgeConnector = {
         };
       });
     } catch (err) {
-      throw new Error(
+      throw new ConfigurationError(
         `Notion connector error: ${err instanceof Error ? err.message : String(err)}`
       );
     }
@@ -191,13 +193,13 @@ export const LocalFileConnector: KnowledgeConnector = {
   type: "local-file",
   async fetchDocuments(config): Promise<KnowledgeDocument[]> {
     const { path } = config;
-    if (!path) throw new Error("Local file connector requires 'path' config");
+    if (!path) throw new ConfigurationError("Local file connector requires 'path' config", "path");
 
     const fs = await import("node:fs");
     const nodePath = await import("node:path");
 
     if (!fs.existsSync(path)) {
-      throw new Error(`File not found: ${path}`);
+      throw new ValidationError(`File not found: ${path}`);
     }
 
     const stat = fs.statSync(path);
@@ -283,10 +285,11 @@ export function listConnectors(): Array<ConnectorConfig & { status: ConnectorSta
  */
 export async function syncConnector(connectorId: string): Promise<KnowledgeDocument[]> {
   const config = connectorConfigs.get(connectorId);
-  if (!config) throw new Error(`Connector not found: ${connectorId}`);
+  if (!config) throw new ValidationError(`Connector not found: ${connectorId}`);
 
   const connector = connectorRegistry.get(config.type);
-  if (!connector) throw new Error(`No connector implementation for type: ${config.type}`);
+  if (!connector)
+    throw new ConfigurationError(`No connector implementation for type: ${config.type}`);
 
   const status = connectorStatuses.get(connectorId)!;
   status.status = "syncing";

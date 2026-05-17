@@ -23,6 +23,7 @@ import {
   type GauntletProgress,
   type GauntletTranscriptEntry,
 } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Default Config ----
 
@@ -186,10 +187,10 @@ export async function runGauntlet(
   onProgress?: (progress: GauntletProgress) => void
 ): Promise<GauntletResult> {
   if (!idea.title?.trim()) {
-    throw new Error("Idea title is required for gauntlet evaluation");
+    throw new ValidationError("Idea title is required for gauntlet evaluation");
   }
   if (!idea.description?.trim()) {
-    throw new Error("Idea description is required for gauntlet evaluation");
+    throw new ValidationError("Idea description is required for gauntlet evaluation");
   }
 
   const adversaries = config.adversaries ?? DEFAULT_ADVERSARIES;

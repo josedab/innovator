@@ -20,6 +20,7 @@ import type {
   AnglePair,
   MorphologicalCell,
 } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 export {
   CombinatorialIdeaSchema,
@@ -193,7 +194,7 @@ export async function runCombinatorialSynthesis(
   config: CombinatorialConfig = {}
 ): Promise<CombinatorialResult> {
   if (angleResults.length < 2) {
-    throw new Error("Need at least 2 angle results for combinatorial synthesis");
+    throw new ValidationError("Need at least 2 angle results for combinatorial synthesis");
   }
 
   const includeHigherOrder = config.includeHigherOrder ?? true;

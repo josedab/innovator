@@ -18,6 +18,7 @@ import {
   submitReview,
   type PackageListing,
 } from "./package-standard.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Angle Pack Schemas ----
 
@@ -265,7 +266,7 @@ export function importAnglePackFromMarketplace(pack: AnglePack): {
 export function publishAnglePack(pack: AnglePack, authorName: string): PackageListing {
   const validation = validateAnglePack(pack);
   if (!validation.valid) {
-    throw new Error(`Pack validation failed: ${validation.errors.join(", ")}`);
+    throw new ValidationError(`Pack validation failed: ${validation.errors.join(", ")}`);
   }
 
   return publishPackage({

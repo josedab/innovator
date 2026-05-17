@@ -16,6 +16,7 @@ import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Intent Classification ----
 
@@ -427,7 +428,7 @@ export async function chat(
   signal?: AbortSignal
 ): Promise<ChatAgentResponse> {
   const session = chatSessions.get(sessionId);
-  if (!session) throw new Error(`Chat session "${sessionId}" not found`);
+  if (!session) throw new ValidationError(`Chat session "${sessionId}" not found`);
 
   // Add user message
   session.messages.push({

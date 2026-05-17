@@ -10,6 +10,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput } from "../prompts/sanitize.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -94,13 +95,13 @@ export async function runInnovationDiff(
   signal?: AbortSignal
 ): Promise<DiffResult> {
   if (!subjectA || subjectA.trim().length === 0) {
-    throw new Error("Snapshot A cannot be empty");
+    throw new ValidationError("Snapshot A cannot be empty");
   }
   if (!subjectB || subjectB.trim().length === 0) {
-    throw new Error("Snapshot B cannot be empty");
+    throw new ValidationError("Snapshot B cannot be empty");
   }
   if (subjectA.length > 2000 || subjectB.length > 2000) {
-    throw new Error("Snapshot descriptions must be under 2000 characters");
+    throw new ValidationError("Snapshot descriptions must be under 2000 characters");
   }
 
   const prompt = buildDiffPrompt(subjectA, subjectB);
@@ -112,7 +113,10 @@ export async function runInnovationDiff(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse diff response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse diff response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

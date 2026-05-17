@@ -10,6 +10,7 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { ValidationError } from "../errors.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
 
 // ---- Live Session Schemas ----
@@ -158,7 +159,7 @@ export async function feedTranscriptSegment(
 }> {
   const session = liveSessions.get(sessionId);
   if (!session || session.status !== "active") {
-    throw new Error("Session not found or not active");
+    throw new ValidationError("Session not found or not active");
   }
 
   const entry = {

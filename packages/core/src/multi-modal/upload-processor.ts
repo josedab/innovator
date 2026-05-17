@@ -11,6 +11,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -111,7 +112,7 @@ export class UploadProcessor {
   async processFile(file: UploadedFile, signal?: AbortSignal): Promise<ProcessingResult> {
     const errors = validateUploadedFile(file);
     if (errors.length > 0) {
-      throw new Error(`Validation failed: ${errors.join("; ")}`);
+      throw new ValidationError(`Validation failed: ${errors.join("; ")}`);
     }
 
     const fileType = resolveFileType(file.mimeType)!;
@@ -126,7 +127,7 @@ export class UploadProcessor {
       case "document":
         return this.processDocument(file, signal);
       default:
-        throw new Error(`Unsupported file type: ${fileType}`);
+        throw new ValidationError(`Unsupported file type: ${fileType}`);
     }
   }
 

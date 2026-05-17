@@ -7,6 +7,7 @@
  */
 
 import { z } from "zod";
+import { ValidationError } from "../errors.js";
 import { laplaceMechanism, laplaceConfidenceInterval } from "./federation-dp.js";
 import type { DPConfig, AnonymizedPattern } from "./types.js";
 
@@ -344,7 +345,7 @@ export function createChallenge(
 ): Challenge {
   const org = organizations.get(orgId);
   if (!org || org.status !== "active") {
-    throw new Error("Organization not found or not active");
+    throw new ValidationError("Organization not found or not active");
   }
 
   const challenge: Challenge = {

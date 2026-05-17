@@ -12,6 +12,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { listSessions } from "../history/index.js";
 import type { SessionRecord } from "../types.js";
+import { LlmParseError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -209,7 +210,10 @@ You MUST respond with valid JSON only.
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse connection explanation: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse connection explanation: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

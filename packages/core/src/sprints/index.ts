@@ -20,6 +20,7 @@ import {
   SprintPhaseSchema,
   SprintRetrospectiveSchema,
 } from "./types.js";
+import { ValidationError } from "../errors.js";
 
 export * from "./types.js";
 
@@ -284,7 +285,7 @@ export function createSprint(
 ): Sprint {
   const templateId = config.templateId ?? "lightning-2h";
   const template = TEMPLATES.find((t) => t.id === templateId);
-  if (!template) throw new Error(`Sprint template ${templateId} not found`);
+  if (!template) throw new ValidationError(`Sprint template ${templateId} not found`);
 
   // Clone phases and optionally override durations
   const phases = template.phases.map((p) => ({
@@ -314,7 +315,7 @@ export function createSprint(
  */
 export function advanceSprintPhase(sprintId: string): Sprint {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
 
   const now = new Date().toISOString();
 
@@ -348,7 +349,7 @@ export function advanceSprintPhase(sprintId: string): Sprint {
  */
 export function completeSprint(sprintId: string): Sprint {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
 
   const now = new Date().toISOString();
 
@@ -373,7 +374,7 @@ export function completeSprint(sprintId: string): Sprint {
  */
 export function getSprintRetrospective(sprintId: string): SprintRetrospective {
   const sprint = sprints.get(sprintId);
-  if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
+  if (!sprint) throw new ValidationError(`Sprint ${sprintId} not found`);
 
   const totalIdeas = sprint.ideas.length;
 

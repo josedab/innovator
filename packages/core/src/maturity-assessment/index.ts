@@ -13,6 +13,7 @@ import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { ValidationError } from "../errors.js";
 
 // ---- Zod Schemas ----
 
@@ -445,7 +446,7 @@ export function scoreAssessment(
   organizationId: string,
   responses: QuestionResponse[]
 ): AssessmentResult {
-  if (responses.length === 0) throw new Error("No responses provided");
+  if (responses.length === 0) throw new ValidationError("No responses provided");
 
   const dimensions: AssessmentDimension[] = [
     "strategy",
@@ -523,7 +524,7 @@ export function scoreAssessment(
 /** Benchmark assessment results against industry aggregates. */
 export function benchmarkAssessment(assessmentId: string): BenchmarkData[] {
   const assessment = assessments.get(assessmentId);
-  if (!assessment) throw new Error(`Assessment ${assessmentId} not found`);
+  if (!assessment) throw new ValidationError(`Assessment ${assessmentId} not found`);
 
   return assessment.dimensionScores.map((ds) => {
     const benchmark = INDUSTRY_BENCHMARKS[ds.dimension];
@@ -593,7 +594,7 @@ export async function generateRoadmap(
   options?: { model?: string; signal?: AbortSignal }
 ): Promise<Roadmap> {
   const assessment = assessments.get(assessmentId);
-  if (!assessment) throw new Error(`Assessment ${assessmentId} not found`);
+  if (!assessment) throw new ValidationError(`Assessment ${assessmentId} not found`);
 
   const recommendations: ImprovementRecommendation[] = [];
 

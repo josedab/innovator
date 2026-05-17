@@ -11,6 +11,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { LlmParseError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -451,7 +452,10 @@ Return valid JSON only:
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse mining insights: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse mining insights: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

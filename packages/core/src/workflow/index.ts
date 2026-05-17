@@ -8,6 +8,7 @@
  */
 
 import { z } from "zod";
+import { AbortError, PipelineError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -125,7 +126,7 @@ export function parseWorkflowYaml(yamlContent: string): WorkflowConfig {
     return WorkflowConfigSchema.parse(parsed);
   } catch (error) {
     if (error instanceof z.ZodError) throw error;
-    throw new Error(
+    throw new ValidationError(
       `Invalid workflow YAML: ${error instanceof Error ? error.message : "parse error"}`
     );
   }
@@ -268,7 +269,9 @@ export async function runWorkflow(
   const dryRun = options?.dryRun ?? false;
 
   if (!subject && !dryRun) {
-    throw new Error("Workflow requires a subject. Provide via config.subject or options.subject.");
+    throw new ValidationError(
+      "Workflow requires a subject. Provide via config.subject or options.subject."
+    );
   }
 
   const startedAt = new Date().toISOString();
@@ -344,7 +347,7 @@ async function executeStage(
   _defaultModel?: string,
   signal?: AbortSignal
 ): Promise<void> {
-  if (signal?.aborted) throw new Error("Workflow aborted");
+  if (signal?.aborted) throw new AbortError("Workflow aborted");
 
   // Stage execution is delegated to the innovation pipeline
   // Each stage type maps to existing core functions
@@ -359,7 +362,7 @@ async function executeStage(
       // This is the orchestration layer; callers wire it to the innovation pipeline
       break;
     default:
-      throw new Error(`Unknown stage type: ${stage.type}`);
+      throw new PipelineError(`Unknown stage type: ${stage.type}`, stage.type);
   }
 }
 

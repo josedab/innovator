@@ -13,6 +13,7 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
 import type { Investigation, AngleResult, Synthesis } from "../types.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -300,7 +301,10 @@ async function runLlmJson(prompt: string, model?: string, signal?: AbortSignal):
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse coaching response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse coaching response as JSON: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {
@@ -507,7 +511,7 @@ function extractCompletedAngles(messages: CoachMessage[], allAngles: string[]): 
 export function createCoachingSession(topic: string): CoachingSession {
   const trimmedTopic = topic.trim();
   if (!trimmedTopic) {
-    throw new Error("topic is required");
+    throw new ValidationError("topic is required");
   }
 
   const now = new Date().toISOString();

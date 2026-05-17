@@ -11,6 +11,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeUserInput } from "../prompts/sanitize.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 
 // ---- Schemas ----
 
@@ -154,7 +155,7 @@ export async function classifyComplexity(
   options: ClassifyComplexityOptions = {}
 ): Promise<ComplexityClassification> {
   if (!subject || subject.trim().length === 0) {
-    throw new Error("Subject is required for complexity classification");
+    throw new ValidationError("Subject is required for complexity classification");
   }
 
   const prompt = `Classify the complexity of this innovation subject for investigation depth planning.
@@ -182,7 +183,10 @@ Consider: technical depth, domain expertise required, number of stakeholders, re
       try {
         return JSON.parse(jsonStr) as Record<string, unknown>;
       } catch {
-        throw new Error(`Failed to parse complexity response: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse complexity response: ${jsonStr.slice(0, 200)}`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

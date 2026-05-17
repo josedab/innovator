@@ -14,6 +14,7 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { ValidationError } from "../errors.js";
 import { wrapUserInput } from "../prompts/sanitize.js";
 import { getCompetitiveEvents } from "../competitive-autopilot/index.js";
 
@@ -168,7 +169,7 @@ export function addCompetitor(profile: CompetitorProfile): CompetitorProfile {
   const competitors = loadCompetitors();
   const existing = competitors.findIndex((c) => c.id === validated.id);
   if (existing !== -1) {
-    throw new Error(`Competitor with id "${validated.id}" already exists`);
+    throw new ValidationError(`Competitor with id "${validated.id}" already exists`);
   }
   competitors.push(validated);
   saveCompetitors(competitors);
@@ -183,7 +184,7 @@ export function updateCompetitor(
   const competitors = loadCompetitors();
   const index = competitors.findIndex((c) => c.id === id);
   if (index === -1) {
-    throw new Error(`Competitor "${id}" not found`);
+    throw new ValidationError(`Competitor "${id}" not found`);
   }
   const updated = CompetitorProfileSchema.parse({
     ...competitors[index],
@@ -216,7 +217,7 @@ export async function runGapAnalysis(
 ): Promise<GapAnalysisReport> {
   const competitor = getCompetitor(competitorId);
   if (!competitor) {
-    throw new Error(`Competitor "${competitorId}" not found`);
+    throw new ValidationError(`Competitor "${competitorId}" not found`);
   }
 
   const allCapabilities = Array.from(new Set([...ourCapabilities, ...competitor.capabilities]));
