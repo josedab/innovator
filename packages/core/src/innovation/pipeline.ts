@@ -1,4 +1,5 @@
 import { generateText, extractJson } from "../copilot/client.js";
+import { withRetry } from "../copilot/retry.js";
 import { buildSynthesisPrompt } from "../prompts/investigation.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 import {
@@ -222,20 +223,31 @@ export async function runAutoPipeline(
   try {
     const angleResultsJson = sanitizeLlmOutput(JSON.stringify(progress.angleResults, null, 2));
     const synthesisPrompt = buildSynthesisPrompt(subject, investigation, angleResultsJson);
-    const raw = await generateText({
-      prompt: synthesisPrompt,
-      model: modelRouting?.synthesis ?? model,
-      serverMode: true,
-      signal,
-    });
 
-    const jsonStr = extractJson(raw);
-    let parsedJson;
-    try {
-      parsedJson = JSON.parse(jsonStr);
-    } catch {
-      throw new Error(`Failed to parse LLM response as JSON: ${jsonStr.slice(0, 200)}`);
-    }
+    const parsedJson = await withRetry(
+      async () => {
+        const raw = await generateText({
+          prompt: synthesisPrompt,
+          model: modelRouting?.synthesis ?? model,
+          serverMode: true,
+          signal,
+        });
+
+        const jsonStr = extractJson(raw);
+        try {
+          return JSON.parse(jsonStr);
+        } catch {
+          throw new Error(`Failed to parse LLM response as JSON: ${jsonStr.slice(0, 200)}`);
+        }
+      },
+      {
+        signal,
+        isRetryable: (err) =>
+          err instanceof Error &&
+          (err.message.includes("Failed to parse") || err.message.includes("No JSON object found")),
+      }
+    );
+
     progress.synthesis = SynthesisSchema.parse(parsedJson);
   } catch (err) {
     progress.stage = "error";

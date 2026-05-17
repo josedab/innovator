@@ -133,6 +133,8 @@ export function buildTemporalPrompt(
 ): string {
   const config = HORIZON_CONFIGS[horizon];
 
+  const clampedIdeas = Math.max(1, Math.min(ideasPerHorizon, 20));
+
   const investigationCtx = investigation
     ? `\nINVESTIGATION CONTEXT:\nSummary: ${investigation.summary}\nChallenges: ${investigation.challenges.join("; ")}\nOpportunities: ${investigation.opportunities.join("; ")}`
     : "";
@@ -147,7 +149,7 @@ TIME HORIZON: ${config.label} (${config.yearRange})
 ERA CONTEXT:
 ${config.context}
 
-Generate ${ideasPerHorizon} innovative ideas for this subject that are specifically grounded in the ${config.label} time horizon.
+Generate ${clampedIdeas} innovative ideas for this subject that are specifically grounded in the ${config.label} time horizon.
 Each idea must be realistic for its era — don't propose far-future tech for near-term, or trivial improvements for far-future.
 
 For each idea, provide:
@@ -300,6 +302,9 @@ ${sanitizeLlmOutput(JSON.stringify(summary, null, 2))}
 Explain how near-term ideas lay groundwork for mid-term, and how mid-term enables far-future possibilities.
 Return only the narrative text, no JSON.`;
 
-  const raw = await generateText({ prompt, model, serverMode: true, signal });
+  const raw = await withRetry(
+    async () => generateText({ prompt, model, serverMode: true, signal }),
+    { signal }
+  );
   return raw.slice(0, 3000);
 }

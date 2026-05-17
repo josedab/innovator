@@ -82,6 +82,18 @@ describe("temporal", () => {
     expect(prompt).toContain("7");
   });
 
+  it("clamps ideasPerHorizon to minimum of 1", () => {
+    const prompt = buildTemporalPrompt("AI", "near", undefined, 0);
+    expect(prompt).toContain("Generate 1 innovative ideas");
+    const promptNeg = buildTemporalPrompt("AI", "near", undefined, -5);
+    expect(promptNeg).toContain("Generate 1 innovative ideas");
+  });
+
+  it("clamps ideasPerHorizon to maximum of 20", () => {
+    const prompt = buildTemporalPrompt("AI", "near", undefined, 100);
+    expect(prompt).toContain("Generate 20 innovative ideas");
+  });
+
   describe("generateForHorizon", () => {
     const MOCK_HORIZON_RESULT = JSON.stringify({
       horizon: "near",

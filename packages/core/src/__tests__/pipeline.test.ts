@@ -10,6 +10,10 @@ vi.mock("../copilot/client.js", () => ({
   extractJson: vi.fn(),
 }));
 
+vi.mock("../copilot/retry.js", () => ({
+  withRetry: vi.fn((fn: () => Promise<unknown>) => fn()),
+}));
+
 vi.mock("../innovation/investigate.js", () => ({
   investigate: vi.fn(),
 }));

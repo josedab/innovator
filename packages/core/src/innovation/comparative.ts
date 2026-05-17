@@ -1,4 +1,6 @@
+import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
+import { withRetry } from "../copilot/retry.js";
 import { buildSynthesisPrompt } from "../prompts/investigation.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 import { wrapUserInput, sanitizeUserInput } from "../prompts/sanitize.js";
@@ -37,6 +39,37 @@ export interface ComparativeSynthesis {
   combinedOpportunities: Array<{ title: string; description: string; relatedSubjects: string[] }>;
   recommendation: string;
 }
+
+/** Zod schema for validating comparative synthesis results from the LLM. */
+export const ComparativeSynthesisSchema = z.object({
+  synergies: z
+    .array(
+      z.object({
+        subjects: z.array(z.string().max(500)).max(10),
+        description: z.string().max(2000),
+        potentialImpact: z.string().max(2000),
+      })
+    )
+    .max(20),
+  tradeoffs: z
+    .array(
+      z.object({
+        subjects: z.array(z.string().max(500)).max(10),
+        description: z.string().max(2000),
+      })
+    )
+    .max(20),
+  combinedOpportunities: z
+    .array(
+      z.object({
+        title: z.string().max(500),
+        description: z.string().max(5000),
+        relatedSubjects: z.array(z.string().max(500)).max(10),
+      })
+    )
+    .max(20),
+  recommendation: z.string().max(5000),
+});
 
 /**
  * Build an LLM prompt for cross-subject comparative synthesis.
@@ -179,16 +212,31 @@ export async function runComparativePipeline(
   try {
     const prompt = buildComparativeSynthesisPrompt(subjects, subjectResults);
 
-    const raw = await generateText({
-      prompt,
-      model,
-      serverMode: true,
-      signal,
-    });
+    const parsed = await withRetry(
+      async () => {
+        const raw = await generateText({
+          prompt,
+          model,
+          serverMode: true,
+          signal,
+        });
 
-    const jsonStr = extractJson(raw);
-    const parsed = JSON.parse(jsonStr) as ComparativeSynthesis;
-    progress.comparativeSynthesis = parsed;
+        const jsonStr = extractJson(raw);
+        try {
+          return JSON.parse(jsonStr);
+        } catch {
+          throw new Error(`Failed to parse comparative synthesis JSON: ${jsonStr.slice(0, 200)}`);
+        }
+      },
+      {
+        signal,
+        isRetryable: (err) =>
+          err instanceof Error &&
+          (err.message.includes("Failed to parse") || err.message.includes("No JSON object found")),
+      }
+    );
+
+    progress.comparativeSynthesis = ComparativeSynthesisSchema.parse(parsed);
   } catch (err) {
     progress.stage = "error";
     progress.error = "Comparative synthesis failed. Please try again.";
@@ -229,6 +277,30 @@ export interface CompetitiveMap {
   differentiators: Array<{ subject: string; differentiator: string }>;
   recommendation: string;
 }
+
+/** Zod schema for validating competitive map results from the LLM. */
+export const CompetitiveMapSchema = z.object({
+  subjects: z
+    .array(
+      z.object({
+        subject: z.string().max(500),
+        strengths: z.array(z.string().max(1000)).max(20),
+        weaknesses: z.array(z.string().max(1000)).max(20),
+        uniqueAngles: z.array(z.string().max(1000)).max(20),
+      })
+    )
+    .max(10),
+  overlapAreas: z.array(z.string().max(1000)).max(20),
+  differentiators: z
+    .array(
+      z.object({
+        subject: z.string().max(500),
+        differentiator: z.string().max(2000),
+      })
+    )
+    .max(20),
+  recommendation: z.string().max(5000),
+});
 
 /**
  * Run parallel investigations across multiple subjects and produce
@@ -290,14 +362,29 @@ export async function runParallelInvestigation(
       completed.map((c) => c.subject),
       completed
     );
-    const raw = await generateText({
-      prompt,
-      model: options?.model,
-      serverMode: true,
-      signal: options?.signal,
-    });
-    const jsonStr = extractJson(raw);
-    crossSubjectSynthesis = JSON.parse(jsonStr) as ComparativeSynthesis;
+    const parsed = await withRetry(
+      async () => {
+        const raw = await generateText({
+          prompt,
+          model: options?.model,
+          serverMode: true,
+          signal: options?.signal,
+        });
+        const jsonStr = extractJson(raw);
+        try {
+          return JSON.parse(jsonStr);
+        } catch {
+          throw new Error(`Failed to parse cross-subject synthesis JSON`);
+        }
+      },
+      {
+        signal: options?.signal,
+        isRetryable: (err) =>
+          err instanceof Error &&
+          (err.message.includes("Failed to parse") || err.message.includes("No JSON object found")),
+      }
+    );
+    crossSubjectSynthesis = ComparativeSynthesisSchema.parse(parsed);
   } catch {
     // Continue without synthesis
   }
@@ -362,7 +449,22 @@ You MUST respond with valid JSON only:
   "recommendation": "Strategic recommendation for pursuing or prioritizing these subjects"
 }`;
 
-  const raw = await generateText({ prompt, model, serverMode: true, signal });
-  const jsonStr = extractJson(raw);
-  return JSON.parse(jsonStr) as CompetitiveMap;
+  const parsed = await withRetry(
+    async () => {
+      const raw = await generateText({ prompt, model, serverMode: true, signal });
+      const jsonStr = extractJson(raw);
+      try {
+        return JSON.parse(jsonStr);
+      } catch {
+        throw new Error(`Failed to parse competitive map JSON`);
+      }
+    },
+    {
+      signal,
+      isRetryable: (err) =>
+        err instanceof Error &&
+        (err.message.includes("Failed to parse") || err.message.includes("No JSON object found")),
+    }
+  );
+  return CompetitiveMapSchema.parse(parsed);
 }
