@@ -97,11 +97,17 @@ describe("runAutoPipeline (extended)", () => {
     const controller = new AbortController();
     controller.abort();
 
-    const result = await runAutoPipeline("test", () => {}, undefined, ["scamper"], controller.signal);
+    const result = await runAutoPipeline(
+      "test",
+      () => {},
+      undefined,
+      ["scamper"],
+      controller.signal
+    );
 
     expect(result.stage).toBe("error");
-    expect(result.error).toBe("Request was aborted");
-    expect(mockInvestigate).not.toHaveBeenCalled();
+    expect(result.error).toBe("Pipeline was aborted before investigation");
+    expect(result.stoppedEarly).toBe(true);
   });
 
   it("stops when AbortSignal is aborted after investigation", async () => {
@@ -111,10 +117,17 @@ describe("runAutoPipeline (extended)", () => {
       return MOCK_INVESTIGATION;
     });
 
-    const result = await runAutoPipeline("test", () => {}, undefined, ["scamper"], controller.signal);
+    const result = await runAutoPipeline(
+      "test",
+      () => {},
+      undefined,
+      ["scamper"],
+      controller.signal
+    );
 
     expect(result.stage).toBe("error");
-    expect(result.error).toBe("Request was aborted");
+    expect(result.error).toBe("Pipeline was aborted before generation");
+    expect(result.stoppedEarly).toBe(true);
   });
 
   it("handles partial angle failures (some succeed, some fail)", async () => {
@@ -200,21 +213,20 @@ describe("runAutoPipeline (extended)", () => {
   });
 
   it("supports model routing per stage", async () => {
-    await runAutoPipeline(
-      "test",
-      () => {},
-      undefined,
-      ["scamper"],
-      undefined,
-      { investigation: "model-a", generation: "model-b", synthesis: "model-c" }
-    );
+    await runAutoPipeline("test", () => {}, undefined, ["scamper"], undefined, {
+      investigation: "model-a",
+      generation: "model-b",
+      synthesis: "model-c",
+    });
 
     expect(mockInvestigate).toHaveBeenCalledWith("test", "model-a", undefined);
     expect(mockGenerateForAngle).toHaveBeenCalledWith(
-      "test", MOCK_INVESTIGATION, "scamper", "model-b", undefined
+      "test",
+      MOCK_INVESTIGATION,
+      "scamper",
+      "model-b",
+      undefined
     );
-    expect(mockGenerateText).toHaveBeenCalledWith(
-      expect.objectContaining({ model: "model-c" })
-    );
+    expect(mockGenerateText).toHaveBeenCalledWith(expect.objectContaining({ model: "model-c" }));
   });
 });

@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help install dev dev-all dev-docs build build-check clean clean-all test test-ci test-coverage check lint lint-fix typecheck format doctor dev-cli test-single test-watch
+.PHONY: help install dev dev-all dev-docs build build-check clean clean-all test test-ci test-coverage check lint lint-fix typecheck format doctor dev-cli test-single test-watch test-changed validate typecheck-core
 
 # ── Help ──────────────────────────────────────────────────────────────
 
@@ -42,14 +42,20 @@ build-check: ## Verify all expected build outputs exist
 check: ## Run all quality gates (lint, typecheck, format, test)
 	npm run check
 
+validate: ## Quick validation: typecheck + test (no lint/format)
+	npm run validate
+
 lint: ## Run ESLint across all packages
 	npm run lint
 
 lint-fix: ## Auto-fix linting and formatting issues
 	npm run lint:fix
 
-typecheck: ## Run TypeScript type checking
+typecheck: ## Run TypeScript type checking across all packages
 	npm run typecheck
+
+typecheck-core: ## Type check only the core package (fast feedback)
+	npm run typecheck:core
 
 format: ## Format all files with Prettier
 	npm run format
@@ -65,6 +71,9 @@ test-single: ## Run a single test file (usage: make test-single FILE=packages/co
 test-watch: ## Run tests in watch mode
 	npm run test:watch
 
+test-changed: ## Run tests for changed files only
+	npm run test:changed
+
 test-coverage: ## Run tests with coverage report
 	npm run test:coverage
 
@@ -73,7 +82,7 @@ test-ci: ## Simulate full CI pipeline (format, lint, typecheck, build, test)
 
 # ── Cleanup ───────────────────────────────────────────────────────────
 
-clean: ## Remove build artifacts
+clean: ## Remove build artifacts and coverage
 	npm run clean
 
 clean-all: ## Clean build artifacts and all node_modules

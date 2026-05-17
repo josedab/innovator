@@ -13,6 +13,8 @@ export interface RetryOptions {
   signal?: AbortSignal;
 }
 
+import { AbortError } from "../errors.js";
+
 /** Error thrown when all retry attempts are exhausted. Preserves the original error as `cause`. */
 export class RetryExhaustedError extends Error {
   /** The underlying error from the last attempt. */
@@ -85,7 +87,7 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       if (signal?.aborted) {
-        throw new Error("Retry aborted");
+        throw new AbortError("Retry aborted");
       }
       return await fn();
     } catch (error) {
@@ -114,7 +116,7 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
         if (signal) {
           onAbort = () => {
             clearTimeout(timeoutId);
-            reject(new Error("Retry aborted"));
+            reject(new AbortError("Retry aborted"));
           };
           signal.addEventListener("abort", onAbort, { once: true });
         }

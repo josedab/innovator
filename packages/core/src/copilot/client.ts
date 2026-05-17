@@ -1,5 +1,6 @@
 import { CopilotClient } from "@github/copilot-sdk";
 import type { PermissionRequest } from "@github/copilot-sdk";
+import { AbortError, LlmError, LlmTimeoutError, LlmParseError } from "../errors.js";
 
 const DEFAULT_MODEL = process.env.INNOVATOR_DEFAULT_MODEL || "gpt-4.1";
 
@@ -112,7 +113,7 @@ const DEFAULT_TIMEOUT_MS = (() => {
  */
 export async function generateText(options: GenerateOptions): Promise<string> {
   if (options.signal?.aborted) {
-    throw new Error("Request was aborted");
+    throw new AbortError("Request was aborted");
   }
 
   const client = await getCopilotClient();
@@ -135,7 +136,7 @@ export async function generateText(options: GenerateOptions): Promise<string> {
       session.sendAndWait({ prompt: options.prompt }),
       new Promise<never>((_, reject) => {
         timeoutId = setTimeout(
-          () => reject(new Error(`LLM request timed out after ${timeoutMs / 1000}s`)),
+          () => reject(new LlmTimeoutError(timeoutMs, { model: options.model })),
           timeoutMs
         );
       }),
@@ -156,7 +157,7 @@ export async function generateTextStream(
   onChunk: (chunk: string) => void
 ): Promise<string> {
   if (options.signal?.aborted) {
-    throw new Error("Request was aborted");
+    throw new AbortError("Request was aborted");
   }
 
   const client = await getCopilotClient();
@@ -194,7 +195,7 @@ export async function generateTextStream(
 
     const errorListener = (err: { data: { message: string } }) => {
       safeDisconnect(session)
-        .then(() => idleReject(new Error(err.data.message)))
+        .then(() => idleReject(new LlmError(err.data.message, { model: options.model })))
         .catch(idleReject);
     };
 
@@ -215,7 +216,7 @@ export async function generateTextStream(
       new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
           safeDisconnect(session).catch(() => {});
-          reject(new Error(`LLM streaming request timed out after ${timeoutMs / 1000}s`));
+          reject(new LlmTimeoutError(timeoutMs, { model: options.model }));
         }, timeoutMs);
       }),
     ]);
@@ -251,7 +252,7 @@ export function extractJson(raw: string): string {
   let closeChar: string;
 
   if (braceStart === -1 && bracketStart === -1) {
-    throw new Error("No JSON object found in response");
+    throw new LlmParseError("No JSON object found in response", raw);
   } else if (braceStart === -1) {
     start = bracketStart;
     openChar = "[";
@@ -303,5 +304,5 @@ export function extractJson(raw: string): string {
     }
   }
 
-  throw new Error("Unbalanced JSON braces in response");
+  throw new LlmParseError("Unbalanced JSON braces in response", raw);
 }

@@ -2,11 +2,12 @@
 
 /**
  * Prerequisite health-check for Innovator development.
- * Verifies Node version, GitHub CLI, auth, and core build output.
+ * Verifies Node version, GitHub CLI, auth, core build output,
+ * workspace integrity, TypeScript version, and git hooks.
  */
 
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -57,7 +58,25 @@ check("npm >= 10", () => {
   }
 });
 
-// 3. GitHub CLI installed
+// 3. TypeScript version check
+check("TypeScript >= 5.6", () => {
+  try {
+    const version = execSync("npx tsc --version", { encoding: "utf8" }).trim();
+    const match = version.match(/(\d+)\.(\d+)/);
+    if (match) {
+      const major = parseInt(match[1], 10);
+      const minor = parseInt(match[2], 10);
+      if (major < 5 || (major === 5 && minor < 6)) {
+        throw new Error(`Found TypeScript ${version} — need 5.6+`);
+      }
+    }
+  } catch (err) {
+    if (err.message.includes("Found TypeScript")) throw err;
+    throw new Error("TypeScript not found — run: npm install");
+  }
+});
+
+// 4. GitHub CLI installed
 check("GitHub CLI (gh) installed", () => {
   try {
     const version = execSync("gh --version", { encoding: "utf8" }).trim().split("\n")[0];
@@ -67,7 +86,7 @@ check("GitHub CLI (gh) installed", () => {
   }
 });
 
-// 4. GitHub CLI authenticated
+// 5. GitHub CLI authenticated
 check("GitHub CLI authenticated", () => {
   try {
     execSync("gh auth status", { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
@@ -76,7 +95,7 @@ check("GitHub CLI authenticated", () => {
   }
 });
 
-// 5. packages/core/dist/ exists
+// 6. packages/core/dist/ exists
 check("Core package built (packages/core/dist/)", () => {
   const distPath = resolve(ROOT, "packages/core/dist");
   if (!existsSync(distPath)) {
@@ -84,7 +103,7 @@ check("Core package built (packages/core/dist/)", () => {
   }
 });
 
-// 6. .env.local exists
+// 7. .env.local exists
 check(".env.local configuration file", () => {
   const envPath = resolve(ROOT, ".env.local");
   if (!existsSync(envPath)) {
@@ -92,11 +111,54 @@ check(".env.local configuration file", () => {
   }
 });
 
-// 7. node_modules exists (dependencies installed)
+// 8. node_modules exists (dependencies installed)
 check("Dependencies installed (node_modules/)", () => {
   const nmPath = resolve(ROOT, "node_modules");
   if (!existsSync(nmPath)) {
     throw new Error("Not found — run: npm install");
+  }
+});
+
+// 9. Workspace integrity — all workspace package.json files exist
+check("Workspace packages valid", () => {
+  const rootPkg = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8"));
+  const workspacePatterns = rootPkg.workspaces || [];
+  let missing = [];
+
+  for (const pattern of workspacePatterns) {
+    // Only check literal paths (not glob patterns for existence)
+    if (!pattern.includes("*")) {
+      const pkgPath = resolve(ROOT, pattern, "package.json");
+      if (!existsSync(pkgPath)) {
+        missing.push(pattern);
+      }
+    }
+  }
+
+  if (missing.length > 0) {
+    return { warn: `Missing workspace package.json in: ${missing.join(", ")}` };
+  }
+});
+
+// 10. Git hooks installed
+check("Git hooks configured (.husky/)", () => {
+  const huskyPath = resolve(ROOT, ".husky");
+  if (!existsSync(huskyPath)) {
+    return { warn: "Husky not initialized — run: npm run prepare" };
+  }
+});
+
+// 11. .nvmrc matches running Node major version
+check("Node version matches .nvmrc", () => {
+  const nvmrcPath = resolve(ROOT, ".nvmrc");
+  if (!existsSync(nvmrcPath)) {
+    return { warn: ".nvmrc not found" };
+  }
+  const nvmrc = readFileSync(nvmrcPath, "utf8").trim();
+  const expectedMajor = parseInt(nvmrc.replace("v", ""), 10);
+  const actualMajor = parseInt(process.versions.node.split(".")[0], 10);
+  if (expectedMajor && actualMajor !== expectedMajor) {
+    return { warn: `.nvmrc specifies Node ${nvmrc} but running ${process.versions.node}` };
   }
 });
 

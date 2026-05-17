@@ -3,6 +3,22 @@
  */
 export * from "./types.js";
 
+/** Typed error classes for structured error handling.
+ * @see {@link file://docs/API.md#error-handling} for error hierarchy documentation
+ */
+export {
+  InnovatorError,
+  LlmError,
+  LlmTimeoutError,
+  LlmParseError,
+  ValidationError,
+  PipelineError,
+  ConfigurationError,
+  AbortError,
+  isInnovatorError,
+} from "./errors.js";
+export type { InnovatorErrorCode } from "./errors.js";
+
 /** GitHub Copilot LLM client — text generation, streaming, and JSON extraction.
  * @see {@link file://docs/API.md#copilot-client} for usage examples
  */

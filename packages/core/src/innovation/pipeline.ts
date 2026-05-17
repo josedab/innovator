@@ -1,5 +1,6 @@
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { AbortError, PipelineError } from "../errors.js";
 import { buildSynthesisPrompt } from "../prompts/investigation.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 import {
@@ -18,6 +19,12 @@ import { generateForAngle } from "./generate.js";
 /** Replace internal error details with a generic user-facing message to avoid leaking internals. */
 function sanitizeErrorMessage(stage: string): string {
   return `${stage} encountered an internal error. Please try again.`;
+}
+
+/** Check if an error was caused by an AbortSignal. */
+function isAbortError(err: unknown): boolean {
+  if (err instanceof AbortError) return true;
+  return err instanceof Error && /abort/i.test(err.message);
 }
 
 /** Result of running tasks with bounded concurrency, collecting both successes and per-task errors. */
@@ -139,7 +146,8 @@ export async function runAutoPipeline(
   // Step 1: Investigate
   if (signal?.aborted) {
     progress.stage = "error";
-    progress.error = "Request was aborted";
+    progress.stoppedEarly = true;
+    progress.error = "Pipeline was aborted before investigation";
     progress.durationMs!.total = Date.now() - pipelineStart;
     terminated = true;
     return progress;
@@ -152,10 +160,16 @@ export async function runAutoPipeline(
     progress.investigation = investigation;
     progress.durationMs!.investigation = Date.now() - investigationStart;
   } catch (err) {
-    progress.stage = "error";
-    progress.error = sanitizeErrorMessage("Investigation");
     progress.durationMs!.investigation = Date.now() - investigationStart;
     progress.durationMs!.total = Date.now() - pipelineStart;
+    if (isAbortError(err)) {
+      progress.stage = "error";
+      progress.stoppedEarly = true;
+      progress.error = "Pipeline was aborted during investigation";
+    } else {
+      progress.stage = "error";
+      progress.error = sanitizeErrorMessage("Investigation");
+    }
     terminated = true;
     safeProgress(progress);
     return progress;
@@ -167,7 +181,8 @@ export async function runAutoPipeline(
 
   if (signal?.aborted) {
     progress.stage = "error";
-    progress.error = "Request was aborted";
+    progress.stoppedEarly = true;
+    progress.error = "Pipeline was aborted before generation";
     progress.durationMs!.total = Date.now() - pipelineStart;
     terminated = true;
     return progress;
@@ -236,7 +251,8 @@ export async function runAutoPipeline(
 
   if (signal?.aborted) {
     progress.stage = "error";
-    progress.error = "Request was aborted";
+    progress.stoppedEarly = true;
+    progress.error = "Pipeline was aborted before synthesis";
     progress.durationMs!.total = Date.now() - pipelineStart;
     terminated = true;
     return progress;
@@ -274,10 +290,16 @@ export async function runAutoPipeline(
     progress.synthesis = SynthesisSchema.parse(parsedJson);
     progress.durationMs!.synthesis = Date.now() - synthesisStart;
   } catch (err) {
-    progress.stage = "error";
-    progress.error = sanitizeErrorMessage("Synthesis");
     progress.durationMs!.synthesis = Date.now() - synthesisStart;
     progress.durationMs!.total = Date.now() - pipelineStart;
+    if (isAbortError(err)) {
+      progress.stage = "error";
+      progress.stoppedEarly = true;
+      progress.error = "Pipeline was aborted during synthesis";
+    } else {
+      progress.stage = "error";
+      progress.error = sanitizeErrorMessage("Synthesis");
+    }
     terminated = true;
     safeProgress(progress);
     return progress;

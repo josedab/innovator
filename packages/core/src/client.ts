@@ -2,6 +2,18 @@
 // Use this subpath (`@innovator/core/types`) in client components.
 
 export * from "./types.js";
+export {
+  InnovatorError,
+  LlmError,
+  LlmTimeoutError,
+  LlmParseError,
+  ValidationError,
+  PipelineError,
+  ConfigurationError,
+  AbortError,
+  isInnovatorError,
+} from "./errors.js";
+export type { InnovatorErrorCode } from "./errors.js";
 export { ANGLES, getAngleById } from "./innovation/angles.js";
 export type {
   TrackedIdea,
