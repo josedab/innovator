@@ -7309,6 +7309,25 @@ export {
 } from "./saas/onboarding.js";
 export type { OnboardingStep, OnboardingProgress } from "./saas/onboarding.js";
 
+/** Repo Futures — capability graphing, delta detection, and opportunity discovery from repository change. */
+export {
+  CapabilityNodeSchema,
+  CapabilityGraphSchema,
+  CodeDeltaSchema,
+  InnovationOpportunitySchema,
+  buildCapabilityGraph,
+  detectDelta,
+  generateOpportunities,
+  suppressNoise,
+  rankOpportunities,
+} from "./repo-futures/index.js";
+export type {
+  CapabilityNode,
+  CapabilityGraph,
+  CodeDelta,
+  InnovationOpportunity,
+} from "./repo-futures/index.js";
+
 /** Knowledge Graph NL Query — natural language queries, suggestions, and visualization data. */
 export {
   type NLQueryResult,
