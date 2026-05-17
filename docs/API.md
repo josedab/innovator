@@ -36,7 +36,34 @@ Comprehensive API reference for the shared innovation engine. All consumers (`ap
   - [`RetryExhaustedError`](#retryexhaustederror)
   - [`withTimeout()`](#withtimeout)
 - [Plugin System](#plugin-system)
+  - [Lifecycle Hooks](#lifecycle-hooks)
+  - [Plugin Loading](#plugin-loading)
+  - [Health Checks](#health-checks)
 - [Presets](#presets)
+- [LRU Cache](#lru-cache)
+  - [`LRUCache`](#lrucache)
+  - [`memoize()`](#memoize)
+- [Object Pool](#object-pool)
+  - [`ObjectPool`](#objectpool)
+  - [`withPooled()` / `withPooledAsync()`](#withpooled--withpooledasync)
+- [Result Type](#result-type)
+  - [Constructors](#result-constructors)
+  - [Wrappers](#result-wrappers)
+  - [Transformers](#result-transformers)
+  - [Extractors](#result-extractors)
+  - [Collectors](#result-collectors)
+- [Concurrency](#concurrency)
+  - [`Semaphore`](#semaphore)
+  - [`TaskRunner`](#taskrunner)
+  - [`runConcurrent()`](#runconcurrent)
+- [String Interning](#string-interning)
+  - [`StringPool`](#stringpool)
+  - [Global Pool](#global-string-pool)
+- [Event Bus](#event-bus)
+  - [`EventBus`](#eventbus)
+  - [Filtered Subscriptions](#filtered-subscriptions)
+  - [Event Buffering](#event-buffering)
+  - [Global Bus](#global-event-bus)
 - [Session History](#session-history)
   - [Session Export Helpers](#session-export-helpers)
   - [`duplicateSession()`](#duplicatesession)
@@ -646,16 +673,28 @@ try {
 
 ## Plugin System
 
-Register custom angle, exporter, or visualizer plugins:
+Register custom angle, exporter, or visualizer plugins with lifecycle management, dependency resolution, and health checks.
 
 ```typescript
-function registerPlugin(plugin: InnovatorPlugin): void;
-function unregisterPlugin(id: string): void;
+// Registration
+function registerPlugin(plugin: LifecyclePlugin): void;
+async function unregisterPlugin(id: string): Promise<boolean>;
 function getPlugin(id: string): InnovatorPlugin | undefined;
 function listPlugins(): InnovatorPlugin[];
 function getPluginsByType(type: "angle" | "exporter" | "visualizer"): InnovatorPlugin[];
-function loadPlugin(manifest: PluginManifest): Promise<InnovatorPlugin>;
-function clearPlugins(): void;
+
+// Lifecycle
+async function initPlugin(id: string): Promise<void>;
+async function initAllPlugins(): Promise<void>;
+function getPluginState(id: string): "pending" | "initialized" | "failed" | undefined;
+async function checkPluginHealth(): Promise<Record<string, boolean>>;
+
+// Dynamic loading
+async function loadPlugin(source: string): Promise<InnovatorPlugin>;
+
+// Cleanup
+async function clearPlugins(): Promise<void>;
+function clearPluginsSync(): void;
 ```
 
 **Plugin types:**
@@ -666,9 +705,90 @@ function clearPlugins(): void;
 | `exporter`   | `ExporterPlugin`   | Output format converters     |
 | `visualizer` | `VisualizerPlugin` | Data visualization renderers |
 
-Plugin IDs must match `^[a-z0-9-]+$` (may include dots for namespacing, e.g. `myorg.custom-angles`).
+### Lifecycle Hooks
+
+Plugins can implement optional lifecycle hooks via the `PluginLifecycle` interface:
+
+```typescript
+interface PluginLifecycle {
+  /** Called after registration. Use for async init (open connections, load data). */
+  onInit?: (ctx: PluginContext) => Promise<void> | void;
+  /** Called before unregistration. Use for cleanup (close connections, flush buffers). */
+  onDestroy?: () => Promise<void> | void;
+  /** Health check returning true if the plugin is operational. */
+  healthCheck?: () => Promise<boolean> | boolean;
+  /** IDs of plugins this plugin depends on. Checked at registration time. */
+  dependencies?: string[];
+}
+```
+
+The `PluginContext` passed to `onInit` provides access to the registry:
+
+```typescript
+interface PluginContext {
+  pluginId: string;
+  getPlugin: (id: string) => InnovatorPlugin | undefined;
+  listPlugins: () => InnovatorPlugin[];
+}
+```
+
+**Example — Plugin with lifecycle hooks:**
+
+```typescript
+import { registerPlugin, initPlugin, checkPluginHealth } from "@innovator/core";
+
+registerPlugin({
+  id: "my-db-exporter",
+  name: "Database Exporter",
+  type: "exporter",
+  version: "1.0.0",
+  async onInit(ctx) {
+    console.log(`Initializing ${ctx.pluginId}...`);
+    // Open database connection, load templates, etc.
+  },
+  async onDestroy() {
+    // Close connections, flush buffers
+  },
+  async healthCheck() {
+    // Return true if the database connection is healthy
+    return true;
+  },
+  dependencies: ["my-core-plugin"], // Must be registered first
+});
+
+await initPlugin("my-db-exporter");
+const health = await checkPluginHealth();
+// { "my-db-exporter": true }
+```
+
+### Plugin Loading
+
+Dynamically load plugins from local files or npm packages:
+
+```typescript
+// Load from a local file
+const plugin = await loadPlugin("./my-plugin.js");
+
+// Load from an npm package
+const plugin = await loadPlugin("innovator-plugin-foo");
+```
+
+The module must default-export (or top-level export) an object with `id` and `type` properties conforming to `InnovatorPlugin`.
+
+### Health Checks
+
+`checkPluginHealth()` runs each plugin's `healthCheck` function (if defined). Plugins without a health check are considered healthy if their init state is `"initialized"`.
+
+```typescript
+const health = await checkPluginHealth();
+// { "angle-plugin": true, "broken-plugin": false }
+```
 
 > 📖 **Tutorial:** See [Writing a Plugin](./DEVELOPER_GUIDE.md#writing-a-plugin) for a complete plugin example.
+
+---
+
+## Presets
 
 Pre-configured angle sets for common innovation domains:
 
@@ -679,6 +799,494 @@ function getPresetsByCategory(category: string): Preset[];
 function getPresetsByTag(tag: string): Preset[];
 
 const BUILT_IN_PRESETS: Preset[];
+```
+
+---
+
+## LRU Cache
+
+Generic bounded LRU (Least Recently Used) cache with optional TTL (time-to-live) support. Provides O(1) get/set via a `Map`-based strategy with LRU eviction and hit/miss statistics.
+
+### `LRUCache`
+
+```typescript
+import { LRUCache } from "@innovator/core";
+
+const cache = new LRUCache<string, number>({ maxSize: 100, ttlMs: 60_000 });
+cache.set("key", 42);
+cache.get("key"); // 42
+```
+
+**Constructor options (`LRUCacheOptions`):**
+
+| Option    | Type      | Description                                                                   |
+| --------- | --------- | ----------------------------------------------------------------------------- |
+| `maxSize` | `number`  | Maximum entries before LRU eviction. Must be ≥ 1.                             |
+| `ttlMs`   | `number?` | Time-to-live in ms. Entries older than this are treated as expired on access. |
+
+**Methods:**
+
+| Method            | Returns          | Description                                                                            |
+| ----------------- | ---------------- | -------------------------------------------------------------------------------------- |
+| `get(key)`        | `V \| undefined` | Retrieve value. Promotes to most-recently-used. Returns `undefined` on miss or expiry. |
+| `set(key, value)` | `void`           | Insert or update. Evicts LRU entry if at capacity.                                     |
+| `has(key)`        | `boolean`        | Check existence (expired entries return `false`).                                      |
+| `delete(key)`     | `boolean`        | Remove a specific entry.                                                               |
+| `clear()`         | `void`           | Remove all entries and reset statistics.                                               |
+| `prune()`         | `number`         | Evict all expired entries. Returns count removed.                                      |
+| `stats()`         | `CacheStats`     | Snapshot of hits, misses, size, maxSize, hitRate.                                      |
+| `size`            | `number`         | Current entry count (property).                                                        |
+
+**`CacheStats` shape:**
+
+```typescript
+interface CacheStats {
+  hits: number; // Cache hits since creation/clear
+  misses: number; // Cache misses since creation/clear
+  size: number; // Current entries
+  maxSize: number; // Maximum capacity
+  hitRate: number; // hits / (hits + misses), 0 if no lookups
+}
+```
+
+### `memoize()`
+
+Create a memoized version of any function using an LRU cache:
+
+```typescript
+import { memoize } from "@innovator/core";
+
+const expensiveCalc = memoize(
+  (x: number, y: number) => x ** y,
+  { maxSize: 256, ttlMs: 30_000 },
+  (x, y) => `${x}:${y}` // optional key function (default: JSON.stringify)
+);
+
+expensiveCalc(2, 10); // computed
+expensiveCalc(2, 10); // cached
+expensiveCalc.cache.stats(); // { hits: 1, misses: 1, ... }
+expensiveCalc.cache.clear(); // reset
+```
+
+---
+
+## Object Pool
+
+Generic object pool for recycling frequently allocated objects, reducing garbage-collection pressure. Supports configurable pool size, factory/reset functions, and usage statistics.
+
+### `ObjectPool`
+
+```typescript
+import { ObjectPool } from "@innovator/core";
+
+const bufferPool = new ObjectPool({
+  maxSize: 50,
+  factory: () => ({ parts: [] as string[] }),
+  reset: (obj) => {
+    obj.parts.length = 0;
+  },
+});
+
+const buf = bufferPool.acquire(); // Get from pool or create new
+buf.parts.push("hello");
+bufferPool.release(buf); // Return to pool (reset is called)
+```
+
+**Constructor options (`ObjectPoolOptions<T>`):**
+
+| Option    | Type               | Default | Description                                               |
+| --------- | ------------------ | ------- | --------------------------------------------------------- |
+| `factory` | `() => T`          | —       | Creates a new object when the pool is empty.              |
+| `reset`   | `(obj: T) => void` | —       | Called on release to clear object state before recycling. |
+| `maxSize` | `number?`          | `32`    | Maximum idle objects in pool. Must be ≥ 1.                |
+
+**Methods:**
+
+| Method         | Returns     | Description                                                   |
+| -------------- | ----------- | ------------------------------------------------------------- |
+| `acquire()`    | `T`         | Get an object from pool (or create via factory if empty).     |
+| `release(obj)` | `void`      | Return object to pool. Discarded if pool is at capacity.      |
+| `prewarm(n)`   | `void`      | Pre-populate pool with up to `n` objects.                     |
+| `drain()`      | `void`      | Remove all idle objects from the pool.                        |
+| `stats()`      | `PoolStats` | Snapshot of idle count, acquires, releases, creates, maxSize. |
+| `size`         | `number`    | Current idle object count (property).                         |
+
+### `withPooled()` / `withPooledAsync()`
+
+Convenience wrappers that acquire an object, run a function, and guarantee release (even on throw):
+
+```typescript
+import { ObjectPool, withPooled, withPooledAsync } from "@innovator/core";
+
+const pool = new ObjectPool({ factory: () => new StringBuilder() });
+
+// Synchronous
+const result = withPooled(pool, (sb) => {
+  sb.append("hello");
+  return sb.toString();
+});
+
+// Async
+const data = await withPooledAsync(pool, async (sb) => {
+  sb.append(await fetchData());
+  return sb.toString();
+});
+```
+
+---
+
+## Result Type
+
+Discriminated union `Result<T, E>` for type-safe functional error handling. Errors are expected values rather than exceptions — ideal for pipeline stages, validation, and LLM parsing where failures are common and expected.
+
+```typescript
+type Result<T, E = Error> = Ok<T> | Err<E>;
+
+interface Ok<T> {
+  readonly ok: true;
+  readonly value: T;
+}
+interface Err<E> {
+  readonly ok: false;
+  readonly error: E;
+}
+```
+
+### Result Constructors
+
+```typescript
+import { ok, err } from "@innovator/core";
+
+const success = ok(42); // Ok<number>
+const failure = err(new Error("oops")); // Err<Error>
+```
+
+### Result Wrappers
+
+Wrap throwing code in a Result — catches exceptions and returns them as `Err<Error>`:
+
+```typescript
+import { tryFn, tryAsync } from "@innovator/core";
+
+// Synchronous
+const parsed = tryFn(() => JSON.parse(rawJson));
+
+// Async (wraps rejected promises too)
+const data = await tryAsync(() => fetchFromApi("/endpoint"));
+
+if (data.ok) {
+  console.log(data.value);
+} else {
+  console.error(data.error.message);
+}
+```
+
+### Result Transformers
+
+```typescript
+import { mapResult, mapError, flatMap, flatMapAsync, mapAsync } from "@innovator/core";
+
+// Transform the success value
+const doubled = mapResult(ok(21), (v) => v * 2); // Ok(42)
+
+// Transform the error
+const wrapped = mapError(err("bad"), (e) => new Error(e)); // Err(Error("bad"))
+
+// Chain Result-returning functions (monadic bind)
+const chained = flatMap(ok(5), (v) => (v > 0 ? ok(v * 2) : err(new Error("negative"))));
+
+// Async versions for pipeline stages with I/O
+const asyncChained = await flatMapAsync(ok(userId), async (id) => {
+  const user = await fetchUser(id);
+  return user ? ok(user) : err(new Error("not found"));
+});
+
+const asyncMapped = await mapAsync(ok(rawData), async (data) => {
+  return await processData(data);
+});
+```
+
+### Result Extractors
+
+```typescript
+import { unwrap, unwrapOr, unwrapOrElse } from "@innovator/core";
+
+unwrap(ok(42)); // 42
+unwrap(err(new Error("fail"))); // throws Error("fail")
+
+unwrapOr(err(new Error("fail")), 0); // 0
+unwrapOrElse(err(new Error("x")), (e) => e.message.length); // 1
+```
+
+### Result Collectors
+
+```typescript
+import { collectResults, partitionResults, ok, err } from "@innovator/core";
+
+// Collect: all-or-nothing — returns first error or array of all values
+const all = collectResults([ok(1), ok(2), ok(3)]); // Ok([1, 2, 3])
+const fail = collectResults([ok(1), err(new Error("x")), ok(3)]); // Err(Error("x"))
+
+// Partition: separate successes from failures
+const { values, errors } = partitionResults([ok(1), err(new Error("x")), ok(3)]);
+// values: [1, 3], errors: [Error("x")]
+```
+
+---
+
+## Concurrency
+
+Reusable concurrency primitives: async semaphore, bounded task runner with adaptive scaling, and batch result collection. Extracted from the pipeline module for cross-codebase use.
+
+### `Semaphore`
+
+Async semaphore limiting concurrent access to a shared resource:
+
+```typescript
+import { Semaphore } from "@innovator/core";
+
+const sem = new Semaphore(3); // 3 concurrent permits
+
+await sem.acquire(); // Wait if all permits are in use
+try {
+  await doWork();
+} finally {
+  sem.release(); // Unblock the next waiter
+}
+
+sem.available; // Current free permits
+sem.waiting; // Number of callers waiting
+```
+
+Throws `ConfigurationError` if `maxPermits < 1`.
+
+### `TaskRunner`
+
+Bounded concurrent task runner with optional adaptive scaling. When `adaptive` is enabled, the runner monitors error rates and halves concurrency if errors exceed the threshold — protecting downstream services during partial outages.
+
+```typescript
+import { TaskRunner } from "@innovator/core";
+
+const runner = new TaskRunner({
+  concurrency: 4,
+  adaptive: true,
+  errorThreshold: 0.5, // Reduce concurrency if >50% of tasks fail
+  minConcurrency: 1,
+  signal: abortController.signal,
+});
+
+const batch = await runner.run([() => fetchData("a"), () => fetchData("b"), () => fetchData("c")]);
+```
+
+**`TaskRunnerOptions`:**
+
+| Option           | Type           | Default | Description                                         |
+| ---------------- | -------------- | ------- | --------------------------------------------------- |
+| `concurrency`    | `number?`      | `2`     | Maximum concurrent tasks.                           |
+| `adaptive`       | `boolean?`     | `false` | Enable adaptive concurrency scaling.                |
+| `errorThreshold` | `number?`      | `0.5`   | Error rate (0–1) above which concurrency is halved. |
+| `minConcurrency` | `number?`      | `1`     | Floor for adaptive scaling.                         |
+| `signal`         | `AbortSignal?` | —       | Cancel all pending tasks.                           |
+
+**`BatchResult<T>`:**
+
+```typescript
+interface BatchResult<T> {
+  results: (T | undefined)[]; // Ordered results (undefined for failed tasks)
+  errors: { index: number; error: Error }[]; // Errors with original task index
+  tasks: TaskResult<T>[]; // Detailed per-task results with timing
+  totalDurationMs: number; // Total wall-clock duration
+}
+
+interface TaskResult<T> {
+  index: number; // Index in original array
+  value?: T; // Result value (if succeeded)
+  error?: Error; // Error (if failed)
+  ok: boolean; // Whether the task succeeded
+  durationMs: number; // Wall-clock duration
+}
+```
+
+### `runConcurrent()`
+
+Convenience wrapper for one-off batch execution:
+
+```typescript
+import { runConcurrent } from "@innovator/core";
+
+const batch = await runConcurrent(
+  [() => fetch(url1), () => fetch(url2), () => fetch(url3)],
+  3, // concurrency
+  abortSignal // optional
+);
+```
+
+---
+
+## String Interning
+
+Memory-efficient string pool for frequently repeated values. When many objects share the same angle ID, model name, or event type, interning ensures they reference the same string instance in memory rather than independent copies.
+
+### `StringPool`
+
+```typescript
+import { StringPool } from "@innovator/core";
+
+const pool = new StringPool({ maxSize: 1000 });
+const a = pool.intern("gpt-4.1");
+const b = pool.intern("gpt-4.1");
+a === b; // true — same reference, not just equal value
+```
+
+**Constructor options (`StringPoolOptions`):**
+
+| Option    | Type      | Default | Description                                          |
+| --------- | --------- | ------- | ---------------------------------------------------- |
+| `maxSize` | `number?` | `4096`  | Maximum unique strings. FIFO eviction when exceeded. |
+
+**Methods:**
+
+| Method      | Returns           | Description                                   |
+| ----------- | ----------------- | --------------------------------------------- |
+| `intern(s)` | `string`          | Return canonical reference for the string.    |
+| `has(s)`    | `boolean`         | Check if a string is already interned.        |
+| `clear()`   | `void`            | Remove all interned strings and reset stats.  |
+| `stats()`   | `StringPoolStats` | Pool statistics snapshot.                     |
+| `size`      | `number`          | Current count of interned strings (property). |
+
+**`StringPoolStats` shape:**
+
+```typescript
+interface StringPoolStats {
+  size: number; // Unique interned strings
+  maxSize: number; // Pool capacity
+  lookups: number; // Total intern() calls
+  hits: number; // Times a cached reference was returned
+  hitRate: number; // hits / lookups (0–1)
+  estimatedBytesSaved: number; // Approximate memory saved
+}
+```
+
+### Global String Pool
+
+A shared global pool pre-populated with common Innovator strings (angle IDs, model names, pipeline stages, event types):
+
+```typescript
+import { intern, getStringPool, resetStringPool } from "@innovator/core";
+
+// Convenience function — uses the global pool
+const s = intern("scamper"); // Returns canonical reference
+
+// Access global pool directly
+const pool = getStringPool();
+pool.stats(); // { size: 35, maxSize: 8192, ... }
+
+// Reset for testing
+resetStringPool();
+```
+
+---
+
+## Event Bus
+
+In-process event emitter for typed pipeline events. Supports specific and wildcard subscriptions, predicate-based filtering, single-fire listeners, and buffered/batched emission for high-frequency events.
+
+### `EventBus`
+
+```typescript
+import { EventBus } from "@innovator/core";
+
+const bus = new EventBus();
+
+// Subscribe to a specific event type
+const unsub = bus.on("investigation.completed", (event) => {
+  console.log(`Completed: ${event.payload.subject}`);
+});
+
+// Wildcard — receive all events
+bus.on("*", (event) => {
+  console.log(`[${event.type}]`, event.payload);
+});
+
+// Single-fire listener
+bus.once("pipeline.completed", (event) => {
+  console.log("Pipeline done!");
+});
+
+// Emit
+await bus.emit("investigation.completed", { subject: "AI" }, "AI", "session-123");
+
+// Cleanup
+unsub(); // Remove specific listener
+bus.clear(); // Remove all listeners and buffered events
+```
+
+**Event types** are defined by the `EventType` union (Zod-validated):
+
+```
+investigation.started | investigation.completed | investigation.failed
+angle.started         | angle.completed         | angle.failed
+synthesis.started     | synthesis.completed     | synthesis.failed
+pipeline.started      | pipeline.completed      | pipeline.failed
+idea.created          | idea.scored
+session.saved         | retry.attempt           | retry.exhausted
+```
+
+### Filtered Subscriptions
+
+Subscribe with predicate-based, subject, or session filtering — only matching events are delivered:
+
+```typescript
+// Filter by predicate
+bus.onFiltered("idea.scored", handler, {
+  filter: (e) => (e.payload.score as number) > 80,
+});
+
+// Filter by subject
+bus.onFiltered("*", handler, { subject: "renewable energy" });
+
+// Filter by session ID
+bus.onFiltered("*", handler, { sessionId: "session-abc" });
+
+// Combine filters (all must match)
+bus.onFiltered("angle.completed", handler, {
+  subject: "AI ethics",
+  sessionId: "session-456",
+  filter: (e) => e.payload.ideaCount > 3,
+});
+```
+
+### Event Buffering
+
+Buffer high-frequency events and flush them in batches — useful for reducing I/O or batching webhook deliveries:
+
+```typescript
+// Manual flush
+bus.enableBuffering();
+await bus.emit("idea.created", { title: "Idea A" });
+await bus.emit("idea.created", { title: "Idea B" });
+bus.bufferedCount; // 2
+await bus.flush(); // Delivers both events, returns 2
+
+// Auto-flush every 5 seconds
+bus.enableBuffering(5000);
+
+// Disable buffering (flushes remaining events)
+await bus.disableBuffering();
+```
+
+### Global Event Bus
+
+Singleton event bus for cross-module communication:
+
+```typescript
+import { getEventBus, resetEventBus } from "@innovator/core";
+
+const bus = getEventBus(); // Always returns the same instance
+bus.on("pipeline.completed", handler);
+
+// Reset for testing
+resetEventBus();
 ```
 
 ---

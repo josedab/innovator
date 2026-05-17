@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`LRUCache`** — Generic bounded LRU cache with optional TTL, O(1) get/set via `Map`-based eviction, and hit/miss statistics (`hits`, `misses`, `hitRate`); includes `prune()` for explicit expired-entry eviction
+- **`memoize()`** — Create a memoized function wrapper backed by an `LRUCache`, with optional custom key function and `.cache` property for inspection/clearing
+- **`ObjectPool`** — Generic bounded object pool for recycling frequently allocated objects to reduce GC pressure; supports factory, reset, `prewarm()`, and usage statistics
+- **`withPooled()` / `withPooledAsync()`** — Convenience wrappers that acquire an object from a pool, run a function, and guarantee release (even on throw)
+- **`Result<T, E>`** — Discriminated union type for functional error handling (`Ok<T> | Err<E>`) with constructors (`ok`, `err`), wrappers (`tryFn`, `tryAsync`), transformers (`mapResult`, `mapError`, `flatMap`), extractors (`unwrap`, `unwrapOr`, `unwrapOrElse`), and collectors (`collectResults`, `partitionResults`)
+- **`flatMapAsync()`** — Async monadic bind for chaining async Result-returning pipeline stages
+- **`mapAsync()`** — Async map over successful Result values for I/O pipeline stages
+- **`Semaphore`** — Async semaphore limiting concurrent access to a shared resource with `acquire()`, `release()`, `available`, and `waiting` properties
+- **`TaskRunner`** — Bounded concurrent task runner with adaptive scaling that monitors error rates and halves concurrency on high failure rates; supports `AbortSignal` cancellation and per-task timing
+- **`runConcurrent()`** — Functional convenience wrapper around `TaskRunner` for one-off batch execution
+- **`StringPool`** — Bounded string interning pool for memory-efficient storage of repeated strings (angle IDs, model names, event types) with FIFO eviction and estimated bytes-saved tracking
+- **`intern()`** — Global convenience function for string interning via the shared global pool (pre-populated with common Innovator strings)
+- **`getStringPool()` / `resetStringPool()`** — Access and reset the global shared string pool
+- **`EventBus` improvements** — Predicate-based filtered subscriptions (`onFiltered()`), subject/session filtering, single-fire listeners (`once()`), event buffering with manual/auto-flush, and `listenerCount()` for observability
+- **Plugin lifecycle hooks** — `onInit(ctx)`, `onDestroy()`, `healthCheck()`, and `dependencies` array for plugin initialization, cleanup, health monitoring, and dependency resolution
+- **`initPlugin()` / `initAllPlugins()`** — Explicit plugin initialization with tracked state (`pending`, `initialized`, `failed`)
+- **`getPluginState()`** — Query the initialization state of a registered plugin
+- **`checkPluginHealth()`** — Run health checks on all plugins implementing `healthCheck()`
+- **`loadPlugin(source)`** — Dynamically load and register plugins from local file paths or npm package names
+- **`clearPluginsSync()`** — Synchronous plugin registry clear for test teardown (skips `onDestroy` hooks)
+- **`PluginContext`** — Context object passed to `onInit` providing registry access (`getPlugin`, `listPlugins`)
 - **`RetryExhaustedError`** — New error class thrown when all `withRetry()` attempts are exhausted; preserves the original error as `cause` and exposes the `attempts` count
 - **`getSessionStats()`** — Compute aggregate statistics (total sessions, idea count, tag/angle frequency, date range) across all stored sessions
 - **`querySessionsPaginated()`** — Paginated session search returning `{ sessions, totalCount }` for building pagination UIs
@@ -36,9 +57,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`withRetry()` input validation** — Now validates that `maxAttempts ≥ 1`, `initialDelayMs ≥ 0`, `backoffMultiplier ≥ 1`, and `maxDelayMs ≥ 0` are finite numbers; throws immediately on invalid options
 - **`withRetry()` error type** — Now throws `RetryExhaustedError` (instead of re-throwing the last error) when all attempts are exhausted, providing structured access to `cause` and `attempts`
 - **`RetryExhaustedError`** — Now extends `InnovatorError` (was plain `Error`), inheriting `code`, `toJSON()`, and `isInnovatorError()` compatibility
+- **`unregisterPlugin()`** — Now async (returns `Promise<boolean>`), calls `onDestroy` lifecycle hook before removal
+- **`clearPlugins()`** — Now async (returns `Promise<void>`), calls `onDestroy` on each plugin during teardown
+- **Plugin System** — Plugin registration now validates `dependencies` array, throwing on unmet dependencies; tracks per-plugin initialization state
 
 ### Documentation
 
+- **API Reference** — Added LRU Cache section with `LRUCache` class API, `CacheStats` type, and `memoize()` utility
+- **API Reference** — Added Object Pool section with `ObjectPool` class API, `PoolStats` type, `withPooled()`/`withPooledAsync()` wrappers
+- **API Reference** — Added Result Type section with constructors, wrappers, transformers, extractors, and collectors
+- **API Reference** — Added Concurrency section with `Semaphore`, `TaskRunner` (adaptive scaling), `runConcurrent()`, `BatchResult`/`TaskResult` types
+- **API Reference** — Added String Interning section with `StringPool` class, global pool, and `intern()` convenience function
+- **API Reference** — Added Event Bus section with `EventBus` class, filtered subscriptions, event buffering, and global bus
+- **API Reference** — Expanded Plugin System section with lifecycle hooks (`onInit`/`onDestroy`/`healthCheck`/`dependencies`), `PluginContext`, dynamic loading, health checks, and state management
 - **API Reference** — Added Session Export Helpers section (`exportSessionAsMarkdown`, `exportSessionAsJson`, `exportSessionAsCsv`)
 - **API Reference** — Added `duplicateSession()` and `clearHistory()` documentation
 - **API Reference** — Added `InnovatorError.toJSON()` serialization documentation with example
