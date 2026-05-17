@@ -63,3 +63,9 @@ export const DEFAULT_CHUNKING_OPTIONS: ChunkingOptions = {
   overlap: 100,
   strategy: "paragraph",
 };
+
+export interface EmbeddingProvider {
+  name: string;
+  generateEmbedding(text: string): Promise<number[]>;
+  dimensions: number;
+}

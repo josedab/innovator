@@ -5,6 +5,12 @@
  * embedding generation, and similarity search for context-aware prompts.
  */
 export { KnowledgeBase } from "./knowledge-base.js";
+export { buildRAGContext, injectContextIntoPrompt } from "./context-injection.js";
+export {
+  KnowledgeBaseManager,
+  getKnowledgeBaseManager,
+  resetKnowledgeBaseManager,
+} from "./kb-manager.js";
 export { loadDocument } from "./loaders.js";
 export { chunkText } from "./chunking.js";
 export { generateEmbedding, cosineSimilarity } from "./embeddings.js";
@@ -22,6 +28,7 @@ export type {
   KnowledgeBaseConfig,
   SearchResult,
   ChunkingOptions,
+  EmbeddingProvider,
 } from "./types.js";
 
 // Connectors
