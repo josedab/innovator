@@ -1,5 +1,6 @@
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { LlmParseError } from "../errors.js";
 import { buildInvestigationPrompt } from "../prompts/investigation.js";
 import { InvestigationSchema, type Investigation } from "../types.js";
 
@@ -31,7 +32,10 @@ export async function investigate(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse investigation response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          "Failed to parse investigation response as JSON",
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

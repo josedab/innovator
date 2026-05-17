@@ -18,7 +18,7 @@ import {
   detectGroupthink,
   computeParticipationStats,
 } from "@innovator/core/dist/realtime/facilitation-ai.js";
-import { API_RESPONSE_HEADERS } from "../../../lib/api-headers.js";
+import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const CreateSchema = z.object({
   action: z.literal("create"),

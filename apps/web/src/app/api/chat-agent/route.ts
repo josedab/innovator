@@ -6,7 +6,7 @@ import {
   listChatSessions,
   chat,
 } from "@innovator/core";
-import { API_RESPONSE_HEADERS } from "../../../lib/api-headers.js";
+import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const ChatRequestSchema = z.object({
   sessionId: z.string().max(100).optional(),
@@ -33,10 +33,10 @@ export async function POST(request: Request) {
       const session = createChatSession();
       sessionId = session.id;
     } else if (!getChatSession(sessionId)) {
-      return new Response(
-        JSON.stringify({ error: `Chat session "${sessionId}" not found` }),
-        { status: 404, headers: API_RESPONSE_HEADERS }
-      );
+      return new Response(JSON.stringify({ error: `Chat session "${sessionId}" not found` }), {
+        status: 404,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const controller = new AbortController();
@@ -44,19 +44,18 @@ export async function POST(request: Request) {
 
     try {
       const response = await chat(sessionId, message, model, controller.signal);
-      return new Response(
-        JSON.stringify({ sessionId, ...response }),
-        { headers: API_RESPONSE_HEADERS }
-      );
+      return new Response(JSON.stringify({ sessionId, ...response }), {
+        headers: API_RESPONSE_HEADERS,
+      });
     } finally {
       clearTimeout(timeout);
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Internal server error";
-    return new Response(
-      JSON.stringify({ error: msg }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }
 
@@ -72,7 +71,10 @@ export async function GET() {
     return new Response(JSON.stringify({ sessions }), { headers: API_RESPONSE_HEADERS });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Internal server error";
-    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: API_RESPONSE_HEADERS });
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }
 
@@ -81,18 +83,21 @@ export async function DELETE(request: Request) {
     const url = new URL(request.url);
     const sessionId = url.searchParams.get("sessionId");
     if (!sessionId) {
-      return new Response(
-        JSON.stringify({ error: "sessionId query parameter required" }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
+      return new Response(JSON.stringify({ error: "sessionId query parameter required" }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
     const deleted = deleteChatSession(sessionId);
-    return new Response(
-      JSON.stringify({ deleted }),
-      { status: deleted ? 200 : 404, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ deleted }), {
+      status: deleted ? 200 : 404,
+      headers: API_RESPONSE_HEADERS,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Internal server error";
-    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: API_RESPONSE_HEADERS });
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

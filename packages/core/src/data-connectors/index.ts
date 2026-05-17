@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { ValidationError, ConfigurationError } from "../errors.js";
 
 // ---- Zod Schemas ----
 
@@ -180,11 +181,15 @@ export function deleteConnectorConfig(configId: string): boolean {
 /** Run a sync operation for a specific connector. */
 export async function syncConnector(configId: string): Promise<SyncResult> {
   const config = connectorConfigs.get(configId);
-  if (!config) throw new Error(`Connector config ${configId} not found`);
-  if (!config.enabled) throw new Error(`Connector ${configId} is disabled`);
+  if (!config) throw new ValidationError(`Connector config ${configId} not found`);
+  if (!config.enabled) throw new ConfigurationError(`Connector ${configId} is disabled`, configId);
 
   const impl = connectorImplementations.get(config.type);
-  if (!impl) throw new Error(`No implementation registered for connector type "${config.type}"`);
+  if (!impl)
+    throw new ConfigurationError(
+      `No implementation registered for connector type "${config.type}"`,
+      config.type
+    );
 
   const startTime = Date.now();
   const errors: string[] = [];
@@ -251,10 +256,14 @@ export async function syncConnector(configId: string): Promise<SyncResult> {
 /** Test a connector's connection. */
 export async function testConnectorConnection(configId: string): Promise<boolean> {
   const config = connectorConfigs.get(configId);
-  if (!config) throw new Error(`Connector config ${configId} not found`);
+  if (!config) throw new ValidationError(`Connector config ${configId} not found`);
 
   const impl = connectorImplementations.get(config.type);
-  if (!impl) throw new Error(`No implementation for connector type "${config.type}"`);
+  if (!impl)
+    throw new ConfigurationError(
+      `No implementation for connector type "${config.type}"`,
+      config.type
+    );
 
   return impl.testConnection(config);
 }
@@ -275,7 +284,7 @@ export function resolveConflict(
   mergedContent?: string
 ): void {
   const conflict = conflicts.find((c) => c.id === conflictId);
-  if (!conflict) throw new Error(`Conflict ${conflictId} not found`);
+  if (!conflict) throw new ValidationError(`Conflict ${conflictId} not found`);
 
   conflict.resolution = resolution;
 
@@ -420,7 +429,7 @@ function decodeConnectorSnapshot(baseUrl?: string): unknown {
     }
     return JSON.parse(decodeURIComponent(payload));
   } catch (error) {
-    throw new Error(
+    throw new ValidationError(
       `Connector snapshot could not be parsed: ${error instanceof Error ? error.message : String(error)}`
     );
   }

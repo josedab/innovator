@@ -19,7 +19,37 @@ import type {
   AngleResult,
   Synthesis,
   PipelineProgress,
+  CustomAngle,
+  SessionRecord,
+  Preset,
 } from "../types.js";
+
+// ---- Counter Management ----
+
+let ideaCounter = 0;
+let sessionCounter = 0;
+let gauntletCounter = 0;
+let patternCounter = 0;
+let customAngleCounter = 0;
+
+/**
+ * Reset all factory counters to zero for test isolation.
+ * Call this in `beforeEach` to ensure deterministic IDs across tests.
+ *
+ * @example
+ * ```typescript
+ * beforeEach(() => {
+ *   resetFactoryCounters();
+ * });
+ * ```
+ */
+export function resetFactoryCounters(): void {
+  ideaCounter = 0;
+  sessionCounter = 0;
+  gauntletCounter = 0;
+  patternCounter = 0;
+  customAngleCounter = 0;
+}
 
 // ---- Investigation ----
 
@@ -38,8 +68,6 @@ export function makeInvestigation(overrides: Partial<Investigation> = {}): Inves
 }
 
 // ---- InnovationIdea ----
-
-let ideaCounter = 0;
 
 export function makeIdea(overrides: Partial<InnovationIdea> = {}): InnovationIdea {
   ideaCounter++;
@@ -104,8 +132,41 @@ export function makePipelineProgress(overrides: Partial<PipelineProgress> = {}):
   };
 }
 
-// ---- Session Record (for history) ----
+// ---- CustomAngle ----
 
+export function makeCustomAngle(overrides: Partial<CustomAngle> = {}): CustomAngle {
+  customAngleCounter++;
+  return {
+    id: `custom-angle-${customAngleCounter}`,
+    name: `Custom Angle ${customAngleCounter}`,
+    description: `A custom innovation angle for testing (${customAngleCounter}).`,
+    promptTemplate: "Analyze {{subject}} using custom methodology.\n\nContext:\n{{investigation}}",
+    icon: "🔬",
+    author: "test-author",
+    version: "1.0.0",
+    tags: ["test", "custom"],
+    ...overrides,
+  };
+}
+
+// ---- SessionRecord (for history) ----
+
+export function makeSessionRecord(overrides: Partial<SessionRecord> = {}): SessionRecord {
+  sessionCounter++;
+  return {
+    id: `session-${sessionCounter}`,
+    subject: `Test Subject ${sessionCounter}`,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    investigation: makeInvestigation(),
+    angleResults: [makeAngleResult()],
+    synthesis: makeSynthesis(),
+    tags: [],
+    ...overrides,
+  };
+}
+
+/** @deprecated Use makeSessionRecord instead — this type lacks updatedAt/tags from the real SessionRecord. */
 export interface MockSessionRecord {
   id: string;
   subject: string;
@@ -115,17 +176,18 @@ export interface MockSessionRecord {
   createdAt: string;
 }
 
-let sessionCounter = 0;
+// ---- Preset ----
 
-export function makeSessionRecord(overrides: Partial<MockSessionRecord> = {}): MockSessionRecord {
-  sessionCounter++;
+export function makePreset(overrides: Partial<Preset> = {}): Preset {
   return {
-    id: `session-${sessionCounter}`,
-    subject: `Test Subject ${sessionCounter}`,
-    investigation: makeInvestigation(),
-    angleResults: [makeAngleResult()],
-    synthesis: makeSynthesis(),
-    createdAt: new Date().toISOString(),
+    id: "test-preset",
+    name: "Test Preset",
+    description: "A preset for testing purposes.",
+    icon: "🧪",
+    category: "testing",
+    suggestedSubject: "test automation",
+    selectedAngles: ["scamper", "first-principles"],
+    tags: ["test"],
     ...overrides,
   };
 }
@@ -148,8 +210,6 @@ export function makeAttack(overrides: Partial<Attack> = {}): Attack {
 }
 
 // ---- GauntletResult ----
-
-let gauntletCounter = 0;
 
 export function makeGauntletResult(overrides: Partial<GauntletResult> = {}): GauntletResult {
   gauntletCounter++;
@@ -201,8 +261,6 @@ export function makeSessionIngestion(overrides: Partial<SessionIngestion> = {}):
 // ---- AnonymizedPattern (for federation-dp) ----
 
 import type { AnonymizedPattern } from "../federation-dp/types.js";
-
-let patternCounter = 0;
 
 export function makeAnonymizedPattern(
   overrides: Partial<AnonymizedPattern> = {}

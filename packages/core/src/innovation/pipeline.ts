@@ -1,6 +1,6 @@
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { AbortError, PipelineError } from "../errors.js";
+import { AbortError, PipelineError, LlmParseError, ConfigurationError } from "../errors.js";
 import { buildSynthesisPrompt } from "../prompts/investigation.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 import {
@@ -48,7 +48,10 @@ async function runWithConcurrency<T>(
   signal?: AbortSignal
 ): Promise<ConcurrencyResult<T>> {
   if (!Number.isFinite(concurrency) || concurrency < 1) {
-    throw new Error(`runWithConcurrency: concurrency must be >= 1, got ${concurrency}`);
+    throw new ConfigurationError(
+      `runWithConcurrency: concurrency must be >= 1, got ${concurrency}`,
+      "concurrency"
+    );
   }
   if (tasks.length === 0) {
     return { results: [], errors: [] };
@@ -276,7 +279,7 @@ export async function runAutoPipeline(
         try {
           return JSON.parse(jsonStr);
         } catch {
-          throw new Error(`Failed to parse LLM response as JSON: ${jsonStr.slice(0, 200)}`);
+          throw new LlmParseError("Failed to parse LLM response as JSON", jsonStr.slice(0, 200));
         }
       },
       {

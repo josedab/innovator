@@ -1,4 +1,4 @@
-import { LlmTimeoutError } from "../errors.js";
+import { LlmTimeoutError, ConfigurationError } from "../errors.js";
 
 /**
  * Race a promise against a timeout, throwing {@link LlmTimeoutError} if the timeout fires first.
@@ -28,7 +28,10 @@ export async function withTimeout<T>(
   options?: { model?: string }
 ): Promise<T> {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-    throw new Error("withTimeout: timeoutMs must be a positive finite number");
+    throw new ConfigurationError(
+      "withTimeout: timeoutMs must be a positive finite number",
+      "timeoutMs"
+    );
   }
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined;

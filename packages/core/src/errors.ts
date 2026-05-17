@@ -32,7 +32,8 @@ export type InnovatorErrorCode =
   | "ERR_VALIDATION"
   | "ERR_PIPELINE"
   | "ERR_CONFIGURATION"
-  | "ERR_ABORT";
+  | "ERR_ABORT"
+  | "ERR_RETRY_EXHAUSTED";
 
 /**
  * Base error class for all Innovator errors.
@@ -45,6 +46,16 @@ export class InnovatorError extends Error {
     super(message, { cause });
     this.name = "InnovatorError";
     this.code = code;
+  }
+
+  /** Serialize to a structured JSON object for logging and API responses. */
+  toJSON(): Record<string, unknown> {
+    return {
+      name: this.name,
+      code: this.code,
+      message: this.message,
+      ...(this.cause instanceof Error ? { cause: this.cause.message } : {}),
+    };
   }
 }
 

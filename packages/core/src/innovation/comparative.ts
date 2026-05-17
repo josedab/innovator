@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 import { buildSynthesisPrompt } from "../prompts/investigation.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 import { wrapUserInput, sanitizeUserInput } from "../prompts/sanitize.js";
@@ -148,17 +149,17 @@ export async function runComparativePipeline(
   signal?: AbortSignal
 ): Promise<ComparativeProgress> {
   if (subjects.length < 2 || subjects.length > 5) {
-    throw new Error("Comparative analysis requires 2-5 subjects");
+    throw new ValidationError("Comparative analysis requires 2-5 subjects");
   }
 
   const emptySubjects = subjects.filter((s) => !s.trim());
   if (emptySubjects.length > 0) {
-    throw new Error("Comparative analysis: all subjects must be non-empty strings");
+    throw new ValidationError("Comparative analysis: all subjects must be non-empty strings");
   }
 
   const uniqueSubjects = new Set(subjects.map((s) => s.trim().toLowerCase()));
   if (uniqueSubjects.size !== subjects.length) {
-    throw new Error("Comparative analysis: subjects must be unique (duplicates found)");
+    throw new ValidationError("Comparative analysis: subjects must be unique (duplicates found)");
   }
 
   const subjectProgress = new Map<string, PipelineProgress>();
@@ -235,7 +236,10 @@ export async function runComparativePipeline(
         try {
           return JSON.parse(jsonStr);
         } catch {
-          throw new Error(`Failed to parse comparative synthesis JSON: ${jsonStr.slice(0, 200)}`);
+          throw new LlmParseError(
+            "Failed to parse comparative synthesis JSON",
+            jsonStr.slice(0, 200)
+          );
         }
       },
       {
@@ -331,7 +335,7 @@ export async function runParallelInvestigation(
   }
 ): Promise<ParallelInvestigationResult> {
   if (subjects.length < 2 || subjects.length > 10) {
-    throw new Error("Parallel investigation requires 2-10 subjects");
+    throw new ValidationError("Parallel investigation requires 2-10 subjects");
   }
 
   const investigations: ParallelInvestigationResult["investigations"] = [];
@@ -384,7 +388,7 @@ export async function runParallelInvestigation(
         try {
           return JSON.parse(jsonStr);
         } catch {
-          throw new Error(`Failed to parse cross-subject synthesis JSON`);
+          throw new LlmParseError("Failed to parse cross-subject synthesis JSON", "");
         }
       },
       {
@@ -466,7 +470,7 @@ You MUST respond with valid JSON only:
       try {
         return JSON.parse(jsonStr);
       } catch {
-        throw new Error(`Failed to parse competitive map JSON`);
+        throw new LlmParseError("Failed to parse competitive map JSON", "");
       }
     },
     {

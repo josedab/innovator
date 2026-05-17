@@ -13,21 +13,33 @@ export interface RetryOptions {
   signal?: AbortSignal;
 }
 
-import { AbortError } from "../errors.js";
-import { RateLimitError, LlmParseError } from "../errors.js";
+import { AbortError, ConfigurationError } from "../errors.js";
+import { RateLimitError, LlmParseError, InnovatorError } from "../errors.js";
+import type { InnovatorErrorCode } from "../errors.js";
 
 /** Error thrown when all retry attempts are exhausted. Preserves the original error as `cause`. */
-export class RetryExhaustedError extends Error {
+export class RetryExhaustedError extends InnovatorError {
   /** The underlying error from the last attempt. */
   override readonly cause: Error;
   /** Total number of attempts made (including the first). */
   readonly attempts: number;
 
   constructor(cause: Error, attempts: number) {
-    super(`All ${attempts} retry attempts exhausted: ${cause.message}`);
+    super(
+      `All ${attempts} retry attempts exhausted: ${cause.message}`,
+      "ERR_RETRY_EXHAUSTED" as InnovatorErrorCode,
+      cause
+    );
     this.name = "RetryExhaustedError";
     this.cause = cause;
     this.attempts = attempts;
+  }
+
+  override toJSON(): Record<string, unknown> {
+    return {
+      ...super.toJSON(),
+      attempts: this.attempts,
+    };
   }
 }
 
@@ -73,16 +85,28 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
   } = options;
 
   if (maxAttempts < 1 || !Number.isFinite(maxAttempts)) {
-    throw new Error("withRetry: maxAttempts must be a finite number >= 1");
+    throw new ConfigurationError(
+      "withRetry: maxAttempts must be a finite number >= 1",
+      "maxAttempts"
+    );
   }
   if (initialDelayMs < 0 || !Number.isFinite(initialDelayMs)) {
-    throw new Error("withRetry: initialDelayMs must be a finite non-negative number");
+    throw new ConfigurationError(
+      "withRetry: initialDelayMs must be a finite non-negative number",
+      "initialDelayMs"
+    );
   }
   if (backoffMultiplier < 1 || !Number.isFinite(backoffMultiplier)) {
-    throw new Error("withRetry: backoffMultiplier must be a finite number >= 1");
+    throw new ConfigurationError(
+      "withRetry: backoffMultiplier must be a finite number >= 1",
+      "backoffMultiplier"
+    );
   }
   if (maxDelayMs < 0 || !Number.isFinite(maxDelayMs)) {
-    throw new Error("withRetry: maxDelayMs must be a finite non-negative number");
+    throw new ConfigurationError(
+      "withRetry: maxDelayMs must be a finite non-negative number",
+      "maxDelayMs"
+    );
   }
 
   let lastError: unknown;

@@ -11,6 +11,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { CustomAngleSchema, AnglePackSchema, type CustomAngle, type AnglePack } from "../types.js";
+import { ValidationError } from "../errors.js";
 
 const CONFIG_DIR = join(homedir(), ".innovator");
 const ANGLES_FILE = join(CONFIG_DIR, "custom-angles.json");
@@ -60,7 +61,7 @@ export function addCustomAngle(angle: CustomAngle): void {
   const validated = CustomAngleSchema.parse(angle);
   const existing = loadCustomAngles();
   if (existing.some((a) => a.id === validated.id)) {
-    throw new Error(`Custom angle with ID "${validated.id}" already exists`);
+    throw new ValidationError(`Custom angle with ID "${validated.id}" already exists`);
   }
   existing.push(validated);
   saveCustomAngles(existing);
@@ -98,7 +99,7 @@ export function updateCustomAngle(angle: CustomAngle): void {
   const existing = loadCustomAngles();
   const index = existing.findIndex((a) => a.id === validated.id);
   if (index === -1) {
-    throw new Error(`Custom angle "${validated.id}" not found`);
+    throw new ValidationError(`Custom angle "${validated.id}" not found`);
   }
   existing[index] = validated;
   saveCustomAngles(existing);
@@ -138,7 +139,7 @@ export function exportAnglePack(
 
   if (angles.length === 0) {
     const detail = warnings.length > 0 ? ` (unknown IDs: ${warnings.join(", ")})` : "";
-    throw new Error(`No angles to export${detail}`);
+    throw new ValidationError(`No angles to export${detail}`);
   }
   return { name, description, version: "1.0.0", angles };
 }

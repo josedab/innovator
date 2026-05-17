@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeUserInput, sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
+import { ValidationError, LlmParseError } from "../errors.js";
 import type { AngleResult, Investigation, Synthesis } from "../types.js";
 
 /** Maximum tokens budget (approximated as characters / 4). */
@@ -210,7 +211,7 @@ export async function refineConversation(
 ): Promise<RefinementResponse> {
   const ctx = sessions.get(sessionId);
   if (!ctx) {
-    throw new Error(`Conversation session "${sessionId}" not found`);
+    throw new ValidationError(`Conversation session "${sessionId}" not found`);
   }
 
   if (selectedIdeas) {
@@ -233,7 +234,10 @@ export async function refineConversation(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse refinement response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          "Failed to parse refinement response as JSON",
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {
@@ -274,13 +278,18 @@ export const ExplorationNodeSchema = z.object({
   parentId: z.string().max(100).optional(),
   query: z.string().max(2000),
   response: z.string().max(10000),
-  ideas: z.array(z.object({
-    title: z.string().max(500),
-    description: z.string().max(5000),
-    potentialImpact: z.string().max(2000),
-    implementationHint: z.string().max(2000),
-    sourceAngle: z.string().max(200).optional(),
-  })).max(20).optional(),
+  ideas: z
+    .array(
+      z.object({
+        title: z.string().max(500),
+        description: z.string().max(5000),
+        potentialImpact: z.string().max(2000),
+        implementationHint: z.string().max(2000),
+        sourceAngle: z.string().max(200).optional(),
+      })
+    )
+    .max(20)
+    .optional(),
   suggestions: z.array(z.string().max(500)).max(5).optional(),
   depth: z.number().min(0).max(20),
   createdAt: z.string(),
@@ -359,12 +368,12 @@ export async function drillDown(
   signal?: AbortSignal
 ): Promise<ExplorationNode> {
   const tree = explorationTrees.get(sessionId);
-  if (!tree) throw new Error(`Exploration tree not found for session "${sessionId}"`);
+  if (!tree) throw new ValidationError(`Exploration tree not found for session "${sessionId}"`);
 
   const parentNode = tree.nodes[parentNodeId];
-  if (!parentNode) throw new Error(`Parent node "${parentNodeId}" not found`);
+  if (!parentNode) throw new ValidationError(`Parent node "${parentNodeId}" not found`);
 
-  if (parentNode.depth >= 20) throw new Error("Maximum exploration depth reached");
+  if (parentNode.depth >= 20) throw new ValidationError("Maximum exploration depth reached");
 
   const ctx = sessions.get(sessionId);
   const context = buildDrillDownPrompt(ctx, parentNode, query);
@@ -376,7 +385,7 @@ export async function drillDown(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse drill-down response: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError("Failed to parse drill-down response", jsonStr.slice(0, 200));
       }
     },
     {

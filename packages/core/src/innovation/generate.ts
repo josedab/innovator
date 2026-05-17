@@ -1,5 +1,6 @@
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { LlmParseError, ValidationError } from "../errors.js";
 import {
   buildScamperPrompt,
   buildFirstPrinciplesPrompt,
@@ -68,7 +69,7 @@ export async function generateForAngle(
     // Check custom angles
     const customAngle = getCustomAngle(angleId);
     if (!customAngle) {
-      throw new Error(`Unknown angle: ${angleId}`);
+      throw new ValidationError(`Unknown angle: ${angleId}`);
     }
     const context = investigationContext(subject, investigation);
     prompt = buildCustomAnglePrompt(customAngle, subject, context);
@@ -80,7 +81,10 @@ export async function generateForAngle(
       try {
         return JSON.parse(jsonStr) as unknown;
       } catch {
-        throw new Error(`Failed to parse ${angleId} response as JSON: ${jsonStr.slice(0, 200)}`);
+        throw new LlmParseError(
+          `Failed to parse ${angleId} response as JSON`,
+          jsonStr.slice(0, 200)
+        );
       }
     },
     {

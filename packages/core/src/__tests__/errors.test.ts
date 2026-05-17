@@ -5,12 +5,14 @@ import {
   LlmError,
   LlmTimeoutError,
   LlmParseError,
+  RateLimitError,
   ValidationError,
   PipelineError,
   ConfigurationError,
   AbortError,
   isInnovatorError,
 } from "../errors.js";
+import { RetryExhaustedError } from "../copilot/retry.js";
 
 vi.mock("@github/copilot-sdk", () => ({
   CopilotClient: vi.fn(),
@@ -30,6 +32,36 @@ describe("errors", () => {
       const cause = new Error("root cause");
       const err = new InnovatorError("wrapped", "ERR_INNOVATOR", cause);
       expect(err.cause).toBe(cause);
+    });
+
+    it("serializes to JSON with toJSON()", () => {
+      const err = new InnovatorError("test error", "ERR_INNOVATOR");
+      const json = err.toJSON();
+      expect(json).toEqual({
+        name: "InnovatorError",
+        code: "ERR_INNOVATOR",
+        message: "test error",
+      });
+    });
+
+    it("includes cause in toJSON() when present", () => {
+      const cause = new Error("root cause");
+      const err = new InnovatorError("wrapped", "ERR_INNOVATOR", cause);
+      const json = err.toJSON();
+      expect(json).toEqual({
+        name: "InnovatorError",
+        code: "ERR_INNOVATOR",
+        message: "wrapped",
+        cause: "root cause",
+      });
+    });
+
+    it("works with JSON.stringify()", () => {
+      const err = new InnovatorError("stringify test");
+      const str = JSON.stringify(err);
+      const parsed = JSON.parse(str);
+      expect(parsed.code).toBe("ERR_INNOVATOR");
+      expect(parsed.message).toBe("stringify test");
     });
   });
 
@@ -67,6 +99,20 @@ describe("errors", () => {
     it("keeps short raw output as-is", () => {
       const err = new LlmParseError("parse failed", "short text");
       expect(err.rawOutput).toBe("short text");
+    });
+  });
+
+  describe("RateLimitError", () => {
+    it("stores retryAfterMs", () => {
+      const err = new RateLimitError("rate limited", {
+        model: "gpt-4.1",
+        retryAfterMs: 5000,
+      });
+      expect(err.name).toBe("RateLimitError");
+      expect(err.code).toBe("ERR_LLM_RATE_LIMIT");
+      expect(err.retryAfterMs).toBe(5000);
+      expect(err.model).toBe("gpt-4.1");
+      expect(err).toBeInstanceOf(LlmError);
     });
   });
 
@@ -113,6 +159,32 @@ describe("errors", () => {
     });
   });
 
+  describe("RetryExhaustedError", () => {
+    it("extends InnovatorError with ERR_RETRY_EXHAUSTED code", () => {
+      const cause = new Error("network failure");
+      const err = new RetryExhaustedError(cause, 3);
+      expect(err.name).toBe("RetryExhaustedError");
+      expect(err.code).toBe("ERR_RETRY_EXHAUSTED");
+      expect(err.attempts).toBe(3);
+      expect(err.cause).toBe(cause);
+      expect(err).toBeInstanceOf(InnovatorError);
+      expect(err).toBeInstanceOf(Error);
+    });
+
+    it("is detected by isInnovatorError type guard", () => {
+      const err = new RetryExhaustedError(new Error("fail"), 2);
+      expect(isInnovatorError(err)).toBe(true);
+    });
+
+    it("serializes to JSON with attempts", () => {
+      const err = new RetryExhaustedError(new Error("timeout"), 5);
+      const json = err.toJSON();
+      expect(json.code).toBe("ERR_RETRY_EXHAUSTED");
+      expect(json.attempts).toBe(5);
+      expect(json.cause).toBe("timeout");
+    });
+  });
+
   describe("isInnovatorError", () => {
     it("returns true for InnovatorError subtypes", () => {
       expect(isInnovatorError(new InnovatorError("test"))).toBe(true);
@@ -120,6 +192,7 @@ describe("errors", () => {
       expect(isInnovatorError(new LlmTimeoutError(1000))).toBe(true);
       expect(isInnovatorError(new AbortError())).toBe(true);
       expect(isInnovatorError(new PipelineError("test", "investigating"))).toBe(true);
+      expect(isInnovatorError(new RetryExhaustedError(new Error("x"), 1))).toBe(true);
     });
 
     it("returns false for non-InnovatorError values", () => {
@@ -144,6 +217,36 @@ describe("errors", () => {
       expect(err).toBeInstanceOf(LlmParseError);
       expect(err).toBeInstanceOf(LlmError);
       expect(err).toBeInstanceOf(InnovatorError);
+    });
+
+    it("RetryExhaustedError is instanceof InnovatorError", () => {
+      const err = new RetryExhaustedError(new Error("x"), 3);
+      expect(err).toBeInstanceOf(RetryExhaustedError);
+      expect(err).toBeInstanceOf(InnovatorError);
+      expect(err).toBeInstanceOf(Error);
+    });
+  });
+
+  describe("toJSON across error types", () => {
+    it("LlmParseError includes rawOutput context in message", () => {
+      const err = new LlmParseError("bad json", "some raw output");
+      const json = err.toJSON();
+      expect(json.name).toBe("LlmParseError");
+      expect(json.code).toBe("ERR_LLM_PARSE");
+    });
+
+    it("ConfigurationError serializes with toJSON", () => {
+      const err = new ConfigurationError("bad config", "API_KEY");
+      const json = err.toJSON();
+      expect(json.name).toBe("ConfigurationError");
+      expect(json.code).toBe("ERR_CONFIGURATION");
+    });
+
+    it("PipelineError serializes with toJSON", () => {
+      const err = new PipelineError("generation failed", "generating");
+      const json = err.toJSON();
+      expect(json.name).toBe("PipelineError");
+      expect(json.code).toBe("ERR_PIPELINE");
     });
   });
 });
