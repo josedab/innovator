@@ -44,7 +44,11 @@ export class WebhookManager {
     const unsubs: (() => void)[] = [];
     for (const eventType of webhook.events) {
       const unsub = bus.on(eventType, (event) => {
-        this.deliverEvent(webhook.id, event).catch(() => {});
+        this.deliverEvent(webhook.id, event).catch((err) => {
+          console.error(
+            `WebhookManager: delivery failed for webhook ${webhook.id} on event ${event.type}: ${err instanceof Error ? err.message : String(err)}`
+          );
+        });
       });
       unsubs.push(unsub);
     }

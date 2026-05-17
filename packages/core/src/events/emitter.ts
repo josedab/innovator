@@ -16,6 +16,12 @@ export interface FilteredSubscriptionOptions {
   sessionId?: string;
 }
 
+/** Default cap on listeners per event type before a warning is emitted. */
+const DEFAULT_MAX_LISTENERS = 10;
+
+/** Default cap on buffered events to prevent unbounded memory growth. */
+const DEFAULT_MAX_BUFFER_SIZE = 10_000;
+
 /**
  * In-process event emitter for pipeline events.
  * Supports typed event subscriptions, wildcard listeners, predicate-based
@@ -27,13 +33,73 @@ export class EventBus {
   private buffer: PipelineEvent[] = [];
   private bufferEnabled = false;
   private flushIntervalId?: ReturnType<typeof setInterval>;
+  private _maxListeners = DEFAULT_MAX_LISTENERS;
+  private _maxBufferSize = DEFAULT_MAX_BUFFER_SIZE;
+  private _onWarning?: (message: string) => void;
+
+  /**
+   * Set the maximum number of listeners per event type.
+   * When exceeded, a warning is emitted to help detect listener leaks.
+   * Set to 0 to disable the warning.
+   */
+  setMaxListeners(n: number): this {
+    this._maxListeners = Math.max(0, Math.trunc(n));
+    return this;
+  }
+
+  /** Get the current max listeners threshold. */
+  get maxListeners(): number {
+    return this._maxListeners;
+  }
+
+  /**
+   * Set the maximum buffer size. When the buffer is full, the oldest events
+   * are dropped to make room for new ones.
+   */
+  setMaxBufferSize(n: number): this {
+    this._maxBufferSize = Math.max(1, Math.trunc(n));
+    return this;
+  }
+
+  /** Get the current max buffer size. */
+  get maxBufferSize(): number {
+    return this._maxBufferSize;
+  }
+
+  /**
+   * Register a warning handler (e.g. for logging). If not set, warnings are
+   * written to `console.warn`.
+   */
+  onWarning(handler: (message: string) => void): this {
+    this._onWarning = handler;
+    return this;
+  }
+
+  private warn(message: string): void {
+    if (this._onWarning) {
+      this._onWarning(message);
+    } else {
+      console.warn(message);
+    }
+  }
 
   /** Subscribe to a specific event type. Returns unsubscribe function. */
   on(eventType: EventType | "*", listener: EventListener): () => void {
     if (!this.listeners.has(eventType)) {
       this.listeners.set(eventType, new Set());
     }
-    this.listeners.get(eventType)!.add(listener);
+    const set = this.listeners.get(eventType)!;
+    set.add(listener);
+
+    // Warn when listener count exceeds threshold (likely a leak)
+    if (this._maxListeners > 0 && set.size > this._maxListeners) {
+      this.warn(
+        `EventBus: ${set.size} listeners added for "${eventType}" event — ` +
+          `possible listener leak (threshold: ${this._maxListeners}). ` +
+          `Use setMaxListeners() to increase the limit if this is intentional.`
+      );
+    }
+
     return () => {
       this.listeners.get(eventType)?.delete(listener);
       this.filteredListeners.delete(listener);
@@ -87,6 +153,15 @@ export class EventBus {
     };
 
     if (this.bufferEnabled) {
+      if (this.buffer.length >= this._maxBufferSize) {
+        // Drop oldest events to stay within cap
+        const overflow = this.buffer.length - this._maxBufferSize + 1;
+        this.buffer.splice(0, overflow);
+        this.warn(
+          `EventBus: buffer exceeded maxBufferSize (${this._maxBufferSize}), ` +
+            `${overflow} oldest event(s) dropped.`
+        );
+      }
       this.buffer.push(event);
       return event;
     }

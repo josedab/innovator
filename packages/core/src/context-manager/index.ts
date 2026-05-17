@@ -108,6 +108,9 @@ interface CompressionRecord {
 
 const compressionHistory: CompressionRecord[] = [];
 
+/** Maximum compression history entries to retain. */
+const MAX_COMPRESSION_HISTORY = 1_000;
+
 // ---- Core Functions ----
 
 /**
@@ -221,7 +224,7 @@ export function manageContext(
   const modelLimit = getModelTokenLimit(model);
   const effectiveBudget = Math.min(budget.maxTokens, modelLimit - budget.reservedForOutput);
 
-  // Score segments by relevance
+  // Score segments by relevance (deep copy to avoid mutating caller's data)
   const scored = segments.map((seg) => ({
     ...seg,
     relevanceScore: computeRelevance(seg, query),
@@ -252,16 +255,16 @@ export function manageContext(
       }
     }
 
-    // Phase 2: Compress remaining segments
+    // Phase 2: Compress remaining segments (replace rather than mutate)
     if (totalTokens > effectiveBudget) {
       const ratio = effectiveBudget / totalTokens;
-      for (const seg of scored) {
+      for (let i = 0; i < scored.length; i++) {
+        const seg = scored[i];
         if (seg.compressible && seg.tokenCount > 200) {
           const compressed = extractiveCompress(seg.content, ratio);
           const newTokens = estimateTokens(compressed);
           totalTokens -= seg.tokenCount - newTokens;
-          seg.content = compressed;
-          seg.tokenCount = newTokens;
+          scored[i] = { ...seg, content: compressed, tokenCount: newTokens };
           segmentsCompressed++;
         }
       }
@@ -284,6 +287,9 @@ export function manageContext(
       qualityBefore: 1.0,
       qualityAfter: compressionResult.qualityEstimate,
     });
+    if (compressionHistory.length > MAX_COMPRESSION_HISTORY) {
+      compressionHistory.splice(0, compressionHistory.length - MAX_COMPRESSION_HISTORY);
+    }
   }
 
   const finalTokens = scored.reduce((sum, s) => sum + s.tokenCount, 0);

@@ -25,24 +25,57 @@ import { ConfigurationError, AbortError } from "../errors.js";
 export class Semaphore {
   private permits: number;
   private maxPermits: number;
+  private readonly maxWaiters: number;
   private readonly waitQueue: Array<() => void> = [];
 
-  constructor(maxPermits: number) {
+  constructor(maxPermits: number, options?: { maxWaiters?: number }) {
     if (!Number.isFinite(maxPermits) || maxPermits < 1) {
       throw new ConfigurationError("Semaphore: maxPermits must be >= 1", "maxPermits");
     }
     this.permits = maxPermits;
     this.maxPermits = maxPermits;
+    this.maxWaiters = options?.maxWaiters ?? 10_000;
   }
 
-  /** Acquire a permit, waiting if all are in use. */
-  async acquire(): Promise<void> {
+  /** Acquire a permit, waiting if all are in use.
+   * @param options - Optional. Pass `{ signal }` to allow cancellation while waiting.
+   * @throws {AbortError} If the signal is aborted before a permit is acquired.
+   */
+  async acquire(options?: { signal?: AbortSignal }): Promise<void> {
+    const signal = options?.signal;
+
+    if (signal?.aborted) {
+      throw new AbortError("Semaphore acquire aborted");
+    }
+
     if (this.permits > 0) {
       this.permits--;
       return;
     }
-    return new Promise<void>((resolve) => {
-      this.waitQueue.push(resolve);
+
+    if (this.waitQueue.length >= this.maxWaiters) {
+      throw new ConfigurationError(
+        `Semaphore: wait queue is full (${this.maxWaiters} waiters). ` +
+          `This may indicate a resource leak.`,
+        "maxWaiters"
+      );
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const onAbort = () => {
+        // Remove ourselves from the wait queue
+        const idx = this.waitQueue.indexOf(wrappedResolve);
+        if (idx !== -1) this.waitQueue.splice(idx, 1);
+        reject(new AbortError("Semaphore acquire aborted"));
+      };
+
+      const wrappedResolve = () => {
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      };
+
+      signal?.addEventListener("abort", onAbort, { once: true });
+      this.waitQueue.push(wrappedResolve);
     });
   }
 
