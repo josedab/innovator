@@ -206,7 +206,9 @@ export function querySessionsPaginated(query: HistoryQuery): PaginatedSessionRes
               idea.title.toLowerCase().includes(search) ||
               idea.description.toLowerCase().includes(search)
           )
-        )
+        ) ||
+        s.tags.some((tag) => tag.toLowerCase().includes(search)) ||
+        s.angleResults.some((ar) => ar.reasoning?.toLowerCase().includes(search))
     );
   }
 

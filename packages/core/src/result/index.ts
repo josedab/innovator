@@ -96,10 +96,12 @@ export function flatMap<T, U, E>(
 
 /**
  * Extract the value from a Result, throwing the error if it's a failure.
+ * Non-Error values are wrapped in an Error to ensure consistent throw behavior.
  */
 export function unwrap<T, E>(result: Result<T, E>): T {
   if (result.ok) return result.value;
-  throw result.error;
+  if (result.error instanceof Error) throw result.error;
+  throw new Error(String(result.error));
 }
 
 /**
@@ -116,6 +118,30 @@ export function unwrapOr<T, E>(result: Result<T, E>, defaultValue: T): T {
 export function unwrapOrElse<T, E>(result: Result<T, E>, fn: (error: E) => T): T {
   if (result.ok) return result.value;
   return fn(result.error);
+}
+
+/**
+ * Chain an async function that returns a Result, flattening the nested Result.
+ * Async equivalent of flatMap for pipeline stages that perform I/O.
+ */
+export async function flatMapAsync<T, U, E>(
+  result: Result<T, E>,
+  fn: (value: T) => Promise<Result<U, E>>
+): Promise<Result<U, E>> {
+  if (result.ok) return fn(result.value);
+  return result;
+}
+
+/**
+ * Transform the value inside a successful Result with an async function.
+ * Async equivalent of mapResult for pipeline stages that perform I/O.
+ */
+export async function mapAsync<T, U, E>(
+  result: Result<T, E>,
+  fn: (value: T) => Promise<U>
+): Promise<Result<U, E>> {
+  if (result.ok) return ok(await fn(result.value));
+  return result;
 }
 
 /**

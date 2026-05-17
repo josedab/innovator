@@ -148,6 +148,8 @@ export {
   unwrapOrElse,
   collectResults,
   partitionResults,
+  flatMapAsync,
+  mapAsync,
 } from "./result/index.js";
 export type { Result, Ok, Err } from "./result/index.js";
 

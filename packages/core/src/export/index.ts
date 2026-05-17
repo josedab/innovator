@@ -12,21 +12,28 @@ function escapeMarkdownInline(text: string): string {
   return text.replace(/([\\*_`\[\]|~<>])/g, "\\$1");
 }
 
-/** Escape a value for CSV output (RFC 4180 compliant). Handles non-string inputs, normalizes newlines. */
+/** Escape a value for CSV output (RFC 4180 compliant). Handles non-string inputs, normalizes newlines.
+ *  Also guards against CSV formula injection by prefixing dangerous leading characters. */
 function csvEscape(value: unknown): string {
   const str = value == null ? "" : String(value);
   // Normalize CRLF and CR to LF for consistent line endings
   const normalized = str.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  // Always quote if the value contains commas, double quotes, or newlines
-  if (
-    normalized.includes(",") ||
-    normalized.includes('"') ||
-    normalized.includes("\n") ||
-    normalized.includes("\r")
-  ) {
-    return `"${normalized.replace(/"/g, '""')}"`;
+  // Prevent CSV formula injection: prefix dangerous leading characters with a single quote
+  let safe = normalized;
+  if (/^[=+\-@\t\r]/.test(safe)) {
+    safe = `'${safe}`;
   }
-  return normalized;
+  // Always quote if the value contains commas, double quotes, newlines, or was modified
+  if (
+    safe.includes(",") ||
+    safe.includes('"') ||
+    safe.includes("\n") ||
+    safe.includes("\r") ||
+    safe !== normalized
+  ) {
+    return `"${safe.replace(/"/g, '""')}"`;
+  }
+  return safe;
 }
 
 /** Export result containing the formatted output and metadata. */

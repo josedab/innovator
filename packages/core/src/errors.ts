@@ -71,6 +71,13 @@ export class LlmError extends InnovatorError {
     this.name = "LlmError";
     this.model = options?.model;
   }
+
+  override toJSON(): Record<string, unknown> {
+    return {
+      ...super.toJSON(),
+      ...(this.model != null ? { model: this.model } : {}),
+    };
+  }
 }
 
 /**
@@ -102,6 +109,13 @@ export class LlmParseError extends LlmError {
     Object.defineProperty(this, "code", { value: "ERR_LLM_PARSE" as InnovatorErrorCode });
     this.rawOutput = rawOutput.length > 500 ? rawOutput.slice(0, 500) + "…" : rawOutput;
   }
+
+  override toJSON(): Record<string, unknown> {
+    return {
+      ...super.toJSON(),
+      rawOutput: this.rawOutput,
+    };
+  }
 }
 
 /**
@@ -121,6 +135,13 @@ export class RateLimitError extends LlmError {
     Object.defineProperty(this, "code", { value: "ERR_LLM_RATE_LIMIT" as InnovatorErrorCode });
     this.retryAfterMs = options?.retryAfterMs;
   }
+
+  override toJSON(): Record<string, unknown> {
+    return {
+      ...super.toJSON(),
+      ...(this.retryAfterMs != null ? { retryAfterMs: this.retryAfterMs } : {}),
+    };
+  }
 }
 
 /**
@@ -138,6 +159,13 @@ export class ValidationError extends InnovatorError {
     this.name = "ValidationError";
     this.issues = options?.issues;
   }
+
+  override toJSON(): Record<string, unknown> {
+    return {
+      ...super.toJSON(),
+      ...(this.issues ? { issues: this.issues } : {}),
+    };
+  }
 }
 
 /**
@@ -152,6 +180,13 @@ export class PipelineError extends InnovatorError {
     this.name = "PipelineError";
     this.stage = stage;
   }
+
+  override toJSON(): Record<string, unknown> {
+    return {
+      ...super.toJSON(),
+      stage: this.stage,
+    };
+  }
 }
 
 /**
@@ -165,6 +200,13 @@ export class ConfigurationError extends InnovatorError {
     super(message, "ERR_CONFIGURATION");
     this.name = "ConfigurationError";
     this.configKey = configKey;
+  }
+
+  override toJSON(): Record<string, unknown> {
+    return {
+      ...super.toJSON(),
+      ...(this.configKey != null ? { configKey: this.configKey } : {}),
+    };
   }
 }
 

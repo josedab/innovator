@@ -113,10 +113,17 @@ export function validateSubject(subject: unknown): SubjectValidationResult {
 
   const sanitized = sanitizeUserInput(trimmed);
 
+  if (sanitized.length === 0) {
+    return {
+      valid: false,
+      error: "Subject contains only invalid or unsafe characters after sanitization",
+    };
+  }
+
   if (sanitized.length < MIN_SUBJECT_LENGTH) {
     return {
       valid: false,
-      error: "Subject contains only invalid characters after sanitization",
+      error: `Subject is too short after removing unsafe characters (${sanitized.length} chars remaining, minimum is ${MIN_SUBJECT_LENGTH})`,
     };
   }
 
