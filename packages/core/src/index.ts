@@ -1411,7 +1411,7 @@ export {
   AssumptionSchema,
   PivotRecommendationSchema,
   CoachInterventionSchema,
-  LearningPathSchema,
+  LearningPathSchema as CoachingLearningPathSchema,
 } from "./coaching/index.js";
 export type {
   CoachPersonality,
@@ -2200,7 +2200,7 @@ export {
   predictIdeaSuccess,
   compareRetrospectives,
   retrospectiveToMarkdown,
-  IdeaOutcomeSchema,
+  IdeaOutcomeSchema as RetrospectiveIdeaOutcomeSchema,
   SuccessPatternSchema,
   FailureModeSchema,
   VelocityTrendSchema,
@@ -8730,7 +8730,7 @@ export type {
 
 /** Action Generation — structured output formats: PRDs, user stories, OKRs, pitch decks, ADRs, GitHub issues, Jira tickets. */
 export {
-  PRDSchema,
+  PRDSchema as ActionPRDSchema,
   UserStorySchema as ActionUserStorySchema,
   UserStorySetSchema,
   KeyResultSchema,
