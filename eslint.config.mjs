@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "website/**",
     "coverage/**",
     "apps/web/public/sw.js",
+    // Web app has its own eslint config with Next.js rules; lint separately
+    "apps/web/**",
   ]),
   {
     files: ["**/*.ts", "**/*.tsx"],

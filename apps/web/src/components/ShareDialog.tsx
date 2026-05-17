@@ -156,6 +156,7 @@ export function ShareDialog({ sessionId, subject, baseUrl = "", onClose }: Share
       {/* QR Code tab */}
       {tab === "qr" && (
         <div className="flex flex-col items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={qrUrl}
             alt={`QR code for ${subject}`}

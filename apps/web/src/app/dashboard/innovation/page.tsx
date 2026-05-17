@@ -172,7 +172,9 @@ export default function InnovationDashboardPage() {
   }, [rangeDays]);
 
   useEffect(() => {
-    loadData();
+    queueMicrotask(() => {
+      void loadData();
+    });
   }, [loadData]);
 
   const handleExport = async () => {

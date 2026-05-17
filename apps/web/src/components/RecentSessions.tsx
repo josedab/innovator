@@ -14,7 +14,9 @@ export function RecentSessions({ onRestore }: RecentSessionsProps) {
   const [sessions, setSessions] = useState<SavedSession[]>([]);
 
   useEffect(() => {
-    setSessions(loadRecentSessions());
+    queueMicrotask(() => {
+      setSessions(loadRecentSessions());
+    });
   }, []);
 
   const handleDelete = (id: string) => {

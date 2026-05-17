@@ -63,7 +63,9 @@ export default function TeamMetricsPage() {
   }, [teamId, periodType]);
 
   useEffect(() => {
-    fetchData();
+    queueMicrotask(() => {
+      void fetchData();
+    });
   }, [fetchData]);
 
   if (loading) {

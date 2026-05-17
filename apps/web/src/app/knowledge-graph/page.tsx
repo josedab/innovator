@@ -140,8 +140,10 @@ export default function KnowledgeGraphPage() {
   }, []);
 
   useEffect(() => {
-    loadGraph();
-    loadInsights();
+    queueMicrotask(() => {
+      void loadGraph();
+      void loadInsights();
+    });
   }, [loadGraph, loadInsights]);
 
   // Expand from a node

@@ -93,7 +93,9 @@ export default function OutcomeDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    queueMicrotask(() => {
+      void fetchData();
+    });
   }, [fetchData]);
 
   const handleExport = useCallback(async () => {

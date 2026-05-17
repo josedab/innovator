@@ -24,14 +24,18 @@ export function CommandPaletteModal() {
 
   useEffect(() => {
     if (isOpen) {
-      setQuery("");
-      setSelectedIndex(0);
+      queueMicrotask(() => {
+        setQuery("");
+        setSelectedIndex(0);
+      });
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    setSelectedIndex(0);
+    queueMicrotask(() => {
+      setSelectedIndex(0);
+    });
   }, [query]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

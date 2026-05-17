@@ -46,17 +46,24 @@ const LABELS: Record<Theme, string> = {
 
 const CYCLE: Theme[] = ["system", "light", "dark"];
 
+function getInitialTheme(): Theme {
+  if (typeof window === "undefined") return "system";
+  const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
+  return stored && CYCLE.includes(stored) ? stored : "system";
+}
+
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("system");
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    const initial = stored && CYCLE.includes(stored) ? stored : "system";
-    setTheme(initial);
-    applyTheme(initial);
-    setMounted(true);
-  }, []);
+    applyTheme(theme);
+    if (!mounted) {
+      queueMicrotask(() => {
+        setMounted(true);
+      });
+    }
+  }, [theme, mounted]);
 
   useEffect(() => {
     if (!mounted) return;

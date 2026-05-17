@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface PromptVariant {
   id: string;
@@ -67,12 +67,7 @@ export default function PromptPlaygroundPage() {
   const [loading, setLoading] = useState(false);
   const [commitMessage, setCommitMessage] = useState("");
 
-  useEffect(() => {
-    loadExperiments();
-    loadVersionHistory();
-  }, [selectedAngle]);
-
-  const loadExperiments = async () => {
+  const loadExperiments = useCallback(async () => {
     try {
       const res = await fetch("/api/prompt-lab", {
         method: "POST",
@@ -80,13 +75,14 @@ export default function PromptPlaygroundPage() {
         body: JSON.stringify({ action: "list" }),
       });
       const data = await res.json();
-      setExperiments(data.experiments ?? []);
+      return data.experiments ?? [];
     } catch {
       // Load failed — non-critical
+      return [];
     }
-  };
+  }, []);
 
-  const loadVersionHistory = async () => {
+  const loadVersionHistory = useCallback(async () => {
     try {
       const res = await fetch("/api/prompt-lab", {
         method: "POST",
@@ -94,11 +90,28 @@ export default function PromptPlaygroundPage() {
         body: JSON.stringify({ action: "version-history", angleId: selectedAngle }),
       });
       const data = await res.json();
-      setVersions(data.history ?? []);
+      return data.history ?? [];
     } catch {
       // Load failed — non-critical
+      return [];
     }
-  };
+  }, [selectedAngle]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void Promise.all([loadExperiments(), loadVersionHistory()]).then(
+      ([nextExperiments, nextVersions]) => {
+        if (cancelled) return;
+        setExperiments(nextExperiments);
+        setVersions(nextVersions);
+      }
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadExperiments, loadVersionHistory]);
 
   const handleCreateExperiment = async () => {
     if (!promptA || !promptB) return;
@@ -126,7 +139,7 @@ export default function PromptPlaygroundPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "start", experimentId: data.experiment.id }),
         });
-        loadExperiments();
+        setExperiments(await loadExperiments());
       }
     } catch {
       // Create failed
@@ -164,7 +177,7 @@ export default function PromptPlaygroundPage() {
         }),
       });
       setCommitMessage("");
-      loadVersionHistory();
+      setVersions(await loadVersionHistory());
     } catch {
       // Commit failed
     } finally {
@@ -179,7 +192,7 @@ export default function PromptPlaygroundPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "rollback", angleId: selectedAngle, version }),
       });
-      loadVersionHistory();
+      setVersions(await loadVersionHistory());
     } catch {
       // Rollback failed
     }

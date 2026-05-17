@@ -114,7 +114,9 @@ export function KnowledgeGraphExplorer({
   }, [initialFilters]);
 
   useEffect(() => {
-    loadGraph();
+    queueMicrotask(() => {
+      void loadGraph();
+    });
   }, [loadGraph]);
 
   const expandNode = useCallback(async (nodeId: string) => {

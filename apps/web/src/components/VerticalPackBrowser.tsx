@@ -103,7 +103,9 @@ export function VerticalPackBrowser() {
   }, [search, domainFilter]);
 
   useEffect(() => {
-    fetchPacks();
+    queueMicrotask(() => {
+      void fetchPacks();
+    });
   }, [fetchPacks]);
 
   const handleExpand = async (packId: string) => {

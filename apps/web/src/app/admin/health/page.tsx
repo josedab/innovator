@@ -58,7 +58,9 @@ export default function HealthDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchHealth();
+    queueMicrotask(() => {
+      void fetchHealth();
+    });
     const interval = setInterval(fetchHealth, 10000);
     return () => clearInterval(interval);
   }, [fetchHealth]);

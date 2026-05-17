@@ -40,7 +40,9 @@ export default function HostedPlayground() {
 
   // Check auth on mount
   useEffect(() => {
-    checkAuth();
+    queueMicrotask(() => {
+      void checkAuth();
+    });
   }, [checkAuth]);
 
   const handleLogin = () => {

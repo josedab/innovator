@@ -62,7 +62,9 @@ export default function PortfolioBubbleChart() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    queueMicrotask(() => {
+      void fetchData();
+    });
   }, [fetchData]);
 
   const handleBoardReport = useCallback(async () => {

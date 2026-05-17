@@ -57,11 +57,7 @@ function loadPreferences(): AccessibilityPreferences {
  * Provider that manages accessibility preferences and applies them to the document.
  */
 export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
-  const [preferences, setPreferences] = useState<AccessibilityPreferences>(DEFAULT_PREFERENCES);
-
-  useEffect(() => {
-    setPreferences(loadPreferences());
-  }, []);
+  const [preferences, setPreferences] = useState<AccessibilityPreferences>(loadPreferences);
 
   useEffect(() => {
     const root = document.documentElement;

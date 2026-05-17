@@ -16,13 +16,30 @@ import {
   writeFileSync,
   readdirSync,
   renameSync,
+  rmSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 
-const MARKETPLACE_DIR = join(homedir(), ".innovator", "marketplace");
+const IS_TEST_ENV =
+  process.env.NODE_ENV === "test" ||
+  process.env.VITEST === "true" ||
+  process.env.VITEST_WORKER_ID !== undefined ||
+  process.env.VITEST_POOL_ID !== undefined;
+const TEST_WORKER_ID = process.env.VITEST_WORKER_ID ?? process.env.VITEST_POOL_ID;
+
+if (IS_TEST_ENV && TEST_WORKER_ID && !process.env.INNOVATOR_MARKETPLACE_TEST_HOME) {
+  const baseHome = process.env.HOME ?? homedir();
+  const testHome = join(baseHome, `.innovator-vitest-home-${TEST_WORKER_ID}`);
+  process.env.HOME = testHome;
+  process.env.INNOVATOR_MARKETPLACE_TEST_HOME = testHome;
+}
+
+const MARKETPLACE_HOME = process.env.INNOVATOR_MARKETPLACE_TEST_HOME ?? homedir();
+const MARKETPLACE_DIR = join(MARKETPLACE_HOME, ".innovator", "marketplace");
 const REGISTRY_FILE = join(MARKETPLACE_DIR, "registry.json");
+const INSTALLED_TEMPLATES_DIR = join(MARKETPLACE_DIR, "installed-templates");
 
 function ensureDir(): void {
   if (!existsSync(MARKETPLACE_DIR)) mkdirSync(MARKETPLACE_DIR, { recursive: true });
@@ -414,6 +431,9 @@ export function clearMarketplace(): void {
   ensureDir();
   atomicWriteFileSync(REGISTRY_FILE, JSON.stringify({ plugins: [], installed: [], reviews: [] }));
   atomicWriteFileSync(TEMPLATE_REGISTRY_FILE, JSON.stringify({ templates: [], collections: [] }));
+  if (existsSync(INSTALLED_TEMPLATES_DIR)) {
+    rmSync(INSTALLED_TEMPLATES_DIR, { recursive: true, force: true });
+  }
 }
 
 // ---- Creator Tools ----
@@ -801,7 +821,7 @@ export function installTemplate(templateId: string): TemplatePackage {
   const target = deps[deps.length - 1];
   if (!target) throw new Error(`Template "${templateId}" not found`);
 
-  const installDir = join(MARKETPLACE_DIR, "installed-templates");
+  const installDir = INSTALLED_TEMPLATES_DIR;
   if (!existsSync(installDir)) mkdirSync(installDir, { recursive: true });
 
   for (const tpl of deps) {

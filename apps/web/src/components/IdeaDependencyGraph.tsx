@@ -75,37 +75,7 @@ export function IdeaDependencyGraph({ sessionId, onClose }: IdeaDependencyGraphP
   const WIDTH = 800;
   const HEIGHT = 500;
 
-  const loadGraph = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/idea-graph/${sessionId}`);
-      if (!res.ok) throw new Error((await res.text()) || "Failed to load graph");
-      const data: IdeaGraph = await res.json();
-
-      // Initialize positions in a circle
-      const cx = WIDTH / 2;
-      const cy = HEIGHT / 2;
-      const r = Math.min(WIDTH, HEIGHT) * 0.35;
-      data.nodes.forEach((node, i) => {
-        const angle = (2 * Math.PI * i) / data.nodes.length;
-        node.x = cx + r * Math.cos(angle);
-        node.y = cy + r * Math.sin(angle);
-        node.vx = 0;
-        node.vy = 0;
-      });
-
-      nodesRef.current = data.nodes;
-      setGraph(data);
-      runSimulation(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId]);
-
-  function runSimulation(data: IdeaGraph) {
+  const runSimulation = useCallback((data: IdeaGraph) => {
     const nodes = data.nodes;
     const edges = data.edges;
 
@@ -173,7 +143,37 @@ export function IdeaDependencyGraph({ sessionId, onClose }: IdeaDependencyGraphP
     }
 
     animRef.current = requestAnimationFrame(step);
-  }
+  }, []);
+
+  const loadGraph = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/idea-graph/${sessionId}`);
+      if (!res.ok) throw new Error((await res.text()) || "Failed to load graph");
+      const data: IdeaGraph = await res.json();
+
+      // Initialize positions in a circle
+      const cx = WIDTH / 2;
+      const cy = HEIGHT / 2;
+      const r = Math.min(WIDTH, HEIGHT) * 0.35;
+      data.nodes.forEach((node, i) => {
+        const angle = (2 * Math.PI * i) / data.nodes.length;
+        node.x = cx + r * Math.cos(angle);
+        node.y = cy + r * Math.sin(angle);
+        node.vx = 0;
+        node.vy = 0;
+      });
+
+      nodesRef.current = data.nodes;
+      setGraph(data);
+      runSimulation(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setLoading(false);
+    }
+  }, [runSimulation, sessionId]);
 
   useEffect(() => {
     return () => cancelAnimationFrame(animRef.current);

@@ -3,7 +3,7 @@
  */
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 
 type UserRole = "developer" | "pm" | "exec" | "researcher";
 
@@ -95,16 +95,6 @@ export function OnboardingWizard({ onComplete, onSkip }: OnboardingProps) {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [role, setRole] = useState<UserRole | null>(null);
   const [subject, setSubject] = useState("");
-  const [_hasSeenBefore, setHasSeenBefore] = useState(false);
-
-  useEffect(() => {
-    try {
-      const seen = localStorage.getItem("innovator-onboarded");
-      if (seen) setHasSeenBefore(true);
-    } catch {
-      // localStorage may not be available
-    }
-  }, []);
 
   const finishOnboarding = useCallback(
     (profile: UserProfile, session?: OnboardingStep) => {

@@ -266,7 +266,7 @@ export function MultiModalInput({
 
   // ---- Use as subject ----
 
-  const useAsSubject = useCallback(
+  const handleUseAsSubject = useCallback(
     (subject: string) => {
       onSubjectExtracted?.(subject);
     },
@@ -401,11 +401,14 @@ export function MultiModalInput({
                 {/* Preview / Icon */}
                 <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
                   {fileState.preview ? (
-                    <img
-                      src={fileState.preview}
-                      alt={fileState.file.name}
-                      className="w-full h-full object-cover"
-                    />
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={fileState.preview}
+                        alt={fileState.file.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </>
                   ) : (
                     <span className="text-2xl">{icon}</span>
                   )}
@@ -449,7 +452,7 @@ export function MultiModalInput({
                   {/* Use as subject button */}
                   {fileState.suggestedSubject && onSubjectExtracted && (
                     <button
-                      onClick={() => useAsSubject(fileState.suggestedSubject!)}
+                      onClick={() => handleUseAsSubject(fileState.suggestedSubject!)}
                       className="mt-2 px-3 py-1 text-xs font-medium rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 transition"
                     >
                       🎯 Use as Investigation Subject

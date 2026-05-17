@@ -198,15 +198,23 @@ export default function InnovationCoach({
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    Promise.all([fetchProfile(), fetchSkillTree(), fetchAchievements()]).finally(() =>
-      setLoading(false)
-    );
+    queueMicrotask(() => {
+      setLoading(true);
+      void Promise.all([fetchProfile(), fetchSkillTree(), fetchAchievements()]).finally(() =>
+        setLoading(false)
+      );
+    });
   }, [fetchProfile, fetchSkillTree, fetchAchievements]);
 
   useEffect(() => {
-    if (tab === "challenges") fetchChallenges();
-    if (tab === "leaderboard") fetchLeaderboard();
+    queueMicrotask(() => {
+      if (tab === "challenges") {
+        void fetchChallenges();
+      }
+      if (tab === "leaderboard") {
+        void fetchLeaderboard();
+      }
+    });
   }, [tab, fetchChallenges, fetchLeaderboard]);
 
   const TABS: { id: CoachTab; label: string; icon: string }[] = [

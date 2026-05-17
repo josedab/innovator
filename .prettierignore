@@ -7,3 +7,4 @@ website/build
 website/.docusaurus
 package-lock.json
 coverage
+apps/web/public/sw.js

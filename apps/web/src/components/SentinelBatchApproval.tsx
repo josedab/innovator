@@ -60,7 +60,9 @@ export default function SentinelBatchApproval() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    queueMicrotask(() => {
+      void fetchData();
+    });
   }, [fetchData]);
 
   const handleBatchDecision = useCallback(

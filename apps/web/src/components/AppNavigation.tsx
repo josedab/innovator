@@ -64,7 +64,11 @@ export function AppNavigation() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === "false") setCollapsed(false);
+      if (stored === "false") {
+        queueMicrotask(() => {
+          setCollapsed(false);
+        });
+      }
     } catch {
       // Ignore
     }
@@ -83,7 +87,9 @@ export function AppNavigation() {
   };
 
   useEffect(() => {
-    setMobileOpen(false);
+    queueMicrotask(() => {
+      setMobileOpen(false);
+    });
   }, [pathname]);
 
   const isActive = (href: string) => {

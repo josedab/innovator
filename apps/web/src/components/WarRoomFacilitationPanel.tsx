@@ -88,13 +88,15 @@ export default function WarRoomFacilitationPanel({ roomId }: Props) {
   }, [roomId]);
 
   useEffect(() => {
-    fetchReport();
-    fetchConsensus();
-    fetchTimer();
+    queueMicrotask(() => {
+      void fetchReport();
+      void fetchConsensus();
+      void fetchTimer();
+    });
     // Poll every 5 seconds
     const interval = setInterval(() => {
-      fetchReport();
-      fetchTimer();
+      void fetchReport();
+      void fetchTimer();
     }, 5000);
     return () => clearInterval(interval);
   }, [fetchReport, fetchConsensus, fetchTimer]);

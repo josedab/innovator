@@ -76,7 +76,9 @@ export default function AnalyticsDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    queueMicrotask(() => {
+      void fetchData();
+    });
   }, [fetchData]);
 
   const TABS: { id: ViewTab; label: string; icon: string }[] = [

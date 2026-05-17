@@ -35,7 +35,9 @@ export default function Home() {
   useEffect(() => {
     try {
       if (!localStorage.getItem("innovator-onboarded")) {
-        setShowOnboarding(true);
+        queueMicrotask(() => {
+          setShowOnboarding(true);
+        });
       }
     } catch {
       // localStorage unavailable
