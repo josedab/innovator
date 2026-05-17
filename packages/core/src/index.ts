@@ -118,13 +118,60 @@ export type { RetryOptions } from "./copilot/retry.js";
 /** Timeout utility — race a promise against a deadline. */
 export { withTimeout } from "./copilot/timeout.js";
 
+/** Bounded LRU cache with optional TTL and hit/miss statistics.
+ * @see {@link file://docs/API.md#caching} for usage patterns
+ */
+export { LRUCache, memoize } from "./cache/index.js";
+export type { LRUCacheOptions, CacheStats } from "./cache/index.js";
+
+/** Object pool for recycling frequently allocated objects to reduce GC pressure.
+ * @see {@link file://docs/API.md#object-pool} for usage patterns
+ */
+export { ObjectPool, withPooled, withPooledAsync } from "./pool/index.js";
+export type { ObjectPoolOptions, PoolStats } from "./pool/index.js";
+
+/** Result type for functional error handling without exceptions.
+ * @see {@link file://docs/API.md#result-type} for usage patterns
+ */
+export {
+  ok,
+  err,
+  tryFn,
+  tryAsync,
+  mapResult,
+  mapError,
+  flatMap,
+  unwrap,
+  unwrapOr,
+  unwrapOrElse,
+  collectResults,
+  partitionResults,
+} from "./result/index.js";
+export type { Result, Ok, Err } from "./result/index.js";
+
+/** Concurrency primitives — async semaphore, bounded task runner, adaptive scaling.
+ * @see {@link file://docs/API.md#concurrency} for usage patterns
+ */
+export { Semaphore, TaskRunner, runConcurrent } from "./concurrency/index.js";
+export type {
+  TaskResult,
+  BatchResult as ConcurrencyBatchResult,
+  TaskRunnerOptions,
+} from "./concurrency/index.js";
+
+/** String interning pool for memory-efficient storage of repeated strings.
+ * @see {@link file://docs/API.md#string-interning} for usage patterns
+ */
+export { StringPool, getStringPool, resetStringPool, intern } from "./intern/index.js";
+export type { StringPoolOptions, StringPoolStats } from "./intern/index.js";
+
 /** Plugin system — register, discover, and load angle/exporter/visualizer plugins.
  * @see {@link file://docs/API.md#plugin-system} for plugin development guide
  */
 export {
   /** Register a plugin instance in the global plugin registry. */
   registerPlugin,
-  /** Remove a plugin from the registry by ID. */
+  /** Remove a plugin from the registry by ID (async — calls onDestroy). */
   unregisterPlugin,
   /** Retrieve a registered plugin by ID. */
   getPlugin,
@@ -132,11 +179,23 @@ export {
   listPlugins,
   /** Filter registered plugins by type (angle, exporter, visualizer). */
   getPluginsByType,
-  /** Remove all plugins from the registry. */
+  /** Remove all plugins from the registry (async — calls onDestroy hooks). */
   clearPlugins,
+  /** Synchronous clear for backward compatibility (does NOT call onDestroy). */
+  clearPluginsSync,
   /** Dynamically load a plugin from a file path or npm package name. */
   loadPlugin,
+  /** Initialize a plugin's onInit lifecycle hook. */
+  initPlugin,
+  /** Initialize all pending plugins. */
+  initAllPlugins,
+  /** Get the initialization state of a plugin. */
+  getPluginState,
+  /** Run health checks on all plugins that implement healthCheck. */
+  checkPluginHealth,
 } from "./plugins/index.js";
+/** Plugin lifecycle types. */
+export type { PluginContext, PluginLifecycle, LifecyclePlugin } from "./plugins/index.js";
 
 /** Domain presets — pre-configured angle sets for common innovation domains.
  * @see {@link file://docs/API.md#presets} for preset customization

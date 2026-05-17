@@ -6,6 +6,7 @@
  * and event-driven automation chains with triggers and actions.
  */
 export { EventBus, getEventBus, resetEventBus } from "./emitter.js";
+export type { EventFilter, FilteredSubscriptionOptions } from "./emitter.js";
 export { WebhookManager } from "./webhooks.js";
 export { EventTypeSchema, PipelineEventSchema, WebhookConfigSchema } from "./types.js";
 export type {

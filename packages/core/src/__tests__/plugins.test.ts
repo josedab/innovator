@@ -6,9 +6,15 @@ import {
   listPlugins,
   getPluginsByType,
   clearPlugins,
+  clearPluginsSync,
   loadPlugin,
+  initPlugin,
+  initAllPlugins,
+  getPluginState,
+  checkPluginHealth,
 } from "../plugins/index.js";
 import type { AnglePlugin, ExporterPlugin, ExportData } from "../types.js";
+import type { LifecyclePlugin } from "../plugins/index.js";
 
 const sampleAnglePlugin: AnglePlugin = {
   id: "test-angle-plugin",
@@ -38,7 +44,7 @@ const sampleExporterPlugin: ExporterPlugin = {
 
 describe("plugin registry", () => {
   beforeEach(() => {
-    clearPlugins();
+    clearPluginsSync();
   });
 
   it("registers and retrieves a plugin", () => {
@@ -55,14 +61,14 @@ describe("plugin registry", () => {
     expect(() => registerPlugin({} as AnglePlugin)).toThrow("must have id, name, and type");
   });
 
-  it("unregisters a plugin", () => {
+  it("unregisters a plugin", async () => {
     registerPlugin(sampleAnglePlugin);
-    expect(unregisterPlugin("test-angle-plugin")).toBe(true);
+    expect(await unregisterPlugin("test-angle-plugin")).toBe(true);
     expect(getPlugin("test-angle-plugin")).toBeUndefined();
   });
 
-  it("returns false when unregistering non-existent plugin", () => {
-    expect(unregisterPlugin("nonexistent")).toBe(false);
+  it("returns false when unregistering non-existent plugin", async () => {
+    expect(await unregisterPlugin("nonexistent")).toBe(false);
   });
 
   it("lists all plugins", () => {
@@ -79,9 +85,9 @@ describe("plugin registry", () => {
     expect(getPluginsByType("visualizer")).toHaveLength(0);
   });
 
-  it("clears all plugins", () => {
+  it("clears all plugins", async () => {
     registerPlugin(sampleAnglePlugin);
-    clearPlugins();
+    await clearPlugins();
     expect(listPlugins()).toHaveLength(0);
   });
 
@@ -99,9 +105,9 @@ describe("plugin registry", () => {
       await expect(loadPlugin("node:path")).rejects.toThrow("Failed to load plugin");
     });
 
-    it("re-registers same ID after unregisterPlugin() succeeds", () => {
+    it("re-registers same ID after unregisterPlugin() succeeds", async () => {
       registerPlugin(sampleAnglePlugin);
-      unregisterPlugin(sampleAnglePlugin.id);
+      await unregisterPlugin(sampleAnglePlugin.id);
       expect(() => registerPlugin(sampleAnglePlugin)).not.toThrow();
       expect(getPlugin(sampleAnglePlugin.id)).toEqual(sampleAnglePlugin);
     });
@@ -181,6 +187,157 @@ describe("plugin registry", () => {
       await expect(loadPlugin("./nonexistent-but-already-registered.js")).rejects.toThrow(
         "Failed to load plugin"
       );
+    });
+  });
+
+  describe("lifecycle hooks", () => {
+    it("initializes a plugin with onInit", async () => {
+      let initialized = false;
+      const plugin: LifecyclePlugin = {
+        ...sampleAnglePlugin,
+        id: "lifecycle-init",
+        onInit: async (ctx) => {
+          expect(ctx.pluginId).toBe("lifecycle-init");
+          initialized = true;
+        },
+      };
+      registerPlugin(plugin);
+      expect(getPluginState("lifecycle-init")).toBe("pending");
+
+      await initPlugin("lifecycle-init");
+      expect(initialized).toBe(true);
+      expect(getPluginState("lifecycle-init")).toBe("initialized");
+    });
+
+    it("calls onDestroy when unregistering", async () => {
+      let destroyed = false;
+      const plugin: LifecyclePlugin = {
+        ...sampleAnglePlugin,
+        id: "lifecycle-destroy",
+        onDestroy: async () => {
+          destroyed = true;
+        },
+      };
+      registerPlugin(plugin);
+      await unregisterPlugin("lifecycle-destroy");
+      expect(destroyed).toBe(true);
+    });
+
+    it("rejects plugins with unmet dependencies", () => {
+      const plugin: LifecyclePlugin = {
+        ...sampleAnglePlugin,
+        id: "dependent-plugin",
+        dependencies: ["nonexistent-dep"],
+      };
+      expect(() => registerPlugin(plugin)).toThrow("unmet dependencies: nonexistent-dep");
+    });
+
+    it("allows plugins with satisfied dependencies", () => {
+      registerPlugin(sampleAnglePlugin);
+      const plugin: LifecyclePlugin = {
+        ...sampleExporterPlugin,
+        id: "dependent-exporter",
+        dependencies: ["test-angle-plugin"],
+      };
+      expect(() => registerPlugin(plugin)).not.toThrow();
+    });
+
+    it("initAllPlugins initializes all pending plugins", async () => {
+      let count = 0;
+      const mkPlugin = (id: string): LifecyclePlugin => ({
+        id,
+        name: id,
+        version: "1.0.0",
+        type: "angle",
+        angles: [],
+        onInit: async () => {
+          count++;
+        },
+      });
+      registerPlugin(mkPlugin("p1"));
+      registerPlugin(mkPlugin("p2"));
+
+      await initAllPlugins();
+      expect(count).toBe(2);
+      expect(getPluginState("p1")).toBe("initialized");
+      expect(getPluginState("p2")).toBe("initialized");
+    });
+
+    it("initPlugin is idempotent", async () => {
+      let count = 0;
+      const plugin: LifecyclePlugin = {
+        ...sampleAnglePlugin,
+        id: "idempotent-init",
+        onInit: async () => {
+          count++;
+        },
+      };
+      registerPlugin(plugin);
+      await initPlugin("idempotent-init");
+      await initPlugin("idempotent-init");
+      expect(count).toBe(1);
+    });
+
+    it("marks failed init state", async () => {
+      const plugin: LifecyclePlugin = {
+        ...sampleAnglePlugin,
+        id: "fail-init",
+        onInit: async () => {
+          throw new Error("boom");
+        },
+      };
+      registerPlugin(plugin);
+      await expect(initPlugin("fail-init")).rejects.toThrow("initialization failed");
+      expect(getPluginState("fail-init")).toBe("failed");
+    });
+
+    it("checkPluginHealth reports plugin health", async () => {
+      const plugin: LifecyclePlugin = {
+        ...sampleAnglePlugin,
+        id: "healthy-plugin",
+        healthCheck: async () => true,
+      };
+      registerPlugin(plugin);
+      await initPlugin("healthy-plugin");
+
+      const health = await checkPluginHealth();
+      expect(health["healthy-plugin"]).toBe(true);
+    });
+
+    it("checkPluginHealth catches failing health checks", async () => {
+      const plugin: LifecyclePlugin = {
+        ...sampleAnglePlugin,
+        id: "unhealthy-plugin",
+        healthCheck: async () => {
+          throw new Error("sick");
+        },
+      };
+      registerPlugin(plugin);
+
+      const health = await checkPluginHealth();
+      expect(health["unhealthy-plugin"]).toBe(false);
+    });
+
+    it("onInit receives PluginContext with access to other plugins", async () => {
+      registerPlugin(sampleAnglePlugin);
+
+      let receivedCtx: unknown = null;
+      const plugin: LifecyclePlugin = {
+        ...sampleExporterPlugin,
+        id: "ctx-plugin",
+        onInit: async (ctx) => {
+          receivedCtx = ctx;
+        },
+      };
+      registerPlugin(plugin);
+      await initPlugin("ctx-plugin");
+
+      const ctx = receivedCtx as {
+        getPlugin: (id: string) => unknown;
+        listPlugins: () => unknown[];
+      };
+      expect(ctx.getPlugin("test-angle-plugin")).toBeDefined();
+      expect(ctx.listPlugins().length).toBeGreaterThanOrEqual(2);
     });
   });
 });

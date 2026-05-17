@@ -1,0 +1,208 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { LRUCache, memoize } from "../cache/index.js";
+
+describe("LRUCache", () => {
+  it("stores and retrieves values", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 10 });
+    cache.set("a", 1);
+    cache.set("b", 2);
+    expect(cache.get("a")).toBe(1);
+    expect(cache.get("b")).toBe(2);
+  });
+
+  it("returns undefined for missing keys", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 10 });
+    expect(cache.get("missing")).toBeUndefined();
+  });
+
+  it("evicts least recently used entries when at capacity", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 3 });
+    cache.set("a", 1);
+    cache.set("b", 2);
+    cache.set("c", 3);
+    cache.set("d", 4); // should evict "a"
+
+    expect(cache.get("a")).toBeUndefined();
+    expect(cache.get("b")).toBe(2);
+    expect(cache.get("c")).toBe(3);
+    expect(cache.get("d")).toBe(4);
+    expect(cache.size).toBe(3);
+  });
+
+  it("promotes accessed entries to most-recently-used", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 3 });
+    cache.set("a", 1);
+    cache.set("b", 2);
+    cache.set("c", 3);
+
+    // Access "a" to promote it
+    cache.get("a");
+
+    // Insert "d" — should evict "b" (now the LRU), not "a"
+    cache.set("d", 4);
+
+    expect(cache.get("a")).toBe(1);
+    expect(cache.get("b")).toBeUndefined();
+    expect(cache.get("c")).toBe(3);
+    expect(cache.get("d")).toBe(4);
+  });
+
+  it("supports TTL-based expiration", () => {
+    vi.useFakeTimers();
+    try {
+      const cache = new LRUCache<string, number>({ maxSize: 10, ttlMs: 1000 });
+      cache.set("a", 1);
+
+      expect(cache.get("a")).toBe(1);
+
+      vi.advanceTimersByTime(1001);
+
+      expect(cache.get("a")).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("has() returns false for expired entries", () => {
+    vi.useFakeTimers();
+    try {
+      const cache = new LRUCache<string, number>({ maxSize: 10, ttlMs: 500 });
+      cache.set("a", 1);
+      expect(cache.has("a")).toBe(true);
+
+      vi.advanceTimersByTime(501);
+      expect(cache.has("a")).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("delete() removes entries", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 10 });
+    cache.set("a", 1);
+    expect(cache.delete("a")).toBe(true);
+    expect(cache.get("a")).toBeUndefined();
+    expect(cache.delete("nonexistent")).toBe(false);
+  });
+
+  it("clear() removes all entries and resets stats", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 10 });
+    cache.set("a", 1);
+    cache.set("b", 2);
+    cache.get("a");
+    cache.get("missing");
+
+    cache.clear();
+
+    expect(cache.size).toBe(0);
+    expect(cache.stats().hits).toBe(0);
+    expect(cache.stats().misses).toBe(0);
+  });
+
+  it("tracks hit/miss statistics", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 10 });
+    cache.set("a", 1);
+    cache.get("a"); // hit
+    cache.get("a"); // hit
+    cache.get("b"); // miss
+
+    const stats = cache.stats();
+    expect(stats.hits).toBe(2);
+    expect(stats.misses).toBe(1);
+    expect(stats.hitRate).toBeCloseTo(2 / 3);
+    expect(stats.size).toBe(1);
+    expect(stats.maxSize).toBe(10);
+  });
+
+  it("stats() returns 0 hitRate when no lookups", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 10 });
+    expect(cache.stats().hitRate).toBe(0);
+  });
+
+  it("prune() removes expired entries", () => {
+    vi.useFakeTimers();
+    try {
+      const cache = new LRUCache<string, number>({ maxSize: 10, ttlMs: 1000 });
+      cache.set("a", 1);
+      cache.set("b", 2);
+
+      vi.advanceTimersByTime(500);
+      cache.set("c", 3);
+
+      vi.advanceTimersByTime(600);
+      // "a" and "b" are expired (created 1100ms ago), "c" is not (created 600ms ago)
+
+      const pruned = cache.prune();
+      expect(pruned).toBe(2);
+      expect(cache.size).toBe(1);
+      expect(cache.get("c")).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("prune() does nothing without TTL", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 10 });
+    cache.set("a", 1);
+    expect(cache.prune()).toBe(0);
+  });
+
+  it("throws on invalid maxSize", () => {
+    expect(() => new LRUCache({ maxSize: 0 })).toThrow("maxSize must be a finite number >= 1");
+    expect(() => new LRUCache({ maxSize: -1 })).toThrow("maxSize must be a finite number >= 1");
+    expect(() => new LRUCache({ maxSize: NaN })).toThrow("maxSize must be a finite number >= 1");
+  });
+
+  it("overwrites existing entries without growing size", () => {
+    const cache = new LRUCache<string, number>({ maxSize: 3 });
+    cache.set("a", 1);
+    cache.set("b", 2);
+    cache.set("a", 10); // overwrite
+    expect(cache.size).toBe(2);
+    expect(cache.get("a")).toBe(10);
+  });
+});
+
+describe("memoize", () => {
+  it("caches function results", () => {
+    const fn = vi.fn((x: number) => x * 2);
+    const memoized = memoize(fn, { maxSize: 10 });
+
+    expect(memoized(5)).toBe(10);
+    expect(memoized(5)).toBe(10);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses custom key function", () => {
+    const fn = vi.fn((a: number, b: number) => a + b);
+    const memoized = memoize(fn, { maxSize: 10 }, (a, b) => `${a}+${b}`);
+
+    expect(memoized(1, 2)).toBe(3);
+    expect(memoized(1, 2)).toBe(3);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("exposes cache for inspection", () => {
+    const fn = (x: number) => x * 2;
+    const memoized = memoize(fn, { maxSize: 5 });
+
+    memoized(1);
+    memoized(2);
+
+    expect(memoized.cache.size).toBe(2);
+    expect(memoized.cache.stats().hits).toBe(0);
+  });
+
+  it("evicts old entries based on maxSize", () => {
+    const fn = vi.fn((x: number) => x * 2);
+    const memoized = memoize(fn, { maxSize: 2 });
+
+    memoized(1);
+    memoized(2);
+    memoized(3); // evicts result for 1
+
+    fn.mockClear();
+    memoized(1); // should re-compute since evicted
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+});
