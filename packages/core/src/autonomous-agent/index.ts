@@ -83,3 +83,27 @@ export {
   CostEstimateSchema,
 } from "./convergence.js";
 export type { ConvergenceMetrics, ConvergenceConfig, CostEstimate } from "./convergence.js";
+
+/** Investigation planning — rule-based decomposition of objectives into executable steps. */
+export {
+  decomposeObjective,
+  selectAnglesForStep,
+  createInvestigationPlan,
+  getNextStep,
+  completeStep,
+  planToMarkdown,
+  InvestigationStepSchema,
+  InvestigationPlanSchema,
+} from "./planning.js";
+export type { InvestigationStep, InvestigationPlan } from "./planning.js";
+
+/** Strategy report generation — synthesize autonomous runs into recommendations. */
+export {
+  generateStrategyDocument,
+  assessConfidence,
+  strategyDocToMarkdown,
+  strategyDocToExecutiveBrief,
+  ConfidenceAssessmentSchema,
+  StrategyDocumentSchema,
+} from "./strategy-report.js";
+export type { ConfidenceAssessment, StrategyDocument } from "./strategy-report.js";
