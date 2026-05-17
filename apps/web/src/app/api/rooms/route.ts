@@ -272,7 +272,9 @@ export async function POST(request: Request) {
           data.value
         );
 
-        return new Response(JSON.stringify({ success }), { headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ data: { success } }), {
+          headers: API_RESPONSE_HEADERS,
+        });
       }
 
       case "comment": {
