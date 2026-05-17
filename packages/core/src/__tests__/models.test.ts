@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import {
   getModelRegistry,
   registerModel,
   getModelCapability,
   getSmartRouting,
   clearCustomModels,
+  getAvailableModels,
 } from "../models/index.js";
 import type { ModelCapability } from "../types.js";
 
@@ -77,6 +78,64 @@ describe("models", () => {
       const routing = getSmartRouting("quality");
       // GPT-5 is the only premium model
       expect(routing.investigation).toBe("gpt-5");
+    });
+  });
+
+  describe("getAvailableModels", () => {
+    it("returns built-in models sorted by ID", () => {
+      const models = getAvailableModels();
+      expect(models.length).toBeGreaterThanOrEqual(6);
+      // Verify sorted
+      for (let i = 1; i < models.length; i++) {
+        expect(models[i].id.localeCompare(models[i - 1].id)).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it("includes built-in models with capabilities flag", () => {
+      const models = getAvailableModels();
+      const gpt5 = models.find((m) => m.id === "gpt-5");
+      expect(gpt5).toBeDefined();
+      expect(gpt5!.displayName).toBe("GPT-5");
+      expect(gpt5!.hasCapabilities).toBe(true);
+      expect(gpt5!.source).toBe("built-in");
+    });
+
+    it("includes custom models", () => {
+      registerModel({
+        modelId: "my-custom",
+        displayName: "My Custom Model",
+        strengths: ["generation"],
+        costTier: "low",
+        speedTier: "fast",
+        qualityTier: "standard",
+      });
+      const models = getAvailableModels();
+      const custom = models.find((m) => m.id === "my-custom");
+      expect(custom).toBeDefined();
+      expect(custom!.source).toBe("custom");
+      expect(custom!.hasCapabilities).toBe(true);
+    });
+
+    it("includes env models from INNOVATOR_EXTRA_MODELS", () => {
+      vi.stubEnv("INNOVATOR_EXTRA_MODELS", "env-model-1,env-model-2");
+      const models = getAvailableModels();
+      const env1 = models.find((m) => m.id === "env-model-1");
+      const env2 = models.find((m) => m.id === "env-model-2");
+      expect(env1).toBeDefined();
+      expect(env1!.source).toBe("env");
+      expect(env1!.hasCapabilities).toBe(false);
+      expect(env2).toBeDefined();
+      vi.unstubAllEnvs();
+    });
+
+    it("deduplicates models across sources", () => {
+      vi.stubEnv("INNOVATOR_EXTRA_MODELS", "gpt-5");
+      const models = getAvailableModels();
+      const gpt5s = models.filter((m) => m.id === "gpt-5");
+      // Built-in takes priority, env duplicate is excluded
+      expect(gpt5s).toHaveLength(1);
+      expect(gpt5s[0].source).toBe("built-in");
+      vi.unstubAllEnvs();
     });
   });
 });

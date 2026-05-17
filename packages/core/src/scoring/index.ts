@@ -623,3 +623,109 @@ Respond with valid JSON only:
 export function clearCalibration(): void {
   calibrationFeedback.clear();
 }
+
+// ---- Scoring Comparison ----
+
+/** Delta for a single idea between two scoring sets. */
+export interface IdeaScoreDelta {
+  /** Title of the compared idea. */
+  ideaTitle: string;
+  /** Feasibility change (positive = improved). */
+  feasibilityDelta: number;
+  /** Impact change (positive = improved). */
+  impactDelta: number;
+  /** Novelty change (positive = improved). */
+  noveltyDelta: number;
+  /** Composite priority score change (positive = improved). */
+  priorityDelta: number;
+  /** Quadrant in the baseline set. */
+  baselineQuadrant: Quadrant;
+  /** Quadrant in the comparison set. */
+  comparisonQuadrant: Quadrant;
+  /** Whether the idea moved to a different quadrant. */
+  quadrantChanged: boolean;
+}
+
+/** Result of comparing two scoring sets. */
+export interface ScoringComparison {
+  /** Per-idea deltas for ideas present in both sets. */
+  deltas: IdeaScoreDelta[];
+  /** Ideas only in the baseline set. */
+  onlyInBaseline: string[];
+  /** Ideas only in the comparison set. */
+  onlyInComparison: string[];
+  /** Average feasibility change across matched ideas. */
+  avgFeasibilityDelta: number;
+  /** Average impact change across matched ideas. */
+  avgImpactDelta: number;
+  /** Average novelty change across matched ideas. */
+  avgNoveltyDelta: number;
+  /** Number of ideas that changed quadrant. */
+  quadrantChanges: number;
+}
+
+/**
+ * Compare two sets of scored ideas to identify changes in scores and quadrant shifts.
+ * Useful for before/after analysis when re-scoring with different models or after refinement.
+ *
+ * Ideas are matched by title (case-insensitive). Ideas present in only one set
+ * are reported separately.
+ *
+ * @param baseline - The original set of idea scores
+ * @param comparison - The new set of idea scores to compare against
+ * @returns A {@link ScoringComparison} with per-idea deltas and summary statistics
+ */
+export function compareScoringSets(
+  baseline: IdeaScore[],
+  comparison: IdeaScore[]
+): ScoringComparison {
+  const baseMap = new Map(baseline.map((s) => [s.ideaTitle.toLowerCase(), s]));
+  const compMap = new Map(comparison.map((s) => [s.ideaTitle.toLowerCase(), s]));
+
+  const deltas: IdeaScoreDelta[] = [];
+  const onlyInBaseline: string[] = [];
+  const onlyInComparison: string[] = [];
+
+  // Find matched ideas
+  for (const [key, baseScore] of baseMap) {
+    const compScore = compMap.get(key);
+    if (!compScore) {
+      onlyInBaseline.push(baseScore.ideaTitle);
+      continue;
+    }
+
+    const baselineQuadrant = getQuadrant(baseScore);
+    const comparisonQuadrant = getQuadrant(compScore);
+
+    deltas.push({
+      ideaTitle: baseScore.ideaTitle,
+      feasibilityDelta: compScore.feasibility - baseScore.feasibility,
+      impactDelta: compScore.impact - baseScore.impact,
+      noveltyDelta: compScore.novelty - baseScore.novelty,
+      priorityDelta: computePriorityScore(compScore) - computePriorityScore(baseScore),
+      baselineQuadrant,
+      comparisonQuadrant,
+      quadrantChanged: baselineQuadrant !== comparisonQuadrant,
+    });
+  }
+
+  // Find ideas only in comparison
+  for (const [key, compScore] of compMap) {
+    if (!baseMap.has(key)) {
+      onlyInComparison.push(compScore.ideaTitle);
+    }
+  }
+
+  const n = deltas.length;
+  const round2 = (v: number) => Math.round(v * 100) / 100;
+
+  return {
+    deltas,
+    onlyInBaseline,
+    onlyInComparison,
+    avgFeasibilityDelta: n > 0 ? round2(deltas.reduce((s, d) => s + d.feasibilityDelta, 0) / n) : 0,
+    avgImpactDelta: n > 0 ? round2(deltas.reduce((s, d) => s + d.impactDelta, 0) / n) : 0,
+    avgNoveltyDelta: n > 0 ? round2(deltas.reduce((s, d) => s + d.noveltyDelta, 0) / n) : 0,
+    quadrantChanges: deltas.filter((d) => d.quadrantChanged).length,
+  };
+}

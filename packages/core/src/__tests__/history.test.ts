@@ -23,6 +23,7 @@ const {
   exportSessionAsMarkdown,
   exportSessionAsCsv,
   exportSessionAsJson,
+  exportSessionAsHtml,
   duplicateSession,
   clearHistory,
 } = await import("../history/index.js");
@@ -432,6 +433,82 @@ describe("history", () => {
     expect(parsed.tags).toEqual(["test"]);
     expect(parsed.angleResults).toHaveLength(1);
     expect(parsed.id).toBe(id);
+  });
+
+  // ---- Export as HTML ----
+
+  it("exports a session as HTML with all sections", () => {
+    const id = saveSession({
+      subject: "HTML Export Test",
+      investigation: {
+        summary: "Test summary",
+        keyAspects: [{ title: "Aspect 1", description: "Desc 1" }],
+        currentState: "Current state",
+        challenges: ["Challenge 1"],
+        opportunities: ["Opportunity 1"],
+      },
+      angleResults: [sampleAngleResult],
+      synthesis: {
+        topIdeas: [
+          {
+            title: "Top Idea",
+            description: "Top description",
+            sourceAngle: "SCAMPER",
+            potentialImpact: "High",
+            feasibility: "high",
+          },
+        ],
+        themes: ["Theme 1", "Theme 2"],
+        recommendation: "Strategic recommendation",
+      },
+      tags: ["html", "test"],
+      notes: "Test notes",
+    });
+    const session = getSession(id)!;
+    const html = exportSessionAsHtml(session);
+
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("HTML Export Test");
+    expect(html).toContain("Test summary");
+    expect(html).toContain("Aspect 1");
+    expect(html).toContain("Challenge 1");
+    expect(html).toContain("Opportunity 1");
+    expect(html).toContain("Test Idea");
+    expect(html).toContain("Top Idea");
+    expect(html).toContain("Theme 1");
+    expect(html).toContain("Strategic recommendation");
+    expect(html).toContain("Test notes");
+    expect(html).toContain("html");
+    expect(html).toContain("</html>");
+  });
+
+  it("exports HTML without investigation or synthesis", () => {
+    const id = saveSession({
+      subject: "Minimal Session",
+      angleResults: [],
+      tags: [],
+    });
+    const session = getSession(id)!;
+    const html = exportSessionAsHtml(session);
+
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("Minimal Session");
+    expect(html).not.toContain("Investigation");
+    expect(html).not.toContain("Synthesis");
+  });
+
+  it("HTML-escapes special characters to prevent XSS", () => {
+    const id = saveSession({
+      subject: '<script>alert("xss")</script>',
+      angleResults: [],
+      tags: ["<b>bold</b>"],
+    });
+    const session = getSession(id)!;
+    const html = exportSessionAsHtml(session);
+
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("&lt;b&gt;bold&lt;/b&gt;");
   });
 
   // ---- Duplicate session ----

@@ -319,4 +319,44 @@ describe("runAutoPipeline", () => {
     );
     expect(mockGenerateText).toHaveBeenCalledWith(expect.objectContaining({ model: "model-c" }));
   });
+
+  // ---- Per-angle duration tracking ----
+
+  it("tracks per-angle durations in durationMs.perAngle", async () => {
+    const result = await runAutoPipeline("test", () => {}, undefined, ["scamper", "inversion"]);
+
+    expect(result.stage).toBe("complete");
+    expect(result.durationMs).toBeDefined();
+    expect(result.durationMs!.perAngle).toBeDefined();
+    expect(result.durationMs!.perAngle!["scamper"]).toBeGreaterThanOrEqual(0);
+    expect(result.durationMs!.perAngle!["inversion"]).toBeGreaterThanOrEqual(0);
+  });
+
+  it("reports per-angle durations incrementally via progress callbacks", async () => {
+    let lastPerAngle: Record<string, number> | undefined;
+    const onProgress = (p: PipelineProgress) => {
+      if (p.durationMs?.perAngle) {
+        lastPerAngle = { ...p.durationMs.perAngle };
+      }
+    };
+
+    await runAutoPipeline("test", onProgress, undefined, ["scamper"]);
+
+    expect(lastPerAngle).toBeDefined();
+    expect(lastPerAngle!["scamper"]).toBeGreaterThanOrEqual(0);
+  });
+
+  it("includes per-angle durations even when some angles fail", async () => {
+    let callCount = 0;
+    mockGenerateForAngle.mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) return MOCK_ANGLE_RESULT;
+      throw new Error("angle failed");
+    });
+
+    const result = await runAutoPipeline("test", () => {}, undefined, ["scamper", "inversion"]);
+
+    // At least the successful angle should have a duration
+    expect(result.durationMs?.perAngle?.["scamper"]).toBeGreaterThanOrEqual(0);
+  });
 });

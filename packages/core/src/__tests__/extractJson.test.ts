@@ -142,4 +142,39 @@ Based on the investigation, I've identified the following:
 Let me know if you need more details.`;
     expect(JSON.parse(extractJson(input))).toEqual({ summary: "test", keyAspects: [] });
   });
+
+  // --- Trailing comma handling ---
+
+  it("strips trailing commas in objects", () => {
+    const input = '{"a": 1, "b": 2,}';
+    expect(JSON.parse(extractJson(input))).toEqual({ a: 1, b: 2 });
+  });
+
+  it("strips trailing commas in arrays", () => {
+    const input = "[1, 2, 3,]";
+    expect(JSON.parse(extractJson(input))).toEqual([1, 2, 3]);
+  });
+
+  it("strips trailing commas in nested structures", () => {
+    const input = '{"items": [{"id": 1,}, {"id": 2,},], "count": 2,}';
+    expect(JSON.parse(extractJson(input))).toEqual({
+      items: [{ id: 1 }, { id: 2 }],
+      count: 2,
+    });
+  });
+
+  it("strips trailing commas in fenced code blocks", () => {
+    const input = '```json\n{"key": "value", "list": [1, 2,],}\n```';
+    expect(JSON.parse(extractJson(input))).toEqual({ key: "value", list: [1, 2] });
+  });
+
+  it("strips trailing commas with whitespace before closing bracket", () => {
+    const input = '{"a": 1,\n  "b": 2,\n}';
+    expect(JSON.parse(extractJson(input))).toEqual({ a: 1, b: 2 });
+  });
+
+  it("preserves commas inside string values", () => {
+    const input = '{"text": "hello, world,"}';
+    expect(JSON.parse(extractJson(input))).toEqual({ text: "hello, world," });
+  });
 });

@@ -85,6 +85,7 @@ export type {
   ComparativeSynthesis,
   ParallelInvestigationResult,
   CompetitiveMap,
+  PipelineOptions,
 } from "./innovation/index.js";
 
 /** Prompt builders for investigation and synthesis LLM calls.
@@ -245,6 +246,8 @@ export {
   exportSessionAsMarkdown,
   /** Export a session as CSV for spreadsheet import. */
   exportSessionAsCsv,
+  /** Export a session as a self-contained HTML document. */
+  exportSessionAsHtml,
   /** Duplicate a session with a fresh ID and timestamps. */
   duplicateSession,
   /** Delete all sessions from history. */
@@ -290,6 +293,8 @@ export {
   registerModel,
   /** Query a model's capabilities (context window, streaming, etc.). */
   getModelCapability,
+  /** Get a unified list of all available models from all sources. */
+  getAvailableModels,
   /** Get the recommended model for a given task based on smart routing rules. */
   getSmartRouting,
   /** Compare two or more models by capability matrix. */
@@ -297,6 +302,7 @@ export {
   /** Remove all user-registered custom models. */
   clearCustomModels,
 } from "./models/index.js";
+export type { AvailableModel } from "./models/index.js";
 
 /** Visualization — build idea relationship graphs with nodes and edges. */
 export {
@@ -433,6 +439,8 @@ export {
   MultiDimensionalScoreSchema,
   /** Ordered list of time-to-implement categories for sorting. */
   TIME_TO_IMPLEMENT_ORDER,
+  /** Compare two scoring sets to identify deltas and quadrant shifts. */
+  compareScoringSets,
 } from "./scoring/index.js";
 export type {
   IdeaScore,
@@ -443,6 +451,8 @@ export type {
   PriorityWeights,
   Quadrant as ScoringQuadrant,
   IdeaSummaryStats,
+  IdeaScoreDelta,
+  ScoringComparison,
 } from "./scoring/index.js";
 
 /** Predictive Innovation Scoring — ML-powered success prediction and prescriptive actions. */

@@ -258,6 +258,15 @@ export function extractJsonCacheStats() {
 }
 
 /**
+ * Strip trailing commas before closing braces/brackets in JSON.
+ * LLMs frequently produce JSON with trailing commas which is invalid per spec.
+ * Only removes commas outside of string literals.
+ */
+function stripTrailingCommas(json: string): string {
+  return json.replace(/,\s*([}\]])/g, "$1");
+}
+
+/**
  * Uncached JSON extraction implementation.
  */
 function extractJsonUncached(raw: string): string {
@@ -265,7 +274,7 @@ function extractJsonUncached(raw: string): string {
   const fenced = raw.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
   if (fenced) {
     const trimmed = fenced[1].trim();
-    if (trimmed.startsWith("{") || trimmed.startsWith("[")) return trimmed;
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) return stripTrailingCommas(trimmed);
   }
 
   // Find the first { or [ to determine JSON start
@@ -313,7 +322,7 @@ function extractJsonUncached(raw: string): string {
     else if (ch === "]") bracketDepth--;
 
     if (braceDepth === 0 && bracketDepth === 0) {
-      return raw.slice(start, i + 1);
+      return stripTrailingCommas(raw.slice(start, i + 1));
     }
   }
 

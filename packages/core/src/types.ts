@@ -170,6 +170,8 @@ export interface PipelineProgress {
     synthesis?: number;
     /** Total pipeline elapsed time. */
     total?: number;
+    /** Per-angle generation durations keyed by angle ID. */
+    perAngle?: Record<string, number>;
   };
 }
 

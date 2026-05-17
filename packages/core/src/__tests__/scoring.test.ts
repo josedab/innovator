@@ -36,6 +36,7 @@ import {
   TIME_TO_IMPLEMENT_ORDER,
   recordCalibrationFeedback,
   clearCalibration,
+  compareScoringSets,
 } from "../scoring/index.js";
 import type { IdeaScore, Quadrant } from "../scoring/index.js";
 import type { AngleResult, Investigation } from "../types.js";
@@ -533,6 +534,116 @@ describe("scoring", () => {
       expect(stats.quadrantCounts["quick-wins"]).toBe(1);
       expect(stats.quadrantCounts["strategic-bets"]).toBe(1);
       expect(stats.topPriorityTitle).toBeDefined();
+    });
+  });
+
+  describe("compareScoringSets", () => {
+    const baseScore: IdeaScore = {
+      ideaTitle: "Idea A",
+      angleId: "scamper",
+      feasibility: 7,
+      impact: 8,
+      novelty: 6,
+      timeToImplement: "months",
+      confidence: 0.8,
+      rationale: "Good idea",
+    };
+
+    const improvedScore: IdeaScore = {
+      ...baseScore,
+      feasibility: 9,
+      impact: 9,
+      novelty: 8,
+    };
+
+    it("computes deltas for matched ideas", () => {
+      const result = compareScoringSets([baseScore], [improvedScore]);
+
+      expect(result.deltas).toHaveLength(1);
+      expect(result.deltas[0].feasibilityDelta).toBe(2);
+      expect(result.deltas[0].impactDelta).toBe(1);
+      expect(result.deltas[0].noveltyDelta).toBe(2);
+      expect(result.deltas[0].priorityDelta).toBeGreaterThan(0);
+    });
+
+    it("identifies ideas only in baseline", () => {
+      const result = compareScoringSets(
+        [baseScore, { ...baseScore, ideaTitle: "Idea B" }],
+        [improvedScore]
+      );
+
+      expect(result.onlyInBaseline).toEqual(["Idea B"]);
+    });
+
+    it("identifies ideas only in comparison", () => {
+      const result = compareScoringSets(
+        [baseScore],
+        [improvedScore, { ...improvedScore, ideaTitle: "New Idea" }]
+      );
+
+      expect(result.onlyInComparison).toEqual(["New Idea"]);
+    });
+
+    it("detects quadrant changes", () => {
+      const lowFeasibility: IdeaScore = {
+        ...baseScore,
+        feasibility: 3,
+        impact: 9,
+      };
+      const highFeasibility: IdeaScore = {
+        ...baseScore,
+        feasibility: 8,
+        impact: 9,
+      };
+
+      const result = compareScoringSets([lowFeasibility], [highFeasibility]);
+
+      expect(result.deltas[0].baselineQuadrant).toBe("strategic-bets");
+      expect(result.deltas[0].comparisonQuadrant).toBe("quick-wins");
+      expect(result.deltas[0].quadrantChanged).toBe(true);
+      expect(result.quadrantChanges).toBe(1);
+    });
+
+    it("handles empty inputs", () => {
+      const result = compareScoringSets([], []);
+
+      expect(result.deltas).toHaveLength(0);
+      expect(result.onlyInBaseline).toHaveLength(0);
+      expect(result.onlyInComparison).toHaveLength(0);
+      expect(result.avgFeasibilityDelta).toBe(0);
+    });
+
+    it("matches ideas case-insensitively", () => {
+      const upper: IdeaScore = { ...baseScore, ideaTitle: "IDEA A" };
+      const result = compareScoringSets([baseScore], [upper]);
+
+      expect(result.deltas).toHaveLength(1);
+      expect(result.onlyInBaseline).toHaveLength(0);
+      expect(result.onlyInComparison).toHaveLength(0);
+    });
+
+    it("computes correct average deltas", () => {
+      const base2: IdeaScore = {
+        ...baseScore,
+        ideaTitle: "Idea B",
+        feasibility: 5,
+        impact: 5,
+        novelty: 5,
+      };
+      const comp2: IdeaScore = {
+        ...baseScore,
+        ideaTitle: "Idea B",
+        feasibility: 7,
+        impact: 7,
+        novelty: 7,
+      };
+
+      const result = compareScoringSets([baseScore, base2], [improvedScore, comp2]);
+
+      expect(result.deltas).toHaveLength(2);
+      expect(result.avgFeasibilityDelta).toBe(2); // (2 + 2) / 2
+      expect(result.avgImpactDelta).toBe(1.5); // (1 + 2) / 2
+      expect(result.avgNoveltyDelta).toBe(2); // (2 + 2) / 2
     });
   });
 });

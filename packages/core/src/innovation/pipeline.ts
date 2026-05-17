@@ -1,5 +1,6 @@
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import type { RetryOptions } from "../copilot/retry.js";
 import { AbortError, LlmParseError } from "../errors.js";
 import { buildSynthesisPrompt } from "../prompts/investigation.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
@@ -17,6 +18,25 @@ import {
 } from "../types.js";
 import { investigate } from "./investigate.js";
 import { generateForAngle } from "./generate.js";
+
+/** Configuration options for the auto-mode pipeline. */
+export interface PipelineOptions {
+  /** LLM model override for all stages (unless modelRouting overrides individual stages). */
+  model?: string;
+  /** Subset of angle IDs to process (defaults to all 8 built-in angles). */
+  angles?: AngleId[];
+  /** AbortSignal to cancel the pipeline early. */
+  signal?: AbortSignal;
+  /** Per-stage model overrides (investigation, generation, synthesis). */
+  modelRouting?: ModelRouting;
+  /** Retry configuration for LLM calls within the pipeline. */
+  retryOptions?: Pick<
+    RetryOptions,
+    "maxAttempts" | "initialDelayMs" | "backoffMultiplier" | "maxDelayMs"
+  >;
+  /** Maximum concurrent angle generation tasks (defaults to MAX_CONCURRENCY = 2). */
+  concurrency?: number;
+}
 
 /** Replace internal error details with a generic user-facing message to avoid leaking internals. */
 function sanitizeErrorMessage(stage: string): string {
@@ -38,6 +58,7 @@ function isAbortError(err: unknown): boolean {
  * @param angles - Optional subset of angle IDs to use (defaults to all 8 angles)
  * @param signal - Optional AbortSignal to cancel the pipeline early
  * @param modelRouting - Optional per-stage model overrides (investigation, generation, synthesis)
+ * @param pipelineOptions - Optional {@link PipelineOptions} for retry and concurrency configuration
  * @returns The final {@link PipelineProgress} including all angle results and synthesis
  *
  * @example
@@ -55,9 +76,15 @@ export async function runAutoPipeline(
   model?: string,
   angles?: AngleId[],
   signal?: AbortSignal,
-  modelRouting?: ModelRouting
+  modelRouting?: ModelRouting,
+  pipelineOptions?: PipelineOptions
 ): Promise<PipelineProgress> {
-  const selectedAngles = angles ?? [...ANGLE_IDS];
+  const selectedAngles = pipelineOptions?.angles ?? angles ?? [...ANGLE_IDS];
+  const effectiveSignal = pipelineOptions?.signal ?? signal;
+  const effectiveModel = pipelineOptions?.model ?? model;
+  const effectiveRouting = pipelineOptions?.modelRouting ?? modelRouting;
+  const effectiveConcurrency = pipelineOptions?.concurrency ?? MAX_CONCURRENCY;
+  const retryOpts = pipelineOptions?.retryOptions;
   let terminated = false;
   const pipelineStart = Date.now();
   const bus = getEventBus();
@@ -83,7 +110,7 @@ export async function runAutoPipeline(
   bus.emit("pipeline.started", { subject, angles: selectedAngles }).catch(() => {});
 
   // Step 1: Investigate
-  if (signal?.aborted) {
+  if (effectiveSignal?.aborted) {
     progress.stage = "error";
     progress.stoppedEarly = true;
     progress.error = "Pipeline was aborted before investigation";
@@ -96,7 +123,11 @@ export async function runAutoPipeline(
   const investigationStart = Date.now();
   bus.emit("investigation.started", { subject }).catch(() => {});
   try {
-    investigation = await investigate(subject, modelRouting?.investigation ?? model, signal);
+    investigation = await investigate(
+      subject,
+      effectiveRouting?.investigation ?? effectiveModel,
+      effectiveSignal
+    );
     progress.investigation = investigation;
     progress.durationMs!.investigation = Date.now() - investigationStart;
     bus
@@ -128,7 +159,7 @@ export async function runAutoPipeline(
   progress.stage = "generating";
   safeProgress(progress);
 
-  if (signal?.aborted) {
+  if (effectiveSignal?.aborted) {
     progress.stage = "error";
     progress.stoppedEarly = true;
     progress.error = "Pipeline was aborted before generation";
@@ -142,31 +173,35 @@ export async function runAutoPipeline(
   // Track completed angles for progress reporting; each task closure captures
   // its own angleId so concurrent .then() callbacks don't race on shared state.
   const completedSet = new Set<string>();
+  const perAngleDurations: Record<string, number> = {};
 
-  const tasks = selectedAngles.map(
-    (angleId) => () =>
-      generateForAngle(
-        subject,
-        investigation,
-        angleId,
-        modelRouting?.generation ?? model,
-        signal
-      ).then((result) => {
-        completedSet.add(angleId);
-        progress.currentAngle = angleId;
-        progress.completedAngles = [...completedSet];
-        safeProgress(progress);
-        return result;
-      })
-  );
+  const tasks = selectedAngles.map((angleId) => () => {
+    const angleStart = Date.now();
+    return generateForAngle(
+      subject,
+      investigation,
+      angleId,
+      effectiveRouting?.generation ?? effectiveModel,
+      effectiveSignal
+    ).then((result) => {
+      perAngleDurations[angleId] = Date.now() - angleStart;
+      completedSet.add(angleId);
+      progress.currentAngle = angleId;
+      progress.completedAngles = [...completedSet];
+      progress.durationMs!.perAngle = { ...perAngleDurations };
+      safeProgress(progress);
+      return result;
+    });
+  });
 
   try {
     const { results: orderedResults, errors: angleErrors } = await runConcurrent(
       tasks,
-      MAX_CONCURRENCY,
-      signal
+      effectiveConcurrency,
+      effectiveSignal
     );
     progress.durationMs!.generation = Date.now() - generationStart;
+    progress.durationMs!.perAngle = { ...perAngleDurations };
     // Keep successfully generated results
     progress.angleResults = orderedResults.filter((r): r is AngleResult => r !== undefined);
     if (angleErrors.length > 0) {
@@ -201,7 +236,7 @@ export async function runAutoPipeline(
     .emit("synthesis.started", { subject, angleCount: progress.angleResults.length })
     .catch(() => {});
 
-  if (signal?.aborted) {
+  if (effectiveSignal?.aborted) {
     progress.stage = "error";
     progress.stoppedEarly = true;
     progress.error = "Pipeline was aborted before synthesis";
@@ -219,9 +254,9 @@ export async function runAutoPipeline(
       async () => {
         const raw = await generateText({
           prompt: synthesisPrompt,
-          model: modelRouting?.synthesis ?? model,
+          model: effectiveRouting?.synthesis ?? effectiveModel,
           serverMode: true,
-          signal,
+          signal: effectiveSignal,
         });
 
         const jsonStr = extractJson(raw);
@@ -232,10 +267,11 @@ export async function runAutoPipeline(
         }
       },
       {
-        signal,
+        signal: effectiveSignal,
         isRetryable: (err) =>
           err instanceof Error &&
           (err.message.includes("Failed to parse") || err.message.includes("No JSON object found")),
+        ...retryOpts,
       }
     );
 

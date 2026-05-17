@@ -89,6 +89,79 @@ export function getModelCapability(modelId: string): ModelCapability | undefined
   return getModelRegistry().find((m) => m.modelId === modelId);
 }
 
+/** Summary of an available model for listing purposes. */
+export interface AvailableModel {
+  /** Model identifier. */
+  id: string;
+  /** Human-readable display name (from registry, or derived from ID). */
+  displayName: string;
+  /** Whether this model has capability metadata in the registry. */
+  hasCapabilities: boolean;
+  /** Source of this model entry. */
+  source: "built-in" | "custom" | "env";
+}
+
+/**
+ * Get a unified list of all available models from all sources:
+ * - Built-in model registry (with full capability metadata)
+ * - Custom models registered at runtime
+ * - Models from `INNOVATOR_EXTRA_MODELS` environment variable
+ *
+ * Results are deduplicated by model ID, with registry entries taking priority.
+ *
+ * @returns Array of {@link AvailableModel} sorted alphabetically by ID
+ */
+export function getAvailableModels(): AvailableModel[] {
+  const seen = new Set<string>();
+  const models: AvailableModel[] = [];
+
+  // Built-in registry models
+  for (const m of MODEL_REGISTRY) {
+    if (!seen.has(m.modelId)) {
+      seen.add(m.modelId);
+      models.push({
+        id: m.modelId,
+        displayName: m.displayName,
+        hasCapabilities: true,
+        source: "built-in",
+      });
+    }
+  }
+
+  // Custom runtime models
+  for (const m of customModels) {
+    if (!seen.has(m.modelId)) {
+      seen.add(m.modelId);
+      models.push({
+        id: m.modelId,
+        displayName: m.displayName,
+        hasCapabilities: true,
+        source: "custom",
+      });
+    }
+  }
+
+  // Environment variable models
+  const envModels = (process.env.INNOVATOR_EXTRA_MODELS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  for (const modelId of envModels) {
+    if (!seen.has(modelId)) {
+      seen.add(modelId);
+      models.push({
+        id: modelId,
+        displayName: modelId,
+        hasCapabilities: false,
+        source: "env",
+      });
+    }
+  }
+
+  return models.sort((a, b) => a.id.localeCompare(b.id));
+}
+
 /** Auto-select the best model for each pipeline stage based on registered capabilities. */
 export function getSmartRouting(
   preference: "quality" | "speed" | "cost" = "quality"

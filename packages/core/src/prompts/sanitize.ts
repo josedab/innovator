@@ -28,6 +28,24 @@ export function sanitizeUserInput(input: string): string {
   // Strip markdown/XML-style tags that could mimic system delimiters
   sanitized = sanitized.replace(/<\/?(?:system|assistant|user|prompt|instructions?)>/gi, "");
 
+  // Strip data URIs that could embed executable payloads or encoded injections
+  sanitized = sanitized.replace(
+    /data:\s*[a-z]+\/[a-z0-9.+-]+\s*;?\s*base64\s*,\s*[A-Za-z0-9+/=]+/gi,
+    "[data-uri-removed]"
+  );
+
+  // Strip suspicious base64-encoded instruction blocks (long base64 strings preceded by decode hints)
+  sanitized = sanitized.replace(
+    /\b(?:decode|base64|atob|eval)\s*[\s(]+\s*(?:(?:atob|decode|base64)\s*[\s(]+\s*)?["']?[A-Za-z0-9+/=]{40,}["']?\s*\)*\s*/gi,
+    "[encoded-content-removed]"
+  );
+
+  // Strip "BEGIN/END" block patterns that mimic PEM or system message boundaries
+  sanitized = sanitized.replace(
+    /-----\s*BEGIN\s+(?:SYSTEM|INSTRUCTIONS?|PROMPT|OVERRIDE)\s*-----[\s\S]*?-----\s*END\s+(?:SYSTEM|INSTRUCTIONS?|PROMPT|OVERRIDE)\s*-----/gi,
+    ""
+  );
+
   return sanitized.trim();
 }
 

@@ -424,6 +424,176 @@ export function exportSessionAsJson(session: SessionRecord): string {
   return JSON.stringify(session, null, 2);
 }
 
+/** Escape HTML special characters to prevent XSS in exported HTML. */
+function htmlEscape(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Export a session record as a self-contained HTML document.
+ * Includes inline CSS styling for immediate sharing and viewing in any browser.
+ *
+ * @param session - The session record to export
+ * @returns A complete HTML document string with embedded styles
+ */
+export function exportSessionAsHtml(session: SessionRecord): string {
+  const lines: string[] = [];
+
+  lines.push("<!DOCTYPE html>");
+  lines.push('<html lang="en">');
+  lines.push("<head>");
+  lines.push('<meta charset="UTF-8">');
+  lines.push('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
+  lines.push(`<title>Innovation Session: ${htmlEscape(session.subject)}</title>`);
+  lines.push("<style>");
+  lines.push(`
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 2rem; color: #1a1a2e; background: #fafafa; line-height: 1.6; }
+    h1 { color: #4f46e5; border-bottom: 3px solid #4f46e5; padding-bottom: 0.5rem; }
+    h2 { color: #1e1b4b; margin-top: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3rem; }
+    h3 { color: #3730a3; }
+    h4 { color: #4338ca; margin-bottom: 0.3rem; }
+    .meta { color: #6b7280; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .meta span { margin-right: 1.5rem; }
+    .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem; margin-right: 4px; }
+    .idea { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: 1rem; }
+    .idea h4 { margin-top: 0; }
+    .idea .detail { font-size: 0.9rem; color: #4b5563; margin: 0.3rem 0; }
+    .idea .detail strong { color: #1f2937; }
+    .top-idea { background: #f0fdf4; border-color: #86efac; }
+    .feasibility { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+    .feasibility-high { background: #dcfce7; color: #166534; }
+    .feasibility-medium { background: #fef9c3; color: #854d0e; }
+    .feasibility-low { background: #fee2e2; color: #991b1b; }
+    .theme { display: inline-block; background: #faf5ff; color: #7c3aed; padding: 3px 10px; border-radius: 4px; margin: 3px 4px 3px 0; font-size: 0.9rem; }
+    .recommendation { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 1rem 1.2rem; border-radius: 0 8px 8px 0; }
+    .section { margin-bottom: 1.5rem; }
+    ul { padding-left: 1.5rem; }
+    li { margin-bottom: 0.3rem; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 0.8rem; text-align: center; }
+  `);
+  lines.push("</style>");
+  lines.push("</head>");
+  lines.push("<body>");
+
+  // Header
+  lines.push(`<h1>💡 ${htmlEscape(session.subject)}</h1>`);
+  lines.push('<div class="meta">');
+  lines.push(`<span><strong>ID:</strong> ${htmlEscape(session.id)}</span>`);
+  lines.push(`<span><strong>Created:</strong> ${htmlEscape(session.createdAt)}</span>`);
+  if (session.tags.length > 0) {
+    lines.push(
+      `<div style="margin-top: 0.3rem">${session.tags.map((t) => `<span class="tag">${htmlEscape(t)}</span>`).join("")}</div>`
+    );
+  }
+  if (session.notes) {
+    lines.push(
+      `<div style="margin-top: 0.3rem"><strong>Notes:</strong> ${htmlEscape(session.notes)}</div>`
+    );
+  }
+  lines.push("</div>");
+
+  // Investigation
+  if (session.investigation) {
+    lines.push("<h2>🔍 Investigation</h2>");
+    lines.push(`<p>${htmlEscape(session.investigation.summary)}</p>`);
+
+    if (session.investigation.keyAspects.length > 0) {
+      lines.push("<h3>Key Aspects</h3>");
+      lines.push("<ul>");
+      for (const a of session.investigation.keyAspects) {
+        lines.push(
+          `<li><strong>${htmlEscape(a.title)}</strong>: ${htmlEscape(a.description)}</li>`
+        );
+      }
+      lines.push("</ul>");
+    }
+
+    lines.push(`<h3>Current State</h3><p>${htmlEscape(session.investigation.currentState)}</p>`);
+
+    if (session.investigation.challenges.length > 0) {
+      lines.push("<h3>Challenges</h3><ul>");
+      for (const c of session.investigation.challenges) {
+        lines.push(`<li>${htmlEscape(c)}</li>`);
+      }
+      lines.push("</ul>");
+    }
+
+    if (session.investigation.opportunities.length > 0) {
+      lines.push("<h3>Opportunities</h3><ul>");
+      for (const o of session.investigation.opportunities) {
+        lines.push(`<li>${htmlEscape(o)}</li>`);
+      }
+      lines.push("</ul>");
+    }
+  }
+
+  // Ideas by Angle
+  if (session.angleResults.length > 0) {
+    lines.push("<h2>💡 Ideas by Angle</h2>");
+    for (const ar of session.angleResults) {
+      lines.push(`<h3>${htmlEscape(ar.angleName)} <code>${htmlEscape(ar.angleId)}</code></h3>`);
+      lines.push(`<p><em>${htmlEscape(ar.reasoning)}</em></p>`);
+      for (const idea of ar.ideas) {
+        lines.push('<div class="idea">');
+        lines.push(`<h4>${htmlEscape(idea.title)}</h4>`);
+        lines.push(`<p>${htmlEscape(idea.description)}</p>`);
+        lines.push(
+          `<p class="detail"><strong>Impact:</strong> ${htmlEscape(idea.potentialImpact)}</p>`
+        );
+        lines.push(
+          `<p class="detail"><strong>How to start:</strong> ${htmlEscape(idea.implementationHint)}</p>`
+        );
+        lines.push("</div>");
+      }
+    }
+  }
+
+  // Synthesis
+  if (session.synthesis) {
+    lines.push("<h2>🎯 Synthesis</h2>");
+
+    if (session.synthesis.topIdeas.length > 0) {
+      lines.push("<h3>Top Ideas</h3>");
+      for (const idea of session.synthesis.topIdeas) {
+        const feasClass = `feasibility-${idea.feasibility}`;
+        lines.push('<div class="idea top-idea">');
+        lines.push(`<h4>${htmlEscape(idea.title)}</h4>`);
+        lines.push(`<p>${htmlEscape(idea.description)}</p>`);
+        lines.push(
+          `<p class="detail"><strong>Source:</strong> ${htmlEscape(idea.sourceAngle)} · <span class="feasibility ${feasClass}">${htmlEscape(idea.feasibility)} feasibility</span></p>`
+        );
+        lines.push(
+          `<p class="detail"><strong>Impact:</strong> ${htmlEscape(idea.potentialImpact)}</p>`
+        );
+        lines.push("</div>");
+      }
+    }
+
+    if (session.synthesis.themes.length > 0) {
+      lines.push("<h3>Themes</h3>");
+      lines.push('<div class="section">');
+      for (const theme of session.synthesis.themes) {
+        lines.push(`<span class="theme">${htmlEscape(theme)}</span>`);
+      }
+      lines.push("</div>");
+    }
+
+    lines.push("<h3>Recommendation</h3>");
+    lines.push(`<div class="recommendation">${htmlEscape(session.synthesis.recommendation)}</div>`);
+  }
+
+  lines.push(`<footer>Generated by Innovator · ${htmlEscape(session.updatedAt)}</footer>`);
+  lines.push("</body>");
+  lines.push("</html>");
+
+  return lines.join("\n");
+}
+
 /**
  * Duplicate an existing session, creating a new copy with a fresh ID and timestamps.
  * Useful for re-analysis workflows where you want to iterate on a previous session.

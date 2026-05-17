@@ -8,6 +8,7 @@ export { ANGLES, getAngleById } from "./angles.js";
 export { investigate } from "./investigate.js";
 export { generateForAngle } from "./generate.js";
 export { runAutoPipeline } from "./pipeline.js";
+export type { PipelineOptions } from "./pipeline.js";
 export {
   loadCustomAngles,
   addCustomAngle,
