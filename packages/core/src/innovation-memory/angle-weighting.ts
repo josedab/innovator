@@ -94,7 +94,8 @@ function computeBaseWeight(
   maxUsage: number,
   strategy: WeightingStrategy
 ): number {
-  const effectiveness = stats.qualityCount > 0 ? stats.qualityTotal / stats.qualityCount / 100 : 0.5;
+  const effectiveness =
+    stats.qualityCount > 0 ? stats.qualityTotal / stats.qualityCount / 100 : 0.5;
   const usageRatio = maxUsage > 0 ? stats.usage / maxUsage : 0;
 
   switch (strategy) {
@@ -109,7 +110,8 @@ function computeBaseWeight(
 }
 
 function computeDomainModifier(stats: AngleStats): number {
-  const effectiveness = stats.qualityCount > 0 ? stats.qualityTotal / stats.qualityCount / 100 : 0.5;
+  const effectiveness =
+    stats.qualityCount > 0 ? stats.qualityTotal / stats.qualityCount / 100 : 0.5;
   return clamp((effectiveness - 0.5) * 0.6, -0.5, 0.5);
 }
 

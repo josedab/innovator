@@ -464,7 +464,7 @@ export function exportVault(
  */
 export function importVault(
   data: VaultExport | string,
-  passphrase?: string
+  _passphrase?: string
 ): { imported: number; conflicts: ConflictResolution[] } {
   let exportData: VaultExport;
 

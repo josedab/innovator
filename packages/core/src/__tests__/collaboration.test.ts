@@ -92,7 +92,14 @@ describe("collaboration", () => {
     const session = createSession("Test", "host-1", "Alice");
     startSession(session.id, "host-1");
 
-    const idea = submitIdea(session.id, "host-1", "scamper", "Great Idea", "Description", "High impact");
+    const idea = submitIdea(
+      session.id,
+      "host-1",
+      "scamper",
+      "Great Idea",
+      "Description",
+      "High impact"
+    );
     expect(idea?.title).toBe("Great Idea");
     expect(idea?.votes).toBe(0);
   });
@@ -134,7 +141,13 @@ describe("collaboration", () => {
     const idea1 = submitIdea(session.id, "host-1", "scamper", "Idea 1", "Desc 1", "Impact 1")!;
     const idea2 = submitIdea(session.id, "host-1", "inversion", "Idea 2", "Desc 2", "Impact 2")!;
 
-    const merged = mergeIdeas(session.id, [idea1.id, idea2.id], "Merged Idea", "Combined description", "host-1");
+    const merged = mergeIdeas(
+      session.id,
+      [idea1.id, idea2.id],
+      "Merged Idea",
+      "Combined description",
+      "host-1"
+    );
     expect(merged?.title).toBe("Merged Idea");
     expect(merged?.angleId).toBe("merged");
   });

@@ -27,12 +27,16 @@ export const BacklogAnalysisSchema = z.object({
   totalItems: z.number().int().min(0),
   byPriority: z.record(z.string(), z.number().int()),
   byStatus: z.record(z.string(), z.number().int()),
-  suggestedSubjects: z.array(z.object({
-    title: z.string().max(500),
-    description: z.string().max(2000),
-    sourceItems: z.array(z.string().max(200)),
-    rationale: z.string().max(1000),
-  })).max(20),
+  suggestedSubjects: z
+    .array(
+      z.object({
+        title: z.string().max(500),
+        description: z.string().max(2000),
+        sourceItems: z.array(z.string().max(200)),
+        rationale: z.string().max(1000),
+      })
+    )
+    .max(20),
   generatedAt: z.string(),
 });
 export type BacklogAnalysis = z.infer<typeof BacklogAnalysisSchema>;
@@ -108,7 +112,9 @@ export function analyzeBacklog(items: BacklogItem[]): BacklogAnalysis {
   }
 
   const suggestions: BacklogAnalysis["suggestedSubjects"] = [];
-  for (const [label, group] of [...labelGroups.entries()].sort((a, b) => b[1].length - a[1].length)) {
+  for (const [label, group] of [...labelGroups.entries()].sort(
+    (a, b) => b[1].length - a[1].length
+  )) {
     if (group.length < 2 || suggestions.length >= 20) continue;
     suggestions.push({
       title: truncate(`Explore ${toTitleCase(label)} improvements`, 500),
@@ -127,7 +133,9 @@ export function analyzeBacklog(items: BacklogItem[]): BacklogAnalysis {
     });
   }
 
-  const prioritizedItems = [...activeItems].sort((a, b) => priorityScore(b.priority) - priorityScore(a.priority));
+  const prioritizedItems = [...activeItems].sort(
+    (a, b) => priorityScore(b.priority) - priorityScore(a.priority)
+  );
   for (const item of prioritizedItems) {
     if (suggestions.length >= 20) break;
     if (suggestions.some((subject) => subject.sourceItems.includes(item.externalId))) continue;
@@ -210,9 +218,10 @@ function normalizeCategory(value: string, fallback = "unknown", maxLength = 100)
 }
 
 function normalizeLabels(labels?: string[]): string[] {
-  return Array.from(
-    new Set((labels ?? []).map((label) => label.trim()).filter(Boolean))
-  ).slice(0, 20);
+  return Array.from(new Set((labels ?? []).map((label) => label.trim()).filter(Boolean))).slice(
+    0,
+    20
+  );
 }
 
 function priorityScore(priority?: string): number {

@@ -6,7 +6,6 @@
  * These providers search real databases and return structured prior art entries.
  */
 
-import { randomUUID } from "node:crypto";
 import type { PriorArtEntry, PriorArtProvider } from "./index.js";
 
 // ---- USPTO PatentsView Provider ----
@@ -30,7 +29,7 @@ export class USPTOProvider implements PriorArtProvider {
 
     if (keywords.length === 0) return [];
 
-    const searchQuery = keywords.map((kw) => `_text_any:[${kw}]`).join(" AND ");
+    const _searchQuery = keywords.map((kw) => `_text_any:[${kw}]`).join(" AND ");
 
     try {
       const url = new URL("https://api.patentsview.org/patents/query");
@@ -75,9 +74,7 @@ export class USPTOProvider implements PriorArtProvider {
         similarity: 0,
         patentNumber: `US${patent.patent_number}`,
         publicationDate: patent.patent_date,
-        authors: patent.inventors?.map(
-          (i) => `${i.inventor_first_name} ${i.inventor_last_name}`
-        ),
+        authors: patent.inventors?.map((i) => `${i.inventor_first_name} ${i.inventor_last_name}`),
       }));
     } catch {
       // Network failure — return empty silently
@@ -103,10 +100,7 @@ export class SemanticScholarProvider implements PriorArtProvider {
       const url = new URL("https://api.semanticscholar.org/graph/v1/paper/search");
       url.searchParams.set("query", query.slice(0, 200));
       url.searchParams.set("limit", String(maxResults));
-      url.searchParams.set(
-        "fields",
-        "title,abstract,year,authors,externalIds,url,citationCount"
-      );
+      url.searchParams.set("fields", "title,abstract,year,authors,externalIds,url,citationCount");
 
       const response = await fetch(url.toString(), {
         headers: { Accept: "application/json" },
@@ -163,9 +157,7 @@ export class CompositeProvider implements PriorArtProvider {
   ): Promise<PriorArtEntry[]> {
     const perProvider = Math.ceil((options.maxResults ?? 10) / this.providers.length);
     const results = await Promise.allSettled(
-      this.providers.map((p) =>
-        p.search(query, { ...options, maxResults: perProvider })
-      )
+      this.providers.map((p) => p.search(query, { ...options, maxResults: perProvider }))
     );
 
     const entries: PriorArtEntry[] = [];
@@ -181,8 +173,5 @@ export class CompositeProvider implements PriorArtProvider {
 
 /** Create a default composite provider with USPTO + Semantic Scholar. */
 export function createDefaultProviders(): CompositeProvider {
-  return new CompositeProvider([
-    new USPTOProvider(),
-    new SemanticScholarProvider(),
-  ]);
+  return new CompositeProvider([new USPTOProvider(), new SemanticScholarProvider()]);
 }

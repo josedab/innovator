@@ -8,7 +8,6 @@ import {
   removeMonitorSource,
   listMonitorSources,
   generateMonitorDigest,
-  monitorDigestToMarkdown,
   getMonitorState,
   startMonitor,
   stopMonitor,
@@ -59,10 +58,13 @@ export async function POST(request: Request) {
 
     const parsed = ActionSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid request", details: parsed.error.issues }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
+      return new Response(
+        JSON.stringify({ error: "Invalid request", details: parsed.error.issues }),
+        {
+          status: 400,
+          headers: API_RESPONSE_HEADERS,
+        }
+      );
     }
 
     const { action, source, sourceId, period, model } = parsed.data;
@@ -70,17 +72,30 @@ export async function POST(request: Request) {
     switch (action) {
       case "add-source": {
         if (!source) {
-          return new Response(JSON.stringify({ error: "source required" }), { status: 400, headers: API_RESPONSE_HEADERS });
+          return new Response(JSON.stringify({ error: "source required" }), {
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
-        const added = addMonitorSource({ ...source, enabled: source.enabled ?? true, pollIntervalMs: source.pollIntervalMs ?? 300000 });
+        const added = addMonitorSource({
+          ...source,
+          enabled: source.enabled ?? true,
+          pollIntervalMs: source.pollIntervalMs ?? 300000,
+        });
         return new Response(JSON.stringify(added), { status: 201, headers: API_RESPONSE_HEADERS });
       }
       case "remove-source": {
         if (!sourceId) {
-          return new Response(JSON.stringify({ error: "sourceId required" }), { status: 400, headers: API_RESPONSE_HEADERS });
+          return new Response(JSON.stringify({ error: "sourceId required" }), {
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
         removeMonitorSource(sourceId);
-        return new Response(JSON.stringify({ removed: sourceId }), { status: 200, headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ removed: sourceId }), {
+          status: 200,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
       case "start": {
         const state = startMonitor({
@@ -100,7 +115,10 @@ export async function POST(request: Request) {
         return new Response(JSON.stringify(digest), { status: 200, headers: API_RESPONSE_HEADERS });
       }
       default:
-        return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ error: "Unknown action" }), {
+          status: 400,
+          headers: API_RESPONSE_HEADERS,
+        });
     }
   } catch (err) {
     logger.error("Monitor action failed", { requestId, error: String(err) });
@@ -119,14 +137,23 @@ export async function GET(request: Request) {
 
     switch (view) {
       case "sources":
-        return new Response(JSON.stringify({ sources: listMonitorSources() }), { status: 200, headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ sources: listMonitorSources() }), {
+          status: 200,
+          headers: API_RESPONSE_HEADERS,
+        });
       case "signals":
-        return new Response(JSON.stringify({ signals: getRecentSignals() }), { status: 200, headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ signals: getRecentSignals() }), {
+          status: 200,
+          headers: API_RESPONSE_HEADERS,
+        });
       case "state":
       default:
-        return new Response(JSON.stringify(getMonitorState()), { status: 200, headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify(getMonitorState()), {
+          status: 200,
+          headers: API_RESPONSE_HEADERS,
+        });
     }
-  } catch (err) {
+  } catch {
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: API_RESPONSE_HEADERS,

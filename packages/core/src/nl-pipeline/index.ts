@@ -401,7 +401,7 @@ function dagToText(dag: PipelineDAG): string {
   lines.push(`Subject: ${dag.subject}`);
   lines.push("");
 
-  const nodeMap = new Map(dag.nodes.map((n) => [n.id, n]));
+  const _nodeMap = new Map(dag.nodes.map((n) => [n.id, n]));
   const roots = dag.nodes.filter((n) => n.dependsOn.length === 0);
   const visited = new Set<string>();
 

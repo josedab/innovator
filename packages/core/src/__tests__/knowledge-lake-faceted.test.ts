@@ -18,12 +18,7 @@ import {
   getKnowledgeLakeSummary,
 } from "../knowledge-lake/faceted-search.js";
 
-function makeArtifact(
-  id: string,
-  title: string,
-  content: string,
-  type: ArtifactType = "idea"
-) {
+function makeArtifact(id: string, title: string, content: string, type: ArtifactType = "idea") {
   const now = new Date().toISOString();
   return { id, type, title, content, tags: [], metadata: {}, createdAt: now, updatedAt: now };
 }

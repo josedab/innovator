@@ -11,7 +11,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
-import type { Tournament, TournamentParticipant, Match } from "./index.js";
+import type { Tournament, TournamentParticipant } from "./index.js";
 import {
   getTournament,
   resolveMatch,
@@ -19,7 +19,6 @@ import {
   createTournament,
   startTournament,
 } from "./index.js";
-import type { InnovationIdea } from "../types.js";
 
 // ---- LLM Judge Types ----
 
@@ -297,7 +296,7 @@ export async function runEvolutionaryTournament(
     startTournament(tournament.id);
     await autoJudgeTournament(tournament.id, config.judgeConfig);
 
-    const finalTournament = getTournament(tournament.id)!;
+    const _finalTournament = getTournament(tournament.id)!;
     const leaderboard = getLeaderboard(tournament.id) ?? [];
     const winner = leaderboard[0];
 

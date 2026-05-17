@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Shared mock instances (reset in beforeEach)
@@ -45,7 +44,17 @@ const GetGraphSchema = z.object({
   action: z.literal("get_graph"),
   filters: z
     .object({
-      type: z.enum(["concept", "technology", "challenge", "opportunity", "person", "organization", "domain"]).optional(),
+      type: z
+        .enum([
+          "concept",
+          "technology",
+          "challenge",
+          "opportunity",
+          "person",
+          "organization",
+          "domain",
+        ])
+        .optional(),
       fromDate: z.string().optional(),
       toDate: z.string().optional(),
       minOccurrences: z.number().optional(),
@@ -168,7 +177,10 @@ async function POST(request: Request) {
         const layout = mockComputeForceLayout((graph as any).nodes, (graph as any).edges);
         const knowledgeInsights = generateKnowledgeInsights(graph as any);
         const structuralInsights = mockGetInsightSuggestions(layout);
-        return Response.json({ knowledgeInsights, structuralInsights }, { headers: API_RESPONSE_HEADERS });
+        return Response.json(
+          { knowledgeInsights, structuralInsights },
+          { headers: API_RESPONSE_HEADERS }
+        );
       }
 
       case "extract": {
@@ -260,9 +272,7 @@ describe("POST /api/knowledge-graph", () => {
       mockFilterGraphNodes.mockReturnValue([{ id: "n1", type: "concept", label: "AI" }] as any);
       mockGetGraphStats.mockReturnValue({ totalNodes: 1, totalEdges: 0 } as any);
 
-      const res = await POST(
-        makeRequest({ action: "get_graph", filters: { type: "concept" } })
-      );
+      const res = await POST(makeRequest({ action: "get_graph", filters: { type: "concept" } }));
       const data = await res.json();
 
       expect(res.status).toBe(200);
@@ -330,7 +340,9 @@ describe("POST /api/knowledge-graph", () => {
     it("handles special characters in query", async () => {
       mockGetKnowledgeGraph.mockReturnValue(SAMPLE_GRAPH as any);
 
-      const res = await POST(makeRequest({ action: "search", query: "test <script>alert(1)</script>" }));
+      const res = await POST(
+        makeRequest({ action: "search", query: "test <script>alert(1)</script>" })
+      );
       expect(res.status).toBe(200);
     });
 

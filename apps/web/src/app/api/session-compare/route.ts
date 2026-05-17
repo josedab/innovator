@@ -99,7 +99,11 @@ function computeIdeaOverlaps(sessions: SessionRecord[]): IdeaOverlap[] {
         if (match.score >= 0.15) {
           overlaps.push({
             idea1: { sessionId, title: idea.title, description: idea.description },
-            idea2: { sessionId: other.sessionId, title: other.idea.title, description: other.idea.description },
+            idea2: {
+              sessionId: other.sessionId,
+              title: other.idea.title,
+              description: other.idea.description,
+            },
             similarity: match.score,
           });
         }
@@ -136,10 +140,10 @@ export async function POST(request: Request) {
 
     const parsed = RequestSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Provide 2-5 session IDs to compare." }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
+      return new Response(JSON.stringify({ error: "Provide 2-5 session IDs to compare." }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const { sessionIds } = parsed.data;
@@ -148,10 +152,10 @@ export async function POST(request: Request) {
     for (const id of sessionIds) {
       const session = getSession(id);
       if (!session) {
-        return new Response(
-          JSON.stringify({ error: `Session not found: ${id}` }),
-          { status: 404, headers: API_RESPONSE_HEADERS }
-        );
+        return new Response(JSON.stringify({ error: `Session not found: ${id}` }), {
+          status: 404,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
       sessions.push(session);
     }
@@ -191,9 +195,18 @@ export async function POST(request: Request) {
         const f = ti.feasibility as keyof typeof counts;
         if (f in counts) counts[f]++;
       }
-      const dominant = counts.high >= counts.medium && counts.high >= counts.low
-        ? "high" : counts.medium >= counts.low ? "medium" : "low";
-      return { sessionId: s.id, subject: s.subject, avgFeasibility: dominant, ideaCount: ideas.length };
+      const dominant =
+        counts.high >= counts.medium && counts.high >= counts.low
+          ? "high"
+          : counts.medium >= counts.low
+            ? "medium"
+            : "low";
+      return {
+        sessionId: s.id,
+        subject: s.subject,
+        avgFeasibility: dominant,
+        ideaCount: ideas.length,
+      };
     });
 
     // Chronological timeline

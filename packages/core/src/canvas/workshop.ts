@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { InnovationCanvas, CanvasNode } from "./index.js";
+import type { InnovationCanvas } from "./index.js";
 
 // ---- Types ----
 

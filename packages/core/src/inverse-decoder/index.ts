@@ -63,20 +63,24 @@ export const InnovationRecipeSchema = z.object({
     estimatedDifficulty: z.enum(["straightforward", "moderate", "complex", "visionary"]),
     keyInsight: z.string().max(500),
   }),
-  learnings: z.array(
-    z.object({
-      principle: z.string().max(300),
-      application: z.string().max(500),
-      transferability: z.enum(["low", "medium", "high"]),
-    })
-  ).max(10),
-  similarProducts: z.array(
-    z.object({
-      name: z.string().max(200),
-      similarity: z.string().max(300),
-      divergence: z.string().max(300),
-    })
-  ).max(5),
+  learnings: z
+    .array(
+      z.object({
+        principle: z.string().max(300),
+        application: z.string().max(500),
+        transferability: z.enum(["low", "medium", "high"]),
+      })
+    )
+    .max(10),
+  similarProducts: z
+    .array(
+      z.object({
+        name: z.string().max(200),
+        similarity: z.string().max(300),
+        divergence: z.string().max(300),
+      })
+    )
+    .max(5),
   generatedAt: z.string(),
 });
 

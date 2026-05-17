@@ -6,7 +6,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { AnalyticsEvent, AnalyticsSummary } from "./index.js";
+import type { AnalyticsSummary } from "./index.js";
 import { readEvents, generateSummary } from "./index.js";
 
 // ---- Time Series Analysis ----

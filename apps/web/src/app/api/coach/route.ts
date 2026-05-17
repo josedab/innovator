@@ -9,11 +9,9 @@ import {
   getProactiveCoaching,
   getCoachingHistory,
   buildTeamProfile,
-  getPreSessionCoaching,
   generateCoachingInsights,
   generateClarificationQuestions,
   detectAssumptions,
-  recommendPivots,
 } from "@innovator/core";
 import { z } from "zod";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
@@ -76,7 +74,10 @@ export async function GET(request: Request): Promise<Response> {
       const insights = generateCoachingInsights(teamId);
       return Response.json({ insights }, { headers: API_RESPONSE_HEADERS });
     } catch {
-      return Response.json({ error: "Team not found" }, { status: 404, headers: API_RESPONSE_HEADERS });
+      return Response.json(
+        { error: "Team not found" },
+        { status: 404, headers: API_RESPONSE_HEADERS }
+      );
     }
   }
 

@@ -181,8 +181,8 @@ export const CLIMATE_PACK: ExtendedVerticalPack = {
   ],
 
   glossary: {
-    "GHG": "Greenhouse Gas — gases that trap heat in the atmosphere (CO2, CH4, N2O, HFCs, PFCs, SF6)",
-    "CO2e": "Carbon Dioxide Equivalent — standard unit for measuring carbon footprints across different greenhouse gases",
+    GHG: "Greenhouse Gas — gases that trap heat in the atmosphere (CO2, CH4, N2O, HFCs, PFCs, SF6)",
+    CO2e: "Carbon Dioxide Equivalent — standard unit for measuring carbon footprints across different greenhouse gases",
     "Scope 1": "Direct GHG emissions from owned or controlled sources",
     "Scope 2": "Indirect GHG emissions from purchased electricity, steam, heating, and cooling",
     "Scope 3": "All other indirect GHG emissions in the value chain (upstream and downstream)",
@@ -190,29 +190,38 @@ export const CLIMATE_PACK: ExtendedVerticalPack = {
     TCFD: "Task Force on Climate-Related Financial Disclosures — framework for climate risk reporting",
     ISSB: "International Sustainability Standards Board — global baseline for sustainability disclosures",
     LCA: "Life Cycle Assessment — methodology for evaluating environmental impacts across a product's entire lifecycle",
-    "Circular Economy": "Economic system aimed at eliminating waste through continual use of resources",
+    "Circular Economy":
+      "Economic system aimed at eliminating waste through continual use of resources",
     EPR: "Extended Producer Responsibility — policy making manufacturers responsible for end-of-life product management",
     CCS: "Carbon Capture and Storage — technology capturing CO2 from sources and storing it underground",
     CCUS: "Carbon Capture, Utilization, and Storage — CCS plus use of captured CO2 in products or processes",
     DAC: "Direct Air Capture — technology that captures CO2 directly from ambient air",
-    BECCS: "Bioenergy with Carbon Capture and Storage — negative emissions technology combining biomass energy with CCS",
+    BECCS:
+      "Bioenergy with Carbon Capture and Storage — negative emissions technology combining biomass energy with CCS",
     NbS: "Nature-based Solutions — actions that protect and manage natural ecosystems to address societal challenges",
     LCOE: "Levelized Cost of Energy — average cost of electricity generation over a power plant's lifetime",
     PPA: "Power Purchase Agreement — contract between electricity generator and buyer for renewable energy",
     REC: "Renewable Energy Certificate — tradable proof of renewable electricity generation",
     "Green Hydrogen": "Hydrogen produced via electrolysis using renewable electricity",
-    "Green Premium": "Additional cost of choosing a clean technology over its fossil fuel alternative",
-    "Carbon Budget": "Cumulative amount of CO2 that can be emitted while limiting warming to a target",
+    "Green Premium":
+      "Additional cost of choosing a clean technology over its fossil fuel alternative",
+    "Carbon Budget":
+      "Cumulative amount of CO2 that can be emitted while limiting warming to a target",
     NDC: "Nationally Determined Contribution — country-level climate action plan under the Paris Agreement",
-    "Just Transition": "Framework ensuring climate action is equitable and does not disproportionately burden vulnerable communities",
+    "Just Transition":
+      "Framework ensuring climate action is equitable and does not disproportionately burden vulnerable communities",
     ESG: "Environmental, Social, and Governance — framework for evaluating corporate sustainability and ethical impact",
     CSRD: "Corporate Sustainability Reporting Directive — EU directive requiring sustainability disclosures",
-    "EU Taxonomy": "Classification system defining environmentally sustainable economic activities in the EU",
+    "EU Taxonomy":
+      "Classification system defining environmentally sustainable economic activities in the EU",
     TRL: "Technology Readiness Level — scale from 1-9 measuring maturity of a technology for deployment",
-    "Material Passport": "Digital record documenting materials and components in a product for circular economy tracking",
+    "Material Passport":
+      "Digital record documenting materials and components in a product for circular economy tracking",
     "Industrial Symbiosis": "Network where waste from one industry becomes input for another",
-    "Embodied Carbon": "Total GHG emissions from manufacturing, transport, and installation of building materials",
-    "Additionality": "Principle that carbon credits represent emission reductions beyond business-as-usual",
+    "Embodied Carbon":
+      "Total GHG emissions from manufacturing, transport, and installation of building materials",
+    Additionality:
+      "Principle that carbon credits represent emission reductions beyond business-as-usual",
   },
 
   exampleSessions: [

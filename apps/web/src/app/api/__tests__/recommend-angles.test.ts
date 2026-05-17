@@ -49,10 +49,10 @@ async function POST(request: Request) {
     const parsed = RecommendRequestSchema.safeParse(body);
 
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request. Provide a subject." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid request. Provide a subject." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const { subject, model, count, useThompsonSampling } = parsed.data;
@@ -87,10 +87,10 @@ async function PUT(request: Request) {
     const parsed = FeedbackRequestSchema.safeParse(body);
 
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid feedback data." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid feedback data." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const classification = await classifySubject(parsed.data.subject);
@@ -105,10 +105,10 @@ async function PUT(request: Request) {
 
     return Response.json({ success: true });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Failed to record feedback." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Failed to record feedback." }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 

@@ -70,10 +70,10 @@ export async function POST(request: Request) {
       requestId,
       durationMs: Date.now() - startTime,
     });
-    return new Response(
-      JSON.stringify({ error: "Regulatory simulation failed." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Regulatory simulation failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }
 
@@ -91,9 +91,9 @@ export async function GET(request: Request) {
       error: err instanceof Error ? err.message : String(err),
       route: "/api/regulatory",
     });
-    return new Response(
-      JSON.stringify({ error: "Failed to get regulatory frameworks." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Failed to get regulatory frameworks." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

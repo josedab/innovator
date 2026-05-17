@@ -6,7 +6,6 @@ export const runtime = "nodejs";
 import {
   buildProvenanceChain,
   generateSankeyDiagram,
-  exportSankeyAsJSON,
   exportSankeyAsSVG,
   exportSankeyAsHTML,
   getFlowMetrics,
@@ -61,7 +60,7 @@ export async function POST(request: Request) {
 
     const { subject, investigation, angleResults, synthesis, scores, format, config } = parsed.data;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    /* eslint-disable @typescript-eslint/no-explicit-any -- pipeline results shape varies */
     const chain = buildProvenanceChain(
       subject,
       investigation as any,
@@ -69,6 +68,7 @@ export async function POST(request: Request) {
       synthesis as any,
       scores as any
     );
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     const diagram = generateSankeyDiagram(chain, config);
     const metrics = getFlowMetrics(diagram);

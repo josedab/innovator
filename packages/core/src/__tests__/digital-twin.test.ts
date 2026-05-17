@@ -316,13 +316,12 @@ describe("digital-twin", () => {
 
   describe("registerEcosystem - schema validation", () => {
     it("rejects invalid snapshot (missing required fields)", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(() => registerEcosystem({} as unknown as any)).toThrow();
     });
 
     it("rejects snapshot with invalid team member", () => {
       const snap = makeSnapshot();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       snap.team = [
         {
           id: "",

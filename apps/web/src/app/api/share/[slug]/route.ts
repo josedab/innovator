@@ -3,21 +3,14 @@
  */
 export const runtime = "nodejs";
 
-import {
-  getSharedInvestigation,
-  forkInvestigation,
-} from "@innovator/core";
+import { getSharedInvestigation, forkInvestigation } from "@innovator/core";
 import { logger } from "@/lib/logger";
-import { validateJsonContentType } from "@/lib/validate-request";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 /**
  * Get a shared investigation by slug.
  */
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ slug: string }> }
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
     const shared = getSharedInvestigation(slug);
@@ -44,10 +37,7 @@ export async function GET(
 /**
  * Fork a shared investigation.
  */
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ slug: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
     const fork = forkInvestigation(slug);

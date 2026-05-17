@@ -9,7 +9,7 @@ import {
   projectBoardToMarkdown,
   artifactToGitHubIssue,
 } from "@innovator/core";
-import type { InnovationIdea, Investigation } from "@innovator/core";
+import type { InnovationIdea } from "@innovator/core";
 import { z } from "zod";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
@@ -94,11 +94,9 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   if (data.action === "project_board") {
-    const board = generateProjectBoard(
-      data.subject,
-      data.ideas as InnovationIdea[],
-      { sessionId: data.sessionId }
-    );
+    const board = generateProjectBoard(data.subject, data.ideas as InnovationIdea[], {
+      sessionId: data.sessionId,
+    });
 
     if (data.format === "markdown") {
       return new Response(projectBoardToMarkdown(board), {

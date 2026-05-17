@@ -289,15 +289,11 @@ describe("StripeBillingProvider", () => {
     });
 
     it("throws for empty signature", async () => {
-      await expect(provider.processWebhook("{}", "")).rejects.toThrow(
-        "Invalid webhook signature"
-      );
+      await expect(provider.processWebhook("{}", "")).rejects.toThrow("Invalid webhook signature");
     });
 
     it("throws for empty payload", async () => {
-      await expect(provider.processWebhook("", "sig")).rejects.toThrow(
-        "Invalid webhook signature"
-      );
+      await expect(provider.processWebhook("", "sig")).rejects.toThrow("Invalid webhook signature");
     });
   });
 

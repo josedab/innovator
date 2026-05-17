@@ -1,6 +1,6 @@
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { AbortError, PipelineError, LlmParseError } from "../errors.js";
+import { AbortError, LlmParseError } from "../errors.js";
 import { buildSynthesisPrompt } from "../prompts/investigation.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 import { runConcurrent } from "../concurrency/index.js";
@@ -184,7 +184,7 @@ export async function runAutoPipeline(
       safeProgress(progress);
       return progress;
     }
-  } catch (err) {
+  } catch {
     progress.stage = "error";
     progress.error = sanitizeErrorMessage("Generation");
     progress.durationMs!.generation = Date.now() - generationStart;

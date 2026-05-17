@@ -75,7 +75,8 @@ export const INDUSTRY_REGULATIONS: Record<string, RegulatoryConstraint[]> = {
       industry: "healthcare",
       regulation: "HIPAA",
       authority: "HHS (USA)",
-      description: "Health Insurance Portability and Accountability Act — protects patient health information",
+      description:
+        "Health Insurance Portability and Accountability Act — protects patient health information",
       complianceRequirements: [
         "PHI data encryption at rest and in transit",
         "Business Associate Agreements",
@@ -245,7 +246,17 @@ ${wrapUserInput("IDEA", `${idea.title}: ${idea.description}`)}
 ${wrapUserInput("DOMAIN", domain)}
 ${industry ? wrapUserInput("INDUSTRY", industry) : ""}
 
-${regulations.length > 0 ? `APPLICABLE REGULATIONS:\n${sanitizeLlmOutput(JSON.stringify(regulations.map((r) => `${r.regulation} (${r.authority}): ${r.description}`), null, 2))}` : ""}
+${
+  regulations.length > 0
+    ? `APPLICABLE REGULATIONS:\n${sanitizeLlmOutput(
+        JSON.stringify(
+          regulations.map((r) => `${r.regulation} (${r.authority}): ${r.description}`),
+          null,
+          2
+        )
+      )}`
+    : ""
+}
 
 Analyze for:
 1. **Patent risks**: Likelihood of existing patents, prior art, freedom to operate
@@ -292,14 +303,17 @@ You MUST respond with valid JSON only:
     indicators = parsed.indicators ?? [];
     recommendation = parsed.recommendation ?? "";
   } catch {
-    indicators = [{
-      category: "patent",
-      riskLevel: "medium",
-      title: "Screening Incomplete",
-      description: "IP screening could not be completed. Manual review recommended.",
-    }];
+    indicators = [
+      {
+        category: "patent",
+        riskLevel: "medium",
+        title: "Screening Incomplete",
+        description: "IP screening could not be completed. Manual review recommended.",
+      },
+    ];
     riskScore = 50;
-    recommendation = "Automated screening was incomplete. Consult an IP attorney for thorough review.";
+    recommendation =
+      "Automated screening was incomplete. Consult an IP attorney for thorough review.";
   }
 
   // Add regulatory constraints as indicators
@@ -357,9 +371,10 @@ export async function screenIdeas(
     (r) => r.overallRisk === "high" || r.overallRisk === "critical"
   ).length;
 
-  const avgScore = results.length > 0
-    ? Math.round(results.reduce((sum, r) => sum + r.riskScore, 0) / results.length)
-    : 0;
+  const _avgScore =
+    results.length > 0
+      ? Math.round(results.reduce((sum, r) => sum + r.riskScore, 0) / results.length)
+      : 0;
 
   return {
     domain,
@@ -413,10 +428,15 @@ export function complianceReportToMarkdown(report: IPComplianceReport): string {
 
   for (const result of report.results) {
     const riskIcon =
-      result.overallRisk === "critical" ? "🔴" :
-      result.overallRisk === "high" ? "🟠" :
-      result.overallRisk === "medium" ? "🟡" :
-      result.overallRisk === "low" ? "🟢" : "⚪";
+      result.overallRisk === "critical"
+        ? "🔴"
+        : result.overallRisk === "high"
+          ? "🟠"
+          : result.overallRisk === "medium"
+            ? "🟡"
+            : result.overallRisk === "low"
+              ? "🟢"
+              : "⚪";
 
     lines.push(`### ${riskIcon} ${result.ideaTitle}`);
     lines.push("");
@@ -428,7 +448,9 @@ export function complianceReportToMarkdown(report: IPComplianceReport): string {
       lines.push("| Category | Risk | Finding |");
       lines.push("|----------|------|---------|");
       for (const ind of result.indicators) {
-        lines.push(`| ${ind.category} | ${ind.riskLevel} | ${ind.title}: ${ind.description.slice(0, 100)} |`);
+        lines.push(
+          `| ${ind.category} | ${ind.riskLevel} | ${ind.title}: ${ind.description.slice(0, 100)} |`
+        );
       }
       lines.push("");
     }

@@ -3,7 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import { generateForAngle, investigate, ANGLE_IDS, MAX_CONCURRENCY } from "@innovator/core";
+import { generateForAngle, investigate, MAX_CONCURRENCY } from "@innovator/core";
 import type { AngleId, AngleResult } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -32,7 +32,10 @@ export async function POST(request: Request) {
   if (!rateLimit.allowed) {
     return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
       status: 429,
-      headers: addRateLimitHeaders(API_RESPONSE_HEADERS as unknown as Record<string, string>, rateLimit),
+      headers: addRateLimitHeaders(
+        API_RESPONSE_HEADERS as unknown as Record<string, string>,
+        rateLimit
+      ),
     });
   }
 
@@ -82,10 +85,12 @@ export async function POST(request: Request) {
       durationMs: Date.now() - startTime,
     });
 
-    return new Response(
-      JSON.stringify({ data: { investigation, angleResults } }),
-      { headers: addRateLimitHeaders(API_RESPONSE_HEADERS as unknown as Record<string, string>, rateLimit) }
-    );
+    return new Response(JSON.stringify({ data: { investigation, angleResults } }), {
+      headers: addRateLimitHeaders(
+        API_RESPONSE_HEADERS as unknown as Record<string, string>,
+        rateLimit
+      ),
+    });
   } catch (err) {
     logger.error("API v1 innovate error", {
       error: err instanceof Error ? err.message : String(err),

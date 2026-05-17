@@ -9,7 +9,11 @@ import { z } from "zod";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const CreateAngleSchema = z.object({
-  id: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
+  id: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
   name: z.string().min(1).max(200),
   description: z.string().min(1).max(2000),
   promptTemplate: z.string().min(1).max(10000),
@@ -71,7 +75,7 @@ export async function DELETE(request: Request) {
       });
     }
     return new Response(JSON.stringify({ success: true }), { headers: API_RESPONSE_HEADERS });
-  } catch (err) {
+  } catch {
     return new Response(JSON.stringify({ error: "Failed to delete angle" }), {
       status: 500,
       headers: API_RESPONSE_HEADERS,

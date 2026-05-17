@@ -4,8 +4,12 @@ import { join } from "node:path";
 
 // Create a stable temp dir used for all tests (WORKSPACES_DIR is computed once at module load)
 const { stableTempDir } = vi.hoisted(() => {
+  // vi.hoisted runs synchronously before ESM imports, so require() is necessary here
+
   const { mkdtempSync } = require("node:fs");
+
   const { join } = require("node:path");
+
   const { tmpdir } = require("node:os");
   return { stableTempDir: mkdtempSync(join(tmpdir(), "innovator-ws-test-")) };
 });

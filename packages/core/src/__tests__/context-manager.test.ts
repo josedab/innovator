@@ -99,7 +99,8 @@ describe("context-manager", () => {
     });
 
     it("compresses multi-sentence text to target ratio", () => {
-      const text = "First sentence here. Second one is about something. Third has more info. Fourth is last.";
+      const text =
+        "First sentence here. Second one is about something. Third has more info. Fourth is last.";
       const compressed = extractiveCompress(text, 0.5);
       const originalSentences = text.split(/(?<=[.!?])\s+/).length;
       const compressedSentences = compressed.split(/(?<=[.!?])\s+/).length;
@@ -108,7 +109,8 @@ describe("context-manager", () => {
     });
 
     it("preserves first/last sentences (position scoring)", () => {
-      const text = "Important opening. Middle filler content. Another middle part. Critical closing.";
+      const text =
+        "Important opening. Middle filler content. Another middle part. Critical closing.";
       const compressed = extractiveCompress(text, 0.5);
       expect(compressed).toContain("Important opening");
     });
@@ -153,9 +155,7 @@ describe("context-manager", () => {
     });
 
     it("does not compress when within budget", () => {
-      const segments: ContextSegment[] = [
-        createSegment("s1", "short content", "user-input", 0.8),
-      ];
+      const segments: ContextSegment[] = [createSegment("s1", "short content", "user-input", 0.8)];
       const result = manageContext(segments, "generation", "test");
       expect(result.status.compressionApplied).toBe(false);
       expect(result.status.compressionResult).toBeUndefined();
@@ -178,9 +178,7 @@ describe("context-manager", () => {
     it("compresses segments >200 tokens when still over budget", () => {
       // Create content that's large but all high-relevance
       const longContent = "The testing framework validates correctness. ".repeat(200);
-      const segments: ContextSegment[] = [
-        createSegment("big", longContent, "investigation", 0.9),
-      ];
+      const segments: ContextSegment[] = [createSegment("big", longContent, "investigation", 0.9)];
       const result = manageContext(segments, "investigation", "testing framework");
       if (result.status.compressionApplied) {
         expect(result.status.compressionResult).toBeDefined();
@@ -189,9 +187,7 @@ describe("context-manager", () => {
     });
 
     it("uses correct budget per stage", () => {
-      const segments: ContextSegment[] = [
-        createSegment("s1", "content", "user-input", 0.9),
-      ];
+      const segments: ContextSegment[] = [createSegment("s1", "content", "user-input", 0.9)];
       const invResult = manageContext(segments, "investigation", "test");
       const synResult = manageContext(segments, "synthesis", "test");
       expect(invResult.status.budgetTokens).toBeLessThan(synResult.status.budgetTokens);
@@ -199,9 +195,7 @@ describe("context-manager", () => {
 
     it("quality floor stays at 0.7 or above", () => {
       const longContent = "Many words about testing. ".repeat(500);
-      const segments: ContextSegment[] = [
-        createSegment("big", longContent, "investigation", 0.9),
-      ];
+      const segments: ContextSegment[] = [createSegment("big", longContent, "investigation", 0.9)];
       const result = manageContext(segments, "investigation", "testing");
       if (result.status.compressionResult) {
         expect(result.status.compressionResult.qualityEstimate).toBeGreaterThanOrEqual(0.7);
@@ -209,17 +203,13 @@ describe("context-manager", () => {
     });
 
     it("handles empty query", () => {
-      const segments: ContextSegment[] = [
-        createSegment("s1", "content", "user-input", 0.5),
-      ];
+      const segments: ContextSegment[] = [createSegment("s1", "content", "user-input", 0.5)];
       const result = manageContext(segments, "generation", "");
       expect(result.segments).toHaveLength(1);
     });
 
     it("applies model token limit", () => {
-      const segments: ContextSegment[] = [
-        createSegment("s1", "content", "user-input", 0.5),
-      ];
+      const segments: ContextSegment[] = [createSegment("s1", "content", "user-input", 0.5)];
       const result = manageContext(segments, "generation", "test", "claude-sonnet-4-20250514");
       expect(result.status.budgetTokens).toBeLessThanOrEqual(200000);
     });
@@ -255,17 +245,34 @@ describe("context-manager", () => {
 
   describe("schemas", () => {
     it("validates ContextBudget", () => {
-      expect(() => ContextBudgetSchema.parse({ stage: "test", maxTokens: 1000, reservedForOutput: 500 })).not.toThrow();
-      expect(() => ContextBudgetSchema.parse({ stage: "test", maxTokens: 50, reservedForOutput: 100 })).toThrow();
+      expect(() =>
+        ContextBudgetSchema.parse({ stage: "test", maxTokens: 1000, reservedForOutput: 500 })
+      ).not.toThrow();
+      expect(() =>
+        ContextBudgetSchema.parse({ stage: "test", maxTokens: 50, reservedForOutput: 100 })
+      ).toThrow();
     });
 
     it("validates ContextSegment", () => {
-      expect(() => ContextSegmentSchema.parse({
-        id: "s1", content: "text", source: "user-input", relevanceScore: 0.5, tokenCount: 10, compressible: true,
-      })).not.toThrow();
-      expect(() => ContextSegmentSchema.parse({
-        id: "s1", content: "text", source: "invalid-source", relevanceScore: 0.5, tokenCount: 10,
-      })).toThrow();
+      expect(() =>
+        ContextSegmentSchema.parse({
+          id: "s1",
+          content: "text",
+          source: "user-input",
+          relevanceScore: 0.5,
+          tokenCount: 10,
+          compressible: true,
+        })
+      ).not.toThrow();
+      expect(() =>
+        ContextSegmentSchema.parse({
+          id: "s1",
+          content: "text",
+          source: "invalid-source",
+          relevanceScore: 0.5,
+          tokenCount: 10,
+        })
+      ).toThrow();
     });
   });
 });

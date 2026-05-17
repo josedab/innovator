@@ -11,10 +11,15 @@ import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const RequestSchema = z.object({
   subject: z.string().min(1).max(500),
-  ideas: z.array(z.object({
-    title: z.string().min(1).max(500),
-    description: z.string().min(1).max(5000),
-  })).min(1).max(50),
+  ideas: z
+    .array(
+      z.object({
+        title: z.string().min(1).max(500),
+        description: z.string().min(1).max(5000),
+      })
+    )
+    .min(1)
+    .max(50),
   model: z.string().optional(),
 });
 
@@ -26,24 +31,49 @@ export async function POST(request: Request) {
     if (contentTypeError) return contentTypeError;
 
     let body: unknown;
-    try { body = await request.json(); } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers: API_RESPONSE_HEADERS });
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const parsed = RequestSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid request." }), { status: 400, headers: API_RESPONSE_HEADERS });
+      return new Response(JSON.stringify({ error: "Invalid request." }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const modelError = validateModel(parsed.data.model);
     if (modelError) return modelError;
 
-    const result = await analyzeTimings(parsed.data.subject, parsed.data.ideas, parsed.data.model, request.signal);
+    const result = await analyzeTimings(
+      parsed.data.subject,
+      parsed.data.ideas,
+      parsed.data.model,
+      request.signal
+    );
 
-    logger.info("Timing analysis completed", { route: "/api/timing", requestId, durationMs: Date.now() - startTime });
+    logger.info("Timing analysis completed", {
+      route: "/api/timing",
+      requestId,
+      durationMs: Date.now() - startTime,
+    });
     return Response.json(result, { headers: API_RESPONSE_HEADERS });
   } catch (err) {
-    logger.error("Timing error", { error: err instanceof Error ? err.message : String(err), route: "/api/timing", requestId, durationMs: Date.now() - startTime });
-    return new Response(JSON.stringify({ error: "Timing analysis failed." }), { status: 500, headers: API_RESPONSE_HEADERS });
+    logger.error("Timing error", {
+      error: err instanceof Error ? err.message : String(err),
+      route: "/api/timing",
+      requestId,
+      durationMs: Date.now() - startTime,
+    });
+    return new Response(JSON.stringify({ error: "Timing analysis failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

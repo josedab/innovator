@@ -161,7 +161,7 @@ export function formatJiraTicket(
   prd: PRD,
   config: BridgeConfig = {}
 ): TicketPayload {
-  const typeMap: Record<string, string> = {
+  const _typeMap: Record<string, string> = {
     feature: "Story",
     bug: "Bug",
     chore: "Task",

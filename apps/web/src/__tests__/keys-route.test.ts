@@ -1,4 +1,3 @@
-// @ts-nocheck — test mocks use simplified types
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@innovator/core", async () => {
@@ -54,7 +53,7 @@ describe("API /api/v1/keys", () => {
         enabled: true,
         createdAt: "2025-01-01",
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       vi.mocked(createApiKey).mockReturnValue(fakeKey as any);
 
       const res = await POST(makeNextRequest("POST", { name: "My Key" }));
@@ -73,7 +72,7 @@ describe("API /api/v1/keys", () => {
         enabled: true,
         createdAt: "2025-01-01",
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       vi.mocked(createApiKey).mockReturnValue(fakeKey as any);
 
       const res = await POST(makeNextRequest("POST", { name: "Pro Key", tier: "pro" }));
@@ -109,7 +108,7 @@ describe("API /api/v1/keys", () => {
         enabled: true,
         createdAt: "2025-01-01",
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       vi.mocked(createApiKey).mockReturnValue(fakeKey as any);
       const res = await POST(makeNextRequest("POST", { name: maxName }));
       expect(res.status).toBe(201);
@@ -152,10 +151,9 @@ describe("API /api/v1/keys", () => {
           enabled: true,
           createdAt: "2025-01-01",
           lastUsedAt: null,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
       ]);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       vi.mocked(getUsageSummary).mockReturnValue({ requests: 10, tokens: 100 } as any);
 
       const res = await GET(makeNextRequest("GET"));
@@ -184,10 +182,9 @@ describe("API /api/v1/keys", () => {
           createdAt: "2025-01-01",
           lastUsedAt: null,
           // The full 'key' field should not be in listApiKeys output
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
       ]);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       vi.mocked(getUsageSummary).mockReturnValue({ requests: 0, tokens: 0 } as any);
 
       const res = await GET(makeNextRequest("GET"));
@@ -206,10 +203,9 @@ describe("API /api/v1/keys", () => {
           enabled: true,
           createdAt: "2025-01-01",
           lastUsedAt: "2025-06-01",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
       ]);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       vi.mocked(getUsageSummary).mockReturnValue({ requests: 42, tokens: 500 } as any);
 
       const res = await GET(makeNextRequest("GET"));
@@ -267,7 +263,7 @@ describe("API /api/v1/keys", () => {
         enabled: true,
         createdAt: "2025-01-01",
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       vi.mocked(createApiKey).mockReturnValue(fakeKey as any);
       const res = await POST(makeNextRequest("POST", { name: "Test" }));
       expect(res.headers.get("Content-Type")).toBe("application/json");

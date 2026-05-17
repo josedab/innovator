@@ -35,15 +35,15 @@ async function POST(request: Request) {
       );
     }
     // In real handler, this creates an SSE stream
-    return new Response(
-      JSON.stringify({ status: "started", subjects: parsed.data.subjects }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ status: "started", subjects: parsed.data.subjects }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Intersection analysis failed." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Intersection analysis failed." }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -61,7 +61,13 @@ describe("POST /api/intersection", () => {
   });
 
   it("returns 200 for valid 2-subject input", async () => {
-    const res = await POST(makeRequest({ subjects: ["AI testing", "Code review"], model: "gpt-4.1", anglesPerSubject: 2 }));
+    const res = await POST(
+      makeRequest({
+        subjects: ["AI testing", "Code review"],
+        model: "gpt-4.1",
+        anglesPerSubject: 2,
+      })
+    );
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -102,7 +108,9 @@ describe("POST /api/intersection", () => {
   });
 
   it("returns 400 for anglesPerSubject out of range (0)", async () => {
-    const res = await POST(makeRequest({ subjects: ["AI testing", "Code review"], anglesPerSubject: 0 }));
+    const res = await POST(
+      makeRequest({ subjects: ["AI testing", "Code review"], anglesPerSubject: 0 })
+    );
     const data = await res.json();
 
     expect(res.status).toBe(400);
@@ -110,7 +118,9 @@ describe("POST /api/intersection", () => {
   });
 
   it("returns 400 for anglesPerSubject out of range (5)", async () => {
-    const res = await POST(makeRequest({ subjects: ["AI testing", "Code review"], anglesPerSubject: 5 }));
+    const res = await POST(
+      makeRequest({ subjects: ["AI testing", "Code review"], anglesPerSubject: 5 })
+    );
     const data = await res.json();
 
     expect(res.status).toBe(400);

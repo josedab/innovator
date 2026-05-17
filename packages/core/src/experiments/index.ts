@@ -259,7 +259,7 @@ export async function runExperiment(
         };
 
         experiment.results.push(result);
-      } catch (err) {
+      } catch {
         experiment.results.push({
           variantId: variant.id,
           runId: `run_${randomUUID().slice(0, 8)}`,

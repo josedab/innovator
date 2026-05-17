@@ -9,7 +9,6 @@ import {
   type BlackboardEntry,
   type SwarmAgent,
   type SwarmConfig,
-  type SwarmIdea,
   type SwarmResult,
   type SwarmStage,
   SwarmIdeaSchema,

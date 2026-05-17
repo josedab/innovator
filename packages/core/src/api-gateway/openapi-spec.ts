@@ -204,7 +204,11 @@ export function getOpenAPISpec(): Record<string, unknown> {
                   type: "object",
                   required: ["subject"],
                   properties: {
-                    subject: { type: "string", maxLength: 500, description: "The subject to investigate" },
+                    subject: {
+                      type: "string",
+                      maxLength: 500,
+                      description: "The subject to investigate",
+                    },
                     model: { type: "string", description: "LLM model override" },
                   },
                 },
@@ -240,8 +244,7 @@ export function getOpenAPISpec(): Record<string, unknown> {
         post: {
           operationId: "generateIdeas",
           summary: "Generate ideas for angles",
-          description:
-            "Generate innovation ideas for a subject using specified creativity angles.",
+          description: "Generate innovation ideas for a subject using specified creativity angles.",
           tags: ["innovation"],
           security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }],
           requestBody: {
@@ -315,7 +318,11 @@ export function getOpenAPISpec(): Record<string, unknown> {
                   type: "object",
                   required: ["subject"],
                   properties: {
-                    subject: { type: "string", maxLength: 500, description: "The subject for the full pipeline" },
+                    subject: {
+                      type: "string",
+                      maxLength: 500,
+                      description: "The subject for the full pipeline",
+                    },
                     model: { type: "string", description: "LLM model override" },
                   },
                 },
@@ -654,7 +661,10 @@ function toYAML(value: unknown, indent: number = 0): string {
       const serialized = toYAML(item, indent + 1);
       if (typeof item === "object" && item !== null && !Array.isArray(item)) {
         const lines = serialized.split("\n");
-        return `${pad}- ${lines[0]}\n${lines.slice(1).map((l) => `${pad}  ${l}`).join("\n")}`;
+        return `${pad}- ${lines[0]}\n${lines
+          .slice(1)
+          .map((l) => `${pad}  ${l}`)
+          .join("\n")}`;
       }
       return `${pad}- ${serialized}`;
     });
@@ -666,7 +676,11 @@ function toYAML(value: unknown, indent: number = 0): string {
     if (entries.length === 0) return "{}";
     const lines = entries.map(([key, val]) => {
       const serializedVal = toYAML(val, indent + 1);
-      if (typeof val === "object" && val !== null && (Array.isArray(val) || Object.keys(val as Record<string, unknown>).length > 0)) {
+      if (
+        typeof val === "object" &&
+        val !== null &&
+        (Array.isArray(val) || Object.keys(val as Record<string, unknown>).length > 0)
+      ) {
         return `${pad}${key}:${serializedVal.startsWith("\n") ? serializedVal : "\n" + "  ".repeat(indent + 1) + serializedVal}`;
       }
       return `${pad}${key}: ${serializedVal}`;

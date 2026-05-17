@@ -3,12 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import {
-  createProject,
-  getProject,
-  listProjects,
-  searchProjects,
-} from "@innovator/core";
+import { createProject, getProject, listProjects, searchProjects } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-request";
@@ -28,7 +23,7 @@ const CreateProjectSchema = z.object({
     .optional(),
 });
 
-const SearchSchema = z.object({
+const _SearchSchema = z.object({
   query: z.string().min(1).max(500),
   status: z.enum(["active", "archived", "completed"]).optional(),
   ownerId: z.string().optional(),

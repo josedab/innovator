@@ -89,7 +89,11 @@ export async function POST(request: Request) {
         }));
         const dslTemplates = listBuiltinDSLs();
         return Response.json(
-          { templates: dagTemplates, dslTemplates, total: dagTemplates.length + dslTemplates.length },
+          {
+            templates: dagTemplates,
+            dslTemplates,
+            total: dagTemplates.length + dslTemplates.length,
+          },
           { headers: API_RESPONSE_HEADERS }
         );
       }

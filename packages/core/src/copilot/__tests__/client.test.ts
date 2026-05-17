@@ -20,9 +20,9 @@ describe("copilot/client", () => {
       const controller = new AbortController();
       controller.abort();
 
-      await expect(
-        generateText({ prompt: "test", signal: controller.signal })
-      ).rejects.toThrow("Request was aborted");
+      await expect(generateText({ prompt: "test", signal: controller.signal })).rejects.toThrow(
+        "Request was aborted"
+      );
     });
   });
 
@@ -106,7 +106,7 @@ describe("copilot/client", () => {
     });
 
     it("handles empty object", () => {
-      const raw = '{}';
+      const raw = "{}";
       expect(JSON.parse(extractJson(raw))).toEqual({});
     });
 

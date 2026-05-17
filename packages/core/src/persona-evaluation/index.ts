@@ -375,9 +375,7 @@ export function detectConflicts(
     }
   }
 
-  return conflicts.sort(
-    (a, b) => b.description.length - a.description.length
-  );
+  return conflicts.sort((a, b) => b.description.length - a.description.length);
 }
 
 /** Generate LLM-powered mediation suggestions for conflicting scorecards. */
@@ -556,14 +554,10 @@ export function assessmentToMarkdown(assessment: StakeholderAssessment): string 
   if (assessment.alignmentMatrix.ideas.length > 0) {
     lines.push("## Alignment Matrix", "");
     if (assessment.alignmentMatrix.consensusIdeas.length > 0) {
-      lines.push(
-        `**Consensus Ideas:** ${assessment.alignmentMatrix.consensusIdeas.join(", ")}`
-      );
+      lines.push(`**Consensus Ideas:** ${assessment.alignmentMatrix.consensusIdeas.join(", ")}`);
     }
     if (assessment.alignmentMatrix.divisiveIdeas.length > 0) {
-      lines.push(
-        `**Divisive Ideas:** ${assessment.alignmentMatrix.divisiveIdeas.join(", ")}`
-      );
+      lines.push(`**Divisive Ideas:** ${assessment.alignmentMatrix.divisiveIdeas.join(", ")}`);
     }
     lines.push("");
   }
@@ -592,7 +586,6 @@ export function assessmentToMarkdown(assessment: StakeholderAssessment): string 
 
   return lines.join("\n");
 }
-
 
 /** Clear all custom personas (built-in personas are preserved). */
 export function clearCustomPersonas(): void {

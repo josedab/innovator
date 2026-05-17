@@ -28,11 +28,15 @@ export const PrivacyBudgetSchema = z.object({
   maxBudget: z.number().min(0),
   queriesProcessed: z.number().int().min(0),
   lastQueryAt: z.string().optional(),
-  budgetHistory: z.array(z.object({
-    timestamp: z.string(),
-    epsilonSpent: z.number(),
-    queryType: z.string().max(200),
-  })).max(10000),
+  budgetHistory: z
+    .array(
+      z.object({
+        timestamp: z.string(),
+        epsilonSpent: z.number(),
+        queryType: z.string().max(200),
+      })
+    )
+    .max(10000),
 });
 
 export type PrivacyBudget = z.infer<typeof PrivacyBudgetSchema>;

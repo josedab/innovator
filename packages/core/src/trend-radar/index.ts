@@ -424,7 +424,7 @@ export function clusterTopics(
 // ---- Radar Generation ----
 
 /** Classify a topic into a radar ring based on trend data. */
-function classifyRing(trend: Trend | undefined, frequency: number): RadarRing {
+function classifyRing(trend: Trend | undefined, _frequency: number): RadarRing {
   if (!trend) return "assess";
   if (trend.direction === "rising" && trend.momentum > 0.6) return "adopt";
   if (trend.direction === "rising" || trend.direction === "stable") return "trial";

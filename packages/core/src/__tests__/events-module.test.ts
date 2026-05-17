@@ -58,7 +58,9 @@ describe("EventBus", () => {
 
   it("once() fires only once", async () => {
     let count = 0;
-    bus.once("idea.scored", () => { count++; });
+    bus.once("idea.scored", () => {
+      count++;
+    });
 
     await bus.emit("idea.scored", { score: 90 });
     await bus.emit("idea.scored", { score: 95 });
@@ -68,7 +70,9 @@ describe("EventBus", () => {
 
   it("unsubscribe removes listener", async () => {
     let count = 0;
-    const unsub = bus.on("pipeline.completed", () => { count++; });
+    const unsub = bus.on("pipeline.completed", () => {
+      count++;
+    });
 
     await bus.emit("pipeline.completed", {});
     unsub();
@@ -411,8 +415,8 @@ describe("Webhook Templates", () => {
 
   it("GitHub Issues template renders with variables", () => {
     const body = GITHUB_ISSUES_TEMPLATE.bodyTemplate(sampleEvent);
-    expect((body.title as string)).toContain("Test Idea");
-    expect((body.body as string)).toContain("pipeline.completed");
+    expect(body.title as string).toContain("Test Idea");
+    expect(body.body as string).toContain("pipeline.completed");
     expect(body.labels).toContain("innovation");
   });
 
@@ -425,7 +429,7 @@ describe("Webhook Templates", () => {
 
   it("Email template renders with variables", () => {
     const body = EMAIL_TEMPLATE.bodyTemplate(sampleEvent);
-    expect((body.subject as string)).toContain("pipeline.completed");
+    expect(body.subject as string).toContain("pipeline.completed");
     expect((body.content as any[])[0].value).toContain("Innovation Session");
   });
 

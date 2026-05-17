@@ -421,7 +421,12 @@ describe("dryRunPipeline — additional coverage", () => {
     const config = makeConfig({ phases: ["investigate", "generate"] });
     const dag = makeDAG([
       makeNode({ id: "investigate-0", type: "investigate", label: "Investigate", dependsOn: [] }),
-      makeNode({ id: "generate-1", type: "generate", label: "Generate", dependsOn: ["investigate-0"] }),
+      makeNode({
+        id: "generate-1",
+        type: "generate",
+        label: "Generate",
+        dependsOn: ["investigate-0"],
+      }),
     ]);
     const result = dryRunPipeline(config, dag);
 
@@ -453,7 +458,12 @@ describe("dryRunPipeline — additional coverage", () => {
 
   it("warns when more than 20 nodes", () => {
     const nodes: DAGNode[] = Array.from({ length: 21 }, (_, i) =>
-      makeNode({ id: `node-${i}`, type: "investigate", label: `Node ${i}`, dependsOn: i > 0 ? [`node-${i - 1}`] : [] })
+      makeNode({
+        id: `node-${i}`,
+        type: "investigate",
+        label: `Node ${i}`,
+        dependsOn: i > 0 ? [`node-${i - 1}`] : [],
+      })
     );
     const config = makeConfig();
     const dag = makeDAG(nodes);
@@ -463,7 +473,9 @@ describe("dryRunPipeline — additional coverage", () => {
   });
 
   it("uses fallback estimates for unknown phase type", () => {
-    const nodes = [makeNode({ id: "unknown-0", type: "nonexistent" as never, label: "Unknown", dependsOn: [] })];
+    const nodes = [
+      makeNode({ id: "unknown-0", type: "nonexistent" as never, label: "Unknown", dependsOn: [] }),
+    ];
     const dag = makeDAG(nodes);
     const config = makeConfig({ phases: ["investigate"] });
     const result = dryRunPipeline(config, dag);

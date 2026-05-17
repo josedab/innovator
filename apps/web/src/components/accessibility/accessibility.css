@@ -46,10 +46,20 @@
 .large-text {
   font-size: 18px;
 }
-.large-text h1 { font-size: 2.25rem; }
-.large-text h2 { font-size: 1.875rem; }
-.large-text h3 { font-size: 1.5rem; }
-.large-text p, .large-text li, .large-text td { font-size: 1.125rem; }
+.large-text h1 {
+  font-size: 2.25rem;
+}
+.large-text h2 {
+  font-size: 1.875rem;
+}
+.large-text h3 {
+  font-size: 1.5rem;
+}
+.large-text p,
+.large-text li,
+.large-text td {
+  font-size: 1.125rem;
+}
 
 /* ── Enhanced Focus Indicators ── */
 .focus-indicators *:focus-visible {
@@ -100,7 +110,9 @@
     --background: #000000;
     --foreground: #ffffff;
   }
-  button, a, [role="button"] {
+  button,
+  a,
+  [role="button"] {
     outline: 2px solid currentColor;
     outline-offset: 2px;
   }

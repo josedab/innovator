@@ -37,7 +37,16 @@ export const MarketSizeSchema = z.object({
 export const CompetitorSchema = z.object({
   name: z.string().max(200),
   description: z.string().max(1000),
-  stage: z.enum(["idea", "pre-seed", "seed", "series-a", "series-b", "growth", "public", "unknown"]),
+  stage: z.enum([
+    "idea",
+    "pre-seed",
+    "seed",
+    "series-a",
+    "series-b",
+    "growth",
+    "public",
+    "unknown",
+  ]),
   funding: z.string().max(200).optional(),
   url: z.string().max(2000).optional(),
   similarity: z.number().min(0).max(1),
@@ -58,7 +67,9 @@ export const EnrichedIdeaSchema = z.object({
 
 /** Schema for enrichment configuration. */
 export const EnrichmentConfigSchema = z.object({
-  sources: z.array(z.enum(["trends", "competitors", "patents", "funding", "research", "news"])).default(["trends", "competitors"]),
+  sources: z
+    .array(z.enum(["trends", "competitors", "patents", "funding", "research", "news"]))
+    .default(["trends", "competitors"]),
   maxEvidencePerSource: z.number().min(1).max(20).default(5),
   includeMarketSizing: z.boolean().default(true),
   model: z.string().max(100).optional(),
@@ -111,19 +122,28 @@ export function clearEnrichmentProviders(): void {
  * Generate heuristic enrichment data for an idea.
  * Uses pattern matching and keyword analysis rather than external APIs.
  */
-export function enrichIdeaHeuristic(
-  ideaTitle: string,
-  ideaDescription: string
-): EnrichedIdea {
+export function enrichIdeaHeuristic(ideaTitle: string, ideaDescription: string): EnrichedIdea {
   const now = new Date().toISOString();
   const keywords = extractKeywords(ideaTitle + " " + ideaDescription);
   const evidence: EvidenceItem[] = [];
 
   // Generate trend evidence based on keywords
   const trendKeywords = keywords.filter((k) =>
-    ["ai", "ml", "blockchain", "quantum", "cloud", "iot", "ar", "vr", "saas", "api", "automation", "sustainability", "green"].some(
-      (t) => k.toLowerCase().includes(t)
-    )
+    [
+      "ai",
+      "ml",
+      "blockchain",
+      "quantum",
+      "cloud",
+      "iot",
+      "ar",
+      "vr",
+      "saas",
+      "api",
+      "automation",
+      "sustainability",
+      "green",
+    ].some((t) => k.toLowerCase().includes(t))
   );
   if (trendKeywords.length > 0) {
     evidence.push({
@@ -150,9 +170,10 @@ export function enrichIdeaHeuristic(
   };
 
   // Trend score (0-100) — weighted toward actual trending keywords
-  const trendScore = Math.min(100, Math.round(
-    trendKeywords.length * 25 + Math.min(keywords.length, 5) * 2 + specificityScore * 10
-  ));
+  const trendScore = Math.min(
+    100,
+    Math.round(trendKeywords.length * 25 + Math.min(keywords.length, 5) * 2 + specificityScore * 10)
+  );
 
   return {
     ideaTitle,
@@ -215,15 +236,20 @@ export async function enrichIdea(
 
   // Compute trend score
   const trendEvidence = evidence.filter((e) => e.type === "trend");
-  const trendScore = Math.min(100, Math.round(
-    trendEvidence.reduce((sum, e) => sum + e.relevanceScore * 20, 0)
-  ));
+  const trendScore = Math.min(
+    100,
+    Math.round(trendEvidence.reduce((sum, e) => sum + e.relevanceScore * 20, 0))
+  );
 
   // Determine competitive landscape
   const competitiveLandscape: EnrichedIdea["competitiveLandscape"] =
-    competitors.length === 0 ? "blue-ocean" :
-    competitors.length <= 2 ? "emerging" :
-    competitors.length <= 5 ? "competitive" : "saturated";
+    competitors.length === 0
+      ? "blue-ocean"
+      : competitors.length <= 2
+        ? "emerging"
+        : competitors.length <= 5
+          ? "competitive"
+          : "saturated";
 
   // Market sizing (heuristic)
   const keywords = extractKeywords(query);
@@ -291,7 +317,9 @@ export function enrichmentToMarkdown(enriched: EnrichedIdea): string {
   if (enriched.evidence.length > 0) {
     lines.push("## Evidence", "");
     for (const e of enriched.evidence.slice(0, 10)) {
-      lines.push(`- **[${e.source}]** ${e.title} (relevance: ${(e.relevanceScore * 100).toFixed(0)}%)`);
+      lines.push(
+        `- **[${e.source}]** ${e.title} (relevance: ${(e.relevanceScore * 100).toFixed(0)}%)`
+      );
     }
     lines.push("");
   }
@@ -310,7 +338,57 @@ export function enrichmentToMarkdown(enriched: EnrichedIdea): string {
 // ---- Helpers ----
 
 function extractKeywords(text: string): string[] {
-  const stopWords = new Set(["the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "can", "shall", "and", "but", "or", "nor", "not", "so", "yet", "for", "to", "of", "in", "on", "at", "by", "with", "from", "as", "into", "about", "this", "that", "these", "those", "it", "its"]);
+  const stopWords = new Set([
+    "the",
+    "a",
+    "an",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "can",
+    "shall",
+    "and",
+    "but",
+    "or",
+    "nor",
+    "not",
+    "so",
+    "yet",
+    "for",
+    "to",
+    "of",
+    "in",
+    "on",
+    "at",
+    "by",
+    "with",
+    "from",
+    "as",
+    "into",
+    "about",
+    "this",
+    "that",
+    "these",
+    "those",
+    "it",
+    "its",
+  ]);
   return text
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "")
@@ -322,7 +400,9 @@ function extractKeywords(text: string): string[] {
 
 function estimateMarketSize(keywords: string[], tier: "tam" | "sam" | "som"): string {
   // Simple heuristic: larger scope keywords get bigger estimates
-  const techMultiplier = keywords.some((k) => ["ai", "cloud", "saas", "platform"].includes(k)) ? 10 : 1;
+  const techMultiplier = keywords.some((k) => ["ai", "cloud", "saas", "platform"].includes(k))
+    ? 10
+    : 1;
   const base = { tam: 100, sam: 20, som: 5 }[tier];
   const estimate = base * techMultiplier;
   if (estimate >= 100) return `$${estimate}B+`;

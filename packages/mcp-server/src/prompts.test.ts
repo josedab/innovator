@@ -2,9 +2,24 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@innovator/core", () => ({
   ANGLES: [
-    { id: "scamper", name: "SCAMPER", shortDescription: "Substitute, Combine, Adapt, Modify, Put, Eliminate, Reverse", icon: "🔄" },
-    { id: "first-principles", name: "First Principles", shortDescription: "Decompose to fundamentals", icon: "🧱" },
-    { id: "cross-domain", name: "Cross-Domain Analogy", shortDescription: "Map from other fields", icon: "🌐" },
+    {
+      id: "scamper",
+      name: "SCAMPER",
+      shortDescription: "Substitute, Combine, Adapt, Modify, Put, Eliminate, Reverse",
+      icon: "🔄",
+    },
+    {
+      id: "first-principles",
+      name: "First Principles",
+      shortDescription: "Decompose to fundamentals",
+      icon: "🧱",
+    },
+    {
+      id: "cross-domain",
+      name: "Cross-Domain Analogy",
+      shortDescription: "Map from other fields",
+      icon: "🌐",
+    },
   ],
 }));
 

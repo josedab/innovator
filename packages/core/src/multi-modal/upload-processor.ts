@@ -41,9 +41,9 @@ export type ProcessingResult = z.infer<typeof ProcessingResultSchema>;
 // ---- Size Limits ----
 
 const SIZE_LIMITS: Record<string, number> = {
-  image: 10 * 1024 * 1024,    // 10 MB
-  pdf: 25 * 1024 * 1024,      // 25 MB
-  audio: 50 * 1024 * 1024,    // 50 MB
+  image: 10 * 1024 * 1024, // 10 MB
+  pdf: 25 * 1024 * 1024, // 25 MB
+  audio: 50 * 1024 * 1024, // 50 MB
   document: 25 * 1024 * 1024, // 25 MB
 };
 
@@ -84,9 +84,7 @@ export function validateUploadedFile(file: UploadedFile): string[] {
 
   const limit = SIZE_LIMITS[fileType];
   if (file.sizeBytes > limit) {
-    errors.push(
-      `File exceeds ${limit / (1024 * 1024)}MB limit for ${fileType} files`
-    );
+    errors.push(`File exceeds ${limit / (1024 * 1024)}MB limit for ${fileType} files`);
   }
 
   if (!file.base64Content && !file.extractedText) {
@@ -110,10 +108,7 @@ export class UploadProcessor {
   }
 
   /** Process a file by routing to the appropriate handler based on MIME type. */
-  async processFile(
-    file: UploadedFile,
-    signal?: AbortSignal
-  ): Promise<ProcessingResult> {
+  async processFile(file: UploadedFile, signal?: AbortSignal): Promise<ProcessingResult> {
     const errors = validateUploadedFile(file);
     if (errors.length > 0) {
       throw new Error(`Validation failed: ${errors.join("; ")}`);
@@ -136,10 +131,7 @@ export class UploadProcessor {
   }
 
   /** Extract innovation context from images (whiteboards, diagrams, products). */
-  async processImage(
-    file: UploadedFile,
-    signal?: AbortSignal
-  ): Promise<ProcessingResult> {
+  async processImage(file: UploadedFile, signal?: AbortSignal): Promise<ProcessingResult> {
     const prompt = `You are analyzing an uploaded image for innovation insights.
 
 ${wrapUserInput("FILENAME", file.filename)}
@@ -180,10 +172,13 @@ Respond with JSON only:
         parsed.objectsDetected ? `Objects: ${(parsed.objectsDetected as string[]).join(", ")}` : "",
         parsed.textExtracted ? `Text: ${parsed.textExtracted}` : "",
         parsed.layoutDescription ? `Layout: ${parsed.layoutDescription}` : "",
-      ].filter(Boolean).join("\n\n"),
-      suggestedSubject: Array.isArray(parsed.innovationSubjects) && parsed.innovationSubjects.length > 0
-        ? (parsed.innovationSubjects as string[])[0]
-        : file.filename,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+      suggestedSubject:
+        Array.isArray(parsed.innovationSubjects) && parsed.innovationSubjects.length > 0
+          ? (parsed.innovationSubjects as string[])[0]
+          : file.filename,
       confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.7,
       metadata: {
         objectsDetected: parsed.objectsDetected,
@@ -193,10 +188,7 @@ Respond with JSON only:
   }
 
   /** Extract text and structure from PDFs. */
-  async processPDF(
-    file: UploadedFile,
-    signal?: AbortSignal
-  ): Promise<ProcessingResult> {
+  async processPDF(file: UploadedFile, signal?: AbortSignal): Promise<ProcessingResult> {
     const textContent = file.extractedText ?? "[PDF content not yet extracted]";
 
     const prompt = `You are analyzing a PDF document for innovation research.
@@ -238,10 +230,13 @@ Respond with JSON only:
         parsed.textSummary ?? "PDF analysis completed",
         parsed.headings ? `Headings: ${(parsed.headings as string[]).join(", ")}` : "",
         parsed.keyConcepts ? `Key concepts: ${(parsed.keyConcepts as string[]).join(", ")}` : "",
-      ].filter(Boolean).join("\n\n"),
-      suggestedSubject: Array.isArray(parsed.suggestedSubjects) && parsed.suggestedSubjects.length > 0
-        ? (parsed.suggestedSubjects as string[])[0]
-        : file.filename,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+      suggestedSubject:
+        Array.isArray(parsed.suggestedSubjects) && parsed.suggestedSubjects.length > 0
+          ? (parsed.suggestedSubjects as string[])[0]
+          : file.filename,
       confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.75,
       metadata: {
         headings: parsed.headings,
@@ -252,10 +247,7 @@ Respond with JSON only:
   }
 
   /** Transcribe audio to text and extract key topics. */
-  async processAudio(
-    file: UploadedFile,
-    signal?: AbortSignal
-  ): Promise<ProcessingResult> {
+  async processAudio(file: UploadedFile, signal?: AbortSignal): Promise<ProcessingResult> {
     const transcript = file.extractedText ?? "[Audio transcript not yet available]";
 
     const prompt = `You are analyzing an audio transcription for innovation insights.
@@ -294,10 +286,13 @@ Respond with JSON only:
       extractedContext: [
         parsed.transcriptSummary ?? "Audio analysis completed",
         parsed.keyTopics ? `Topics: ${(parsed.keyTopics as string[]).join(", ")}` : "",
-      ].filter(Boolean).join("\n\n"),
-      suggestedSubject: Array.isArray(parsed.suggestedSubjects) && parsed.suggestedSubjects.length > 0
-        ? (parsed.suggestedSubjects as string[])[0]
-        : file.filename,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+      suggestedSubject:
+        Array.isArray(parsed.suggestedSubjects) && parsed.suggestedSubjects.length > 0
+          ? (parsed.suggestedSubjects as string[])[0]
+          : file.filename,
       confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.6,
       metadata: {
         keyTopics: parsed.keyTopics,
@@ -311,9 +306,10 @@ Respond with JSON only:
     file: UploadedFile,
     signal?: AbortSignal
   ): Promise<ProcessingResult> {
-    const textContent = file.extractedText ?? file.base64Content
-      ? Buffer.from(file.base64Content, "base64").toString("utf-8").slice(0, 50000)
-      : "[Document content not available]";
+    const textContent =
+      (file.extractedText ?? file.base64Content)
+        ? Buffer.from(file.base64Content, "base64").toString("utf-8").slice(0, 50000)
+        : "[Document content not available]";
 
     const prompt = `You are analyzing a document for innovation insights.
 
@@ -350,10 +346,13 @@ Respond with JSON only:
       extractedContext: [
         parsed.summary ?? "Document analysis completed",
         parsed.keyConcepts ? `Key concepts: ${(parsed.keyConcepts as string[]).join(", ")}` : "",
-      ].filter(Boolean).join("\n\n"),
-      suggestedSubject: Array.isArray(parsed.suggestedSubjects) && parsed.suggestedSubjects.length > 0
-        ? (parsed.suggestedSubjects as string[])[0]
-        : file.filename,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+      suggestedSubject:
+        Array.isArray(parsed.suggestedSubjects) && parsed.suggestedSubjects.length > 0
+          ? (parsed.suggestedSubjects as string[])[0]
+          : file.filename,
       confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.7,
       metadata: { keyConcepts: parsed.keyConcepts },
     };
@@ -368,9 +367,7 @@ Respond with JSON only:
       return `[${label}] ${r.suggestedSubject}\n${r.extractedContext}`;
     });
 
-    const subjects = results
-      .filter((r) => r.confidence > 0.5)
-      .map((r) => r.suggestedSubject);
+    const subjects = results.filter((r) => r.confidence > 0.5).map((r) => r.suggestedSubject);
 
     return `You are investigating an innovation subject informed by multiple uploaded inputs.
 

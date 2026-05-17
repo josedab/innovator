@@ -10,13 +10,7 @@ import type { KnowledgeDocument } from "./types.js";
 
 // ---- Connector Schemas ----
 
-export const ConnectorTypeSchema = z.enum([
-  "github",
-  "confluence",
-  "notion",
-  "local-file",
-  "url",
-]);
+export const ConnectorTypeSchema = z.enum(["github", "confluence", "notion", "local-file", "url"]);
 
 export const ConnectorConfigSchema = z.object({
   id: z.string().max(100),
@@ -84,7 +78,9 @@ export const GitHubConnector: KnowledgeConnector = {
         },
       ];
     } catch (err) {
-      throw new Error(`GitHub connector error: ${err instanceof Error ? err.message : String(err)}`);
+      throw new Error(
+        `GitHub connector error: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   },
 };
@@ -129,7 +125,9 @@ export const ConfluenceConnector: KnowledgeConnector = {
         metadata: { spaceKey, pageId: page.id },
       }));
     } catch (err) {
-      throw new Error(`Confluence connector error: ${err instanceof Error ? err.message : String(err)}`);
+      throw new Error(
+        `Confluence connector error: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   },
 };
@@ -179,7 +177,9 @@ export const NotionConnector: KnowledgeConnector = {
         };
       });
     } catch (err) {
-      throw new Error(`Notion connector error: ${err instanceof Error ? err.message : String(err)}`);
+      throw new Error(
+        `Notion connector error: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   },
 };
@@ -270,16 +270,18 @@ export function registerConnector(config: ConnectorConfig): void {
 export function listConnectors(): Array<ConnectorConfig & { status: ConnectorStatus }> {
   return [...connectorConfigs.values()].map((c) => ({
     ...c,
-    status: connectorStatuses.get(c.id) ?? { connectorId: c.id, status: "idle", documentsIndexed: 0 },
+    status: connectorStatuses.get(c.id) ?? {
+      connectorId: c.id,
+      status: "idle",
+      documentsIndexed: 0,
+    },
   }));
 }
 
 /**
  * Sync a connector, fetching documents from the source.
  */
-export async function syncConnector(
-  connectorId: string
-): Promise<KnowledgeDocument[]> {
+export async function syncConnector(connectorId: string): Promise<KnowledgeDocument[]> {
   const config = connectorConfigs.get(connectorId);
   if (!config) throw new Error(`Connector not found: ${connectorId}`);
 
@@ -317,15 +319,16 @@ export function removeConnector(connectorId: string): boolean {
  * Build context injection text from search results for LLM prompts.
  */
 export function buildContextInjection(
-  searchResults: Array<{ chunk: { content: string }; document: { title: string; source: string }; score: number }>,
+  searchResults: Array<{
+    chunk: { content: string };
+    document: { title: string; source: string };
+    score: number;
+  }>,
   maxLength: number = 3000
 ): string {
   if (searchResults.length === 0) return "";
 
-  const lines: string[] = [
-    "RELEVANT CONTEXT FROM KNOWLEDGE BASE:",
-    "",
-  ];
+  const lines: string[] = ["RELEVANT CONTEXT FROM KNOWLEDGE BASE:", ""];
 
   let currentLength = lines.join("\n").length;
   for (const result of searchResults) {

@@ -8,13 +8,10 @@ import {
   getEcosystem,
   listEcosystems,
   computeEcosystemHealth,
-  simulateStrategy,
   compareStrategies,
   EcosystemSnapshotSchema,
   StrategySchema,
   runMonteCarloComparison as runTwinMonteCarloComparison,
-  twinMonteCarloToMarkdown,
-  TwinMonteCarloConfigSchema,
 } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -26,11 +23,13 @@ const SimulateRequestSchema = z.object({
   strategies: z.array(StrategySchema).min(1).max(10),
   model: z.string().optional(),
   mode: z.enum(["llm", "monte-carlo"]).optional(),
-  monteCarloConfig: z.object({
-    iterations: z.number().int().min(100).max(100000).optional(),
-    timeHorizonWeeks: z.number().int().min(4).max(260).optional(),
-    randomSeed: z.number().optional(),
-  }).optional(),
+  monteCarloConfig: z
+    .object({
+      iterations: z.number().int().min(100).max(100000).optional(),
+      timeHorizonWeeks: z.number().int().min(4).max(260).optional(),
+      randomSeed: z.number().optional(),
+    })
+    .optional(),
 });
 
 /**

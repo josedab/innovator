@@ -9,11 +9,13 @@ import InnovationMemoryPanel from "../components/InnovationMemoryPanel";
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-function mockFetchResponses(overrides: {
-  effectiveness?: unknown;
-  bias?: unknown;
-  recommendations?: unknown;
-} = {}) {
+function mockFetchResponses(
+  overrides: {
+    effectiveness?: unknown;
+    bias?: unknown;
+    recommendations?: unknown;
+  } = {}
+) {
   const effectivenessRes = overrides.effectiveness ?? { effectiveness: [] };
   const biasRes = overrides.bias ?? { bias: [] };
   const recommendationsRes = overrides.recommendations ?? { recommendations: null };

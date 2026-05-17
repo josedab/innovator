@@ -1,4 +1,3 @@
-// @ts-nocheck — test mocks use simplified types
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@innovator/core", () => ({
@@ -228,17 +227,13 @@ describe("POST /api/debate", () => {
   });
 
   it("returns 400 for idea title exceeding max length", async () => {
-    const res = await POST(
-      makeRequest({ ideas: [{ ...MOCK_IDEA, title: "x".repeat(501) }] })
-    );
+    const res = await POST(makeRequest({ ideas: [{ ...MOCK_IDEA, title: "x".repeat(501) }] }));
 
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for unknown model", async () => {
-    const res = await POST(
-      makeRequest({ ideas: [MOCK_IDEA], config: { model: "unknown-model" } })
-    );
+    const res = await POST(makeRequest({ ideas: [MOCK_IDEA], config: { model: "unknown-model" } }));
     const data = await res.json();
 
     expect(res.status).toBe(400);
@@ -268,9 +263,7 @@ describe("POST /api/debate", () => {
     };
     mockDebateIdeas.mockResolvedValue([MOCK_DEBATE_RESULT]);
 
-    await POST(
-      makeRequest({ ideas: [MOCK_IDEA], investigation, config: { rounds: 3 } })
-    );
+    await POST(makeRequest({ ideas: [MOCK_IDEA], investigation, config: { rounds: 3 } }));
 
     expect(mockDebateIdeas).toHaveBeenCalledWith(
       [MOCK_IDEA],

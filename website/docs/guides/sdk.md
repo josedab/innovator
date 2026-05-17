@@ -38,9 +38,9 @@ console.log(events);
 ```ts
 const client = new InnovatorClient({
   baseUrl: "https://innovator.example.com", // Required — your Innovator instance URL
-  apiKey: "inv_abc123",                     // Optional — sent as Bearer token
-  timeout: 120_000,                         // Optional — request timeout in ms (default: 120s)
-  maxRetries: 2,                            // Optional — retries for 408/429/5xx errors (default: 2)
+  apiKey: "inv_abc123", // Optional — sent as Bearer token
+  timeout: 120_000, // Optional — request timeout in ms (default: 120s)
+  maxRetries: 2, // Optional — retries for 408/429/5xx errors (default: 2)
 });
 ```
 
@@ -61,18 +61,14 @@ const investigation = await client.investigate("code review processes", {
 Generate ideas using specific innovation angles against a prior investigation.
 
 ```ts
-const result = await client.innovate(
-  "code review processes",
-  ["scamper", "first-principles"],
-  {
-    investigation,        // from a previous investigate() call
-    synthesize: true,     // cross-reference results
-    score: true,          // add feasibility scoring
-  },
-);
+const result = await client.innovate("code review processes", ["scamper", "first-principles"], {
+  investigation, // from a previous investigate() call
+  synthesize: true, // cross-reference results
+  score: true, // add feasibility scoring
+});
 
 console.log(result.angleResults); // ideas from each angle
-console.log(result.synthesis);    // cross-angle synthesis
+console.log(result.synthesis); // cross-angle synthesis
 ```
 
 ### Auto Pipeline
@@ -96,15 +92,10 @@ await client.streamAuto("remote work tools", (event) => {
 Describe what you want in plain English and let the system build the pipeline.
 
 ```ts
-const events = await client.nlInnovate(
-  "How can we improve developer onboarding using AI?"
-);
+const events = await client.nlInnovate("How can we improve developer onboarding using AI?");
 
 // Or stream
-await client.streamNLInnovate(
-  "Improve developer onboarding",
-  (event) => console.log(event.data),
-);
+await client.streamNLInnovate("Improve developer onboarding", (event) => console.log(event.data));
 ```
 
 ## Advanced Methods
@@ -152,7 +143,7 @@ Evaluate an idea against different stakeholder personas.
 const evaluation = await client.evaluatePersonas(
   { title: "AI Tutor", description: "An AI-powered tutoring system" },
   ["student", "teacher", "administrator"],
-  { format: "markdown" },
+  { format: "markdown" }
 );
 ```
 
@@ -172,10 +163,10 @@ const digest = await client.generateDigest("weekly");
 
 All methods accept an optional `RequestOptions` parameter:
 
-| Option   | Type          | Description                  |
-| -------- | ------------- | ---------------------------- |
-| `model`  | `string`      | Override the LLM model       |
-| `signal` | `AbortSignal` | Cancel the request           |
+| Option   | Type          | Description            |
+| -------- | ------------- | ---------------------- |
+| `model`  | `string`      | Override the LLM model |
+| `signal` | `AbortSignal` | Cancel the request     |
 
 ```ts
 const controller = new AbortController();
@@ -201,8 +192,8 @@ try {
 } catch (err) {
   if (err instanceof InnovatorError) {
     console.error(err.message); // Human-readable message
-    console.error(err.status);  // HTTP status (0 for network/timeout)
-    console.error(err.code);    // "TIMEOUT", "ABORTED", "NETWORK_ERROR"
+    console.error(err.status); // HTTP status (0 for network/timeout)
+    console.error(err.code); // "TIMEOUT", "ABORTED", "NETWORK_ERROR"
   }
 }
 ```

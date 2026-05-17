@@ -1,4 +1,3 @@
-// @ts-nocheck — test mocks use simplified types
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@innovator/core", () => ({
@@ -36,10 +35,10 @@ async function POST(request: Request) {
     for (const id of sessionIds) {
       const session = await getSession(id);
       if (!session) {
-        return new Response(
-          JSON.stringify({ error: `Session not found: ${id}` }),
-          { status: 404, headers: { "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: `Session not found: ${id}` }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
       }
       sessions.push(session);
     }
@@ -61,9 +60,7 @@ async function POST(request: Request) {
     // Unique themes: present in only one session
     const uniqueThemes: Record<string, string[]> = {};
     for (const s of sessions) {
-      uniqueThemes[s.id] = [...sessionThemes[s.id]].filter(
-        (t) => !sharedThemes.includes(t)
-      );
+      uniqueThemes[s.id] = [...sessionThemes[s.id]].filter((t) => !sharedThemes.includes(t));
     }
 
     // Angle comparison: which sessions used which angles
@@ -108,9 +105,35 @@ const MOCK_SESSION_1 = {
   subject: "AI code review",
   createdAt: "2024-01-01T00:00:00Z",
   updatedAt: "2024-01-01T00:00:00Z",
-  angleResults: [{ angleId: "scamper", angleName: "SCAMPER", ideas: [{ title: "Idea A", description: "Desc A", potentialImpact: "Impact A", implementationHint: "" }], reasoning: "" }],
+  angleResults: [
+    {
+      angleId: "scamper",
+      angleName: "SCAMPER",
+      ideas: [
+        {
+          title: "Idea A",
+          description: "Desc A",
+          potentialImpact: "Impact A",
+          implementationHint: "",
+        },
+      ],
+      reasoning: "",
+    },
+  ],
   tags: [],
-  synthesis: { topIdeas: [{ title: "Top 1", description: "Desc", sourceAngle: "scamper", potentialImpact: "High", feasibility: "high" }], themes: ["AI", "DevTools"], recommendation: "Do it" },
+  synthesis: {
+    topIdeas: [
+      {
+        title: "Top 1",
+        description: "Desc",
+        sourceAngle: "scamper",
+        potentialImpact: "High",
+        feasibility: "high",
+      },
+    ],
+    themes: ["AI", "DevTools"],
+    recommendation: "Do it",
+  },
 };
 
 const MOCK_SESSION_2 = {
@@ -118,9 +141,35 @@ const MOCK_SESSION_2 = {
   subject: "Testing automation",
   createdAt: "2024-02-01T00:00:00Z",
   updatedAt: "2024-02-01T00:00:00Z",
-  angleResults: [{ angleId: "first-principles", angleName: "First Principles", ideas: [{ title: "Idea B", description: "Desc B", potentialImpact: "Impact B", implementationHint: "" }], reasoning: "" }],
+  angleResults: [
+    {
+      angleId: "first-principles",
+      angleName: "First Principles",
+      ideas: [
+        {
+          title: "Idea B",
+          description: "Desc B",
+          potentialImpact: "Impact B",
+          implementationHint: "",
+        },
+      ],
+      reasoning: "",
+    },
+  ],
   tags: [],
-  synthesis: { topIdeas: [{ title: "Top 2", description: "Desc", sourceAngle: "first-principles", potentialImpact: "Medium", feasibility: "medium" }], themes: ["AI", "Testing"], recommendation: "Test" },
+  synthesis: {
+    topIdeas: [
+      {
+        title: "Top 2",
+        description: "Desc",
+        sourceAngle: "first-principles",
+        potentialImpact: "Medium",
+        feasibility: "medium",
+      },
+    ],
+    themes: ["AI", "Testing"],
+    recommendation: "Test",
+  },
 };
 
 function makeRequest(body: unknown): Request {
@@ -213,7 +262,8 @@ describe("POST /api/session-compare", () => {
 
     expect(data.timeline[0].sessionId).toBe("s1");
     expect(data.timeline[1].sessionId).toBe("s2");
-    expect(new Date(data.timeline[0].createdAt).getTime())
-      .toBeLessThan(new Date(data.timeline[1].createdAt).getTime());
+    expect(new Date(data.timeline[0].createdAt).getTime()).toBeLessThan(
+      new Date(data.timeline[1].createdAt).getTime()
+    );
   });
 });

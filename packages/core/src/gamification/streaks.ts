@@ -73,7 +73,10 @@ export function recordActivity(userId: string, date?: string | Date): StreakReco
   const next: StreakRecord = {
     ...existing,
     currentStreak: gap === 1 ? existing.currentStreak + 1 : 1,
-    longestStreak: gap === 1 ? Math.max(existing.longestStreak, existing.currentStreak + 1) : existing.longestStreak,
+    longestStreak:
+      gap === 1
+        ? Math.max(existing.longestStreak, existing.currentStreak + 1)
+        : existing.longestStreak,
     lastActivityDate: activityDate,
     streakStartDate: gap === 1 ? existing.streakStartDate : activityDate,
     totalActiveDays: existing.totalActiveDays + 1,
@@ -97,9 +100,7 @@ export function checkMilestone(streak: StreakRecord): StreakMilestone | undefine
   return STREAK_MILESTONES.find((milestone) => milestone.days === streak.currentStreak);
 }
 
-export function getStreakLeaderboard(
-  limit: number = 20
-): Array<StreakRecord & { rank: number }> {
+export function getStreakLeaderboard(limit: number = 20): Array<StreakRecord & { rank: number }> {
   return Array.from(streakStore.values())
     .sort(
       (a, b) =>

@@ -70,10 +70,30 @@ const MODEL_TOKEN_LIMITS: Record<string, number> = {
 };
 
 export const DEFAULT_BUDGETS: Record<string, ContextBudget> = {
-  investigation: { stage: "investigation", maxTokens: 8000, reservedForOutput: 4000, priorityWeights: { "user-input": 1.0, system: 0.8 } },
-  generation: { stage: "generation", maxTokens: 12000, reservedForOutput: 4000, priorityWeights: { investigation: 0.9, "user-input": 1.0, system: 0.7 } },
-  synthesis: { stage: "synthesis", maxTokens: 16000, reservedForOutput: 6000, priorityWeights: { "angle-result": 0.9, investigation: 0.7, "user-input": 1.0 } },
-  scoring: { stage: "scoring", maxTokens: 12000, reservedForOutput: 4000, priorityWeights: { "angle-result": 1.0, investigation: 0.6 } },
+  investigation: {
+    stage: "investigation",
+    maxTokens: 8000,
+    reservedForOutput: 4000,
+    priorityWeights: { "user-input": 1.0, system: 0.8 },
+  },
+  generation: {
+    stage: "generation",
+    maxTokens: 12000,
+    reservedForOutput: 4000,
+    priorityWeights: { investigation: 0.9, "user-input": 1.0, system: 0.7 },
+  },
+  synthesis: {
+    stage: "synthesis",
+    maxTokens: 16000,
+    reservedForOutput: 6000,
+    priorityWeights: { "angle-result": 0.9, investigation: 0.7, "user-input": 1.0 },
+  },
+  scoring: {
+    stage: "scoring",
+    maxTokens: 12000,
+    reservedForOutput: 4000,
+    priorityWeights: { "angle-result": 1.0, investigation: 0.6 },
+  },
 };
 
 // ---- Quality Monitoring ----
@@ -109,7 +129,10 @@ export function getModelTokenLimit(model?: string): number {
  * Compute relevance score for a context segment relative to a query.
  */
 export function computeRelevance(segment: ContextSegment, query: string): number {
-  const queryTerms = query.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
+  const queryTerms = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((t) => t.length > 2);
   const content = segment.content.toLowerCase();
 
   if (queryTerms.length === 0) return segment.relevanceScore;
@@ -119,7 +142,11 @@ export function computeRelevance(segment: ContextSegment, query: string): number
 
   // Blend with source-based priority
   const sourcePriority: Record<string, number> = {
-    "user-input": 1.0, system: 0.9, investigation: 0.7, "angle-result": 0.6, history: 0.4,
+    "user-input": 1.0,
+    system: 0.9,
+    investigation: 0.7,
+    "angle-result": 0.6,
+    history: 0.4,
   };
   const sourceWeight = sourcePriority[segment.source] ?? 0.5;
 
@@ -139,7 +166,8 @@ export function extractiveCompress(text: string, targetRatio: number): string {
   const scored = sentences.map((sentence, i) => {
     const positionScore = i < 2 || i >= sentences.length - 1 ? 1.0 : 0.5;
     const lengthScore = Math.min(sentence.length / 100, 1);
-    const keywordDensity = (sentence.match(/\b[A-Z][a-z]+/g) || []).length / Math.max(sentence.split(/\s+/).length, 1);
+    const keywordDensity =
+      (sentence.match(/\b[A-Z][a-z]+/g) || []).length / Math.max(sentence.split(/\s+/).length, 1);
     return { sentence, score: positionScore + lengthScore * 0.3 + keywordDensity * 0.5 };
   });
 

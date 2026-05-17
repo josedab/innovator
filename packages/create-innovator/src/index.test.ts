@@ -22,7 +22,6 @@ vi.mock("node:readline", () => ({
 
 // Mock chalk to avoid color code issues in tests
 vi.mock("chalk", () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handler: ProxyHandler<any> = {
     get: () => new Proxy((s: string) => s, handler),
     apply: (_target, _thisArg, args) => args[0],
@@ -171,7 +170,6 @@ describe("create-innovator scaffolding", () => {
           createInterface: mockCreateInterface,
         }));
         vi.doMock("chalk", () => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const handler: ProxyHandler<any> = {
             get: () => new Proxy((s: string) => s, handler),
             apply: (_target, _thisArg, args) => args[0],
@@ -190,7 +188,6 @@ describe("create-innovator scaffolding", () => {
 
       // Check mkdirSync was called
       if (mockMkdirSync.mock.calls.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const paths = mockMkdirSync.mock.calls.map((c: any[]) => c[0]);
         const hasAnglesDir = paths.some((p: string) => p.includes("angles"));
         expect(hasAnglesDir).toBe(true);
@@ -219,7 +216,6 @@ describe("create-innovator scaffolding", () => {
           createInterface: mockCreateInterface,
         }));
         vi.doMock("chalk", () => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const handler: ProxyHandler<any> = {
             get: () => new Proxy((s: string) => s, handler),
             apply: (_target, _thisArg, args) => args[0],

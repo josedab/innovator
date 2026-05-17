@@ -93,7 +93,9 @@ export async function POST(request: Request) {
       }
       case "auto-tune": {
         const params = autoTuneParameters(parsed.domain);
-        logger.info(`Auto-tuned parameters (confidence: ${params.confidenceScore})`, { route: "/api/memory" });
+        logger.info(`Auto-tuned parameters (confidence: ${params.confidenceScore})`, {
+          route: "/api/memory",
+        });
         return Response.json({ parameters: params }, { headers: API_RESPONSE_HEADERS });
       }
     }
@@ -104,7 +106,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/memory" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/memory",
+    });
     return Response.json(
       { error: "Internal server error" },
       { status: 500, headers: API_RESPONSE_HEADERS }

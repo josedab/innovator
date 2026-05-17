@@ -40,7 +40,17 @@ function makeIdeaMapArtifact(overrides: Record<string, unknown> = {}) {
     format: "json" as const,
     content: JSON.stringify({
       nodes: [
-        { id: "n1", label: "Idea 1", x: 100, y: 100, size: 20, color: "#3b82f6", angle: "tech", score: 0.9, connections: [] },
+        {
+          id: "n1",
+          label: "Idea 1",
+          x: 100,
+          y: 100,
+          size: 20,
+          color: "#3b82f6",
+          angle: "tech",
+          score: 0.9,
+          connections: [],
+        },
       ],
       width: 600,
       height: 400,

@@ -7,7 +7,6 @@ import {
   createPlaygroundSession,
   getPlaygroundSession,
   getSessionByShareId,
-  updatePlaygroundSession,
   checkUsageLimit,
   getUserSessions,
   getUserUsage,
@@ -93,7 +92,10 @@ export async function GET(request: Request) {
       const usage = getUserUsage(userId);
       const limit = checkUsageLimit(userId);
       const userWorkspaces = listPlaygroundWorkspaces(userId);
-      return NextResponse.json({ sessions, usage, limit, workspaces: userWorkspaces }, { headers: API_RESPONSE_HEADERS });
+      return NextResponse.json(
+        { sessions, usage, limit, workspaces: userWorkspaces },
+        { headers: API_RESPONSE_HEADERS }
+      );
     }
 
     return NextResponse.json(
@@ -196,7 +198,10 @@ export async function POST(request: Request) {
             { status: 400, headers: API_RESPONSE_HEADERS }
           );
         }
-        return NextResponse.json({ success: true, workspace: getPlaygroundWorkspace(parsed.workspaceId) }, { headers: API_RESPONSE_HEADERS });
+        return NextResponse.json(
+          { success: true, workspace: getPlaygroundWorkspace(parsed.workspaceId) },
+          { headers: API_RESPONSE_HEADERS }
+        );
       }
 
       if (parsed.operation === "add_session" && parsed.sessionId) {

@@ -10,7 +10,6 @@ import { z } from "zod";
 import { generateEmbedding, cosineSimilarity } from "../rag/embeddings.js";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 import { listSessions } from "../history/index.js";
 import type { SessionRecord } from "../types.js";
 

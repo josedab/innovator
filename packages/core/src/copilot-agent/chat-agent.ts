@@ -66,14 +66,9 @@ export const ChatSessionStateSchema = z.object({
   lastAngleResults: z.array(z.string().max(100)).default([]),
   lastSynthesisId: z.string().max(100).optional(),
   preferences: z.record(z.string().max(500)).default({}),
-  pipelineStage: z.enum([
-    "idle",
-    "investigating",
-    "generating",
-    "scoring",
-    "synthesizing",
-    "complete",
-  ]).default("idle"),
+  pipelineStage: z
+    .enum(["idle", "investigating", "generating", "scoring", "synthesizing", "complete"])
+    .default("idle"),
   activeAngles: z.array(z.string().max(100)).default([]),
   ideaCount: z.number().int().min(0).default(0),
 });
@@ -116,7 +111,14 @@ const chatSessions = new Map<string, ChatSession>();
 
 const INTENT_KEYWORDS: Record<ChatIntent, string[]> = {
   investigate: ["investigate", "research", "explore", "look into", "analyze", "study", "examine"],
-  "generate-ideas": ["generate", "brainstorm", "ideate", "create ideas", "come up with", "think of"],
+  "generate-ideas": [
+    "generate",
+    "brainstorm",
+    "ideate",
+    "create ideas",
+    "come up with",
+    "think of",
+  ],
   "score-ideas": ["score", "rate", "evaluate", "rank", "assess", "prioritize"],
   synthesize: ["synthesize", "summarize", "combine", "merge", "consolidate"],
   "run-pipeline": ["run pipeline", "auto mode", "full pipeline", "end to end", "complete analysis"],
@@ -176,9 +178,7 @@ export async function classifyIntent(
     const result = await withRetry(
       async () => {
         const raw = await generateText({ prompt, model, signal });
-        return ClassifiedIntentSchema.parse(
-          JSON.parse(extractJson(sanitizeLlmOutput(raw)))
-        );
+        return ClassifiedIntentSchema.parse(JSON.parse(extractJson(sanitizeLlmOutput(raw))));
       },
       { signal, maxAttempts: 2 }
     );
@@ -206,7 +206,9 @@ function extractEntities(message: string): Record<string, string> {
   if (modelMatch) entities.model = modelMatch[1];
 
   // Extract angle names
-  const angleMatch = message.match(/\b(scamper|first.principles|biomimicry|reverse|lateral|blue.ocean)\b/i);
+  const angleMatch = message.match(
+    /\b(scamper|first.principles|biomimicry|reverse|lateral|blue.ocean)\b/i
+  );
   if (angleMatch) entities.angle = angleMatch[1].toLowerCase();
 
   return entities;
@@ -239,30 +241,114 @@ Respond in JSON:
 
 const STAGE_SUGGESTIONS: Record<string, Suggestion[]> = {
   idle: [
-    { id: "s1", text: "Investigate a new subject", intent: "investigate", priority: "high", reason: "Start your innovation journey" },
-    { id: "s2", text: "Search past sessions for inspiration", intent: "search-history", priority: "medium", reason: "Build on previous work" },
-    { id: "s3", text: "Run a full auto pipeline", intent: "run-pipeline", priority: "medium", reason: "Get end-to-end results quickly" },
+    {
+      id: "s1",
+      text: "Investigate a new subject",
+      intent: "investigate",
+      priority: "high",
+      reason: "Start your innovation journey",
+    },
+    {
+      id: "s2",
+      text: "Search past sessions for inspiration",
+      intent: "search-history",
+      priority: "medium",
+      reason: "Build on previous work",
+    },
+    {
+      id: "s3",
+      text: "Run a full auto pipeline",
+      intent: "run-pipeline",
+      priority: "medium",
+      reason: "Get end-to-end results quickly",
+    },
   ],
   investigating: [
-    { id: "s4", text: "Generate ideas from this investigation", intent: "generate-ideas", priority: "high", reason: "Turn findings into actionable ideas" },
-    { id: "s5", text: "Drill deeper into a specific aspect", intent: "refine-idea", priority: "medium", reason: "Explore sub-topics" },
+    {
+      id: "s4",
+      text: "Generate ideas from this investigation",
+      intent: "generate-ideas",
+      priority: "high",
+      reason: "Turn findings into actionable ideas",
+    },
+    {
+      id: "s5",
+      text: "Drill deeper into a specific aspect",
+      intent: "refine-idea",
+      priority: "medium",
+      reason: "Explore sub-topics",
+    },
   ],
   generating: [
-    { id: "s6", text: "Score and prioritize these ideas", intent: "score-ideas", priority: "high", reason: "Identify the most promising ideas" },
-    { id: "s7", text: "Synthesize results across all angles", intent: "synthesize", priority: "high", reason: "Get a unified view" },
+    {
+      id: "s6",
+      text: "Score and prioritize these ideas",
+      intent: "score-ideas",
+      priority: "high",
+      reason: "Identify the most promising ideas",
+    },
+    {
+      id: "s7",
+      text: "Synthesize results across all angles",
+      intent: "synthesize",
+      priority: "high",
+      reason: "Get a unified view",
+    },
   ],
   scoring: [
-    { id: "s8", text: "Create a PRD for the top idea", intent: "create-artifact", priority: "high", reason: "Move from idea to action" },
-    { id: "s9", text: "Validate the top ideas", intent: "validate-idea", priority: "medium", reason: "Check feasibility and market fit" },
+    {
+      id: "s8",
+      text: "Create a PRD for the top idea",
+      intent: "create-artifact",
+      priority: "high",
+      reason: "Move from idea to action",
+    },
+    {
+      id: "s9",
+      text: "Validate the top ideas",
+      intent: "validate-idea",
+      priority: "medium",
+      reason: "Check feasibility and market fit",
+    },
   ],
   synthesizing: [
-    { id: "s10", text: "Export results as a report", intent: "export-results", priority: "high", reason: "Share findings with your team" },
-    { id: "s11", text: "Refine a specific idea further", intent: "refine-idea", priority: "medium", reason: "Deepen the most promising idea" },
+    {
+      id: "s10",
+      text: "Export results as a report",
+      intent: "export-results",
+      priority: "high",
+      reason: "Share findings with your team",
+    },
+    {
+      id: "s11",
+      text: "Refine a specific idea further",
+      intent: "refine-idea",
+      priority: "medium",
+      reason: "Deepen the most promising idea",
+    },
   ],
   complete: [
-    { id: "s12", text: "Start a new investigation", intent: "investigate", priority: "medium", reason: "Explore a new direction" },
-    { id: "s13", text: "Export and share results", intent: "export-results", priority: "high", reason: "Distribute your findings" },
-    { id: "s14", text: "Compare with different models", intent: "compare-models", priority: "low", reason: "See how other LLMs approach this" },
+    {
+      id: "s12",
+      text: "Start a new investigation",
+      intent: "investigate",
+      priority: "medium",
+      reason: "Explore a new direction",
+    },
+    {
+      id: "s13",
+      text: "Export and share results",
+      intent: "export-results",
+      priority: "high",
+      reason: "Distribute your findings",
+    },
+    {
+      id: "s14",
+      text: "Compare with different models",
+      intent: "compare-models",
+      priority: "low",
+      reason: "See how other LLMs approach this",
+    },
   ],
 };
 
@@ -283,13 +369,16 @@ export function createChatSession(): ChatSession {
   const now = new Date().toISOString();
   const session: ChatSession = {
     id: randomUUID(),
-    messages: [{
-      id: randomUUID(),
-      role: "system",
-      content: "Innovation Co-Pilot ready. I can help you investigate subjects, generate ideas, score them, and guide you through the full innovation pipeline.",
-      metadata: {},
-      timestamp: now,
-    }],
+    messages: [
+      {
+        id: randomUUID(),
+        role: "system",
+        content:
+          "Innovation Co-Pilot ready. I can help you investigate subjects, generate ideas, score them, and guide you through the full innovation pipeline.",
+        metadata: {},
+        timestamp: now,
+      },
+    ],
     state: {
       pipelineStage: "idle",
       activeAngles: [],
@@ -322,8 +411,7 @@ export function deleteChatSession(sessionId: string): boolean {
  * List all active chat sessions.
  */
 export function listChatSessions(): ChatSession[] {
-  return Array.from(chatSessions.values())
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return Array.from(chatSessions.values()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 // ---- Main Chat Handler ----

@@ -13,8 +13,8 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
-import type { AngleResult, Investigation, Synthesis, InnovationIdea } from "../types.js";
+import { wrapUserInput } from "../prompts/sanitize.js";
+import type { AngleResult, Investigation, Synthesis } from "../types.js";
 
 // ---- Zod Schemas ----
 
@@ -40,11 +40,15 @@ export const SprintCheckpointSchema = z.object({
 /** Schema for a sprint retrospective. */
 export const SprintRetrospectiveSchema = z.object({
   overallSummary: z.string().max(5000),
-  topIdeas: z.array(z.object({
-    title: z.string().max(500),
-    description: z.string().max(2000),
-    actionItems: z.array(z.string().max(500)).max(10),
-  })).max(10),
+  topIdeas: z
+    .array(
+      z.object({
+        title: z.string().max(500),
+        description: z.string().max(2000),
+        actionItems: z.array(z.string().max(500)).max(10),
+      })
+    )
+    .max(10),
   lessonsLearned: z.array(z.string().max(1000)).max(10),
   nextSteps: z.array(z.string().max(1000)).max(10),
   generatedAt: z.string(),
@@ -224,13 +228,23 @@ export function canAdvancePhase(sprint: Sprint): { canAdvance: boolean; reason?:
   // Check phase-specific requirements
   switch (sprint.currentPhase) {
     case "diverge":
-      if (!sprint.investigation || !sprint.angleResults || (sprint.angleResults as unknown[]).length === 0) {
-        return { canAdvance: false, reason: "Complete investigation and angle generation before converging" };
+      if (
+        !sprint.investigation ||
+        !sprint.angleResults ||
+        (sprint.angleResults as unknown[]).length === 0
+      ) {
+        return {
+          canAdvance: false,
+          reason: "Complete investigation and angle generation before converging",
+        };
       }
       return { canAdvance: true };
     case "converge":
       if (!sprint.synthesis || !sprint.selectedIdeas || sprint.selectedIdeas.length === 0) {
-        return { canAdvance: false, reason: "Score, synthesize, and select top ideas before refining" };
+        return {
+          canAdvance: false,
+          reason: "Score, synthesize, and select top ideas before refining",
+        };
       }
       return { canAdvance: true };
     default:
@@ -391,7 +405,11 @@ Generate a checkpoint summary for this phase. You MUST respond with valid JSON o
       },
       { signal }
     );
-    const parsed = JSON.parse(raw) as { summary: string; keyInsights: string[]; metrics?: Record<string, number> };
+    const parsed = JSON.parse(raw) as {
+      summary: string;
+      keyInsights: string[];
+      metrics?: Record<string, number>;
+    };
 
     return {
       phase,
@@ -440,9 +458,7 @@ export async function generateRetrospective(
   const sprint = sprints.get(id);
   if (!sprint) return undefined;
 
-  const checkpointSummaries = sprint.checkpoints
-    .map((c) => `${c.phase}: ${c.summary}`)
-    .join("\n");
+  const checkpointSummaries = sprint.checkpoints.map((c) => `${c.phase}: ${c.summary}`).join("\n");
 
   const prompt = `You are an innovation sprint facilitator generating a retrospective.
 
@@ -504,10 +520,16 @@ export function getProgressionSuggestions(sprint: Sprint): string[] {
   switch (sprint.currentPhase) {
     case "diverge":
       if (!sprint.investigation) {
-        return ["Run investigation on the subject first", "Consider adding market signals for grounding"];
+        return [
+          "Run investigation on the subject first",
+          "Consider adding market signals for grounding",
+        ];
       }
       if (!sprint.angleResults || (sprint.angleResults as unknown[]).length === 0) {
-        return ["Generate ideas across all 8 innovation angles", "Try custom angles for domain-specific insights"];
+        return [
+          "Generate ideas across all 8 innovation angles",
+          "Try custom angles for domain-specific insights",
+        ];
       }
       return ["Review generated ideas", "Ready to advance to Converge phase"];
     case "converge":

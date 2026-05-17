@@ -73,9 +73,9 @@ function loadSchedules(): ReportSchedule[] {
   if (!existsSync(REPORT_SCHEDULES_FILE)) return [];
 
   try {
-    return z.array(ReportScheduleSchema).parse(
-      JSON.parse(readFileSync(REPORT_SCHEDULES_FILE, "utf-8")),
-    );
+    return z
+      .array(ReportScheduleSchema)
+      .parse(JSON.parse(readFileSync(REPORT_SCHEDULES_FILE, "utf-8")));
   } catch {
     return [];
   }
@@ -91,9 +91,9 @@ function loadGeneratedReports(): GeneratedReport[] {
   if (!existsSync(GENERATED_REPORTS_FILE)) return [];
 
   try {
-    return z.array(GeneratedReportSchema).parse(
-      JSON.parse(readFileSync(GENERATED_REPORTS_FILE, "utf-8")),
-    );
+    return z
+      .array(GeneratedReportSchema)
+      .parse(JSON.parse(readFileSync(GENERATED_REPORTS_FILE, "utf-8")));
   } catch {
     return [];
   }
@@ -147,9 +147,12 @@ function renderHeatmapSection(cells: ReturnType<typeof generateAngleHeatmap>["ce
     "",
     "| Angle | Domain | Effectiveness | Sample Size | Avg Quality |",
     "|-------|--------|---------------|-------------|-------------|",
-    ...cells.slice(0, 10).map((cell) =>
-      `| ${cell.angleId} | ${cell.domain} | ${cell.effectivenessScore.toFixed(2)} | ${cell.sampleSize} | ${cell.avgIdeaQuality.toFixed(2)} |`,
-    ),
+    ...cells
+      .slice(0, 10)
+      .map(
+        (cell) =>
+          `| ${cell.angleId} | ${cell.domain} | ${cell.effectivenessScore.toFixed(2)} | ${cell.sampleSize} | ${cell.avgIdeaQuality.toFixed(2)} |`
+      ),
   ].join("\n");
 }
 
@@ -159,19 +162,19 @@ function renderTeamPatternsSection(patterns: ReturnType<typeof analyzeTeamPatter
   return [
     "## Team Innovation Patterns",
     "",
-    ...patterns.slice(0, 10).map((pattern) =>
-      `- **${pattern.displayName}** — ${pattern.totalIdeas} ideas, ${pattern.sessionsCount} sessions, avg quality ${pattern.avgQualityScore.toFixed(2)}, favorite angles: ${pattern.favoriteAngles.join(", ") || "n/a"}`,
-    ),
+    ...patterns
+      .slice(0, 10)
+      .map(
+        (pattern) =>
+          `- **${pattern.displayName}** — ${pattern.totalIdeas} ideas, ${pattern.sessionsCount} sessions, avg quality ${pattern.avgQualityScore.toFixed(2)}, favorite angles: ${pattern.favoriteAngles.join(", ") || "n/a"}`
+      ),
   ].join("\n");
 }
 
-function buildReportPayload(
-  schedule: ReportSchedule,
-  period: { start: string; end: string },
-) {
+function buildReportPayload(schedule: ReportSchedule, period: { start: string; end: string }) {
   const allEvents = readEvents();
-  const periodEvents = allEvents.filter((event) =>
-    event.timestamp >= period.start && event.timestamp <= period.end,
+  const periodEvents = allEvents.filter(
+    (event) => event.timestamp >= period.start && event.timestamp <= period.end
   );
   const summary = generateSummary(periodEvents);
   const kpis = computeKPIs(allEvents, period);
@@ -181,7 +184,7 @@ function buildReportPayload(
       ? "daily"
       : schedule.frequency === "weekly"
         ? "weekly"
-        : "monthly",
+        : "monthly"
   );
   const heatmap = generateAngleHeatmap(periodEvents);
   const patterns = analyzeTeamPatterns(periodEvents);
@@ -192,7 +195,7 @@ function buildReportPayload(
 function executiveMarkdown(
   schedule: ReportSchedule,
   payload: ReturnType<typeof buildReportPayload>,
-  period: { start: string; end: string },
+  period: { start: string; end: string }
 ): string {
   return [
     `# ${schedule.name}`,
@@ -218,7 +221,7 @@ function executiveMarkdown(
 function teamMarkdown(
   schedule: ReportSchedule,
   payload: ReturnType<typeof buildReportPayload>,
-  period: { start: string; end: string },
+  period: { start: string; end: string }
 ): string {
   return [
     `# ${schedule.name}`,
@@ -239,7 +242,7 @@ function teamMarkdown(
 function individualMarkdown(
   schedule: ReportSchedule,
   payload: ReturnType<typeof buildReportPayload>,
-  period: { start: string; end: string },
+  period: { start: string; end: string }
 ): string {
   return [
     `# ${schedule.name}`,
@@ -306,25 +309,26 @@ export function generateScheduledReport(scheduleId: string): GeneratedReport {
   const period = getReportPeriod(schedule.frequency, now);
   const payload = buildReportPayload(schedule, period);
 
-  const content = schedule.format === "json"
-    ? JSON.stringify(
-        {
-          schedule: {
-            id: schedule.id,
-            name: schedule.name,
-            reportType: schedule.reportType,
+  const content =
+    schedule.format === "json"
+      ? JSON.stringify(
+          {
+            schedule: {
+              id: schedule.id,
+              name: schedule.name,
+              reportType: schedule.reportType,
+            },
+            period,
+            ...payload,
           },
-          period,
-          ...payload,
-        },
-        null,
-        2,
-      )
-    : schedule.reportType === "executive"
-      ? executiveMarkdown(schedule, payload, period)
-      : schedule.reportType === "team"
-        ? teamMarkdown(schedule, payload, period)
-        : individualMarkdown(schedule, payload, period);
+          null,
+          2
+        )
+      : schedule.reportType === "executive"
+        ? executiveMarkdown(schedule, payload, period)
+        : schedule.reportType === "team"
+          ? teamMarkdown(schedule, payload, period)
+          : individualMarkdown(schedule, payload, period);
 
   const report = GeneratedReportSchema.parse({
     id: `generated-report-${randomUUID().slice(0, 12)}`,

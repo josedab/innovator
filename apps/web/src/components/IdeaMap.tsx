@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import type { AngleResult, Synthesis } from "@innovator/core/types";
 
 /** A node in the idea relationship graph, representing a single idea. */
@@ -101,7 +101,7 @@ interface IdeaMapProps {
  * Interactive SVG-based idea map showing relationships between ideas across angles.
  * Color-coded by angle, sized by estimated impact.
  */
-export function IdeaMap({ angleResults, synthesis }: IdeaMapProps) {
+export function IdeaMap({ angleResults, synthesis: _synthesis }: IdeaMapProps) {
   const [selectedNode, setSelectedNode] = useState<IdeaNode | null>(null);
   const [filterAngle, setFilterAngle] = useState<string | null>(null);
 
@@ -144,13 +144,13 @@ export function IdeaMap({ angleResults, synthesis }: IdeaMapProps) {
 
     // Circular layout: distribute angle groups evenly around a circle,
     // then offset individual nodes within each group perpendicular to the radius
-    const positioned: IdeaNode[] = nodesRaw.map((node, idx) => {
+    const positioned: IdeaNode[] = nodesRaw.map((node, _idx) => {
       const groupIdx = angleGroups.indexOf(node.angleId);
       // Angle on the circle for this group (start at top: -π/2)
       const groupAngle = (groupIdx / angleGroups.length) * 2 * Math.PI - Math.PI / 2;
       const nodesInGroup = nodesRaw.filter((n) => n.angleId === node.angleId);
       const inGroupIdx = nodesInGroup.indexOf(node);
-      const spread = 0.3;
+      const _spread = 0.3;
       // Offset along the tangent direction so nodes in the same group don't overlap
       const offset = (inGroupIdx - (nodesInGroup.length - 1) / 2) * 30;
 

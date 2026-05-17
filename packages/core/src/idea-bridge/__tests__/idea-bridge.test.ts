@@ -24,7 +24,13 @@ vi.mock("../../prompts/sanitize.js", () => ({
 }));
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { generatePRD, generateTechSpec, generateImplementationPlan, runBridgePipeline, bridgePipelineToMarkdown } from "../idea-bridge.js";
+import {
+  generatePRD,
+  generateTechSpec,
+  generateImplementationPlan,
+  runBridgePipeline,
+  bridgePipelineToMarkdown,
+} from "../idea-bridge.js";
 import type { PRD, TechSpec, BridgePipeline } from "../types.js";
 import type { BridgeProgress } from "../idea-bridge.js";
 
@@ -42,13 +48,21 @@ const MOCK_PRD_RESPONSE = JSON.stringify({
       title: "Priority inbox",
       description: "As a user, I want prioritized notifications",
       persona: "End user",
-      acceptanceCriteria: ["Given notifications, when AI ranks them, then top priority shown first"],
+      acceptanceCriteria: [
+        "Given notifications, when AI ranks them, then top priority shown first",
+      ],
       priority: "must-have",
       estimatedPoints: 5,
     },
   ],
   successMetrics: ["50% fewer dismissed notifications"],
-  risks: [{ description: "AI may misjudge priority", severity: "medium", mitigation: "Add manual override" }],
+  risks: [
+    {
+      description: "AI may misjudge priority",
+      severity: "medium",
+      mitigation: "Add manual override",
+    },
+  ],
 });
 
 const MOCK_TECH_SPEC_RESPONSE = JSON.stringify({
@@ -59,7 +73,11 @@ const MOCK_TECH_SPEC_RESPONSE = JSON.stringify({
     { method: "GET", path: "/api/notifications", description: "List notifications" },
   ],
   dataModels: [
-    { name: "Notification", fields: ["id: string", "content: string", "priority: number"], description: "Core notification entity" },
+    {
+      name: "Notification",
+      fields: ["id: string", "content: string", "priority: number"],
+      description: "Core notification entity",
+    },
   ],
   techStack: ["TypeScript", "Next.js", "PostgreSQL"],
   dependencies: ["zod", "pg"],
@@ -68,14 +86,48 @@ const MOCK_TECH_SPEC_RESPONSE = JSON.stringify({
 
 const MOCK_IMPL_PLAN_RESPONSE = JSON.stringify({
   tasks: [
-    { title: "Set up database", description: "Create PostgreSQL schema", type: "chore", estimatedHours: 4, dependencies: [], labels: ["backend"], scaffoldFiles: ["src/db/schema.sql"] },
-    { title: "Build notification API", description: "REST endpoints", type: "feature", estimatedHours: 8, dependencies: ["Set up database"], labels: ["backend", "api"] },
-    { title: "Write API tests", description: "Unit and integration tests", type: "test", estimatedHours: 4, dependencies: ["Build notification API"], labels: ["testing"] },
+    {
+      title: "Set up database",
+      description: "Create PostgreSQL schema",
+      type: "chore",
+      estimatedHours: 4,
+      dependencies: [],
+      labels: ["backend"],
+      scaffoldFiles: ["src/db/schema.sql"],
+    },
+    {
+      title: "Build notification API",
+      description: "REST endpoints",
+      type: "feature",
+      estimatedHours: 8,
+      dependencies: ["Set up database"],
+      labels: ["backend", "api"],
+    },
+    {
+      title: "Write API tests",
+      description: "Unit and integration tests",
+      type: "test",
+      estimatedHours: 4,
+      dependencies: ["Build notification API"],
+      labels: ["testing"],
+    },
   ],
   phases: [
-    { name: "Phase 1: Foundation", taskTitles: ["Set up database"], description: "Database and infrastructure" },
-    { name: "Phase 2: Core", taskTitles: ["Build notification API"], description: "Core API development" },
-    { name: "Phase 3: Quality", taskTitles: ["Write API tests"], description: "Testing and polish" },
+    {
+      name: "Phase 1: Foundation",
+      taskTitles: ["Set up database"],
+      description: "Database and infrastructure",
+    },
+    {
+      name: "Phase 2: Core",
+      taskTitles: ["Build notification API"],
+      description: "Core API development",
+    },
+    {
+      name: "Phase 3: Quality",
+      taskTitles: ["Write API tests"],
+      description: "Testing and polish",
+    },
   ],
 });
 
@@ -172,7 +224,17 @@ describe("idea-bridge", () => {
           id: "plan-1",
           techSpecId: "spec-1",
           title: "Implementation Plan",
-          tasks: [{ id: "t1", title: "Setup", description: "Setup project", type: "chore", estimatedHours: 4, dependencies: [], labels: [] }],
+          tasks: [
+            {
+              id: "t1",
+              title: "Setup",
+              description: "Setup project",
+              type: "chore",
+              estimatedHours: 4,
+              dependencies: [],
+              labels: [],
+            },
+          ],
           totalEstimatedHours: 4,
           phases: [{ name: "Phase 1", taskIds: ["t1"], description: "Setup" }],
           dependencyGraph: [],
@@ -233,9 +295,7 @@ describe("idea-bridge", () => {
       mocks.generateText.mockRejectedValue(new Error("LLM failed"));
       mocks.withRetry.mockRejectedValueOnce(new Error("LLM failed"));
 
-      await expect(
-        runBridgePipeline("Test", "Test idea")
-      ).rejects.toThrow("LLM failed");
+      await expect(runBridgePipeline("Test", "Test idea")).rejects.toThrow("LLM failed");
     });
 
     it("handles minimal idea input (title only)", async () => {

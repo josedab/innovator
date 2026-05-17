@@ -49,7 +49,7 @@ const STATUS_CONFIG = {
 };
 
 export default function CitationPanel({
-  sessionId,
+  sessionId: _sessionId,
   citations,
   sources,
   onVerify,

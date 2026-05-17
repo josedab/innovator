@@ -83,7 +83,15 @@ describe("provenance-ledger", () => {
   it("records investigation and human decisions", () => {
     const config = { ledgerDir: tempDir };
     recordInvestigation("s1", "Climate Tech", "gpt-5", "abc123", config);
-    recordHumanDecision("s1", "user@test.com", "approval", "Solar panels idea", "Strong market fit", undefined, config);
+    recordHumanDecision(
+      "s1",
+      "user@test.com",
+      "approval",
+      "Solar panels idea",
+      "Strong market fit",
+      undefined,
+      config
+    );
 
     const entries = getSessionEntries("s1", config);
     expect(entries).toHaveLength(2);
@@ -95,11 +103,23 @@ describe("provenance-ledger", () => {
   it("exports data for actor (GDPR)", () => {
     const config = { ledgerDir: tempDir };
     appendEntry(
-      { type: "approval", sessionId: "s1", actor: "alice@test.com", action: "Approved", subject: "Idea A" },
+      {
+        type: "approval",
+        sessionId: "s1",
+        actor: "alice@test.com",
+        action: "Approved",
+        subject: "Idea A",
+      },
       config
     );
     appendEntry(
-      { type: "rejection", sessionId: "s1", actor: "bob@test.com", action: "Rejected", subject: "Idea B" },
+      {
+        type: "rejection",
+        sessionId: "s1",
+        actor: "bob@test.com",
+        action: "Rejected",
+        subject: "Idea B",
+      },
       config
     );
 
@@ -112,7 +132,14 @@ describe("provenance-ledger", () => {
   it("redacts actor data (GDPR Art. 17)", () => {
     const config = { ledgerDir: tempDir };
     appendEntry(
-      { type: "approval", sessionId: "s1", actor: "alice@test.com", action: "Approved", subject: "Secret Idea", reasoning: "Private reasoning" },
+      {
+        type: "approval",
+        sessionId: "s1",
+        actor: "alice@test.com",
+        action: "Approved",
+        subject: "Secret Idea",
+        reasoning: "Private reasoning",
+      },
       config
     );
 
@@ -128,7 +155,13 @@ describe("provenance-ledger", () => {
   it("formats ledger as markdown", () => {
     const config = { ledgerDir: tempDir };
     appendEntry(
-      { type: "investigation", sessionId: "s1", actor: "system", action: "Investigated", subject: "AI" },
+      {
+        type: "investigation",
+        sessionId: "s1",
+        actor: "system",
+        action: "Investigated",
+        subject: "AI",
+      },
       config
     );
 

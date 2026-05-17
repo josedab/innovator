@@ -76,8 +76,20 @@ describe("angle-studio", () => {
 
     it("removes connections when node is removed", () => {
       const pipeline = createPipeline("test");
-      addNode(pipeline.id, { id: "a", type: "angle", label: "A", position: { x: 0, y: 0 }, enabled: true });
-      addNode(pipeline.id, { id: "b", type: "merge", label: "B", position: { x: 100, y: 0 }, enabled: true });
+      addNode(pipeline.id, {
+        id: "a",
+        type: "angle",
+        label: "A",
+        position: { x: 0, y: 0 },
+        enabled: true,
+      });
+      addNode(pipeline.id, {
+        id: "b",
+        type: "merge",
+        label: "B",
+        position: { x: 100, y: 0 },
+        enabled: true,
+      });
       addConnection(pipeline.id, "a", "b");
       expect(getPipeline(pipeline.id)!.connections).toHaveLength(1);
 
@@ -89,7 +101,13 @@ describe("angle-studio", () => {
   describe("moveNode", () => {
     it("updates node position", () => {
       const pipeline = createPipeline("test");
-      addNode(pipeline.id, { id: "n1", type: "angle", label: "A", position: { x: 0, y: 0 }, enabled: true });
+      addNode(pipeline.id, {
+        id: "n1",
+        type: "angle",
+        label: "A",
+        position: { x: 0, y: 0 },
+        enabled: true,
+      });
       moveNode(pipeline.id, "n1", { x: 200, y: 300 });
       const node = getPipeline(pipeline.id)!.nodes[0];
       expect(node.position).toEqual({ x: 200, y: 300 });
@@ -99,7 +117,14 @@ describe("angle-studio", () => {
   describe("updateNodeConfig", () => {
     it("merges config into node", () => {
       const pipeline = createPipeline("test");
-      addNode(pipeline.id, { id: "n1", type: "angle", label: "A", position: { x: 0, y: 0 }, config: { a: 1 }, enabled: true });
+      addNode(pipeline.id, {
+        id: "n1",
+        type: "angle",
+        label: "A",
+        position: { x: 0, y: 0 },
+        config: { a: 1 },
+        enabled: true,
+      });
       updateNodeConfig(pipeline.id, "n1", { b: 2 });
       const node = getPipeline(pipeline.id)!.nodes[0];
       expect(node.config).toEqual({ a: 1, b: 2 });
@@ -109,9 +134,27 @@ describe("angle-studio", () => {
   describe("reorderNodes", () => {
     it("reorders nodes by ID list", () => {
       const pipeline = createPipeline("test");
-      addNode(pipeline.id, { id: "c", type: "angle", label: "C", position: { x: 0, y: 0 }, enabled: true });
-      addNode(pipeline.id, { id: "a", type: "angle", label: "A", position: { x: 0, y: 0 }, enabled: true });
-      addNode(pipeline.id, { id: "b", type: "angle", label: "B", position: { x: 0, y: 0 }, enabled: true });
+      addNode(pipeline.id, {
+        id: "c",
+        type: "angle",
+        label: "C",
+        position: { x: 0, y: 0 },
+        enabled: true,
+      });
+      addNode(pipeline.id, {
+        id: "a",
+        type: "angle",
+        label: "A",
+        position: { x: 0, y: 0 },
+        enabled: true,
+      });
+      addNode(pipeline.id, {
+        id: "b",
+        type: "angle",
+        label: "B",
+        position: { x: 0, y: 0 },
+        enabled: true,
+      });
 
       reorderNodes(pipeline.id, ["a", "b", "c"]);
       const ids = getPipeline(pipeline.id)!.nodes.map((n) => n.id);
@@ -122,8 +165,20 @@ describe("angle-studio", () => {
   describe("connections", () => {
     it("adds connections between nodes", () => {
       const pipeline = createPipeline("test");
-      addNode(pipeline.id, { id: "a", type: "angle", label: "A", position: { x: 0, y: 0 }, enabled: true });
-      addNode(pipeline.id, { id: "b", type: "merge", label: "B", position: { x: 100, y: 0 }, enabled: true });
+      addNode(pipeline.id, {
+        id: "a",
+        type: "angle",
+        label: "A",
+        position: { x: 0, y: 0 },
+        enabled: true,
+      });
+      addNode(pipeline.id, {
+        id: "b",
+        type: "merge",
+        label: "B",
+        position: { x: 100, y: 0 },
+        enabled: true,
+      });
       addConnection(pipeline.id, "a", "b", "flow");
 
       const conn = getPipeline(pipeline.id)!.connections[0];
@@ -134,14 +189,32 @@ describe("angle-studio", () => {
 
     it("prevents self-connections", () => {
       const pipeline = createPipeline("test");
-      addNode(pipeline.id, { id: "a", type: "angle", label: "A", position: { x: 0, y: 0 }, enabled: true });
+      addNode(pipeline.id, {
+        id: "a",
+        type: "angle",
+        label: "A",
+        position: { x: 0, y: 0 },
+        enabled: true,
+      });
       expect(() => addConnection(pipeline.id, "a", "a")).toThrow("Cannot connect a node to itself");
     });
 
     it("prevents duplicate connections", () => {
       const pipeline = createPipeline("test");
-      addNode(pipeline.id, { id: "a", type: "angle", label: "A", position: { x: 0, y: 0 }, enabled: true });
-      addNode(pipeline.id, { id: "b", type: "merge", label: "B", position: { x: 100, y: 0 }, enabled: true });
+      addNode(pipeline.id, {
+        id: "a",
+        type: "angle",
+        label: "A",
+        position: { x: 0, y: 0 },
+        enabled: true,
+      });
+      addNode(pipeline.id, {
+        id: "b",
+        type: "merge",
+        label: "B",
+        position: { x: 100, y: 0 },
+        enabled: true,
+      });
       addConnection(pipeline.id, "a", "b");
       expect(() => addConnection(pipeline.id, "a", "b")).toThrow("already exists");
     });
@@ -165,8 +238,22 @@ describe("angle-studio", () => {
 
     it("warns about disconnected nodes", () => {
       const pipeline = createPipeline("test");
-      addNode(pipeline.id, { id: "a", type: "angle", angleId: "scamper", label: "A", position: { x: 0, y: 0 }, enabled: true });
-      addNode(pipeline.id, { id: "b", type: "angle", angleId: "inversion", label: "B", position: { x: 100, y: 0 }, enabled: true });
+      addNode(pipeline.id, {
+        id: "a",
+        type: "angle",
+        angleId: "scamper",
+        label: "A",
+        position: { x: 0, y: 0 },
+        enabled: true,
+      });
+      addNode(pipeline.id, {
+        id: "b",
+        type: "angle",
+        angleId: "inversion",
+        label: "B",
+        position: { x: 100, y: 0 },
+        enabled: true,
+      });
       const result = validatePipeline(pipeline.id);
       expect(result.warnings.some((w) => w.includes("not connected"))).toBe(true);
     });

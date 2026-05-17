@@ -1,4 +1,3 @@
-// @ts-nocheck — test mocks use simplified types
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { z } from "zod";
 

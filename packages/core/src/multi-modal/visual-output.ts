@@ -188,7 +188,9 @@ export class VisualOutputGenerator {
   generateComparisonChart(angleResults: AngleResultInput[]): VisualArtifact {
     const chartData: ChartDataPoint[] = angleResults.map((ar) => ({
       label: ar.angle,
-      value: ar.score ?? ar.ideas.reduce((sum, i) => sum + (i.score ?? 0), 0) / Math.max(ar.ideas.length, 1),
+      value:
+        ar.score ??
+        ar.ideas.reduce((sum, i) => sum + (i.score ?? 0), 0) / Math.max(ar.ideas.length, 1),
       color: getAngleColor(ar.angle),
     }));
 
@@ -250,9 +252,7 @@ export class VisualOutputGenerator {
       version: "1.0",
       title: "Innovation Visualization",
       exportedAt: new Date().toISOString(),
-      widgets: artifacts.flatMap((artifact, i) =>
-        this.artifactToMiroWidgets(artifact, i * 1200)
-      ),
+      widgets: artifacts.flatMap((artifact, i) => this.artifactToMiroWidgets(artifact, i * 1200)),
     };
   }
 
@@ -302,15 +302,14 @@ export class VisualOutputGenerator {
   private buildQuadrant(ideas: IdeaInput[]): string {
     const lines = [
       "quadrantChart",
-      '    title Feasibility vs Impact',
+      "    title Feasibility vs Impact",
       '    x-axis "Low Feasibility" --> "High Feasibility"',
       '    y-axis "Low Impact" --> "High Impact"',
     ];
 
     for (const idea of ideas.slice(0, 20)) {
       const feasibilityScore =
-        idea.feasibility === "high" ? 0.8 :
-        idea.feasibility === "medium" ? 0.5 : 0.2;
+        idea.feasibility === "high" ? 0.8 : idea.feasibility === "medium" ? 0.5 : 0.2;
       const impactScore = idea.impact ?? idea.score ?? 0.5;
       const label = sanitizeMermaid(idea.title).slice(0, 30);
       lines.push(`    "${label}": [${feasibilityScore.toFixed(2)}, ${impactScore.toFixed(2)}]`);
@@ -411,7 +410,11 @@ export class VisualOutputGenerator {
               style: { backgroundColor: (item.color as string) ?? "#e0e0e0" },
             });
           });
-        } else if (data && typeof data === "object" && "nodes" in (data as Record<string, unknown>)) {
+        } else if (
+          data &&
+          typeof data === "object" &&
+          "nodes" in (data as Record<string, unknown>)
+        ) {
           const mapData = data as IdeaMapData;
           for (const node of mapData.nodes) {
             widgets.push({
@@ -450,7 +453,11 @@ export class VisualOutputGenerator {
 
 /** Sanitize text for Mermaid syntax (remove characters that break rendering). */
 function sanitizeMermaid(text: string): string {
-  return text.replace(/[[\]{}()#&;"`]/g, "").replace(/\n/g, " ").trim().slice(0, 60);
+  return text
+    .replace(/[[\]{}()#&;"`]/g, "")
+    .replace(/\n/g, " ")
+    .trim()
+    .slice(0, 60);
 }
 
 /** Convert hex color to RGB object for Figma. */

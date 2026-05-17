@@ -85,7 +85,7 @@ describe("copilot/client", () => {
     it("falls back to brace-balanced when fenced block has no object", () => {
       const raw = '```json\n[1, 2, 3]\n```\n{"fallback": true}';
       // Arrays are valid JSON, so the fenced block is now preferred
-      expect(extractJson(raw)).toBe('[1, 2, 3]');
+      expect(extractJson(raw)).toBe("[1, 2, 3]");
     });
   });
 
@@ -197,8 +197,9 @@ describe("copilot/client", () => {
       const controller = new AbortController();
       controller.abort();
 
-      await expect(generateText({ prompt: "test", signal: controller.signal }))
-        .rejects.toThrow("Request was aborted");
+      await expect(generateText({ prompt: "test", signal: controller.signal })).rejects.toThrow(
+        "Request was aborted"
+      );
     });
 
     it("uses server permission handler when serverMode is true", async () => {
@@ -233,9 +234,9 @@ describe("copilot/client", () => {
         () => new Promise((resolve) => setTimeout(resolve, 10_000))
       );
 
-      await expect(
-        generateText({ prompt: "test", timeoutMs: 50 })
-      ).rejects.toThrow("LLM request timed out");
+      await expect(generateText({ prompt: "test", timeoutMs: 50 })).rejects.toThrow(
+        "LLM request timed out"
+      );
     });
 
     it("uses custom model when specified", async () => {
@@ -243,9 +244,7 @@ describe("copilot/client", () => {
 
       await generateText({ prompt: "test", model: "gpt-5" });
 
-      expect(mockCreateSession).toHaveBeenCalledWith(
-        expect.objectContaining({ model: "gpt-5" })
-      );
+      expect(mockCreateSession).toHaveBeenCalledWith(expect.objectContaining({ model: "gpt-5" }));
     });
 
     it("disconnects session even on error", async () => {
@@ -305,10 +304,7 @@ describe("copilot/client", () => {
     it("streams chunks and returns full text", async () => {
       const chunks: string[] = [];
 
-      const result = await generateTextStream(
-        { prompt: "test" },
-        (chunk) => chunks.push(chunk)
-      );
+      const result = await generateTextStream({ prompt: "test" }, (chunk) => chunks.push(chunk));
 
       expect(chunks).toEqual(["Hello ", "world"]);
       expect(result).toBe("Hello world");

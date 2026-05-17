@@ -16,7 +16,12 @@ import {
 } from "../auto-layout.js";
 import { canvasToJson, canvasToPng, canvasToMarkdown } from "../canvas-export.js";
 
-function makeNode(id: string, x: number = 0, y: number = 0, overrides?: Partial<CanvasNode>): CanvasNode {
+function makeNode(
+  id: string,
+  x: number = 0,
+  y: number = 0,
+  overrides?: Partial<CanvasNode>
+): CanvasNode {
   return {
     id,
     type: "idea",
@@ -69,12 +74,7 @@ describe("priority matrix", () => {
   });
 
   it("repositions canvas nodes into quadrants", () => {
-    const canvas = makeCanvas([
-      makeNode("a"),
-      makeNode("b"),
-      makeNode("c"),
-      makeNode("d"),
-    ]);
+    const canvas = makeCanvas([makeNode("a"), makeNode("b"), makeNode("c"), makeNode("d")]);
 
     const laidOut = layoutPriorityMatrix(canvas, [
       { nodeId: "a", impact: 9, effort: 2 },
@@ -95,7 +95,9 @@ describe("priority matrix", () => {
   });
 
   it("renders svg and markdown exports", () => {
-    const matrix = buildPriorityMatrix([{ id: "a", title: "Fast automation", impact: 9, effort: 2 }]);
+    const matrix = buildPriorityMatrix([
+      { id: "a", title: "Fast automation", impact: 9, effort: 2 },
+    ]);
     const svg = priorityMatrixToSvg(matrix);
     const markdown = priorityMatrixToMarkdown(matrix);
 
@@ -117,7 +119,10 @@ describe("auto-layout", () => {
   });
 
   it("lays out nodes radially around a center node", () => {
-    const nodes = radialLayout([makeNode("center"), makeNode("a"), makeNode("b"), makeNode("c")], "center");
+    const nodes = radialLayout(
+      [makeNode("center"), makeNode("a"), makeNode("b"), makeNode("c")],
+      "center"
+    );
     const center = nodes.find((node) => node.id === "center");
     const orbiting = nodes.filter((node) => node.id !== "center");
 

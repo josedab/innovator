@@ -210,7 +210,7 @@ export function extractAnonymizedBundle(
     patterns: patterns.slice(0, 100).map((pattern, index) =>
       PatternSchema.parse({
         name: pattern.name,
-        frequency: Number((Math.max(0, pattern.frequency * (1 - normalizedNoise / 2))).toFixed(2)),
+        frequency: Number(Math.max(0, pattern.frequency * (1 - normalizedNoise / 2)).toFixed(2)),
         anonymizedSource: `anon-source-${index + 1}`,
       })
     ),
@@ -294,7 +294,8 @@ export function detectAnomalies(orgId: string): Array<{
   severity: "low" | "medium" | "high";
 }> {
   autoResetBudgetIfNeeded(orgId);
-  const anomalies: Array<{ type: string; detail: string; severity: "low" | "medium" | "high" }> = [];
+  const anomalies: Array<{ type: string; detail: string; severity: "low" | "medium" | "high" }> =
+    [];
   const budget = budgets.get(orgId);
   const orgAudit = auditLog.filter((entry) => entry.organizationId === orgId);
 

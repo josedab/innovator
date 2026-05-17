@@ -43,12 +43,7 @@ function saveJson(filePath: string, data: unknown): void {
 // Zod Schemas
 // ---------------------------------------------------------------------------
 
-export const IdeaStatusSchema = z.enum([
-  "proposed",
-  "in-progress",
-  "shipped",
-  "abandoned",
-]);
+export const IdeaStatusSchema = z.enum(["proposed", "in-progress", "shipped", "abandoned"]);
 export type IdeaStatus = z.infer<typeof IdeaStatusSchema>;
 
 export const TrackedIdeaSchema = z.object({
@@ -237,10 +232,7 @@ export function getTrackedIdea(ideaId: string): TrackedIdea | undefined {
 }
 
 /** List tracked ideas with optional status and tag filters. */
-export function listTrackedIdeas(options?: {
-  status?: IdeaStatus;
-  tag?: string;
-}): TrackedIdea[] {
+export function listTrackedIdeas(options?: { status?: IdeaStatus; tag?: string }): TrackedIdea[] {
   loadStores();
   let results = Array.from(ideasStore.values());
   if (options?.status) {
@@ -278,7 +270,7 @@ export function getOutcomes(ideaId: string): OutcomeRecord[] {
 
 /** Auto-detect outcomes from linked PRs/issues by creating outcome records for each linked PR. */
 export async function autoDetectOutcomes(
-  ideaId: string,
+  ideaId: string
 ): Promise<{ detected: boolean; outcomes: OutcomeRecord[] }> {
   loadStores();
   const idea = ideasStore.get(ideaId);
@@ -329,28 +321,28 @@ export function calculateImpactScore(ideaId: string): ImpactScore {
     100,
     (prCount > 0 ? 30 : 0) +
       mergedCount * 20 +
-      (idea.status === "shipped" ? 30 : idea.status === "in-progress" ? 15 : 0),
+      (idea.status === "shipped" ? 30 : idea.status === "in-progress" ? 15 : 0)
   );
 
   // Adoption score: from user-adoption and feature-shipped outcomes
   const adoptionOutcomes = outcomes.filter(
-    (o) => o.type === "user-adoption" || o.type === "feature-shipped",
+    (o) => o.type === "user-adoption" || o.type === "feature-shipped"
   );
   const adoptionScore = Math.min(
     100,
-    adoptionOutcomes.reduce((sum, o) => sum + (o.value ?? 20), 0),
+    adoptionOutcomes.reduce((sum, o) => sum + (o.value ?? 20), 0)
   );
 
   // Business score: from revenue-impact outcomes
   const revenueOutcomes = outcomes.filter((o) => o.type === "revenue-impact");
   const businessScore = Math.min(
     100,
-    revenueOutcomes.reduce((sum, o) => sum + (o.value ?? 15), 0),
+    revenueOutcomes.reduce((sum, o) => sum + (o.value ?? 15), 0)
   );
 
   // Composite: weighted average
   const compositeScore = Math.round(
-    implementationScore * 0.3 + adoptionScore * 0.4 + businessScore * 0.3,
+    implementationScore * 0.3 + adoptionScore * 0.4 + businessScore * 0.3
   );
 
   // Confidence: higher with more outcomes
@@ -367,10 +359,7 @@ export function calculateImpactScore(ideaId: string): ImpactScore {
 }
 
 /** Rank all tracked ideas by composite impact score. */
-export function rankByImpact(options?: {
-  status?: IdeaStatus;
-  limit?: number;
-}): ImpactScore[] {
+export function rankByImpact(options?: { status?: IdeaStatus; limit?: number }): ImpactScore[] {
   loadStores();
   let ideas = Array.from(ideasStore.values());
   if (options?.status) {
@@ -389,9 +378,7 @@ export function rankByImpact(options?: {
 // ---------------------------------------------------------------------------
 
 /** Compute innovation funnel metrics. */
-export function getInnovationFunnel(options?: {
-  tag?: string;
-}): InnovationFunnel {
+export function getInnovationFunnel(options?: { tag?: string }): InnovationFunnel {
   loadStores();
   let ideas = Array.from(ideasStore.values());
   if (options?.tag) {
@@ -411,7 +398,7 @@ export function getInnovationFunnel(options?: {
     const now = Date.now();
     const totalMs = shippedIdeas.reduce(
       (sum, i) => sum + (now - new Date(i.createdAt).getTime()),
-      0,
+      0
     );
     avgTimeToShip = totalMs / shippedIdeas.length;
   }
@@ -454,14 +441,10 @@ export function getTeamComparisons(): TeamComparison[] {
     const scores = ideas.map((i) => calculateImpactScore(i.id));
     const avgImpactScore =
       scores.length > 0
-        ? Math.round(
-            scores.reduce((s, sc) => s + sc.compositeScore, 0) / scores.length,
-          )
+        ? Math.round(scores.reduce((s, sc) => s + sc.compositeScore, 0) / scores.length)
         : 0;
 
-    const topScore = scores.sort(
-      (a, b) => b.compositeScore - a.compositeScore,
-    )[0];
+    const topScore = scores.sort((a, b) => b.compositeScore - a.compositeScore)[0];
 
     comparisons.push(
       TeamComparisonSchema.parse({
@@ -470,7 +453,7 @@ export function getTeamComparisons(): TeamComparison[] {
         ideasShipped: shippedIdeas.length,
         avgImpactScore,
         topIdea: topScore?.ideaId,
-      }),
+      })
     );
   }
 
@@ -478,9 +461,7 @@ export function getTeamComparisons(): TeamComparison[] {
 }
 
 /** Generate a full impact dashboard with an LLM-generated executive summary. */
-export async function generateImpactDashboard(
-  model?: string,
-): Promise<ImpactDashboard> {
+export async function generateImpactDashboard(model?: string): Promise<ImpactDashboard> {
   loadStores();
 
   const funnel = getInnovationFunnel();
@@ -506,9 +487,7 @@ export async function generateImpactDashboard(
       ideasShipped: data.shipped,
       avgImpactScore:
         data.scores.length > 0
-          ? Math.round(
-              data.scores.reduce((s, v) => s + v, 0) / data.scores.length,
-            )
+          ? Math.round(data.scores.reduce((s, v) => s + v, 0) / data.scores.length)
           : 0,
     }));
 
@@ -525,7 +504,7 @@ Respond with a JSON object: { "summary": "<your executive summary>" }`;
   let executiveSummary: string;
   try {
     const raw = await withRetry(() =>
-      generateText({ prompt: summaryPrompt, model: model ?? "gpt-4o" }),
+      generateText({ prompt: summaryPrompt, model: model ?? "gpt-4o" })
     );
     const parsed = JSON.parse(extractJson(raw)) as { summary: string };
     executiveSummary = parsed.summary ?? "No summary available.";
@@ -565,24 +544,18 @@ export function dashboardToMarkdown(dashboard: ImpactDashboard): string {
   lines.push(`| In Progress | ${f.inProgress} |`);
   lines.push(`| Shipped | ${f.shipped} |`);
   lines.push(`| Abandoned | ${f.abandoned} |`);
-  lines.push(
-    `| Conversion Rate | ${Math.round(f.conversionRate * 100)}% |`,
-  );
-  lines.push(
-    `| Avg Time to Ship | ${Math.round(f.avgTimeToShip / 86_400_000)}d |`,
-  );
+  lines.push(`| Conversion Rate | ${Math.round(f.conversionRate * 100)}% |`);
+  lines.push(`| Avg Time to Ship | ${Math.round(f.avgTimeToShip / 86_400_000)}d |`);
   lines.push("");
 
   // Top performers
   if (dashboard.topPerformers.length > 0) {
     lines.push("## Top Performers\n");
-    lines.push(
-      `| Idea | Composite | Implementation | Adoption | Business | Confidence |`,
-    );
+    lines.push(`| Idea | Composite | Implementation | Adoption | Business | Confidence |`);
     lines.push(`| --- | --- | --- | --- | --- | --- |`);
     for (const s of dashboard.topPerformers) {
       lines.push(
-        `| ${s.ideaId} | ${s.compositeScore} | ${s.implementationScore} | ${s.adoptionScore} | ${s.businessScore} | ${s.confidence} |`,
+        `| ${s.ideaId} | ${s.compositeScore} | ${s.implementationScore} | ${s.adoptionScore} | ${s.businessScore} | ${s.confidence} |`
       );
     }
     lines.push("");
@@ -591,13 +564,11 @@ export function dashboardToMarkdown(dashboard: ImpactDashboard): string {
   // Team comparisons
   if (dashboard.teamComparisons.length > 0) {
     lines.push("## Team Comparisons\n");
-    lines.push(
-      `| Team | Generated | Shipped | Avg Impact | Top Idea |`,
-    );
+    lines.push(`| Team | Generated | Shipped | Avg Impact | Top Idea |`);
     lines.push(`| --- | --- | --- | --- | --- |`);
     for (const t of dashboard.teamComparisons) {
       lines.push(
-        `| ${t.teamId} | ${t.ideasGenerated} | ${t.ideasShipped} | ${t.avgImpactScore} | ${t.topIdea ?? "—"} |`,
+        `| ${t.teamId} | ${t.ideasGenerated} | ${t.ideasShipped} | ${t.avgImpactScore} | ${t.topIdea ?? "—"} |`
       );
     }
     lines.push("");
@@ -610,7 +581,7 @@ export function dashboardToMarkdown(dashboard: ImpactDashboard): string {
     lines.push(`| --- | --- | --- | --- |`);
     for (const tr of dashboard.trends) {
       lines.push(
-        `| ${tr.period} | ${tr.ideasCreated} | ${tr.ideasShipped} | ${tr.avgImpactScore} |`,
+        `| ${tr.period} | ${tr.ideasCreated} | ${tr.ideasShipped} | ${tr.avgImpactScore} |`
       );
     }
     lines.push("");

@@ -10,7 +10,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../../copilot/client.js";
 import { withRetry } from "../../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../../prompts/sanitize.js";
-import type { Investigation, InnovationIdea } from "../../types.js";
+import type { Investigation } from "../../types.js";
 
 // ---- Schemas ----
 

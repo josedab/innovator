@@ -92,7 +92,6 @@ describe("depth", () => {
 
   describe("buildSubTopicPrompt", () => {
     it("includes subject and investigation data", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = buildSubTopicPrompt("AI tools", fakeInvestigation as any);
       expect(result).toContain("AI tools");
       expect(result).toContain("Test summary");
@@ -123,7 +122,7 @@ describe("depth", () => {
           keyInsight: "Key insight here",
         },
       ];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const result = buildDeepSynthesisPrompt("AI tools", fakeInvestigation as any, deepDives);
       expect(result).toContain("AI tools");
       expect(result).toContain("Fine-tuning");

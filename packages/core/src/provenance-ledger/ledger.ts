@@ -63,7 +63,7 @@ export function computeEntryContentHash(
 }
 
 /** Compute the chain hash: SHA-256(previousHash + contentHash). */
-function computeChainHash(previousHash: string, contentHash: string): string {
+function _computeChainHash(previousHash: string, contentHash: string): string {
   return createHash("sha256")
     .update(previousHash + contentHash)
     .digest("hex");

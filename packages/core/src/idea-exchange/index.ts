@@ -124,8 +124,14 @@ export function anonymizeText(text: string, level: AnonymizationLevel): string {
 
   if (level === "heavy" || level === "full") {
     // Remove locations and dates
-    result = result.replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s\d{1,2},?\s?\d{4}\b/g, "[date]");
-    result = result.replace(/\b(New York|San Francisco|London|Berlin|Tokyo|Sydney|Toronto|Paris|Singapore|Mumbai)\b/gi, "[City]");
+    result = result.replace(
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s\d{1,2},?\s?\d{4}\b/g,
+      "[date]"
+    );
+    result = result.replace(
+      /\b(New York|San Francisco|London|Berlin|Tokyo|Sydney|Toronto|Paris|Singapore|Mumbai)\b/gi,
+      "[City]"
+    );
   }
 
   if (level === "full") {
@@ -140,7 +146,16 @@ export function anonymizeText(text: string, level: AnonymizationLevel): string {
  * Generate an anonymous alias for an organization.
  */
 export function generateOrgAlias(orgName: string): string {
-  const adjectives = ["Innovative", "Creative", "Strategic", "Dynamic", "Agile", "Visionary", "Bold", "Stellar"];
+  const adjectives = [
+    "Innovative",
+    "Creative",
+    "Strategic",
+    "Dynamic",
+    "Agile",
+    "Visionary",
+    "Bold",
+    "Stellar",
+  ];
   const nouns = ["Labs", "Ventures", "Studio", "Workshop", "Forge", "Works", "Hub", "Collective"];
   const hash = orgName.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
   return `${adjectives[hash % adjectives.length]} ${nouns[(hash * 7) % nouns.length]}`;
@@ -196,7 +211,11 @@ Respond with JSON:
 
       const raw = await withRetry(
         async () => {
-          const result = await generateText({ prompt, model: options.model, signal: options.signal });
+          const result = await generateText({
+            prompt,
+            model: options.model,
+            signal: options.signal,
+          });
           return result;
         },
         {
@@ -250,14 +269,18 @@ export function searchListings(filters: Partial<SearchFilters> = {}): {
   if (parsed.query) {
     const q = parsed.query.toLowerCase();
     results = results.filter(
-      (l) => l.title.toLowerCase().includes(q) || l.description.toLowerCase().includes(q) || l.tags.some((t) => t.toLowerCase().includes(q))
+      (l) =>
+        l.title.toLowerCase().includes(q) ||
+        l.description.toLowerCase().includes(q) ||
+        l.tags.some((t) => t.toLowerCase().includes(q))
     );
   }
   if (parsed.category) results = results.filter((l) => l.category === parsed.category);
   if (parsed.industry) results = results.filter((l) => l.industry === parsed.industry);
   if (parsed.stage) results = results.filter((l) => l.stage === parsed.stage);
   if (parsed.licenseType) results = results.filter((l) => l.licenseType === parsed.licenseType);
-  if (parsed.minScore != null) results = results.filter((l) => (l.validationScore ?? 0) >= parsed.minScore!);
+  if (parsed.minScore != null)
+    results = results.filter((l) => (l.validationScore ?? 0) >= parsed.minScore!);
   if (parsed.maxPrice != null) results = results.filter((l) => l.priceUsd <= parsed.maxPrice!);
   if (parsed.tags && parsed.tags.length > 0) {
     results = results.filter((l) => parsed.tags!.some((t) => l.tags.includes(t)));
@@ -267,11 +290,21 @@ export function searchListings(filters: Partial<SearchFilters> = {}): {
 
   const sortBy = parsed.sortBy ?? "relevance";
   switch (sortBy) {
-    case "price-asc": results.sort((a, b) => a.priceUsd - b.priceUsd); break;
-    case "price-desc": results.sort((a, b) => b.priceUsd - a.priceUsd); break;
-    case "newest": results.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)); break;
-    case "score": results.sort((a, b) => (b.validationScore ?? 0) - (a.validationScore ?? 0)); break;
-    default: results.sort((a, b) => b.views - a.views); break;
+    case "price-asc":
+      results.sort((a, b) => a.priceUsd - b.priceUsd);
+      break;
+    case "price-desc":
+      results.sort((a, b) => b.priceUsd - a.priceUsd);
+      break;
+    case "newest":
+      results.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+      break;
+    case "score":
+      results.sort((a, b) => (b.validationScore ?? 0) - (a.validationScore ?? 0));
+      break;
+    default:
+      results.sort((a, b) => b.views - a.views);
+      break;
   }
 
   const offset = parsed.offset ?? 0;
@@ -293,10 +326,7 @@ export function getListing(id: string): IdeaListing | undefined {
 /**
  * Create a purchase transaction.
  */
-export function createTransaction(
-  listingId: string,
-  buyerOrg: string
-): Transaction {
+export function createTransaction(listingId: string, buyerOrg: string): Transaction {
   const listing = listings.get(listingId);
   if (!listing) throw new Error(`Listing not found: ${listingId}`);
 
@@ -348,11 +378,7 @@ export function cancelTransaction(transactionId: string): Transaction {
 /**
  * Create an inquiry on a listing.
  */
-export function createInquiry(
-  listingId: string,
-  fromOrg: string,
-  message: string
-): Inquiry {
+export function createInquiry(listingId: string, fromOrg: string, message: string): Inquiry {
   const listing = listings.get(listingId);
   if (!listing) throw new Error(`Listing not found: ${listingId}`);
 
@@ -413,9 +439,10 @@ export function getMarketplaceStats(): {
     totalListings: allListings.length,
     totalTransactions: allTransactions.length,
     totalRevenue,
-    avgPrice: allListings.length > 0
-      ? allListings.reduce((sum, l) => sum + l.priceUsd, 0) / allListings.length
-      : 0,
+    avgPrice:
+      allListings.length > 0
+        ? allListings.reduce((sum, l) => sum + l.priceUsd, 0) / allListings.length
+        : 0,
     topCategories: Array.from(categoryCount.entries())
       .map(([category, count]) => ({ category, count }))
       .sort((a, b) => b.count - a.count)

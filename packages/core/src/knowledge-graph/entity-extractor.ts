@@ -25,13 +25,7 @@ export interface ExtractedEntity {
 export interface ExtractedRelationship {
   sourceId: string;
   targetId: string;
-  type:
-    | "related_to"
-    | "builds_on"
-    | "competes_with"
-    | "enables"
-    | "inspired_by"
-    | "contradicts";
+  type: "related_to" | "builds_on" | "competes_with" | "enables" | "inspired_by" | "contradicts";
   weight: number;
   sessions: string[];
   firstSeen: string;
@@ -69,17 +63,97 @@ const TREND_KEYWORDS = [
 ];
 
 const STOP_WORDS = new Set([
-  "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-  "have", "has", "had", "do", "does", "did", "will", "would", "could",
-  "should", "may", "might", "must", "shall", "can", "need", "to", "of",
-  "in", "for", "on", "with", "at", "by", "from", "as", "into", "through",
-  "during", "before", "after", "above", "below", "between", "under",
-  "again", "further", "then", "once", "here", "there", "when", "where",
-  "why", "how", "all", "both", "each", "few", "more", "most", "other",
-  "some", "such", "no", "nor", "not", "only", "own", "same", "so",
-  "than", "too", "very", "and", "but", "or", "if", "while", "this",
-  "that", "these", "those", "it", "its", "they", "them", "their", "we",
-  "our", "us",
+  "the",
+  "a",
+  "an",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "being",
+  "have",
+  "has",
+  "had",
+  "do",
+  "does",
+  "did",
+  "will",
+  "would",
+  "could",
+  "should",
+  "may",
+  "might",
+  "must",
+  "shall",
+  "can",
+  "need",
+  "to",
+  "of",
+  "in",
+  "for",
+  "on",
+  "with",
+  "at",
+  "by",
+  "from",
+  "as",
+  "into",
+  "through",
+  "during",
+  "before",
+  "after",
+  "above",
+  "below",
+  "between",
+  "under",
+  "again",
+  "further",
+  "then",
+  "once",
+  "here",
+  "there",
+  "when",
+  "where",
+  "why",
+  "how",
+  "all",
+  "both",
+  "each",
+  "few",
+  "more",
+  "most",
+  "other",
+  "some",
+  "such",
+  "no",
+  "nor",
+  "not",
+  "only",
+  "own",
+  "same",
+  "so",
+  "than",
+  "too",
+  "very",
+  "and",
+  "but",
+  "or",
+  "if",
+  "while",
+  "this",
+  "that",
+  "these",
+  "those",
+  "it",
+  "its",
+  "they",
+  "them",
+  "their",
+  "we",
+  "our",
+  "us",
 ]);
 
 function normalizeLabel(label: string): string {
@@ -134,10 +208,7 @@ function extractTermsFromText(text: string): string[] {
     .map(([term]) => term);
 }
 
-function classifyEntity(
-  term: string,
-  context: string
-): ExtractedEntity["type"] {
+function classifyEntity(term: string, context: string): ExtractedEntity["type"] {
   const lower = term.toLowerCase();
 
   // Check technology patterns
@@ -169,7 +240,9 @@ function classifyEntity(
   return "concept";
 }
 
-function extractPatternMatches(text: string): Array<{ name: string; type: ExtractedEntity["type"] }> {
+function extractPatternMatches(
+  text: string
+): Array<{ name: string; type: ExtractedEntity["type"] }> {
   const matches: Array<{ name: string; type: ExtractedEntity["type"] }> = [];
   const seen = new Set<string>();
 
@@ -428,28 +501,27 @@ export class EntityExtractor {
   trackTemporalEvolution(
     entityId: string,
     graph: KnowledgeGraph
-  ): {
-    entityId: string;
-    label: string;
-    snapshots: Array<{
-      sessionId: string;
-      connectionCount: number;
-      connectedLabels: string[];
-    }>;
-    trend: "growing" | "stable" | "declining";
-  } | undefined {
+  ):
+    | {
+        entityId: string;
+        label: string;
+        snapshots: Array<{
+          sessionId: string;
+          connectionCount: number;
+          connectedLabels: string[];
+        }>;
+        trend: "growing" | "stable" | "declining";
+      }
+    | undefined {
     const entity = graph.nodes.find((n) => n.id === entityId);
     if (!entity) return undefined;
 
     const snapshots = entity.sourceSessionIds.map((sessionId) => {
       const sessionEdges = graph.edges.filter(
         (e) =>
-          (e.source === entityId || e.target === entityId) &&
-          e.sourceSessionIds.includes(sessionId)
+          (e.source === entityId || e.target === entityId) && e.sourceSessionIds.includes(sessionId)
       );
-      const connectedIds = sessionEdges.map((e) =>
-        e.source === entityId ? e.target : e.source
-      );
+      const connectedIds = sessionEdges.map((e) => (e.source === entityId ? e.target : e.source));
       const connectedLabels = connectedIds
         .map((id) => graph.nodes.find((n) => n.id === id)?.label ?? id)
         .slice(0, 5);
@@ -488,9 +560,7 @@ export class EntityExtractor {
     for (let d = 0; d < depth && frontier.length > 0; d++) {
       const nextFrontier: string[] = [];
       for (const nodeId of frontier) {
-        const edges = graph.edges.filter(
-          (e) => e.source === nodeId || e.target === nodeId
-        );
+        const edges = graph.edges.filter((e) => e.source === nodeId || e.target === nodeId);
         for (const edge of edges) {
           const neighborId = edge.source === nodeId ? edge.target : edge.source;
           resultEdges.push(edge);
@@ -532,7 +602,10 @@ export class EntityExtractor {
     // Check for enabling patterns
     const enablePatterns = ["enables", "supports", "powers", "facilitates"];
     for (const pattern of enablePatterns) {
-      if (contextLower.includes(`${aLower} ${pattern}`) || contextLower.includes(`${pattern} ${bLower}`)) {
+      if (
+        contextLower.includes(`${aLower} ${pattern}`) ||
+        contextLower.includes(`${pattern} ${bLower}`)
+      ) {
         return "enables";
       }
     }

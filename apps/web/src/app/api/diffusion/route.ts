@@ -50,15 +50,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await simulateDiffusion(
-      parsed.data.idea,
-      {
-        model: parsed.data.model,
-        runMonteCarlo: parsed.data.runMonteCarlo,
-        monteCarloIterations: parsed.data.monteCarloIterations,
-        marketSize: parsed.data.marketSize,
-      }
-    );
+    const result = await simulateDiffusion(parsed.data.idea, {
+      model: parsed.data.model,
+      runMonteCarlo: parsed.data.runMonteCarlo,
+      monteCarloIterations: parsed.data.monteCarloIterations,
+      marketSize: parsed.data.marketSize,
+    });
 
     logger.info("Diffusion simulation completed", {
       route: "/api/diffusion",
@@ -77,9 +74,9 @@ export async function POST(request: Request) {
       requestId,
       durationMs: Date.now() - startTime,
     });
-    return new Response(
-      JSON.stringify({ error: "Diffusion simulation failed." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Diffusion simulation failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

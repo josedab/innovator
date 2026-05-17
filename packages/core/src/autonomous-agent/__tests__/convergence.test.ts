@@ -107,9 +107,7 @@ describe("convergence", () => {
     });
 
     it("detects budget will be exceeded", () => {
-      const pendingBranches = Array.from({ length: 50 }, () =>
-        createBranch({ status: "pending" })
-      );
+      const pendingBranches = Array.from({ length: 50 }, () => createBranch({ status: "pending" }));
       const run = createMockRun(pendingBranches);
 
       const estimate = buildCostEstimate(run, 9.0, 10.0, 100);
@@ -127,20 +125,30 @@ describe("convergence", () => {
     });
 
     it("returns 0 when no new ideas provided", () => {
-      const ratio = calculateNoveltyRatio([], [
-        { title: "Existing", description: "Already explored" },
-      ]);
+      const ratio = calculateNoveltyRatio(
+        [],
+        [{ title: "Existing", description: "Already explored" }]
+      );
       expect(ratio).toBe(0);
     });
 
     it("returns value between 0.0 and 1.0", () => {
       const ratio = calculateNoveltyRatio(
         [
-          { title: "AI powered healthcare diagnostics system", description: "Use machine learning for medical diagnosis" },
-          { title: "Quantum computing applications", description: "Explore quantum algorithms for optimization" },
+          {
+            title: "AI powered healthcare diagnostics system",
+            description: "Use machine learning for medical diagnosis",
+          },
+          {
+            title: "Quantum computing applications",
+            description: "Explore quantum algorithms for optimization",
+          },
         ],
         [
-          { title: "AI powered healthcare diagnostics platform", description: "Machine learning for medical diagnosis" },
+          {
+            title: "AI powered healthcare diagnostics platform",
+            description: "Machine learning for medical diagnosis",
+          },
         ]
       );
       expect(ratio).toBeGreaterThanOrEqual(0);
@@ -149,8 +157,18 @@ describe("convergence", () => {
 
     it("detects similar ideas with high overlap", () => {
       const ratio = calculateNoveltyRatio(
-        [{ title: "AI powered healthcare diagnostics", description: "machine learning medical diagnosis tool" }],
-        [{ title: "AI powered healthcare diagnostics", description: "machine learning medical diagnosis tool" }]
+        [
+          {
+            title: "AI powered healthcare diagnostics",
+            description: "machine learning medical diagnosis tool",
+          },
+        ],
+        [
+          {
+            title: "AI powered healthcare diagnostics",
+            description: "machine learning medical diagnosis tool",
+          },
+        ]
       );
       expect(ratio).toBe(0);
     });
@@ -195,7 +213,15 @@ describe("convergence", () => {
     it("detects increasing trend", () => {
       const branches = [30, 50, 70, 85, 95].map((score) =>
         createBranch({
-          ideas: [{ title: "Idea", description: "d", potentialImpact: "h", implementationHint: "h", score }],
+          ideas: [
+            {
+              title: "Idea",
+              description: "d",
+              potentialImpact: "h",
+              implementationHint: "h",
+              score,
+            },
+          ],
         })
       );
       const result = analyzeScoreTrend(branches);
@@ -205,7 +231,15 @@ describe("convergence", () => {
     it("detects decreasing trend", () => {
       const branches = [90, 80, 60, 40, 20].map((score) =>
         createBranch({
-          ideas: [{ title: "Idea", description: "d", potentialImpact: "h", implementationHint: "h", score }],
+          ideas: [
+            {
+              title: "Idea",
+              description: "d",
+              potentialImpact: "h",
+              implementationHint: "h",
+              score,
+            },
+          ],
         })
       );
       const result = analyzeScoreTrend(branches);
@@ -215,7 +249,15 @@ describe("convergence", () => {
     it("detects plateauing scores", () => {
       const branches = [70, 71, 70, 71, 70].map((score) =>
         createBranch({
-          ideas: [{ title: "Idea", description: "d", potentialImpact: "h", implementationHint: "h", score }],
+          ideas: [
+            {
+              title: "Idea",
+              description: "d",
+              potentialImpact: "h",
+              implementationHint: "h",
+              score,
+            },
+          ],
         })
       );
       const result = analyzeScoreTrend(branches);
@@ -237,7 +279,13 @@ describe("convergence", () => {
         createBranch({
           subject: "AI innovation in healthcare diagnostics",
           ideas: [
-            { title: "AI healthcare diagnostics", description: "machine learning medical tool", potentialImpact: "h", implementationHint: "h", score: 70 },
+            {
+              title: "AI healthcare diagnostics",
+              description: "machine learning medical tool",
+              potentialImpact: "h",
+              implementationHint: "h",
+              score: 70,
+            },
           ],
         })
       );
@@ -250,8 +298,28 @@ describe("convergence", () => {
 
     it("tracks theme count", () => {
       const branches = [
-        createBranch({ ideas: [{ title: "Machine Learning Advanced", description: "d", potentialImpact: "h", implementationHint: "h", score: 80 }] }),
-        createBranch({ ideas: [{ title: "Blockchain Technology Distributed", description: "d", potentialImpact: "h", implementationHint: "h", score: 75 }] }),
+        createBranch({
+          ideas: [
+            {
+              title: "Machine Learning Advanced",
+              description: "d",
+              potentialImpact: "h",
+              implementationHint: "h",
+              score: 80,
+            },
+          ],
+        }),
+        createBranch({
+          ideas: [
+            {
+              title: "Blockchain Technology Distributed",
+              description: "d",
+              potentialImpact: "h",
+              implementationHint: "h",
+              score: 75,
+            },
+          ],
+        }),
       ];
       const run = createMockRun(branches);
       const metrics = checkConvergence(run);

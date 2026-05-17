@@ -7,7 +7,6 @@
  */
 
 import { z } from "zod";
-import type { AngleId } from "../types.js";
 
 // ---- Schemas ----
 
@@ -46,12 +45,16 @@ export const TeamDNASchema = z.object({
   blindSpots: z.array(BlindSpotSchema).max(20),
   teamStrengths: z.array(z.string().max(500)).max(10),
   teamWeaknesses: z.array(z.string().max(500)).max(10),
-  suggestedPairings: z.array(z.object({
-    member1: z.string().max(200),
-    member2: z.string().max(200),
-    reason: z.string().max(500),
-    complementaryAngles: z.array(z.string().max(100)).max(5),
-  })).max(20),
+  suggestedPairings: z
+    .array(
+      z.object({
+        member1: z.string().max(200),
+        member2: z.string().max(200),
+        reason: z.string().max(500),
+        complementaryAngles: z.array(z.string().max(100)).max(5),
+      })
+    )
+    .max(20),
 });
 
 // ---- Types ----
@@ -76,10 +79,14 @@ const activityLog: MemberActivity[] = [];
 // ---- Angle Metadata ----
 
 const ANGLE_NAMES: Record<string, string> = {
-  scamper: "SCAMPER", "first-principles": "First Principles",
-  "cross-domain": "Cross-Domain", constraints: "Constraints",
-  inversion: "Inversion", perspectives: "Perspectives",
-  "what-if": "What-If", "trend-collision": "Trend Collision",
+  scamper: "SCAMPER",
+  "first-principles": "First Principles",
+  "cross-domain": "Cross-Domain",
+  constraints: "Constraints",
+  inversion: "Inversion",
+  perspectives: "Perspectives",
+  "what-if": "What-If",
+  "trend-collision": "Trend Collision",
 };
 
 // ---- Core Functions ----
@@ -102,9 +109,7 @@ export function recordActivities(activities: MemberActivity[]): void {
  * Compute Shannon entropy for a probability distribution.
  */
 export function shannonEntropy(probabilities: number[]): number {
-  return -probabilities
-    .filter((p) => p > 0)
-    .reduce((sum, p) => sum + p * Math.log2(p), 0);
+  return -probabilities.filter((p) => p > 0).reduce((sum, p) => sum + p * Math.log2(p), 0);
 }
 
 /**
@@ -120,7 +125,8 @@ function classifyStyle(angleUsage: Record<string, number>): MemberProfile["innov
   }
 
   if ((normalized["cross-domain"] ?? 0) > 0.3) return "connector";
-  if ((normalized["inversion"] ?? 0) > 0.25 || (normalized["what-if"] ?? 0) > 0.25) return "disruptor";
+  if ((normalized["inversion"] ?? 0) > 0.25 || (normalized["what-if"] ?? 0) > 0.25)
+    return "disruptor";
   if ((normalized["first-principles"] ?? 0) > 0.3) return "analyzer";
   if ((normalized["constraints"] ?? 0) > 0.25) return "builder";
   return "explorer";
@@ -167,13 +173,11 @@ export function buildMemberProfile(userId: string): MemberProfile {
   const preferredAngles = sortedAngles.slice(0, 3).map(([k]) => k);
 
   const allAngles = Object.keys(ANGLE_NAMES);
-  const avoidedAngles = allAngles.filter(
-    (a) => !angleUsage[a] || angleUsage[a] === 0
-  );
+  const avoidedAngles = allAngles.filter((a) => !angleUsage[a] || angleUsage[a] === 0);
 
-  const sessions = new Set(activities.map((a) =>
-    `${a.userId}-${new Date(a.timestamp).toISOString().slice(0, 10)}`
-  ));
+  const sessions = new Set(
+    activities.map((a) => `${a.userId}-${new Date(a.timestamp).toISOString().slice(0, 10)}`)
+  );
 
   return {
     userId,
@@ -224,7 +228,8 @@ export function analyzeTeamDNA(teamId: string, memberIds: string[]): TeamDNA {
     const deficit = expectedUsage - usage;
 
     if (deficit > 0.05) {
-      const severity: BlindSpot["severity"] = deficit > 0.1 ? "critical" : deficit > 0.07 ? "high" : deficit > 0.05 ? "medium" : "low";
+      const severity: BlindSpot["severity"] =
+        deficit > 0.1 ? "critical" : deficit > 0.07 ? "high" : deficit > 0.05 ? "medium" : "low";
       blindSpots.push({
         angleId: angle,
         angleName: ANGLE_NAMES[angle] ?? angle,
@@ -238,12 +243,12 @@ export function analyzeTeamDNA(teamId: string, memberIds: string[]): TeamDNA {
 
   // Identify team strengths and weaknesses
   const sortedUsage = Object.entries(teamAngleUsage).sort(([, a], [, b]) => b - a);
-  const teamStrengths = sortedUsage.slice(0, 3).map(([angle]) =>
-    `Strong in "${ANGLE_NAMES[angle] ?? angle}" thinking`
-  );
-  const teamWeaknesses = blindSpots.slice(0, 3).map((bs) =>
-    `Underutilizes "${bs.angleName}" perspective`
-  );
+  const teamStrengths = sortedUsage
+    .slice(0, 3)
+    .map(([angle]) => `Strong in "${ANGLE_NAMES[angle] ?? angle}" thinking`);
+  const teamWeaknesses = blindSpots
+    .slice(0, 3)
+    .map((bs) => `Underutilizes "${bs.angleName}" perspective`);
 
   // Suggest complementary pairings
   const suggestedPairings: TeamDNA["suggestedPairings"] = [];
@@ -251,9 +256,9 @@ export function analyzeTeamDNA(teamId: string, memberIds: string[]): TeamDNA {
     for (let j = i + 1; j < profiles.length; j++) {
       const p1 = profiles[i];
       const p2 = profiles[j];
-      const complementary = p1.preferredAngles.filter(
-        (a) => p2.avoidedAngles.includes(a)
-      ).concat(p2.preferredAngles.filter((a) => p1.avoidedAngles.includes(a)));
+      const complementary = p1.preferredAngles
+        .filter((a) => p2.avoidedAngles.includes(a))
+        .concat(p2.preferredAngles.filter((a) => p1.avoidedAngles.includes(a)));
 
       if (complementary.length >= 2) {
         suggestedPairings.push({

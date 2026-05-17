@@ -5,7 +5,7 @@
  * Each preset pre-selects angles and provides context for common use cases.
  */
 
-import type { Preset, AngleId } from "../types.js";
+import type { Preset } from "../types.js";
 
 /** Built-in presets shipped with Innovator. */
 export const BUILT_IN_PRESETS: Preset[] = [

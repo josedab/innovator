@@ -15,31 +15,19 @@ export interface NotionConfig {
 
 export class NotionIntegration {
   /** Sync a list of ideas to a Notion database. */
-  async syncToDatabase(
-    ideas: IdeaExportPayload[],
-    config: NotionConfig
-  ): Promise<ExportResult[]> {
+  async syncToDatabase(ideas: IdeaExportPayload[], config: NotionConfig): Promise<ExportResult[]> {
     return Promise.all(ideas.map((idea) => this.createPage(idea, config)));
   }
 
   /** Build Notion page properties for a single idea. */
-  buildDatabaseEntry(
-    idea: IdeaExportPayload,
-    config: NotionConfig
-  ): Record<string, unknown> {
+  buildDatabaseEntry(idea: IdeaExportPayload, config: NotionConfig): Record<string, unknown> {
     return {
       parent: { database_id: config.databaseId },
       properties: {
         Name: { title: [{ text: { content: `💡 ${idea.title}` } }] },
-        ...(idea.sourceAngle
-          ? { "Source Angle": { select: { name: idea.sourceAngle } } }
-          : {}),
-        ...(idea.priority
-          ? { Priority: { select: { name: idea.priority } } }
-          : {}),
-        ...(config.statusProperty
-          ? { [config.statusProperty]: { select: { name: "New" } } }
-          : {}),
+        ...(idea.sourceAngle ? { "Source Angle": { select: { name: idea.sourceAngle } } } : {}),
+        ...(idea.priority ? { Priority: { select: { name: idea.priority } } } : {}),
+        ...(config.statusProperty ? { [config.statusProperty]: { select: { name: "New" } } } : {}),
       },
       children: [
         {
@@ -88,10 +76,7 @@ export class NotionIntegration {
 
   // ---- Internal ----
 
-  private async createPage(
-    idea: IdeaExportPayload,
-    config: NotionConfig
-  ): Promise<ExportResult> {
+  private async createPage(idea: IdeaExportPayload, config: NotionConfig): Promise<ExportResult> {
     const body = this.buildDatabaseEntry(idea, config);
 
     try {

@@ -10,13 +10,18 @@ import { validateJsonContentType } from "@/lib/validate-request";
 import { CACHE_HEADERS, API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const RequestSchema = z.object({
-  ideas: z.array(z.object({
-    id: z.string().max(100),
-    title: z.string().min(1).max(500),
-    description: z.string().min(1).max(2000),
-    tags: z.array(z.string().max(100)).max(10).optional(),
-    score: z.number().min(0).max(1).optional(),
-  })).min(1).max(500),
+  ideas: z
+    .array(
+      z.object({
+        id: z.string().max(100),
+        title: z.string().min(1).max(500),
+        description: z.string().min(1).max(2000),
+        tags: z.array(z.string().max(100)).max(10).optional(),
+        score: z.number().min(0).max(1).optional(),
+      })
+    )
+    .min(1)
+    .max(500),
   model: z.string().max(100).optional(),
   clusterCount: z.number().min(2).max(20).optional(),
 });
@@ -73,9 +78,9 @@ export async function POST(request: Request) {
       requestId,
       durationMs: Date.now() - startTime,
     });
-    return new Response(
-      JSON.stringify({ error: "Embedding space construction failed." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Embedding space construction failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

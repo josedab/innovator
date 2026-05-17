@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { AngleResult, InnovationIdea } from "@innovator/core/types";
+import type { AngleResult } from "@innovator/core/types";
 
 // ---- Types ----
 

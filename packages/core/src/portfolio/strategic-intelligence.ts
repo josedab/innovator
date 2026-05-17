@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import type { PortfolioItem, PortfolioMetrics } from "./types.js";
+import type { PortfolioItem } from "./types.js";
 
 // ---- Schemas ----
 
@@ -295,7 +295,7 @@ export function simulatePortfolioRisk(
   const mean = results.reduce((a, b) => a + b, 0) / results.length;
   const variance = results.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / results.length;
   const idx5 = Math.floor(results.length * 0.05);
-  const idx95 = Math.floor(results.length * 0.95);
+  const _idx95 = Math.floor(results.length * 0.95);
   const successCount = results.filter((v) => v > 0).length;
 
   return {
@@ -424,7 +424,7 @@ export function buildPortfolioBubbleChart(items: PortfolioItem[]): BubbleChartIt
     const horizon = classifyHorizon(item);
     const impact = item.impactScore ?? 5;
     const progress = stageProgress[item.stage] ?? 0.5;
-    const daysSinceCreation = Math.max(
+    const _daysSinceCreation = Math.max(
       1,
       (Date.now() - new Date(item.createdAt).getTime()) / 86400000
     );

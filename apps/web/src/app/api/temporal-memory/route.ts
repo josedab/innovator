@@ -72,7 +72,7 @@ const QuerySchema = z.object({
   maxResults: z.number().int().min(1).max(100).optional(),
 });
 
-const SearchSchema = z.object({
+const _SearchSchema = z.object({
   query: z.string().min(1).max(500),
   timeRange: z.object({ from: z.string(), to: z.string() }).optional(),
   maxResults: z.number().int().min(1).max(100).optional(),

@@ -5,11 +5,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  UploadProcessor,
-  resolveFileType,
-  validateUploadedFile,
-} from "@innovator/core";
+import { UploadProcessor, resolveFileType, validateUploadedFile } from "@innovator/core";
 import type { UploadedFile, ProcessingResult } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
@@ -51,17 +47,20 @@ export async function POST(request: Request) {
       const body = await request.json();
       const parsed = z
         .object({
-          files: z.array(
-            z.object({
-              id: z.string().max(200),
-              filename: z.string().max(500),
-              mimeType: z.string().max(200),
-              sizeBytes: z.number().int().min(0),
-              base64Content: z.string(),
-              extractedText: z.string().optional(),
-              uploadedAt: z.string(),
-            })
-          ).min(1).max(10),
+          files: z
+            .array(
+              z.object({
+                id: z.string().max(200),
+                filename: z.string().max(500),
+                mimeType: z.string().max(200),
+                sizeBytes: z.number().int().min(0),
+                base64Content: z.string(),
+                extractedText: z.string().optional(),
+                uploadedAt: z.string(),
+              })
+            )
+            .min(1)
+            .max(10),
           model: z.string().max(100).optional(),
         })
         .safeParse(body);
@@ -124,19 +123,14 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         results,
-        suggestedSubjects: results
-          .filter((r) => r.confidence > 0.5)
-          .map((r) => r.suggestedSubject),
+        suggestedSubjects: results.filter((r) => r.confidence > 0.5).map((r) => r.suggestedSubject),
         combinedPrompt,
       },
       { headers: API_RESPONSE_HEADERS }
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload processing failed";
-    return NextResponse.json(
-      { error: message },
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return NextResponse.json({ error: message }, { status: 500, headers: API_RESPONSE_HEADERS });
   }
 }
 

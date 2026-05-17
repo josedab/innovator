@@ -75,7 +75,10 @@ export type NoveltyReport = z.infer<typeof NoveltyReportSchema>;
 export interface PriorArtProvider {
   readonly name: string;
   readonly source: PriorArtSource;
-  search(query: string, options?: { maxResults?: number; domain?: string }): Promise<PriorArtEntry[]>;
+  search(
+    query: string,
+    options?: { maxResults?: number; domain?: string }
+  ): Promise<PriorArtEntry[]>;
 }
 
 // ---- Built-in Keyword Similarity Engine ----
@@ -83,17 +86,101 @@ export interface PriorArtProvider {
 /** Extract significant keywords from text for similarity comparison. */
 function extractKeywords(text: string): Set<string> {
   const stopWords = new Set([
-    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "could",
-    "should", "may", "might", "shall", "can", "need", "dare", "ought",
-    "used", "to", "of", "in", "for", "on", "with", "at", "by", "from",
-    "as", "into", "through", "during", "before", "after", "above", "below",
-    "between", "out", "off", "over", "under", "again", "further", "then",
-    "once", "and", "but", "or", "nor", "not", "so", "yet", "both", "each",
-    "few", "more", "most", "other", "some", "such", "no", "only", "own",
-    "same", "than", "too", "very", "just", "because", "that", "this",
-    "these", "those", "which", "who", "whom", "what", "where", "when",
-    "how", "all", "any", "new", "use", "using", "based",
+    "the",
+    "a",
+    "an",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "shall",
+    "can",
+    "need",
+    "dare",
+    "ought",
+    "used",
+    "to",
+    "of",
+    "in",
+    "for",
+    "on",
+    "with",
+    "at",
+    "by",
+    "from",
+    "as",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "between",
+    "out",
+    "off",
+    "over",
+    "under",
+    "again",
+    "further",
+    "then",
+    "once",
+    "and",
+    "but",
+    "or",
+    "nor",
+    "not",
+    "so",
+    "yet",
+    "both",
+    "each",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "no",
+    "only",
+    "own",
+    "same",
+    "than",
+    "too",
+    "very",
+    "just",
+    "because",
+    "that",
+    "this",
+    "these",
+    "those",
+    "which",
+    "who",
+    "whom",
+    "what",
+    "where",
+    "when",
+    "how",
+    "all",
+    "any",
+    "new",
+    "use",
+    "using",
+    "based",
   ]);
 
   return new Set(
@@ -115,7 +202,11 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
 
 /** N-gram extraction for more nuanced similarity. */
 function extractBigrams(text: string): Set<string> {
-  const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length > 2);
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
   const bigrams = new Set<string>();
   for (let i = 0; i < words.length - 1; i++) {
     bigrams.add(`${words[i]}_${words[i + 1]}`);
@@ -208,12 +299,15 @@ export function assessNovelty(
 
   // Extract differentiators — keywords in idea but not in top matches
   const ideaKw = extractKeywords(ideaText);
-  const matchKw = new Set(topMatches.flatMap((m) => [...extractKeywords(`${m.title} ${m.description}`)]));
+  const matchKw = new Set(
+    topMatches.flatMap((m) => [...extractKeywords(`${m.title} ${m.description}`)])
+  );
   const differentiators = [...ideaKw].filter((w) => !matchKw.has(w)).slice(0, 10);
 
   // Risk factors
   const riskFactors: string[] = [];
-  if (noveltyScore < 50) riskFactors.push("High similarity to existing prior art may limit patentability");
+  if (noveltyScore < 50)
+    riskFactors.push("High similarity to existing prior art may limit patentability");
   if (topMatches.some((m) => m.source === "patent" && m.similarity > 0.4))
     riskFactors.push("Closely related patents exist — review for infringement risk");
   if (topMatches.length === 0)
@@ -246,9 +340,7 @@ export function generateNoveltyReport(
   ideas: Array<{ title: string; description: string }>,
   options: { domain?: string; threshold?: number } = {}
 ): NoveltyReport {
-  const assessments = ideas.map((idea) =>
-    assessNovelty(idea.title, idea.description, options)
-  );
+  const assessments = ideas.map((idea) => assessNovelty(idea.title, idea.description, options));
 
   const counts = getPriorArtCount();
 
@@ -317,7 +409,9 @@ export function noveltyReportToMarkdown(report: NoveltyReport): string {
 
     lines.push(`### ${badge} ${a.ideaTitle} — Novelty: ${a.noveltyScore}/100`);
     lines.push("");
-    lines.push(`**Assessment:** ${a.assessment}${a.patentCandidate ? " | 📋 Patent Candidate" : ""}`);
+    lines.push(
+      `**Assessment:** ${a.assessment}${a.patentCandidate ? " | 📋 Patent Candidate" : ""}`
+    );
     lines.push("");
     lines.push(a.recommendation);
     lines.push("");
@@ -361,7 +455,4 @@ export {
   enrichSynthesisWithNovelty,
   enrichAngleResultsWithNovelty,
 } from "./pipeline-enrichment.js";
-export type {
-  NoveltyEnrichedIdea,
-  NoveltyEnrichedSynthesis,
-} from "./pipeline-enrichment.js";
+export type { NoveltyEnrichedIdea, NoveltyEnrichedSynthesis } from "./pipeline-enrichment.js";

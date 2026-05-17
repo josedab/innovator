@@ -19,7 +19,6 @@ import {
   simulatePortfolioRisk,
   generateRebalancingRecommendations,
 } from "@innovator/core/dist/portfolio/strategic-intelligence.js";
-import { z } from "zod";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 export async function GET(request: Request) {

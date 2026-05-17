@@ -392,7 +392,7 @@ export function getOnboardingSteps(options?: {
 /** Generate a complete developer portal page data. */
 export function getDeveloperPortalPage(
   baseUrl: string = "https://api.innovator.dev",
-  tier: BillingTier = "free"
+  _tier: BillingTier = "free"
 ): {
   config: PortalConfig;
   guides: QuickstartGuide[];

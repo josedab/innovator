@@ -91,11 +91,11 @@ export async function createTursoDB(config: TursoConfig): Promise<SQLiteDB> {
     run(sql: string, ...params: unknown[]) {
       client.execute({ sql, args: params as Array<string | number | null> });
     },
-    get<T>(sql: string, ...params: unknown[]): T | undefined {
+    get<T>(_sql: string, ..._params: unknown[]): T | undefined {
       // Sync shim — callers should use the async wrappers in SQLiteStorage
       throw new Error("Use async methods with Turso adapter");
     },
-    all<T>(sql: string, ...params: unknown[]): T[] {
+    all<T>(_sql: string, ..._params: unknown[]): T[] {
       throw new Error("Use async methods with Turso adapter");
     },
     close() {

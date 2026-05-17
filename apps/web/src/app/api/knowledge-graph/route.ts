@@ -5,12 +5,10 @@ export const runtime = "nodejs";
 
 import {
   getKnowledgeGraph,
-  queryRelatedSubjects,
   filterGraphNodes,
   getGraphStats,
   getTemporalEvolution,
   generateKnowledgeInsights,
-  toVisualizationData,
   EntityExtractor,
   GraphVisualizer,
 } from "@innovator/core";
@@ -27,7 +25,15 @@ const GetGraphSchema = z.object({
   filters: z
     .object({
       type: z
-        .enum(["concept", "technology", "challenge", "opportunity", "person", "organization", "domain"])
+        .enum([
+          "concept",
+          "technology",
+          "challenge",
+          "opportunity",
+          "person",
+          "organization",
+          "domain",
+        ])
         .optional(),
       fromDate: z.string().optional(),
       toDate: z.string().optional(),
@@ -256,10 +262,10 @@ export async function POST(request: Request) {
         const evolution = getTemporalEvolution(graph, data.entityId);
 
         if (!evolution) {
-          return new Response(
-            JSON.stringify({ error: "Entity not found" }),
-            { status: 404, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "Entity not found" }), {
+            status: 404,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
 
         logger.info("Timeline query", {

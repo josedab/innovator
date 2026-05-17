@@ -43,12 +43,28 @@ describe("cost-optimizer", () => {
     });
 
     it("validates ArmStats", () => {
-      const stats = { model: "gpt-4.1", stage: "scoring", successes: 5, failures: 2, totalCost: 0.1, avgQuality: 0.7, avgLatencyMs: 500, samples: 7 };
+      const stats = {
+        model: "gpt-4.1",
+        stage: "scoring",
+        successes: 5,
+        failures: 2,
+        totalCost: 0.1,
+        avgQuality: 0.7,
+        avgLatencyMs: 500,
+        samples: 7,
+      };
       expect(() => ArmStatsSchema.parse(stats)).not.toThrow();
     });
 
     it("validates RoutingDecision", () => {
-      const decision = { stage: "gen", recommendedModel: "m", confidence: 0.5, expectedQuality: 0.8, expectedCostUsd: 0.01, reason: "test" };
+      const decision = {
+        stage: "gen",
+        recommendedModel: "m",
+        confidence: 0.5,
+        expectedQuality: 0.8,
+        expectedCostUsd: 0.01,
+        reason: "test",
+      };
       expect(() => RoutingDecisionSchema.parse(decision)).not.toThrow();
     });
   });
@@ -98,10 +114,24 @@ describe("cost-optimizer", () => {
     it("biases toward cheaper models for low complexity", () => {
       // Record high quality for cheap model
       for (let i = 0; i < 10; i++) {
-        recordMeasurement(makeMeasurement({ model: "gpt-4.1-mini", stage: "generation", qualityScore: 0.8, costUsd: 0.001 }));
+        recordMeasurement(
+          makeMeasurement({
+            model: "gpt-4.1-mini",
+            stage: "generation",
+            qualityScore: 0.8,
+            costUsd: 0.001,
+          })
+        );
       }
       for (let i = 0; i < 10; i++) {
-        recordMeasurement(makeMeasurement({ model: "gpt-4.1", stage: "generation", qualityScore: 0.85, costUsd: 0.03 }));
+        recordMeasurement(
+          makeMeasurement({
+            model: "gpt-4.1",
+            stage: "generation",
+            qualityScore: 0.85,
+            costUsd: 0.03,
+          })
+        );
       }
 
       // Low complexity should prefer cheaper model
@@ -159,8 +189,12 @@ describe("cost-optimizer", () => {
     });
 
     it("aggregates costs by model and stage", () => {
-      recordMeasurement(makeMeasurement({ model: "gpt-4.1", stage: "investigation", costUsd: 0.03 }));
-      recordMeasurement(makeMeasurement({ model: "gpt-4.1-mini", stage: "generation", costUsd: 0.005 }));
+      recordMeasurement(
+        makeMeasurement({ model: "gpt-4.1", stage: "investigation", costUsd: 0.03 })
+      );
+      recordMeasurement(
+        makeMeasurement({ model: "gpt-4.1-mini", stage: "generation", costUsd: 0.005 })
+      );
       const report = generateCostReport();
       expect(report.costByModel["gpt-4.1"]).toBe(0.03);
       expect(report.costByModel["gpt-4.1-mini"]).toBe(0.005);
@@ -186,7 +220,14 @@ describe("cost-optimizer", () => {
 
   describe("costReportToMarkdown", () => {
     it("formats report as markdown", () => {
-      recordMeasurement(makeMeasurement({ model: "gpt-4.1", stage: "investigation", costUsd: 0.03, qualityScore: 0.9 }));
+      recordMeasurement(
+        makeMeasurement({
+          model: "gpt-4.1",
+          stage: "investigation",
+          costUsd: 0.03,
+          qualityScore: 0.9,
+        })
+      );
       const report = generateCostReport();
       const md = costReportToMarkdown(report);
       expect(md).toContain("# 💰 LLM Cost-Performance Report");

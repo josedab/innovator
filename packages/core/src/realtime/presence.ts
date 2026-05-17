@@ -97,11 +97,7 @@ export class PresenceManager {
   }
 
   /** Update a user's cursor position (also acts as heartbeat). */
-  updateCursor(
-    roomId: string,
-    userId: string,
-    position: { x: number; y: number }
-  ): boolean {
+  updateCursor(roomId: string, userId: string, position: { x: number; y: number }): boolean {
     const user = this.getUser(roomId, userId);
     if (!user) return false;
 

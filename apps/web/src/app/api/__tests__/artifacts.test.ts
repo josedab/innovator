@@ -157,7 +157,6 @@ describe("POST /api/artifacts", () => {
   });
 
   it("returns 200 with valid idea + artifactType", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGenerateArtifact.mockResolvedValue(MOCK_ARTIFACT as any);
     const res = await POST(makeRequest(VALID_BODY));
     expect(res.status).toBe(200);
@@ -208,7 +207,6 @@ describe("POST /api/artifacts", () => {
   });
 
   it("optional investigation field accepted", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGenerateArtifact.mockResolvedValue(MOCK_ARTIFACT as any);
     const body = {
       ...VALID_BODY,
@@ -225,7 +223,6 @@ describe("POST /api/artifacts", () => {
   });
 
   it("response includes API_RESPONSE_HEADERS", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGenerateArtifact.mockResolvedValue(MOCK_ARTIFACT as any);
     const res = await POST(makeRequest(VALID_BODY));
     expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");

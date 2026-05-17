@@ -108,10 +108,10 @@ export async function POST(request: Request) {
         requestId,
         details: parsed.error.flatten(),
       });
-      return new Response(
-        JSON.stringify({ error: "Invalid request. Please check your input." }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
+      return new Response(JSON.stringify({ error: "Invalid request. Please check your input." }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const data = parsed.data;
@@ -140,10 +140,10 @@ export async function POST(request: Request) {
     if (data.action === "refine") {
       const ctx = getConversation(data.sessionId);
       if (!ctx) {
-        return new Response(
-          JSON.stringify({ error: "Conversation session not found" }),
-          { status: 404, headers: API_RESPONSE_HEADERS }
-        );
+        return new Response(JSON.stringify({ error: "Conversation session not found" }), {
+          status: 404,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
 
       const modelError = validateModel(data.model);
@@ -170,10 +170,10 @@ export async function POST(request: Request) {
     if (data.action === "create-tree") {
       const tree = createExplorationTree(data.sessionId);
       if (!tree) {
-        return new Response(
-          JSON.stringify({ error: "Conversation session not found" }),
-          { status: 404, headers: API_RESPONSE_HEADERS }
-        );
+        return new Response(JSON.stringify({ error: "Conversation session not found" }), {
+          status: 404,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
       return Response.json({ tree }, { headers: API_RESPONSE_HEADERS });
     }
@@ -195,10 +195,10 @@ export async function POST(request: Request) {
     if (data.action === "get-tree") {
       const tree = getExplorationTree(data.sessionId);
       if (!tree) {
-        return new Response(
-          JSON.stringify({ error: "Exploration tree not found" }),
-          { status: 404, headers: API_RESPONSE_HEADERS }
-        );
+        return new Response(JSON.stringify({ error: "Exploration tree not found" }), {
+          status: 404,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
       return Response.json({ tree }, { headers: API_RESPONSE_HEADERS });
     }
@@ -213,10 +213,10 @@ export async function POST(request: Request) {
       return Response.json({ branches }, { headers: API_RESPONSE_HEADERS });
     }
 
-    return new Response(
-      JSON.stringify({ error: "Unknown action" }),
-      { status: 400, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Unknown action" }), {
+      status: 400,
+      headers: API_RESPONSE_HEADERS,
+    });
   } catch (err) {
     logger.error("Refine error", {
       error: err instanceof Error ? err.message : String(err),
@@ -224,9 +224,9 @@ export async function POST(request: Request) {
       requestId,
       durationMs: Date.now() - startTime,
     });
-    return new Response(
-      JSON.stringify({ error: "Refinement failed. Please try again." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Refinement failed. Please try again." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

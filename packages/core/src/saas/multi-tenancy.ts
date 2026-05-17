@@ -47,7 +47,10 @@ export type UsageMeter = z.infer<typeof UsageMeterSchema>;
 const tenantWorkspaces = new Map<string, TenantWorkspace>();
 const usageMeters = new Map<string, UsageMeter>();
 
-const TIER_LIMITS: Record<BillingTier, { maxSessions: number; maxMembers: number; maxTokens: number }> = {
+const TIER_LIMITS: Record<
+  BillingTier,
+  { maxSessions: number; maxMembers: number; maxTokens: number }
+> = {
   free: { maxSessions: 25, maxMembers: 1, maxTokens: 100_000 },
   starter: { maxSessions: 250, maxMembers: 5, maxTokens: 1_000_000 },
   professional: { maxSessions: 2_500, maxMembers: 25, maxTokens: 10_000_000 },
@@ -141,7 +144,9 @@ export function getTenantWorkspace(id: string): TenantWorkspace | undefined {
 
 export function listTenantWorkspaces(ownerId?: string): TenantWorkspace[] {
   const workspaces = Array.from(tenantWorkspaces.values());
-  const filtered = ownerId ? workspaces.filter((workspace) => workspace.ownerId === ownerId) : workspaces;
+  const filtered = ownerId
+    ? workspaces.filter((workspace) => workspace.ownerId === ownerId)
+    : workspaces;
   return filtered.sort((left, right) => left.createdAt.localeCompare(right.createdAt));
 }
 
@@ -181,7 +186,10 @@ export function addTenantMember(
   return updated;
 }
 
-export function removeTenantMember(workspaceId: string, userId: string): TenantWorkspace | undefined {
+export function removeTenantMember(
+  workspaceId: string,
+  userId: string
+): TenantWorkspace | undefined {
   const workspace = tenantWorkspaces.get(workspaceId);
   if (!workspace) return undefined;
 
@@ -233,13 +241,19 @@ export function updateTenantMemberRole(
   return updated;
 }
 
-export function getTierLimits(
-  tier: BillingTier
-): { maxSessions: number; maxMembers: number; maxTokens: number } {
+export function getTierLimits(tier: BillingTier): {
+  maxSessions: number;
+  maxMembers: number;
+  maxTokens: number;
+} {
   return TIER_LIMITS[tier];
 }
 
-export function recordUsage(workspaceId: string, sessions: number = 1, tokens: number = 0): UsageMeter {
+export function recordUsage(
+  workspaceId: string,
+  sessions: number = 1,
+  tokens: number = 0
+): UsageMeter {
   const workspace = tenantWorkspaces.get(workspaceId);
   if (!workspace) throw new Error(`Tenant workspace "${workspaceId}" not found`);
 

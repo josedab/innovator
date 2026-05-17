@@ -78,12 +78,16 @@ export function formatGitHubIssue(
 ): GitHubIssuePayload {
   const parsedOptions = GitHubIssueExportOptionsSchema.parse(options);
   const labels = Array.from(
-    new Set([
-      "innovator",
-      ...(idea.sourceAngle ? [idea.sourceAngle] : []),
-      ...(idea.labels ?? []),
-      ...(parsedOptions.labels ?? []),
-    ].filter(Boolean).map((label) => label.trim()))
+    new Set(
+      [
+        "innovator",
+        ...(idea.sourceAngle ? [idea.sourceAngle] : []),
+        ...(idea.labels ?? []),
+        ...(parsedOptions.labels ?? []),
+      ]
+        .filter(Boolean)
+        .map((label) => label.trim())
+    )
   ).slice(0, 10);
 
   const payload: GitHubIssuePayload = {
@@ -93,9 +97,7 @@ export function formatGitHubIssue(
       "",
       "## Potential Impact",
       idea.potentialImpact,
-      ...(idea.implementationHint
-        ? ["", "## Implementation", idea.implementationHint]
-        : []),
+      ...(idea.implementationHint ? ["", "## Implementation", idea.implementationHint] : []),
       ...(idea.sourceAngle ? ["", `**Source Angle:** ${idea.sourceAngle}`] : []),
       ...(idea.priority ? [`**Priority:** ${idea.priority}`] : []),
       "",
@@ -187,7 +189,8 @@ export async function importGitHubIssues(
 
   if (parsedOptions.labels?.length) query.set("labels", parsedOptions.labels.join(","));
   if (parsedOptions.assignee) query.set("assignee", parsedOptions.assignee);
-  if (parsedOptions.milestone !== undefined) query.set("milestone", String(parsedOptions.milestone));
+  if (parsedOptions.milestone !== undefined)
+    query.set("milestone", String(parsedOptions.milestone));
   if (parsedOptions.since) query.set("since", parsedOptions.since);
 
   try {
@@ -290,7 +293,8 @@ export class GitHubIssuesIntegration {
 
     if (parsedOptions.labels?.length) query.set("labels", parsedOptions.labels.join(","));
     if (parsedOptions.assignee) query.set("assignee", parsedOptions.assignee);
-    if (parsedOptions.milestone !== undefined) query.set("milestone", String(parsedOptions.milestone));
+    if (parsedOptions.milestone !== undefined)
+      query.set("milestone", String(parsedOptions.milestone));
     if (parsedOptions.since) query.set("since", parsedOptions.since);
 
     try {
@@ -323,18 +327,18 @@ export class GitHubIssuesIntegration {
   }
 
   /** Build a GitHub issue API payload. */
-  buildIssuePayload(
-    idea: IdeaExportPayload,
-    config: GitHubIssueExportOptions
-  ): GitHubIssuePayload {
+  buildIssuePayload(idea: IdeaExportPayload, config: GitHubIssueExportOptions): GitHubIssuePayload {
     return formatGitHubIssue(idea, config);
   }
 }
 
-async function resolveGitHubIntegration(integrationId?: string): Promise<{
-  apiToken?: string;
-  apiUrl?: string;
-} | undefined> {
+async function resolveGitHubIntegration(integrationId?: string): Promise<
+  | {
+      apiToken?: string;
+      apiUrl?: string;
+    }
+  | undefined
+> {
   const { getIntegration, listIntegrations } = await import("./index.js");
   if (integrationId) {
     const integration = getIntegration(integrationId);
@@ -411,7 +415,7 @@ async function addIssueToProject(input: {
 
 function normalizeLabels(labels: GitHubIssueApiResponse["labels"]): string[] {
   return (labels ?? [])
-    .map((label) => (typeof label === "string" ? label : label.name ?? ""))
+    .map((label) => (typeof label === "string" ? label : (label.name ?? "")))
     .map((label) => label.trim())
     .filter(Boolean);
 }

@@ -3,12 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import {
-  groundInnovation,
-  detectPriorArt,
-  monitorCompetitors,
-  groundingToMarkdown,
-} from "@innovator/core";
+import { groundInnovation, detectPriorArt, monitorCompetitors } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType, validateModel } from "@/lib/validate-request";
@@ -89,7 +84,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/web-search" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/web-search",
+    });
     return Response.json(
       { error: "Web search grounding failed" },
       { status: 500, headers: API_RESPONSE_HEADERS }

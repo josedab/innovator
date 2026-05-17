@@ -28,7 +28,18 @@ function makeWorkflow(overrides: Record<string, unknown> = {}) {
 describe("workflow-schema", () => {
   describe("WorkflowStepType", () => {
     it("accepts all valid step types", () => {
-      const types = ["investigate", "generate", "debate", "gate", "export", "filter", "score", "transform", "branch", "merge"];
+      const types = [
+        "investigate",
+        "generate",
+        "debate",
+        "gate",
+        "export",
+        "filter",
+        "score",
+        "transform",
+        "branch",
+        "merge",
+      ];
       for (const t of types) {
         expect(WorkflowStepType.parse(t)).toBe(t);
       }
@@ -132,10 +143,7 @@ describe("workflow-schema", () => {
     it("detects circular dependencies", () => {
       const result = validateWorkflowDefinition({
         name: "Cycle",
-        steps: [
-          makeStep({ id: "a", name: "A" }),
-          makeStep({ id: "b", name: "B" }),
-        ],
+        steps: [makeStep({ id: "a", name: "A" }), makeStep({ id: "b", name: "B" })],
         connections: [
           { from: "a", to: "b" },
           { from: "b", to: "a" },
@@ -154,10 +162,7 @@ describe("workflow-schema", () => {
     it("warns when no root steps found", () => {
       const result = validateWorkflowDefinition({
         name: "No Roots",
-        steps: [
-          makeStep({ id: "a", name: "A" }),
-          makeStep({ id: "b", name: "B" }),
-        ],
+        steps: [makeStep({ id: "a", name: "A" }), makeStep({ id: "b", name: "B" })],
         connections: [
           { from: "a", to: "b" },
           { from: "b", to: "a" },

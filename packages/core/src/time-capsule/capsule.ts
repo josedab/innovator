@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import type { InnovationIdea } from "../types.js";
@@ -7,7 +6,6 @@ import {
   ReEvaluationSchema,
   type TimeCapsule,
   type FutureContext,
-  type ReEvaluation,
   type OpeningCeremony,
   type TimeCapsuleConfig,
 } from "./types.js";

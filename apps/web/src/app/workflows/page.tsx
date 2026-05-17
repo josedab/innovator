@@ -28,35 +28,40 @@ const BUILTIN_TEMPLATES: TemplateInfo[] = [
   {
     id: "quick-explore",
     name: "⚡ Quick Explore",
-    description: "Rapid ideation sprint: investigate, generate from 3 angles, and synthesize in under 2 minutes.",
+    description:
+      "Rapid ideation sprint: investigate, generate from 3 angles, and synthesize in under 2 minutes.",
     category: "rapid",
     tags: ["quick", "beginner", "exploration"],
   },
   {
     id: "deep-dive",
     name: "🔬 Deep Dive",
-    description: "Comprehensive analysis with 5 angles, red-team challenge, structured debate, and expert review.",
+    description:
+      "Comprehensive analysis with 5 angles, red-team challenge, structured debate, and expert review.",
     category: "advanced",
     tags: ["thorough", "analysis", "debate"],
   },
   {
     id: "competitive-analysis",
     name: "🎯 Competitive Analysis",
-    description: "Market-focused competitive intelligence with differentiation ideas and wargaming scenarios.",
+    description:
+      "Market-focused competitive intelligence with differentiation ideas and wargaming scenarios.",
     category: "strategy",
     tags: ["competitive", "market", "strategy"],
   },
   {
     id: "product-launch",
     name: "🚀 Product Launch",
-    description: "End-to-end product innovation from investigation through debate to PRD and tech spec.",
+    description:
+      "End-to-end product innovation from investigation through debate to PRD and tech spec.",
     category: "product",
     tags: ["product", "launch", "prd"],
   },
   {
     id: "patent-scan",
     name: "📜 Patent Scan",
-    description: "IP-focused pipeline: prior art investigation, novel approach generation, and patentability assessment.",
+    description:
+      "IP-focused pipeline: prior art investigation, novel approach generation, and patentability assessment.",
     category: "ip",
     tags: ["patent", "ip", "novel"],
   },
@@ -132,21 +137,31 @@ export default function WorkflowsPage() {
 
   const statusColor = (status?: string) => {
     switch (status) {
-      case "completed": return "text-green-400";
-      case "running": return "text-blue-400";
-      case "failed": return "text-red-400";
-      case "skipped": return "text-gray-500";
-      default: return "text-gray-400";
+      case "completed":
+        return "text-green-400";
+      case "running":
+        return "text-blue-400";
+      case "failed":
+        return "text-red-400";
+      case "skipped":
+        return "text-gray-500";
+      default:
+        return "text-gray-400";
     }
   };
 
   const statusIcon = (status?: string) => {
     switch (status) {
-      case "completed": return "✓";
-      case "running": return "⟳";
-      case "failed": return "✕";
-      case "skipped": return "–";
-      default: return "○";
+      case "completed":
+        return "✓";
+      case "running":
+        return "⟳";
+      case "failed":
+        return "✕";
+      case "skipped":
+        return "–";
+      default:
+        return "○";
     }
   };
 
@@ -158,14 +173,18 @@ export default function WorkflowsPage() {
           <h1 className="text-2xl font-bold flex items-center gap-3">
             <span>🔀</span> Workflow Builder
           </h1>
-          <p className="text-gray-400 mt-1">Choose a template, enter a subject, and run an innovation workflow</p>
+          <p className="text-gray-400 mt-1">
+            Choose a template, enter a subject, and run an innovation workflow
+          </p>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-8 py-8 space-y-8">
         {/* Template Gallery */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Built-in Templates</h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+            Built-in Templates
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {BUILTIN_TEMPLATES.map((t) => (
               <button
@@ -181,7 +200,10 @@ export default function WorkflowsPage() {
                 <p className="text-xs text-gray-400 leading-relaxed">{t.description}</p>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {t.tags?.map((tag) => (
-                    <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-gray-800 text-gray-500 rounded">
+                    <span
+                      key={tag}
+                      className="text-[10px] px-1.5 py-0.5 bg-gray-800 text-gray-500 rounded"
+                    >
                       {tag}
                     </span>
                   ))}
@@ -240,7 +262,9 @@ export default function WorkflowsPage() {
         {/* Execution Results */}
         {events.length > 0 && (
           <section>
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Execution Progress</h2>
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+              Execution Progress
+            </h2>
             <div className="bg-gray-900/50 border border-gray-800 rounded-xl divide-y divide-gray-800">
               {events.map((event, i) => (
                 <div key={i} className="px-4 py-3">
@@ -250,7 +274,9 @@ export default function WorkflowsPage() {
                       <span className="text-sm font-medium">
                         Starting <span className="text-blue-300">{event.workflow}</span>
                       </span>
-                      <span className="text-xs text-gray-500 ml-auto">{event.totalSteps} steps</span>
+                      <span className="text-xs text-gray-500 ml-auto">
+                        {event.totalSteps} steps
+                      </span>
                     </div>
                   )}
                   {event.type === "progress" && (
@@ -270,12 +296,15 @@ export default function WorkflowsPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-green-400">✓</span>
                       <span className="text-sm font-medium text-green-300">Workflow completed</span>
-                      <span className={`text-xs ml-auto ${
-                        event.summary && (event.summary as Record<string, unknown>).status === "completed"
-                          ? "text-green-400"
-                          : "text-yellow-400"
-                      }`}>
-                        {(event.summary as Record<string, unknown>)?.status as string ?? "done"}
+                      <span
+                        className={`text-xs ml-auto ${
+                          event.summary &&
+                          (event.summary as Record<string, unknown>).status === "completed"
+                            ? "text-green-400"
+                            : "text-yellow-400"
+                        }`}
+                      >
+                        {((event.summary as Record<string, unknown>)?.status as string) ?? "done"}
                       </span>
                     </div>
                   )}
@@ -294,13 +323,11 @@ export default function WorkflowsPage() {
         {/* Detailed Output */}
         {events.some((e) => e.type === "complete") && (
           <section>
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Full Output</h2>
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+              Full Output
+            </h2>
             <pre className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-xs text-green-300 overflow-auto max-h-96">
-              {JSON.stringify(
-                events.find((e) => e.type === "complete")?.summary,
-                null,
-                2
-              )}
+              {JSON.stringify(events.find((e) => e.type === "complete")?.summary, null, 2)}
             </pre>
           </section>
         )}

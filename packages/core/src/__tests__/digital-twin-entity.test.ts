@@ -51,7 +51,10 @@ describe("digital-twin/twin-entity", () => {
     const simulated = runMonteCarloSimulation(scenario.id, 200);
     expect(simulated?.simulationRuns).toBe(200);
     expect(simulated?.outcomes).toBeDefined();
-    const totalProbability = Object.values(simulated?.outcomes ?? {}).reduce((sum, value) => sum + value, 0);
+    const totalProbability = Object.values(simulated?.outcomes ?? {}).reduce(
+      (sum, value) => sum + value,
+      0
+    );
     expect(totalProbability).toBeCloseTo(1, 3);
     expect(getScenario(scenario.id)?.simulationRuns).toBe(200);
   });

@@ -48,15 +48,23 @@ export const RitualDigestSchema = z.object({
   period: z.string().max(200),
   totalSessions: z.number(),
   totalIdeas: z.number(),
-  topIdeas: z.array(z.object({
-    title: z.string().max(500),
-    session: z.string().max(200),
-  })).max(20),
-  participationStats: z.array(z.object({
-    participantName: z.string().max(200),
-    sessions: z.number(),
-    ideas: z.number(),
-  })).max(50),
+  topIdeas: z
+    .array(
+      z.object({
+        title: z.string().max(500),
+        session: z.string().max(200),
+      })
+    )
+    .max(20),
+  participationStats: z
+    .array(
+      z.object({
+        participantName: z.string().max(200),
+        sessions: z.number(),
+        ideas: z.number(),
+      })
+    )
+    .max(50),
   trends: z.array(z.string().max(500)).max(10),
   nextSubject: z.string().max(500).optional(),
 });
@@ -74,10 +82,14 @@ export const InnovationRitualSchema = z.object({
   createdAt: z.string(),
   lastExecutedAt: z.string().optional(),
   enabled: z.boolean().default(true),
-  notificationChannels: z.array(z.object({
-    type: z.enum(["email", "slack", "webhook"]),
-    target: z.string().max(500),
-  })).max(10),
+  notificationChannels: z
+    .array(
+      z.object({
+        type: z.enum(["email", "slack", "webhook"]),
+        target: z.string().max(500),
+      })
+    )
+    .max(10),
 });
 
 export type Cadence = z.infer<typeof CadenceSchema>;
@@ -115,8 +127,14 @@ export function createRitual(config: {
     participants: config.participants ?? [],
     subjectBacklog: [],
     angleRotation: config.angleRotation ?? [
-      "scamper", "first-principles", "cross-domain", "constraints",
-      "inversion", "perspectives", "what-if", "trend-collision",
+      "scamper",
+      "first-principles",
+      "cross-domain",
+      "constraints",
+      "inversion",
+      "perspectives",
+      "what-if",
+      "trend-collision",
     ],
     currentAngleIndex: 0,
     executions: [],
@@ -176,7 +194,12 @@ export function removeParticipant(ritualId: string, participantId: string): bool
 // ---- Backlog Management ----
 
 /** Add a subject to the ritual's backlog. */
-export function addBacklogItem(ritualId: string, subject: string, priority: "low" | "medium" | "high", addedBy: string): boolean {
+export function addBacklogItem(
+  ritualId: string,
+  subject: string,
+  priority: "low" | "medium" | "high",
+  addedBy: string
+): boolean {
   const ritual = rituals.get(ritualId);
   if (!ritual) return false;
   ritual.subjectBacklog.push({
@@ -205,7 +228,10 @@ export function getNextBacklogSubject(ritualId: string): SubjectBacklogItem | un
 /**
  * Record a ritual execution.
  */
-export function recordExecution(ritualId: string, execution: Omit<RitualExecution, "id" | "ritualId" | "executedAt">): RitualExecution | null {
+export function recordExecution(
+  ritualId: string,
+  execution: Omit<RitualExecution, "id" | "ritualId" | "executedAt">
+): RitualExecution | null {
   const ritual = rituals.get(ritualId);
   if (!ritual) return null;
 
@@ -269,7 +295,7 @@ export function isRitualDue(ritualId: string): boolean {
     quarterly: 90 * 24 * 60 * 60 * 1000,
   };
 
-  return (now - lastExec) >= intervals[ritual.cadence];
+  return now - lastExec >= intervals[ritual.cadence];
 }
 
 /**
@@ -291,9 +317,9 @@ export function compileDigest(ritualId: string, periodDays: number = 30): Ritual
   const cutoff = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
   const recentExecs = ritual.executions.filter((e) => e.executedAt >= cutoff);
 
-  const topIdeas = recentExecs.flatMap((e) =>
-    e.topIdeas.map((title) => ({ title, session: e.subject }))
-  ).slice(0, 20);
+  const topIdeas = recentExecs
+    .flatMap((e) => e.topIdeas.map((title) => ({ title, session: e.subject })))
+    .slice(0, 20);
 
   // Participation stats
   const participantMap = new Map<string, { sessions: number; ideas: number }>();

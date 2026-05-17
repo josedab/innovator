@@ -10,7 +10,6 @@ import {
   listBundles,
   deleteBundle,
   shareBundle,
-  getShareInfo,
   CreateBundleSchema,
   ImportBundleSchema,
 } from "@innovator/core";

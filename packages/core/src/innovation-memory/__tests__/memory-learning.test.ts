@@ -6,11 +6,7 @@ import {
   generateWeeklyDigest,
   profileToMarkdown,
 } from "../serendipity.js";
-import {
-  autoWeightAngles,
-  computeAngleWeights,
-  selectTopAngles,
-} from "../angle-weighting.js";
+import { autoWeightAngles, computeAngleWeights, selectTopAngles } from "../angle-weighting.js";
 import type { InnovationEvent, MemoryGraph } from "../types.js";
 
 const graph: MemoryGraph = {
@@ -160,7 +156,9 @@ describe("memory learning", () => {
     const connections = findSerendipitousConnections(graph, 5);
 
     expect(connections.length).toBeGreaterThan(0);
-    expect(["complementary", "cross-domain", "analogy", "contrarian", "emergent"]).toContain(connections[0].connectionType);
+    expect(["complementary", "cross-domain", "analogy", "contrarian", "emergent"]).toContain(
+      connections[0].connectionType
+    );
     expect(connections[0].sourceSessionId).not.toBe(connections[0].targetSessionId);
     expect(connections[0].explanation.length).toBeGreaterThan(10);
   });

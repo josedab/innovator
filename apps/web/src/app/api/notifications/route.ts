@@ -3,12 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import {
-  sendNotification,
-  registerChannel,
-  getChannels,
-  testChannel,
-} from "@innovator/core";
+import { sendNotification, registerChannel, getChannels, testChannel } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-request";

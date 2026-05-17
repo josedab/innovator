@@ -3,7 +3,7 @@
  */
 "use client";
 
-import { EXAMPLE_INVESTIGATIONS, type ExampleInvestigation } from "@/data/examples";
+import { EXAMPLE_INVESTIGATIONS } from "@/data/examples";
 
 interface ExploreExamplesProps {
   onSelect: (subject: string) => void;

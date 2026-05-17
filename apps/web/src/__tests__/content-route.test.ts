@@ -1,9 +1,7 @@
-// @ts-nocheck — test mocks use simplified types
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 
 const { IdeaSchema, InvestigationSchema, RevisionSchema } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { z } = require("zod");
   return {
     IdeaSchema: z.object({

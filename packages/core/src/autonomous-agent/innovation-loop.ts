@@ -8,7 +8,6 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import type { AutonomousProgress, AutonomousAgentConfig } from "./types.js";
 import { runAutonomousAgent } from "./agent.js";
 
 // ---- Phase Definitions ----
@@ -195,7 +194,7 @@ export async function startInnovationLoop(
 
   try {
     await runLoop(loop, onProgress, abortController.signal);
-  } catch (err) {
+  } catch {
     if (!abortController.signal.aborted) {
       loop.status = "failed";
       loop.updatedAt = new Date().toISOString();

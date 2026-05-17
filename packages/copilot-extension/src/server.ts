@@ -106,7 +106,9 @@ export class CopilotExtensionServer {
     // Verify webhook signature in non-development environments
     if (!this.config.skipVerification) {
       if (!this.config.webhookSecret) {
-        console.warn("[copilot-extension] COPILOT_WEBHOOK_SECRET is not set — webhook signature verification is disabled. Set it in production.");
+        console.warn(
+          "[copilot-extension] COPILOT_WEBHOOK_SECRET is not set — webhook signature verification is disabled. Set it in production."
+        );
       } else {
         const signature = req.headers["x-hub-signature-256"] as string | undefined;
         if (!signature || !verifySignature(body, signature, this.config.webhookSecret)) {

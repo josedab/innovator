@@ -3,13 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import {
-  parsePipelineRequest,
-  resolvePhases,
-  resolveAngles,
-  runAutoPipeline,
-  ANGLE_IDS,
-} from "@innovator/core";
+import { parsePipelineRequest, resolveAngles, runAutoPipeline } from "@innovator/core";
 import type { PipelineProgress } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -41,7 +35,12 @@ export async function POST(request: Request) {
   try {
     const contentTypeError = validateJsonContentType(request);
     if (contentTypeError) {
-      logger.warn("Request rejected", { route: "/api/pipeline", requestId, status: 400, durationMs: Date.now() - startTime });
+      logger.warn("Request rejected", {
+        route: "/api/pipeline",
+        requestId,
+        status: 400,
+        durationMs: Date.now() - startTime,
+      });
       return contentTypeError;
     }
 
@@ -49,13 +48,24 @@ export async function POST(request: Request) {
     try {
       body = await request.json();
     } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers: API_RESPONSE_HEADERS });
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const parsed = RequestSchema.safeParse(body);
     if (!parsed.success) {
-      logger.warn("Invalid request", { route: "/api/pipeline", requestId, durationMs: Date.now() - startTime, details: parsed.error.flatten() });
-      return new Response(JSON.stringify({ error: "Invalid request. Provide a 'description' field." }), { status: 400, headers: API_RESPONSE_HEADERS });
+      logger.warn("Invalid request", {
+        route: "/api/pipeline",
+        requestId,
+        durationMs: Date.now() - startTime,
+        details: parsed.error.flatten(),
+      });
+      return new Response(
+        JSON.stringify({ error: "Invalid request. Provide a 'description' field." }),
+        { status: 400, headers: API_RESPONSE_HEADERS }
+      );
     }
 
     const { description, model } = parsed.data;
@@ -68,8 +78,15 @@ export async function POST(request: Request) {
     try {
       config = await parsePipelineRequest(description, model);
     } catch (err) {
-      logger.error("Pipeline parse error", { error: err instanceof Error ? err.message : String(err), route: "/api/pipeline", requestId });
-      return new Response(JSON.stringify({ error: "Failed to parse pipeline description." }), { status: 400, headers: API_RESPONSE_HEADERS });
+      logger.error("Pipeline parse error", {
+        error: err instanceof Error ? err.message : String(err),
+        route: "/api/pipeline",
+        requestId,
+      });
+      return new Response(JSON.stringify({ error: "Failed to parse pipeline description." }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const angles = resolveAngles(config);
@@ -83,24 +100,50 @@ export async function POST(request: Request) {
       async start(controller) {
         const heartbeat = setInterval(() => {
           if (streamClosed) return;
-          try { controller.enqueue(encoder.encode(": keepalive\n\n")); } catch { streamClosed = true; }
+          try {
+            controller.enqueue(encoder.encode(": keepalive\n\n"));
+          } catch {
+            streamClosed = true;
+          }
         }, HEARTBEAT_MS);
 
         // Send the parsed config as the first event
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "config", config })}\n\n`));
-        } catch { streamClosed = true; }
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "config", config })}\n\n`)
+          );
+        } catch {
+          streamClosed = true;
+        }
 
         const sendProgress = (progress: PipelineProgress) => {
           if (streamClosed) return;
-          try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(progress)}\n\n`)); } catch { streamClosed = true; }
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(progress)}\n\n`));
+          } catch {
+            streamClosed = true;
+          }
         };
 
         try {
-          await runAutoPipeline(config.subject, sendProgress, config.model ?? model, angles, abortController.signal);
-          logger.info("Pipeline completed", { route: "/api/pipeline", requestId, durationMs: Date.now() - startTime });
+          await runAutoPipeline(
+            config.subject,
+            sendProgress,
+            config.model ?? model,
+            angles,
+            abortController.signal
+          );
+          logger.info("Pipeline completed", {
+            route: "/api/pipeline",
+            requestId,
+            durationMs: Date.now() - startTime,
+          });
         } catch (err) {
-          logger.error("Pipeline error", { error: err instanceof Error ? err.message : String(err), route: "/api/pipeline", requestId });
+          logger.error("Pipeline error", {
+            error: err instanceof Error ? err.message : String(err),
+            route: "/api/pipeline",
+            requestId,
+          });
           if (!streamClosed) {
             const errorProgress: PipelineProgress = {
               stage: "error",
@@ -114,7 +157,13 @@ export async function POST(request: Request) {
         } finally {
           request.signal.removeEventListener("abort", onRequestAbort);
           clearInterval(heartbeat);
-          if (!streamClosed) { try { controller.close(); } catch { /* already closed */ } }
+          if (!streamClosed) {
+            try {
+              controller.close();
+            } catch {
+              /* already closed */
+            }
+          }
           streamClosed = true;
         }
       },
@@ -126,10 +175,23 @@ export async function POST(request: Request) {
     });
 
     return new Response(stream, {
-      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive", ...SECURITY_HEADERS },
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        ...SECURITY_HEADERS,
+      },
     });
   } catch (err) {
-    logger.error("Pipeline error", { error: err instanceof Error ? err.message : String(err), route: "/api/pipeline", requestId, durationMs: Date.now() - startTime });
-    return new Response(JSON.stringify({ error: "Pipeline failed. Please try again." }), { status: 500, headers: API_RESPONSE_HEADERS });
+    logger.error("Pipeline error", {
+      error: err instanceof Error ? err.message : String(err),
+      route: "/api/pipeline",
+      requestId,
+      durationMs: Date.now() - startTime,
+    });
+    return new Response(JSON.stringify({ error: "Pipeline failed. Please try again." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

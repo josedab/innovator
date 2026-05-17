@@ -64,7 +64,10 @@ export async function GET(request: Request): Promise<Response> {
       : undefined;
 
   if (!room) {
-    return Response.json({ error: "Room not found" }, { status: 404, headers: API_RESPONSE_HEADERS });
+    return Response.json(
+      { error: "Room not found" },
+      { status: 404, headers: API_RESPONSE_HEADERS }
+    );
   }
 
   if (action === "heatmap") {
@@ -152,7 +155,10 @@ export async function POST(request: Request): Promise<Response> {
     }
     const room = getCanvasRoom(parsed.data.roomId);
     if (!room) {
-      return Response.json({ error: "Room not found" }, { status: 404, headers: API_RESPONSE_HEADERS });
+      return Response.json(
+        { error: "Room not found" },
+        { status: 404, headers: API_RESPONSE_HEADERS }
+      );
     }
 
     switch (parsed.data.action) {

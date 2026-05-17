@@ -53,7 +53,9 @@ function getLatestTimestamp(session: CollaborativeSession): number {
     }
   }
 
-  return timestamps.filter((value) => Number.isFinite(value)).reduce((max, value) => Math.max(max, value), 0);
+  return timestamps
+    .filter((value) => Number.isFinite(value))
+    .reduce((max, value) => Math.max(max, value), 0);
 }
 
 function buildHighlights(
@@ -85,7 +87,9 @@ function buildHighlights(
   }
 
   if (totalVotes > 0) {
-    highlights.push(truncate(`Participants cast ${totalVotes} total votes across the session.`, 500));
+    highlights.push(
+      truncate(`Participants cast ${totalVotes} total votes across the session.`, 500)
+    );
   }
 
   const commentedIdeas = session.ideas.filter((idea) => idea.comments.length > 0).length;
@@ -106,7 +110,8 @@ function buildHighlights(
 
 function sortIdeas(ideas: CollaborativeIdea[]): CollaborativeIdea[] {
   return [...ideas].sort(
-    (a, b) => b.votes - a.votes || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)
+    (a, b) =>
+      b.votes - a.votes || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)
   );
 }
 

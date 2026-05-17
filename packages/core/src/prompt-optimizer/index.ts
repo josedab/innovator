@@ -390,7 +390,7 @@ export function evolveGeneration(
 }
 
 /** Get evolution history (fitness over generations). */
-export function getEvolutionHistory(angleId?: string): GenerationStats[] {
+export function getEvolutionHistory(_angleId?: string): GenerationStats[] {
   return [...generationHistory];
 }
 

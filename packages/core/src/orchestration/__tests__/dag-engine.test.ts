@@ -433,12 +433,10 @@ describe("executeDAG", () => {
   });
 
   it("marks workflow as failed when a node fails and blocks dependents", async () => {
-    const executor = vi
-      .fn()
-      .mockImplementation(async (node: DAGNode) => {
-        if (node.id === "fail") throw new Error("Node failure");
-        return {};
-      });
+    const executor = vi.fn().mockImplementation(async (node: DAGNode) => {
+      if (node.id === "fail") throw new Error("Node failure");
+      return {};
+    });
 
     const wf = makeWorkflow([
       makeNode({ id: "ok", type: "investigate", name: "OK" }),
@@ -466,15 +464,16 @@ describe("executeDAG", () => {
 
   it("passes workflow variables into execution context", async () => {
     let capturedCtx: Record<string, unknown> = {};
-    const executor = vi.fn().mockImplementation(async (_node: DAGNode, ctx: Record<string, unknown>) => {
-      capturedCtx = { ...ctx };
-      return {};
-    });
+    const executor = vi
+      .fn()
+      .mockImplementation(async (_node: DAGNode, ctx: Record<string, unknown>) => {
+        capturedCtx = { ...ctx };
+        return {};
+      });
 
-    const wf = makeWorkflow(
-      [makeNode({ id: "a", type: "investigate", name: "A" })],
-      { variables: { myVar: "hello" } }
-    );
+    const wf = makeWorkflow([makeNode({ id: "a", type: "investigate", name: "A" })], {
+      variables: { myVar: "hello" },
+    });
 
     await executeDAG(wf, { executor, context: { extra: "world" } });
 

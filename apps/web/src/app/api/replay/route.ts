@@ -9,10 +9,8 @@ import {
   getSnapshot,
   forkRun,
   listBranchesForRun,
-  buildBranchDiff,
   timeTravel,
   loadPersistedRuns,
-  recordDecisionPoint,
   getDecisionPoints,
   branchFromDecision,
   getSessionTree,
@@ -93,7 +91,10 @@ export async function GET(request: Request): Promise<Response> {
   if (runId) {
     const record = getRunRecord(runId);
     if (!record) {
-      return Response.json({ error: "Run not found" }, { status: 404, headers: API_RESPONSE_HEADERS });
+      return Response.json(
+        { error: "Run not found" },
+        { status: 404, headers: API_RESPONSE_HEADERS }
+      );
     }
     const timeline = buildTimeline(runId);
     const branches = listBranchesForRun(runId);
@@ -136,16 +137,24 @@ export async function POST(request: Request): Promise<Response> {
     const snapshotId = `${data.runId}-${data.index ?? 0}`;
     const snapshot = getSnapshot(snapshotId);
     if (!snapshot) {
-      return Response.json({ error: "Snapshot not found" }, { status: 404, headers: API_RESPONSE_HEADERS });
+      return Response.json(
+        { error: "Snapshot not found" },
+        { status: 404, headers: API_RESPONSE_HEADERS }
+      );
     }
     return Response.json({ snapshot }, { headers: API_RESPONSE_HEADERS });
   }
 
   if (data.action === "fork") {
-    const stage = (data.snapshotIndex === 0 ? "investigation" : "generation") as "investigation" | "generation";
+    const stage = (data.snapshotIndex === 0 ? "investigation" : "generation") as
+      | "investigation"
+      | "generation";
     const branch = forkRun(data.runId, stage);
     if (!branch) {
-      return Response.json({ error: "Failed to fork" }, { status: 400, headers: API_RESPONSE_HEADERS });
+      return Response.json(
+        { error: "Failed to fork" },
+        { status: 400, headers: API_RESPONSE_HEADERS }
+      );
     }
     return Response.json({ branch }, { status: 201, headers: API_RESPONSE_HEADERS });
   }
@@ -158,7 +167,10 @@ export async function POST(request: Request): Promise<Response> {
   if (data.action === "compare") {
     const comparison = compareBranches(data.branchIdA, data.branchIdB);
     if (!comparison) {
-      return Response.json({ error: "Branch not found" }, { status: 404, headers: API_RESPONSE_HEADERS });
+      return Response.json(
+        { error: "Branch not found" },
+        { status: 404, headers: API_RESPONSE_HEADERS }
+      );
     }
     return Response.json({ comparison }, { headers: API_RESPONSE_HEADERS });
   }
@@ -166,7 +178,10 @@ export async function POST(request: Request): Promise<Response> {
   if (data.action === "time_travel") {
     const result = timeTravel(data.runId, data.targetIndex);
     if (!result) {
-      return Response.json({ error: "Time travel failed" }, { status: 400, headers: API_RESPONSE_HEADERS });
+      return Response.json(
+        { error: "Time travel failed" },
+        { status: 400, headers: API_RESPONSE_HEADERS }
+      );
     }
     return Response.json({ result }, { headers: API_RESPONSE_HEADERS });
   }

@@ -12,33 +12,45 @@ import { CACHE_HEADERS, API_RESPONSE_HEADERS } from "@/lib/api-headers";
 const RequestSchema = z.object({
   session: z.object({
     subject: z.string().min(1).max(500),
-    investigation: z.object({
-      summary: z.string(),
-      aspects: z.array(z.string()).optional(),
-      state: z.string().optional(),
-      challenges: z.array(z.string()).optional(),
-      opportunities: z.array(z.string()).optional(),
-    }).optional(),
-    angleResults: z.array(z.object({
-      angle: z.string(),
-      ideas: z.array(z.object({
-        title: z.string(),
-        description: z.string(),
-        impact: z.string().optional(),
-        implementationHint: z.string().optional(),
-      })),
-      reasoning: z.string().optional(),
-    })).optional(),
-    synthesis: z.object({
-      topIdeas: z.array(z.object({
-        title: z.string(),
-        description: z.string(),
-        impact: z.string().optional(),
-        implementationHint: z.string().optional(),
-      })),
-      themes: z.array(z.string()),
-      recommendation: z.string(),
-    }).optional(),
+    investigation: z
+      .object({
+        summary: z.string(),
+        aspects: z.array(z.string()).optional(),
+        state: z.string().optional(),
+        challenges: z.array(z.string()).optional(),
+        opportunities: z.array(z.string()).optional(),
+      })
+      .optional(),
+    angleResults: z
+      .array(
+        z.object({
+          angle: z.string(),
+          ideas: z.array(
+            z.object({
+              title: z.string(),
+              description: z.string(),
+              impact: z.string().optional(),
+              implementationHint: z.string().optional(),
+            })
+          ),
+          reasoning: z.string().optional(),
+        })
+      )
+      .optional(),
+    synthesis: z
+      .object({
+        topIdeas: z.array(
+          z.object({
+            title: z.string(),
+            description: z.string(),
+            impact: z.string().optional(),
+            implementationHint: z.string().optional(),
+          })
+        ),
+        themes: z.array(z.string()),
+        recommendation: z.string(),
+      })
+      .optional(),
   }),
   model: z.string().max(100).optional(),
 });
@@ -93,9 +105,9 @@ export async function POST(request: Request) {
       requestId,
       durationMs: Date.now() - startTime,
     });
-    return new Response(
-      JSON.stringify({ error: "Cinematic script generation failed." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Cinematic script generation failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

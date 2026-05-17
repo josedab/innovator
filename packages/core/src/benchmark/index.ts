@@ -12,7 +12,7 @@ import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
 import { investigate } from "../innovation/investigate.js";
 import { generateForAngle } from "../innovation/generate.js";
-import type { AngleId, AngleResult, Investigation } from "../types.js";
+import type { AngleId, AngleResult } from "../types.js";
 import { ANGLE_IDS } from "../types.js";
 
 // ---- Types ----

@@ -69,7 +69,10 @@ describe("community-gallery", () => {
         content: {},
       });
 
-      const updated = updateGalleryItem(item.id, { title: "Updated Title", description: "New desc" });
+      const updated = updateGalleryItem(item.id, {
+        title: "Updated Title",
+        description: "New desc",
+      });
       expect(updated!.title).toBe("Updated Title");
       expect(updated!.description).toBe("New desc");
     });
@@ -77,9 +80,30 @@ describe("community-gallery", () => {
 
   describe("search", () => {
     beforeEach(() => {
-      publishToGallery({ type: "angle", title: "AI Angle", description: "AI-powered", author: { id: "a1", name: "Alice" }, content: {}, tags: ["ai"] });
-      publishToGallery({ type: "workflow-template", title: "Healthcare Workflow", description: "For healthcare", author: { id: "a2", name: "Bob" }, content: {}, tags: ["healthcare"] });
-      publishToGallery({ type: "angle", title: "Climate Angle", description: "Climate innovation", author: { id: "a1", name: "Alice" }, content: {}, tags: ["climate", "sustainability"] });
+      publishToGallery({
+        type: "angle",
+        title: "AI Angle",
+        description: "AI-powered",
+        author: { id: "a1", name: "Alice" },
+        content: {},
+        tags: ["ai"],
+      });
+      publishToGallery({
+        type: "workflow-template",
+        title: "Healthcare Workflow",
+        description: "For healthcare",
+        author: { id: "a2", name: "Bob" },
+        content: {},
+        tags: ["healthcare"],
+      });
+      publishToGallery({
+        type: "angle",
+        title: "Climate Angle",
+        description: "Climate innovation",
+        author: { id: "a1", name: "Alice" },
+        content: {},
+        tags: ["climate", "sustainability"],
+      });
     });
 
     it("searches by query", () => {
@@ -237,8 +261,19 @@ describe("community-gallery", () => {
         content: {},
       });
 
-      const parent = addComment({ itemId: item.id, authorId: "u1", authorName: "Bob", content: "Parent" });
-      const reply = addComment({ itemId: item.id, authorId: "u2", authorName: "Charlie", content: "Reply", parentId: parent.id });
+      const parent = addComment({
+        itemId: item.id,
+        authorId: "u1",
+        authorName: "Bob",
+        content: "Parent",
+      });
+      const reply = addComment({
+        itemId: item.id,
+        authorId: "u2",
+        authorName: "Charlie",
+        content: "Reply",
+        parentId: parent.id,
+      });
 
       expect(reply.parentId).toBe(parent.id);
     });

@@ -7,7 +7,6 @@
 
 import type { Synthesis, AngleResult } from "../types.js";
 import { assessNovelty } from "./index.js";
-import type { NoveltyAssessment } from "./index.js";
 
 export interface NoveltyEnrichedIdea {
   title: string;
@@ -52,7 +51,8 @@ export function enrichSynthesisWithNovelty(
     ...synthesis,
     topIdeas: enrichedIdeas,
     noveltyStats: {
-      averageNovelty: enrichedIdeas.length > 0 ? Math.round(totalNovelty / enrichedIdeas.length) : 0,
+      averageNovelty:
+        enrichedIdeas.length > 0 ? Math.round(totalNovelty / enrichedIdeas.length) : 0,
       highlyNovel: enrichedIdeas.filter((i) => i.noveltyAssessment === "highly-novel").length,
       patentCandidates: enrichedIdeas.filter((i) => i.patentCandidate).length,
     },

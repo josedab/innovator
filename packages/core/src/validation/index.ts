@@ -10,7 +10,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
-import type { InnovationIdea, Investigation } from "../types.js";
+import type { InnovationIdea } from "../types.js";
 
 // ---- Zod Schemas ----
 
@@ -530,7 +530,7 @@ export async function validateComprehensive(
     marketChecks.length > 0
       ? marketChecks.reduce((s, c) => s + c.score, 0) / marketChecks.length
       : 50;
-  const avgCompetitorScore =
+  const _avgCompetitorScore =
     competitorChecks.length > 0
       ? competitorChecks.reduce((s, c) => s + c.score, 0) / competitorChecks.length
       : 50;

@@ -317,7 +317,6 @@ describe("combinatorialToMarkdown", () => {
       createdAt: "2024-01-01T00:00:00Z",
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const md = combinatorialToMarkdown(result as any);
     expect(md).toContain("# Combinatorial Synthesis: AI Innovation");
     expect(md).toContain("**Pairs explored:** 3");
@@ -341,7 +340,6 @@ describe("combinatorialToMarkdown", () => {
       createdAt: "2024-01-01T00:00:00Z",
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const md = combinatorialToMarkdown(result as any);
     expect(md).toContain("# Combinatorial Synthesis: Test");
     expect(md).toContain("**Pairs explored:** 0");

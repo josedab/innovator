@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import type { WarRoom, WarRoomVote, WarRoomMember } from "./war-room.js";
+import type { WarRoom } from "./war-room.js";
 
 // ---- Schemas ----
 

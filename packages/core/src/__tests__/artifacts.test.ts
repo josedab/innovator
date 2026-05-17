@@ -146,9 +146,7 @@ describe("artifacts", () => {
       mockGenerateText.mockResolvedValue("not json");
       mockExtractJson.mockReturnValue("not json{");
 
-      await expect(
-        generateArtifact(TEST_IDEA, "prd", TEST_CONTEXT)
-      ).rejects.toThrow();
+      await expect(generateArtifact(TEST_IDEA, "prd", TEST_CONTEXT)).rejects.toThrow();
     });
   });
 
@@ -166,11 +164,8 @@ describe("artifacts", () => {
       );
       mockExtractJson.mockReturnValue(json);
 
-      const result = await generateArtifactStream(
-        TEST_IDEA,
-        "tech-spec",
-        TEST_CONTEXT,
-        (c) => chunks.push(c)
+      const result = await generateArtifactStream(TEST_IDEA, "tech-spec", TEST_CONTEXT, (c) =>
+        chunks.push(c)
       );
 
       expect(chunks).toEqual(["chunk1", "chunk2"]);

@@ -3,7 +3,13 @@
  */
 export const runtime = "nodejs";
 
-import { querySessions, getSession, saveSession, deleteSession, updateSession } from "@innovator/core";
+import {
+  querySessions,
+  getSession,
+  saveSession,
+  deleteSession,
+  updateSession,
+} from "@innovator/core";
 import type { HistoryQuery } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 import { z } from "zod";
@@ -35,10 +41,9 @@ export async function GET(request: Request) {
   };
 
   const sessions = querySessions(query);
-  return new Response(
-    JSON.stringify({ data: sessions, total: sessions.length }),
-    { headers: API_RESPONSE_HEADERS }
-  );
+  return new Response(JSON.stringify({ data: sessions, total: sessions.length }), {
+    headers: API_RESPONSE_HEADERS,
+  });
 }
 
 const SaveSchema = z.object({
@@ -67,7 +72,7 @@ export async function POST(request: Request) {
       status: 201,
       headers: API_RESPONSE_HEADERS,
     });
-  } catch (err) {
+  } catch {
     return new Response(JSON.stringify({ error: "Failed to save session" }), {
       status: 500,
       headers: API_RESPONSE_HEADERS,

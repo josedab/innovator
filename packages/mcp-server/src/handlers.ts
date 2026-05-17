@@ -251,7 +251,6 @@ import {
   swarmToMarkdown,
   listNodes,
   createFederationNode,
-  extractPatterns,
   getNetworkDashboard,
 } from "@innovator/core";
 import type { AutonomousProgress, SwarmConfig } from "@innovator/core";

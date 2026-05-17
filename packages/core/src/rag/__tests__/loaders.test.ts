@@ -91,7 +91,6 @@ describe("loadDocument", () => {
     });
 
     it("falls back to text for unknown type", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = loadDocument("fallback content", "unknown" as any);
       expect(result).toBe("fallback content");
     });

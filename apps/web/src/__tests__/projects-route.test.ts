@@ -20,12 +20,7 @@ vi.mock("@/lib/api-headers", () => ({
 }));
 
 import { GET, POST } from "../app/api/projects/route.js";
-import {
-  createProject,
-  getProject,
-  listProjects,
-  searchProjects,
-} from "@innovator/core";
+import { createProject, getProject, listProjects, searchProjects } from "@innovator/core";
 import { validateJsonContentType } from "@/lib/validate-request";
 
 const mockCreateProject = vi.mocked(createProject);
@@ -86,9 +81,7 @@ describe("GET /api/projects", () => {
   });
 
   it("searches with query param", async () => {
-    mockSearchProjects.mockResolvedValue([
-      { id: "p1", name: "AI Project" },
-    ] as never);
+    mockSearchProjects.mockResolvedValue([{ id: "p1", name: "AI Project" }] as never);
 
     const res = await GET(makeGetRequest({ q: "AI" }));
     const data = await res.json();
@@ -197,15 +190,15 @@ describe("POST /api/projects", () => {
     );
     expect(res.status).toBe(201);
     expect(mockCreateProject).toHaveBeenCalledWith(
-      "Configured", "", "user-1",
+      "Configured",
+      "",
+      "user-1",
       expect.objectContaining({ defaultModel: "gpt-4", autoScore: true })
     );
   });
 
   it("returns 400 for missing ownerId", async () => {
-    const res = await POST(
-      makePostRequest({ name: "No Owner" })
-    );
+    const res = await POST(makePostRequest({ name: "No Owner" }));
     expect(res.status).toBe(400);
   });
 
@@ -214,9 +207,7 @@ describe("POST /api/projects", () => {
       new Response(JSON.stringify({ error: "Unsupported Media Type" }), { status: 415 })
     );
 
-    const res = await POST(
-      makePostRequest({ name: "Test", ownerId: "user-1" })
-    );
+    const res = await POST(makePostRequest({ name: "Test", ownerId: "user-1" }));
 
     expect(res.status).toBe(415);
   });

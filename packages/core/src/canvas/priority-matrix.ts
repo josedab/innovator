@@ -175,12 +175,13 @@ export function layoutPriorityMatrix(
 
   const width = 800;
   const height = 600;
-  const quadrantRegions: Record<Quadrant, { x: number; y: number; width: number; height: number }> = {
-    "quick-win": { x: 40, y: 40, width: 320, height: 220 },
-    strategic: { x: 440, y: 40, width: 320, height: 220 },
-    "fill-in": { x: 40, y: 340, width: 320, height: 220 },
-    avoid: { x: 440, y: 340, width: 320, height: 220 },
-  };
+  const quadrantRegions: Record<Quadrant, { x: number; y: number; width: number; height: number }> =
+    {
+      "quick-win": { x: 40, y: 40, width: 320, height: 220 },
+      strategic: { x: 440, y: 40, width: 320, height: 220 },
+      "fill-in": { x: 40, y: 340, width: 320, height: 220 },
+      avoid: { x: 440, y: 340, width: 320, height: 220 },
+    };
 
   for (const quadrant of QUADRANT_ORDER) {
     const nodesInQuadrant = grouped.get(quadrant) ?? [];

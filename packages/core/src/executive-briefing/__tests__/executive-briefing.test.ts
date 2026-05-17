@@ -24,11 +24,7 @@ vi.mock("../../prompts/sanitize.js", () => ({
 }));
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  generateExecutiveBriefing,
-  briefingToMarkdown,
-  briefingToHtml,
-} from "../index.js";
+import { generateExecutiveBriefing, briefingToMarkdown, briefingToHtml } from "../index.js";
 import type { ExecutiveBriefing, BriefingInput } from "../index.js";
 
 // ---- Helpers ----
@@ -99,9 +95,7 @@ function createMockBriefing(): ExecutiveBriefing {
         expectedOutcome: "Faster deployment",
       },
     ],
-    risks: [
-      { risk: "Talent gap", probability: "high", impact: "high", mitigation: "Training" },
-    ],
+    risks: [{ risk: "Talent gap", probability: "high", impact: "high", mitigation: "Training" }],
     resourceEstimate: { totalEffortWeeks: 12, teamSize: 3, budgetRange: "$50K-$100K" },
     generatedAt: new Date().toISOString(),
   };

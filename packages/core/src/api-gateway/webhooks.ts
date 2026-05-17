@@ -100,9 +100,7 @@ export class WebhookRegistry {
 
   /** Get delivery history for a webhook. */
   getDeliveryHistory(webhookId: string, limit: number = 50): WebhookDelivery[] {
-    return this.deliveries
-      .filter((d) => d.webhookId === webhookId)
-      .slice(-limit);
+    return this.deliveries.filter((d) => d.webhookId === webhookId).slice(-limit);
   }
 
   /** Send a test event to a webhook. */

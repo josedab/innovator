@@ -14,11 +14,7 @@ export {
   redactActor,
   ledgerToMarkdown,
 } from "./ledger.js";
-export {
-  LedgerEntryTypeSchema,
-  LedgerEntrySchema,
-  LedgerSchema,
-} from "./types.js";
+export { LedgerEntryTypeSchema, LedgerEntrySchema, LedgerSchema } from "./types.js";
 export type {
   LedgerEntryType,
   LedgerEntry,

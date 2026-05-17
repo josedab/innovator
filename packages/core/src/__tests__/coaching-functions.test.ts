@@ -82,7 +82,7 @@ describe("coaching functions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: withRetry just executes the function
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     mockWithRetry.mockImplementation(async (fn: (...args: any[]) => unknown) => fn());
   });
 

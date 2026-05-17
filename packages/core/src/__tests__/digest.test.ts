@@ -21,8 +21,18 @@ const mockInput: DigestInput = {
       subject: "AI in Healthcare",
       date: "2024-01-15",
       ideas: [
-        { title: "AI Diagnosis Assistant", description: "ML-powered diagnosis", sourceAngle: "cross-domain", score: 8.5 },
-        { title: "Patient Data Lake", description: "Centralized health data", sourceAngle: "first-principles", score: 7.2 },
+        {
+          title: "AI Diagnosis Assistant",
+          description: "ML-powered diagnosis",
+          sourceAngle: "cross-domain",
+          score: 8.5,
+        },
+        {
+          title: "Patient Data Lake",
+          description: "Centralized health data",
+          sourceAngle: "first-principles",
+          score: 7.2,
+        },
       ],
       anglesUsed: ["cross-domain", "first-principles"],
     },
@@ -30,7 +40,12 @@ const mockInput: DigestInput = {
       subject: "EdTech Innovation",
       date: "2024-01-16",
       ideas: [
-        { title: "Adaptive Learning", description: "Personalized curriculum", sourceAngle: "scamper", score: 9.1 },
+        {
+          title: "Adaptive Learning",
+          description: "Personalized curriculum",
+          sourceAngle: "scamper",
+          score: 9.1,
+        },
       ],
       anglesUsed: ["scamper", "what-if"],
     },

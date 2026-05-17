@@ -8,11 +8,11 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
+import { wrapUserInput } from "../prompts/sanitize.js";
 import { ValidationError, PipelineError } from "../errors.js";
 import { ANGLE_IDS, type AngleId } from "../types.js";
 import { getEventBus } from "../events/emitter.js";
-import { type Result, ok, err, tryAsync } from "../result/index.js";
+import { type Result, tryAsync } from "../result/index.js";
 import { ObjectPool, withPooled } from "../pool/index.js";
 
 /** Pool for reusable phase config objects, reducing allocation during DAG compilation. */
@@ -401,7 +401,7 @@ export function dagToText(dag: PipelineDAG): string {
   lines.push(`Subject: ${dag.subject}`);
   lines.push("");
 
-  const nodeMap = new Map(dag.nodes.map((n) => [n.id, n]));
+  const _nodeMap = new Map(dag.nodes.map((n) => [n.id, n]));
 
   // Find root nodes (no dependencies)
   const roots = dag.nodes.filter((n) => n.dependsOn.length === 0);

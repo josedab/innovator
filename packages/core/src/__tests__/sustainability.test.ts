@@ -35,13 +35,42 @@ const mockIdea: InnovationIdea = {
 
 const mockScorecardJson: SustainabilityScorecard = {
   ideaTitle: "Green AI Platform",
-  environmental: { carbonImpact: 8, wasteGeneration: 7, resourceUse: 6, overallScore: 7, indicator: "green", details: "Low carbon" },
-  social: { accessibility: 8, inclusion: 7, displacement: 5, overallScore: 6.7, indicator: "yellow", details: "Inclusive" },
-  governance: { transparency: 6, accountability: 7, overallScore: 6.5, indicator: "yellow", details: "Transparent" },
+  environmental: {
+    carbonImpact: 8,
+    wasteGeneration: 7,
+    resourceUse: 6,
+    overallScore: 7,
+    indicator: "green",
+    details: "Low carbon",
+  },
+  social: {
+    accessibility: 8,
+    inclusion: 7,
+    displacement: 5,
+    overallScore: 6.7,
+    indicator: "yellow",
+    details: "Inclusive",
+  },
+  governance: {
+    transparency: 6,
+    accountability: 7,
+    overallScore: 6.5,
+    indicator: "yellow",
+    details: "Transparent",
+  },
   overallScore: 6.7,
   overallIndicator: "yellow",
-  riskFlags: [{ dimension: "social", severity: "medium", description: "Worker displacement", mitigation: "Retraining" }],
-  improvements: [{ dimension: "environmental", suggestion: "Solar panels", effort: "low", impact: "high" }],
+  riskFlags: [
+    {
+      dimension: "social",
+      severity: "medium",
+      description: "Worker displacement",
+      mitigation: "Retraining",
+    },
+  ],
+  improvements: [
+    { dimension: "environmental", suggestion: "Solar panels", effort: "low", impact: "high" },
+  ],
   summary: "Good sustainability profile",
 };
 
@@ -158,10 +187,7 @@ describe("sustainability", () => {
       mockGenerateText.mockResolvedValue("json");
       mockExtractJson.mockReturnValue(JSON.stringify(mockScorecardJson));
 
-      const ideas: InnovationIdea[] = [
-        mockIdea,
-        { ...mockIdea, title: "Idea 2" },
-      ];
+      const ideas: InnovationIdea[] = [mockIdea, { ...mockIdea, title: "Idea 2" }];
       const result = await scorePortfolioSustainability(ideas);
 
       expect(result.totalIdeas).toBe(2);
@@ -195,7 +221,11 @@ describe("sustainability", () => {
       const controller = new AbortController();
       controller.abort();
 
-      const result = await scorePortfolioSustainability([mockIdea, mockIdea], undefined, controller.signal);
+      const result = await scorePortfolioSustainability(
+        [mockIdea, mockIdea],
+        undefined,
+        controller.signal
+      );
       expect(result.totalIdeas).toBe(0);
     });
 
@@ -204,8 +234,18 @@ describe("sustainability", () => {
         ...mockScorecardJson,
         riskFlags: [
           { dimension: "social", severity: "low", description: "Minor", mitigation: "N/A" },
-          { dimension: "environmental", severity: "critical", description: "Critical", mitigation: "Stop" },
-          { dimension: "governance", severity: "high", description: "High risk", mitigation: "Fix" },
+          {
+            dimension: "environmental",
+            severity: "critical",
+            description: "Critical",
+            mitigation: "Stop",
+          },
+          {
+            dimension: "governance",
+            severity: "high",
+            description: "High risk",
+            mitigation: "Fix",
+          },
         ],
       };
       mockGenerateText.mockResolvedValue("json");
@@ -221,7 +261,12 @@ describe("sustainability", () => {
       const scorecardWithImps: SustainabilityScorecard = {
         ...mockScorecardJson,
         improvements: [
-          { dimension: "environmental", suggestion: "Hard low impact", effort: "high", impact: "low" },
+          {
+            dimension: "environmental",
+            suggestion: "Hard low impact",
+            effort: "high",
+            impact: "low",
+          },
           { dimension: "social", suggestion: "Easy high impact", effort: "low", impact: "high" },
         ],
       };
@@ -239,20 +284,40 @@ describe("sustainability", () => {
     it("validates ESGRiskFlag with all severities", () => {
       for (const severity of ["low", "medium", "high", "critical"] as const) {
         expect(() =>
-          ESGRiskFlagSchema.parse({ dimension: "environmental", severity, description: "test", mitigation: "fix" })
+          ESGRiskFlagSchema.parse({
+            dimension: "environmental",
+            severity,
+            description: "test",
+            mitigation: "fix",
+          })
         ).not.toThrow();
       }
       expect(() =>
-        ESGRiskFlagSchema.parse({ dimension: "environmental", severity: "unknown", description: "test", mitigation: "fix" })
+        ESGRiskFlagSchema.parse({
+          dimension: "environmental",
+          severity: "unknown",
+          description: "test",
+          mitigation: "fix",
+        })
       ).toThrow();
     });
 
     it("validates ImprovementSuggestion", () => {
       expect(() =>
-        ImprovementSuggestionSchema.parse({ dimension: "social", suggestion: "Do X", effort: "low", impact: "high" })
+        ImprovementSuggestionSchema.parse({
+          dimension: "social",
+          suggestion: "Do X",
+          effort: "low",
+          impact: "high",
+        })
       ).not.toThrow();
       expect(() =>
-        ImprovementSuggestionSchema.parse({ dimension: "social", suggestion: "Do X", effort: "extreme", impact: "high" })
+        ImprovementSuggestionSchema.parse({
+          dimension: "social",
+          suggestion: "Do X",
+          effort: "extreme",
+          impact: "high",
+        })
       ).toThrow();
     });
   });
@@ -275,9 +340,19 @@ describe("sustainability", () => {
       const scorecard: SustainabilityScorecard = {
         ...mockScorecardJson,
         riskFlags: [
-          { dimension: "environmental", severity: "critical", description: "Critical issue", mitigation: "Stop" },
+          {
+            dimension: "environmental",
+            severity: "critical",
+            description: "Critical issue",
+            mitigation: "Stop",
+          },
           { dimension: "social", severity: "high", description: "High issue", mitigation: "Fix" },
-          { dimension: "governance", severity: "low", description: "Low issue", mitigation: "Monitor" },
+          {
+            dimension: "governance",
+            severity: "low",
+            description: "Low issue",
+            mitigation: "Monitor",
+          },
         ],
       };
       const md = sustainabilityToMarkdown(scorecard);

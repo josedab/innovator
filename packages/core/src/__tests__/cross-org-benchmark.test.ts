@@ -46,9 +46,24 @@ describe("cross-org-benchmark", () => {
   describe("compareToPeers", () => {
     it("compares against peer organizations", () => {
       submitMetrics("org-alpha", baseMetrics);
-      submitMetrics("org-beta", { ...baseMetrics, sessionCount: 10, ideaCount: 50, ideaVelocity: 5 });
-      submitMetrics("org-gamma", { ...baseMetrics, sessionCount: 30, ideaCount: 150, ideaVelocity: 5 });
-      submitMetrics("org-delta", { ...baseMetrics, sessionCount: 5, ideaCount: 25, ideaVelocity: 5 });
+      submitMetrics("org-beta", {
+        ...baseMetrics,
+        sessionCount: 10,
+        ideaCount: 50,
+        ideaVelocity: 5,
+      });
+      submitMetrics("org-gamma", {
+        ...baseMetrics,
+        sessionCount: 30,
+        ideaCount: 150,
+        ideaVelocity: 5,
+      });
+      submitMetrics("org-delta", {
+        ...baseMetrics,
+        sessionCount: 5,
+        ideaCount: 25,
+        ideaVelocity: 5,
+      });
 
       const result = compareToPeers("org-alpha");
       expect(result).toBeDefined();
@@ -62,8 +77,18 @@ describe("cross-org-benchmark", () => {
     });
 
     it("generates recommendations", () => {
-      submitMetrics("org-alpha", { ...baseMetrics, sessionCount: 2, ideaVelocity: 1, averageIdeaScore: 3 });
-      submitMetrics("org-beta", { ...baseMetrics, sessionCount: 50, ideaVelocity: 10, averageIdeaScore: 9 });
+      submitMetrics("org-alpha", {
+        ...baseMetrics,
+        sessionCount: 2,
+        ideaVelocity: 1,
+        averageIdeaScore: 3,
+      });
+      submitMetrics("org-beta", {
+        ...baseMetrics,
+        sessionCount: 50,
+        ideaVelocity: 10,
+        averageIdeaScore: 9,
+      });
       submitMetrics("org-gamma", { ...baseMetrics, sessionCount: 30 });
 
       const result = compareToPeers("org-alpha");

@@ -7,14 +7,12 @@
  */
 
 import { generateSummary, readEvents } from "./index.js";
-import { getTimeSeries, getActivityHeatmap, getLeaderboard, generateReport, reportToMarkdown } from "./advanced.js";
+import { getTimeSeries, generateReport, reportToMarkdown } from "./advanced.js";
 import { getEventAggregator } from "./standard-events.js";
 import type {
-  StandardEventType,
   Granularity,
   TimeSeriesBucket,
   AngleEffectivenessCell,
-  TeamLeaderboardEntry,
   VelocityMetrics,
   QualityTrendPoint,
   ExecutiveSummary,
@@ -145,13 +143,13 @@ export class DashboardService {
       "session_started",
       granularity,
       range?.from,
-      range?.to,
+      range?.to
     );
     const ideas = this.aggregator.getTimeSeries(
       "angle_generated",
       granularity,
       range?.from,
-      range?.to,
+      range?.to
     );
     const quality = this.aggregator.getQualityTrends(range?.from, range?.to);
     const velocity = this.aggregator.getVelocityMetrics(undefined, range?.from, range?.to);
@@ -192,19 +190,23 @@ export class DashboardService {
     const ideaEvents = events.filter((e) => e.type === "angle_generated");
     const ideaCount = ideaEvents.reduce(
       (sum, e) => sum + ((e.metadata.ideaCount as number) ?? 1),
-      0,
+      0
     );
 
     const scored = events.filter((e) => e.quality?.overallScore != null);
     const avgQuality =
       scored.length > 0
-        ? +(scored.reduce((s, e) => s + (e.quality!.overallScore ?? 0), 0) / scored.length).toFixed(2)
+        ? +(scored.reduce((s, e) => s + (e.quality!.overallScore ?? 0), 0) / scored.length).toFixed(
+            2
+          )
         : 0;
 
     const durations = events.filter((e) => e.duration != null).map((e) => e.duration!);
     const duration = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) : 0;
 
-    const angles = Array.from(new Set(ideaEvents.map((e) => (e.metadata.angleId as string) ?? "unknown")));
+    const angles = Array.from(
+      new Set(ideaEvents.map((e) => (e.metadata.angleId as string) ?? "unknown"))
+    );
 
     return {
       sessionId,
@@ -228,14 +230,17 @@ export class DashboardService {
     const events = readEvents();
 
     const implementedEvents = events.filter(
-      (e) => e.type === "session_exported" || e.type === "artifact_generated",
+      (e) => e.type === "session_exported" || e.type === "artifact_generated"
     );
     const implementedCount = execSummary.totalImplementations || implementedEvents.length;
 
     const estimatedValue = summary.totalIdeas * 500;
     const actualValue = implementedCount * 10000;
     const totalInvestment = summary.totalPipelines * 50;
-    const roi = totalInvestment > 0 ? +((actualValue - totalInvestment) / totalInvestment * 100).toFixed(1) : 0;
+    const roi =
+      totalInvestment > 0
+        ? +(((actualValue - totalInvestment) / totalInvestment) * 100).toFixed(1)
+        : 0;
 
     const funnelStages = [
       { stage: "Sessions", count: summary.totalPipelines },
@@ -252,9 +257,7 @@ export class DashboardService {
       actualValue,
       roi,
       implementationRate:
-        summary.totalIdeas > 0
-          ? +(implementedCount / summary.totalIdeas).toFixed(3)
-          : 0,
+        summary.totalIdeas > 0 ? +(implementedCount / summary.totalIdeas).toFixed(3) : 0,
       funnelStages,
     };
   }
@@ -281,13 +284,11 @@ export class DashboardService {
     // Highlights
     if (metrics.totalSessions > 0) {
       highlights.push(
-        `${metrics.totalSessions} innovation sessions conducted, generating ${metrics.totalIdeas} ideas.`,
+        `${metrics.totalSessions} innovation sessions conducted, generating ${metrics.totalIdeas} ideas.`
       );
     }
     if (metrics.totalImplementations > 0) {
-      highlights.push(
-        `${metrics.totalImplementations} ideas moved to implementation.`,
-      );
+      highlights.push(`${metrics.totalImplementations} ideas moved to implementation.`);
     }
     if (metrics.avgQuality > 7) {
       highlights.push(`High average quality score of ${metrics.avgQuality}/10.`);
@@ -302,7 +303,7 @@ export class DashboardService {
     }
     if (summary.successRate < 0.7 && summary.totalPipelines > 3) {
       risks.push(
-        `Pipeline success rate is ${Math.round(summary.successRate * 100)}%, below 70% threshold.`,
+        `Pipeline success rate is ${Math.round(summary.successRate * 100)}%, below 70% threshold.`
       );
     }
     if (metrics.totalImplementations === 0 && metrics.totalIdeas > 10) {
@@ -321,7 +322,7 @@ export class DashboardService {
     }
     if (metrics.topAngle) {
       recommendations.push(
-        `Continue leveraging "${metrics.topAngle}" as the top-performing angle.`,
+        `Continue leveraging "${metrics.topAngle}" as the top-performing angle.`
       );
     }
 

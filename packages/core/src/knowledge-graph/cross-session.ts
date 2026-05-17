@@ -6,7 +6,7 @@
  * for surfacing relevant past discoveries.
  */
 
-import type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./index.js";
+import type { EntityNode, KnowledgeGraph } from "./index.js";
 
 // ---- Types ----
 

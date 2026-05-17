@@ -156,14 +156,8 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     case "recommendations": {
-      const recommendations = coach.getPreSessionRecommendations(
-        data.userId,
-        data.subject
-      );
-      return NextResponse.json(
-        { recommendations },
-        { headers: API_RESPONSE_HEADERS }
-      );
+      const recommendations = coach.getPreSessionRecommendations(data.userId, data.subject);
+      return NextResponse.json({ recommendations }, { headers: API_RESPONSE_HEADERS });
     }
 
     case "nudges": {
@@ -179,11 +173,7 @@ export async function POST(request: Request): Promise<Response> {
       const analysis = coach.getPostSessionAnalysis(data.userId, result);
       builder.updateProfile(data.userId, result);
       skillTree.getSkillTree(data.userId);
-      const xpResult = skillTree.awardXP(
-        data.userId,
-        analysis.xpEarned,
-        "session-complete"
-      );
+      const xpResult = skillTree.awardXP(data.userId, analysis.xpEarned, "session-complete");
       const newSkills = skillTree.checkUnlocks(data.userId, {
         anglesUsed: data.sessionResult.anglesUsed,
         ideaCount: data.sessionResult.ideaCount,
@@ -200,35 +190,23 @@ export async function POST(request: Request): Promise<Response> {
     case "skill_tree": {
       const tree = skillTree.getSkillTree(data.userId);
       const streak = skillTree.getStreak(data.userId);
-      return NextResponse.json(
-        { skillTree: tree, streak },
-        { headers: API_RESPONSE_HEADERS }
-      );
+      return NextResponse.json({ skillTree: tree, streak }, { headers: API_RESPONSE_HEADERS });
     }
 
     case "achievements": {
       const achievements = skillTree.getAchievements(data.userId);
-      return NextResponse.json(
-        { achievements },
-        { headers: API_RESPONSE_HEADERS }
-      );
+      return NextResponse.json({ achievements }, { headers: API_RESPONSE_HEADERS });
     }
 
     case "leaderboard": {
       const leaderboard = skillTree.getLeaderboard(data.teamId, data.limit);
-      return NextResponse.json(
-        { leaderboard },
-        { headers: API_RESPONSE_HEADERS }
-      );
+      return NextResponse.json({ leaderboard }, { headers: API_RESPONSE_HEADERS });
     }
 
     case "challenge": {
       const challenge = coach.generateChallenge(data.userId);
       const activeChallenges = coach.getActiveChallenges(data.userId);
-      return NextResponse.json(
-        { challenge, activeChallenges },
-        { headers: API_RESPONSE_HEADERS }
-      );
+      return NextResponse.json({ challenge, activeChallenges }, { headers: API_RESPONSE_HEADERS });
     }
   }
 }

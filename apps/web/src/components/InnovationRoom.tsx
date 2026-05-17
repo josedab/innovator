@@ -47,8 +47,14 @@ interface InnovationRoomProps {
 // ---- User Colors ----
 
 const USER_COLORS = [
-  "#3b82f6", "#ef4444", "#22c55e", "#f59e0b",
-  "#8b5cf6", "#ec4899", "#06b6d4", "#f97316",
+  "#3b82f6",
+  "#ef4444",
+  "#22c55e",
+  "#f59e0b",
+  "#8b5cf6",
+  "#ec4899",
+  "#06b6d4",
+  "#f97316",
 ];
 
 function getUserColor(userId: string): string {
@@ -82,7 +88,11 @@ export default function InnovationRoom({ userId, displayName }: InnovationRoomPr
   // Participants & ideas
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [ideas, setIdeas] = useState<IdeaCard[]>([]);
-  const [consensus, setConsensus] = useState<ConsensusStatus>({ reached: false, ratio: 0, topIdea: null });
+  const [consensus, setConsensus] = useState<ConsensusStatus>({
+    reached: false,
+    ratio: 0,
+    topIdea: null,
+  });
   const [synthesis, setSynthesis] = useState<string | null>(null);
 
   // UI state
@@ -103,15 +113,23 @@ export default function InnovationRoom({ userId, displayName }: InnovationRoomPr
       try {
         const res = await roomAction({ action: "presence", roomId, userId });
         if (res.data?.users) setParticipants(res.data.users);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       try {
         const res = await roomAction({ action: "consensus", roomId });
         if (res.data) {
-          setConsensus({ reached: res.data.reached, ratio: res.data.ratio, topIdea: res.data.topIdea });
+          setConsensus({
+            reached: res.data.reached,
+            ratio: res.data.ratio,
+            topIdea: res.data.topIdea,
+          });
           if (res.data.topIdeas) setIdeas(res.data.topIdeas);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
 
     poll();
@@ -180,7 +198,10 @@ export default function InnovationRoom({ userId, displayName }: InnovationRoomPr
     if (!newIdea.trim() || !roomId) return;
     setLoading(true);
     try {
-      const tags = newTags.split(",").map((t) => t.trim()).filter(Boolean);
+      const tags = newTags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
       const res = await roomAction({
         action: "add_idea",
         roomId,
@@ -193,39 +214,46 @@ export default function InnovationRoom({ userId, displayName }: InnovationRoomPr
         setNewIdea("");
         setNewTags("");
       }
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
   }, [newIdea, newTags, roomId, userId]);
 
-  const handleVote = useCallback(async (ideaId: string, value: 1 | -1) => {
-    if (!roomId) return;
-    await roomAction({ action: "vote", roomId, ideaId, userId, value });
-    // Optimistic update
-    setIdeas((prev) =>
-      prev.map((idea) =>
-        idea.id === ideaId
-          ? { ...idea, score: idea.score + value, votes: [...idea.votes, userId] }
-          : idea
-      )
-    );
-  }, [roomId, userId]);
-
-  const handleComment = useCallback(async (ideaId: string) => {
-    if (!roomId) return;
-    const text = commentText[ideaId]?.trim();
-    if (!text) return;
-    const res = await roomAction({ action: "comment", roomId, ideaId, userId, text });
-    if (res.data) {
+  const handleVote = useCallback(
+    async (ideaId: string, value: 1 | -1) => {
+      if (!roomId) return;
+      await roomAction({ action: "vote", roomId, ideaId, userId, value });
+      // Optimistic update
       setIdeas((prev) =>
         prev.map((idea) =>
           idea.id === ideaId
-            ? { ...idea, comments: [...idea.comments, res.data] }
+            ? { ...idea, score: idea.score + value, votes: [...idea.votes, userId] }
             : idea
         )
       );
-      setCommentText((prev) => ({ ...prev, [ideaId]: "" }));
-    }
-  }, [roomId, userId, commentText]);
+    },
+    [roomId, userId]
+  );
+
+  const handleComment = useCallback(
+    async (ideaId: string) => {
+      if (!roomId) return;
+      const text = commentText[ideaId]?.trim();
+      if (!text) return;
+      const res = await roomAction({ action: "comment", roomId, ideaId, userId, text });
+      if (res.data) {
+        setIdeas((prev) =>
+          prev.map((idea) =>
+            idea.id === ideaId ? { ...idea, comments: [...idea.comments, res.data] } : idea
+          )
+        );
+        setCommentText((prev) => ({ ...prev, [ideaId]: "" }));
+      }
+    },
+    [roomId, userId, commentText]
+  );
 
   const handleSynthesize = useCallback(async () => {
     if (!roomId) return;
@@ -233,8 +261,11 @@ export default function InnovationRoom({ userId, displayName }: InnovationRoomPr
     try {
       const res = await roomAction({ action: "synthesize", roomId });
       if (res.data?.synthesis) setSynthesis(res.data.synthesis);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
   }, [roomId]);
 
   // ---- Lobby (no room joined yet) ----
@@ -360,9 +391,7 @@ export default function InnovationRoom({ userId, displayName }: InnovationRoomPr
           />
         </div>
         {consensus.reached && (
-          <p className="text-xs text-green-400 mt-1">
-            ✅ Consensus reached! Ready to synthesize.
-          </p>
+          <p className="text-xs text-green-400 mt-1">✅ Consensus reached! Ready to synthesize.</p>
         )}
       </div>
 
@@ -438,7 +467,11 @@ export default function InnovationRoom({ userId, displayName }: InnovationRoomPr
                   </button>
                   <span
                     className={`text-xs font-bold ${
-                      idea.score > 0 ? "text-green-400" : idea.score < 0 ? "text-red-400" : "text-gray-500"
+                      idea.score > 0
+                        ? "text-green-400"
+                        : idea.score < 0
+                          ? "text-red-400"
+                          : "text-gray-500"
                     }`}
                   >
                     {idea.score > 0 ? "+" : ""}

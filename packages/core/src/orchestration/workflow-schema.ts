@@ -27,58 +27,80 @@ export type WorkflowStepType = z.infer<typeof WorkflowStepType>;
 
 // ---- Per-Type Config Schemas ----
 
-const InvestigateConfigSchema = z.object({
-  depth: z.enum(["shallow", "standard", "deep"]).default("standard"),
-  focus: z.string().max(500).optional(),
-}).optional();
+const InvestigateConfigSchema = z
+  .object({
+    depth: z.enum(["shallow", "standard", "deep"]).default("standard"),
+    focus: z.string().max(500).optional(),
+  })
+  .optional();
 
-const GenerateConfigSchema = z.object({
-  angles: z.array(z.string().max(100)).max(20).optional(),
-  model: z.string().max(100).optional(),
-  maxIdeas: z.number().int().min(1).max(100).optional(),
-}).optional();
+const GenerateConfigSchema = z
+  .object({
+    angles: z.array(z.string().max(100)).max(20).optional(),
+    model: z.string().max(100).optional(),
+    maxIdeas: z.number().int().min(1).max(100).optional(),
+  })
+  .optional();
 
-const DebateConfigSchema = z.object({
-  rounds: z.number().int().min(1).max(10).default(3),
-  perspectives: z.array(z.string().max(100)).max(10).optional(),
-}).optional();
+const DebateConfigSchema = z
+  .object({
+    rounds: z.number().int().min(1).max(10).default(3),
+    perspectives: z.array(z.string().max(100)).max(10).optional(),
+  })
+  .optional();
 
-const GateConfigSchema = z.object({
-  minQualityScore: z.number().min(0).max(10).optional(),
-  requiredApprovals: z.number().int().min(0).max(10).optional(),
-  autoPassConditions: z.array(z.string().max(500)).max(10).optional(),
-}).optional();
+const GateConfigSchema = z
+  .object({
+    minQualityScore: z.number().min(0).max(10).optional(),
+    requiredApprovals: z.number().int().min(0).max(10).optional(),
+    autoPassConditions: z.array(z.string().max(500)).max(10).optional(),
+  })
+  .optional();
 
-const ExportConfigSchema = z.object({
-  format: z.enum(["json", "markdown", "html", "csv", "prd", "patent-brief", "comparison-matrix"]).default("markdown"),
-  template: z.string().max(5000).optional(),
-}).optional();
+const ExportConfigSchema = z
+  .object({
+    format: z
+      .enum(["json", "markdown", "html", "csv", "prd", "patent-brief", "comparison-matrix"])
+      .default("markdown"),
+    template: z.string().max(5000).optional(),
+  })
+  .optional();
 
-const FilterConfigSchema = z.object({
-  minScore: z.number().min(0).max(100).optional(),
-  maxResults: z.number().int().min(1).max(100).optional(),
-  criteria: z.string().max(500).optional(),
-}).optional();
+const FilterConfigSchema = z
+  .object({
+    minScore: z.number().min(0).max(100).optional(),
+    maxResults: z.number().int().min(1).max(100).optional(),
+    criteria: z.string().max(500).optional(),
+  })
+  .optional();
 
-const ScoreConfigSchema = z.object({
-  dimensions: z.array(z.string().max(100)).max(20).optional(),
-  rubric: z.string().max(2000).optional(),
-}).optional();
+const ScoreConfigSchema = z
+  .object({
+    dimensions: z.array(z.string().max(100)).max(20).optional(),
+    rubric: z.string().max(2000).optional(),
+  })
+  .optional();
 
-const TransformConfigSchema = z.object({
-  operation: z.enum(["map", "reduce", "flatten", "group", "sort", "deduplicate"]).optional(),
-  expression: z.string().max(1000).optional(),
-}).optional();
+const TransformConfigSchema = z
+  .object({
+    operation: z.enum(["map", "reduce", "flatten", "group", "sort", "deduplicate"]).optional(),
+    expression: z.string().max(1000).optional(),
+  })
+  .optional();
 
-const BranchConfigSchema = z.object({
-  condition: z.string().max(1000),
-  trueBranch: z.array(z.string().max(100)).max(20).optional(),
-  falseBranch: z.array(z.string().max(100)).max(20).optional(),
-}).optional();
+const BranchConfigSchema = z
+  .object({
+    condition: z.string().max(1000),
+    trueBranch: z.array(z.string().max(100)).max(20).optional(),
+    falseBranch: z.array(z.string().max(100)).max(20).optional(),
+  })
+  .optional();
 
-const MergeConfigSchema = z.object({
-  strategy: z.enum(["concat", "union", "intersection", "best-of"]).default("concat"),
-}).optional();
+const MergeConfigSchema = z
+  .object({
+    strategy: z.enum(["concat", "union", "intersection", "best-of"]).default("concat"),
+  })
+  .optional();
 
 const StepConfigSchema = z.union([
   z.object({ investigate: InvestigateConfigSchema }).partial(),
@@ -115,7 +137,11 @@ export type WorkflowStep = z.infer<typeof WorkflowStepSchema>;
 export const WorkflowConnectionSchema = z.object({
   from: z.string().max(100),
   to: z.string().max(100),
-  condition: z.string().max(1000).optional().describe("Optional expression for conditional connections"),
+  condition: z
+    .string()
+    .max(1000)
+    .optional()
+    .describe("Optional expression for conditional connections"),
 });
 
 export type WorkflowConnection = z.infer<typeof WorkflowConnectionSchema>;

@@ -33,8 +33,8 @@ interface BranchInfo {
 export default function ReplayPage() {
   const [runs] = useState<RunRecord[]>([]);
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
-  const [timeline, setTimeline] = useState<TimelineSnapshot[]>([]);
-  const [branches, setBranches] = useState<BranchInfo[]>([]);
+  const [timeline, _setTimeline] = useState<TimelineSnapshot[]>([]);
+  const [branches, _setBranches] = useState<BranchInfo[]>([]);
   const [scrubberIndex, setScrubberIndex] = useState(0);
   const [compareMode, setCompareMode] = useState(false);
   const [compareRunId, setCompareRunId] = useState<string | null>(null);

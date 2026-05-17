@@ -5,7 +5,6 @@ export const runtime = "nodejs";
 
 import {
   selectTopIdea,
-  buildPRWorkflow,
   innovationToPR,
   workflowToScript,
   generateText,
@@ -18,18 +17,23 @@ import { logger } from "@/lib/logger";
 import { validateJsonContentType, validateModel } from "@/lib/validate-request";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
-const MAX_SUBJECT_LENGTH = 500;
+const _MAX_SUBJECT_LENGTH = 500;
 
 const RequestSchema = z.object({
   synthesis: z.object({
-    topIdeas: z.array(z.object({
-      title: z.string().max(500),
-      description: z.string().max(5000),
-      potentialImpact: z.string().max(2000),
-      sourceAngle: z.string().max(200).optional(),
-      feasibility: z.string().max(50).optional(),
-      implementationHint: z.string().max(2000).optional(),
-    })).min(1).max(50),
+    topIdeas: z
+      .array(
+        z.object({
+          title: z.string().max(500),
+          description: z.string().max(5000),
+          potentialImpact: z.string().max(2000),
+          sourceAngle: z.string().max(200).optional(),
+          feasibility: z.string().max(50).optional(),
+          implementationHint: z.string().max(2000).optional(),
+        })
+      )
+      .min(1)
+      .max(50),
     themes: z.array(z.string().max(500)).max(20),
     recommendation: z.string().max(5000),
     connections: z.array(z.unknown()).optional(),
@@ -52,16 +56,24 @@ const RequestSchema = z.object({
 
 const ImplementationPlanSchema = z.object({
   overview: z.string().max(3000),
-  phases: z.array(z.object({
-    name: z.string().max(200),
-    description: z.string().max(1000),
-    tasks: z.array(z.string().max(500)).max(20),
-    deliverables: z.array(z.string().max(500)).max(10),
-  })).max(10),
-  risks: z.array(z.object({
-    risk: z.string().max(500),
-    mitigation: z.string().max(500),
-  })).max(10),
+  phases: z
+    .array(
+      z.object({
+        name: z.string().max(200),
+        description: z.string().max(1000),
+        tasks: z.array(z.string().max(500)).max(20),
+        deliverables: z.array(z.string().max(500)).max(10),
+      })
+    )
+    .max(10),
+  risks: z
+    .array(
+      z.object({
+        risk: z.string().max(500),
+        mitigation: z.string().max(500),
+      })
+    )
+    .max(10),
   estimatedComplexity: z.enum(["low", "medium", "high"]),
 });
 
@@ -197,7 +209,8 @@ export async function POST(request: Request) {
     const prResult = innovationToPR(synthesis as Synthesis, config as PRConfig);
 
     // Generate executable script
-    const script = prResult.status !== "failed" ? workflowToScript(prResult.workflowPlan) : undefined;
+    const script =
+      prResult.status !== "failed" ? workflowToScript(prResult.workflowPlan) : undefined;
 
     logger.info("Idea-to-PR completed", {
       route: "/api/idea-to-pr",

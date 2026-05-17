@@ -97,10 +97,30 @@ describe("embedding-explorer", () => {
 
   describe("buildEmbeddingSpace", () => {
     const mockIdeas: IdeaInput[] = [
-      { id: "1", title: "AI chatbot", description: "A smart chatbot for customer service", tags: ["ai", "chat"] },
-      { id: "2", title: "Blockchain supply chain", description: "Track goods using blockchain", tags: ["blockchain"] },
-      { id: "3", title: "IoT sensors", description: "Smart sensors for agriculture monitoring", tags: ["iot", "agriculture"] },
-      { id: "4", title: "ML fraud detection", description: "Machine learning for detecting fraud", tags: ["ml", "security"] },
+      {
+        id: "1",
+        title: "AI chatbot",
+        description: "A smart chatbot for customer service",
+        tags: ["ai", "chat"],
+      },
+      {
+        id: "2",
+        title: "Blockchain supply chain",
+        description: "Track goods using blockchain",
+        tags: ["blockchain"],
+      },
+      {
+        id: "3",
+        title: "IoT sensors",
+        description: "Smart sensors for agriculture monitoring",
+        tags: ["iot", "agriculture"],
+      },
+      {
+        id: "4",
+        title: "ML fraud detection",
+        description: "Machine learning for detecting fraud",
+        tags: ["ml", "security"],
+      },
     ];
 
     it("throws for empty ideas array", async () => {

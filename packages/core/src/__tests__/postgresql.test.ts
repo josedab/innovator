@@ -17,13 +17,13 @@ const testConfig: PostgreSQLConfig = {
  */
 function createDriverWithMockPool(): PostgreSQLDriver {
   const driver = new PostgreSQLDriver(testConfig);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   (driver as any).pool = {
     query: mockQuery,
     connect: vi.fn().mockResolvedValue({ release: vi.fn() }),
     end: vi.fn(),
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   (driver as any).connected = true;
   return driver;
 }

@@ -529,7 +529,7 @@ export async function runAutonomousAgent(
   run.status = "synthesizing";
   emitProgress();
 
-  const startTime = Date.now();
+  const _startTime = Date.now();
   try {
     const portfolioPrompt = buildPortfolioPrompt(subject, run.branches);
     const raw = await withRetry(

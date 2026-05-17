@@ -94,16 +94,95 @@ export type ClusterResult = z.infer<typeof ClusterResultSchema>;
 // ---- Text Processing (TF-IDF) ----
 
 const STOP_WORDS = new Set([
-  "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
-  "have", "has", "had", "do", "does", "did", "will", "would", "could",
-  "should", "may", "might", "shall", "can", "to", "of", "in", "for",
-  "on", "with", "at", "by", "from", "as", "into", "through", "during",
-  "before", "after", "and", "but", "or", "not", "no", "if", "then",
-  "than", "that", "this", "it", "its", "i", "we", "you", "he", "she",
-  "they", "me", "him", "her", "us", "them", "my", "your", "his", "our",
-  "their", "what", "which", "who", "when", "where", "how", "all", "each",
-  "every", "both", "few", "more", "most", "other", "some", "such", "only",
-  "own", "same", "so", "very", "just",
+  "a",
+  "an",
+  "the",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "being",
+  "have",
+  "has",
+  "had",
+  "do",
+  "does",
+  "did",
+  "will",
+  "would",
+  "could",
+  "should",
+  "may",
+  "might",
+  "shall",
+  "can",
+  "to",
+  "of",
+  "in",
+  "for",
+  "on",
+  "with",
+  "at",
+  "by",
+  "from",
+  "as",
+  "into",
+  "through",
+  "during",
+  "before",
+  "after",
+  "and",
+  "but",
+  "or",
+  "not",
+  "no",
+  "if",
+  "then",
+  "than",
+  "that",
+  "this",
+  "it",
+  "its",
+  "i",
+  "we",
+  "you",
+  "he",
+  "she",
+  "they",
+  "me",
+  "him",
+  "her",
+  "us",
+  "them",
+  "my",
+  "your",
+  "his",
+  "our",
+  "their",
+  "what",
+  "which",
+  "who",
+  "when",
+  "where",
+  "how",
+  "all",
+  "each",
+  "every",
+  "both",
+  "few",
+  "more",
+  "most",
+  "other",
+  "some",
+  "such",
+  "only",
+  "own",
+  "same",
+  "so",
+  "very",
+  "just",
 ]);
 
 function tokenize(text: string): string[] {
@@ -227,9 +306,7 @@ function clusterIdeas(ideas: IdeaEntry[], threshold: number): ClusterResult[] {
         centroidTerms.set(term, (centroidTerms.get(term) ?? 0) + weight);
       }
     }
-    const centroid = Array.from(centroidTerms.values()).map(
-      (v) => v / memberIndices.length
-    );
+    const centroid = Array.from(centroidTerms.values()).map((v) => v / memberIndices.length);
 
     // Compute coherence (average pairwise similarity)
     let totalSim = 0;
@@ -397,14 +474,7 @@ export async function buildTaxonomy(
   }
 
   // Build hierarchy
-  const children = buildHierarchy(
-    clusters,
-    labels,
-    cfg.maxDepth,
-    cfg.minClusterSize,
-    1,
-    "root"
-  );
+  const children = buildHierarchy(clusters, labels, cfg.maxDepth, cfg.minClusterSize, 1, "root");
 
   const root: TaxonomyNode = {
     id: "root",
@@ -685,9 +755,10 @@ export function refineTaxonomy(
               description: `Split from ${node.label}`,
               parentId: parent.id,
               children: [],
-              ideaCount: i === fb.splitLabels!.length - 1
-                ? node.ideaCount - ideasPerSplit * (fb.splitLabels!.length - 1)
-                : ideasPerSplit,
+              ideaCount:
+                i === fb.splitLabels!.length - 1
+                  ? node.ideaCount - ideasPerSplit * (fb.splitLabels!.length - 1)
+                  : ideasPerSplit,
               level: node.level,
               confidence: node.confidence * 0.8,
             }));
@@ -715,7 +786,9 @@ export function exportTaxonomyAsMarkdown(taxonomy: TaxonomyTree): string {
   const lines: string[] = [];
   lines.push(`# ${taxonomy.root.label}`);
   lines.push("");
-  lines.push(`> ${taxonomy.totalIdeas} ideas across ${taxonomy.totalNodes} categories (depth: ${taxonomy.maxDepth})`);
+  lines.push(
+    `> ${taxonomy.totalIdeas} ideas across ${taxonomy.totalNodes} categories (depth: ${taxonomy.maxDepth})`
+  );
   lines.push("");
 
   function renderNode(node: TaxonomyNode, indent: number): void {
@@ -772,9 +845,11 @@ export function getTaxonomyStats(taxonomy: TaxonomyTree): {
     totalNodes: taxonomy.totalNodes,
     totalIdeas: taxonomy.totalIdeas,
     maxDepth: taxonomy.maxDepth,
-    avgBranchingFactor: branchNodes > 0 ? Math.round((totalBranching / branchNodes) * 100) / 100 : 0,
+    avgBranchingFactor:
+      branchNodes > 0 ? Math.round((totalBranching / branchNodes) * 100) / 100 : 0,
     leafCount: leaves.length,
-    avgIdeasPerLeaf: leaves.length > 0 ? Math.round((leafIdeaTotal / leaves.length) * 100) / 100 : 0,
+    avgIdeasPerLeaf:
+      leaves.length > 0 ? Math.round((leafIdeaTotal / leaves.length) * 100) / 100 : 0,
   };
 }
 
@@ -809,8 +884,7 @@ export async function suggestNewCategories(
   ideas: Array<{ title: string; description?: string }>,
   signal?: AbortSignal
 ): Promise<Array<{ suggestedCategory: string; parentPath: string[]; ideas: string[] }>> {
-  const existingCategories = flattenTaxonomy(taxonomy)
-    .map((c) => c.path.join(" > "));
+  const existingCategories = flattenTaxonomy(taxonomy).map((c) => c.path.join(" > "));
 
   const prompt = `You are a taxonomy expert. Given existing categories and new ideas that don't fit well, suggest new categories to add.
 

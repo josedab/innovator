@@ -70,11 +70,7 @@ function getIdeaCount(event: AnalyticsEvent): number {
 }
 
 function getQualityScore(event: AnalyticsEvent): number | undefined {
-  const candidates = [
-    event.data?.avgScore,
-    event.data?.overallScore,
-    event.data?.qualityScore,
-  ];
+  const candidates = [event.data?.avgScore, event.data?.overallScore, event.data?.qualityScore];
 
   for (const candidate of candidates) {
     if (typeof candidate === "number" && Number.isFinite(candidate)) {
@@ -116,7 +112,7 @@ function getIsoWeekKey(timestamp: string): string {
   const day = utcDate.getUTCDay() || 7;
   utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
   const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
-  const week = Math.ceil((((utcDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  const week = Math.ceil(((utcDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   return `${utcDate.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
@@ -132,7 +128,9 @@ function getBucketKey(timestamp: string, granularity: VelocityTrend["granularity
   }
 }
 
-function computeDirection(values: number[]): Pick<VelocityTrend, "trendDirection" | "changePercent"> {
+function computeDirection(
+  values: number[]
+): Pick<VelocityTrend, "trendDirection" | "changePercent"> {
   if (values.length === 0) {
     return { trendDirection: "stable", changePercent: 0 };
   }
@@ -141,9 +139,8 @@ function computeDirection(values: number[]): Pick<VelocityTrend, "trendDirection
   const first = values.slice(0, midpoint);
   const second = values.slice(midpoint);
   const firstAvg = first.reduce((sum, value) => sum + value, 0) / first.length;
-  const secondAvg = second.length > 0
-    ? second.reduce((sum, value) => sum + value, 0) / second.length
-    : firstAvg;
+  const secondAvg =
+    second.length > 0 ? second.reduce((sum, value) => sum + value, 0) / second.length : firstAvg;
 
   let changePercent = 0;
   if (firstAvg === 0) {
@@ -164,7 +161,7 @@ function computeDirection(values: number[]): Pick<VelocityTrend, "trendDirection
 /** Compute innovation velocity trend data from analytics events. */
 export function computeVelocityTrend(
   events: AnalyticsEvent[],
-  granularity: VelocityTrend["granularity"] = "weekly",
+  granularity: VelocityTrend["granularity"] = "weekly"
 ): VelocityTrend {
   const sorted = [...events].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   const now = new Date().toISOString();
@@ -179,13 +176,16 @@ export function computeVelocityTrend(
     });
   }
 
-  const buckets = new Map<string, {
-    ideaCount: number;
-    sessionCount: number;
-    qualitySum: number;
-    qualityCount: number;
-    activeUsers: Set<string>;
-  }>();
+  const buckets = new Map<
+    string,
+    {
+      ideaCount: number;
+      sessionCount: number;
+      qualitySum: number;
+      qualityCount: number;
+      activeUsers: Set<string>;
+    }
+  >();
 
   for (const event of sorted) {
     const bucket = getBucketKey(event.timestamp, granularity);
@@ -216,19 +216,19 @@ export function computeVelocityTrend(
   }
 
   const dataPoints = Array.from(buckets.entries())
-    .map(([period, entry]) => VelocityDataPointSchema.parse({
-      period,
-      ideaCount: entry.ideaCount,
-      sessionCount: entry.sessionCount,
-      avgQualityScore: entry.qualityCount > 0
-        ? round(entry.qualitySum / entry.qualityCount)
-        : 0,
-      activeUsers: entry.activeUsers.size,
-    }))
+    .map(([period, entry]) =>
+      VelocityDataPointSchema.parse({
+        period,
+        ideaCount: entry.ideaCount,
+        sessionCount: entry.sessionCount,
+        avgQualityScore: entry.qualityCount > 0 ? round(entry.qualitySum / entry.qualityCount) : 0,
+        activeUsers: entry.activeUsers.size,
+      })
+    )
     .sort((a, b) => a.period.localeCompare(b.period));
 
   const { trendDirection, changePercent } = computeDirection(
-    dataPoints.map((point) => point.ideaCount),
+    dataPoints.map((point) => point.ideaCount)
   );
 
   return VelocityTrendSchema.parse({
@@ -245,14 +245,17 @@ export function computeVelocityTrend(
 
 /** Build an angle × domain effectiveness heatmap from analytics events. */
 export function generateAngleHeatmap(events: AnalyticsEvent[]): AngleHeatmap {
-  const cells = new Map<string, {
-    angleId: string;
-    domain: string;
-    attempts: number;
-    successes: number;
-    qualitySum: number;
-    qualityCount: number;
-  }>();
+  const cells = new Map<
+    string,
+    {
+      angleId: string;
+      domain: string;
+      attempts: number;
+      successes: number;
+      qualitySum: number;
+      qualityCount: number;
+    }
+  >();
 
   for (const event of events) {
     if (!["angle_generated", "angle_failed", "ideas_scored"].includes(event.type)) {
@@ -292,14 +295,14 @@ export function generateAngleHeatmap(events: AnalyticsEvent[]): AngleHeatmap {
   const normalizedCells = Array.from(cells.values())
     .map((entry) => {
       const sampleSize = entry.attempts > 0 ? entry.attempts : entry.qualityCount;
-      const avgIdeaQuality = entry.qualityCount > 0
-        ? round(entry.qualitySum / entry.qualityCount)
-        : 0;
+      const avgIdeaQuality =
+        entry.qualityCount > 0 ? round(entry.qualitySum / entry.qualityCount) : 0;
       const successRate = sampleSize > 0 ? entry.successes / sampleSize : 0;
       const qualityComponent = entry.qualityCount > 0 ? avgIdeaQuality / 10 : successRate;
-      const effectivenessScore = sampleSize > 0
-        ? Math.min(1, Math.max(0, round(successRate * 0.4 + qualityComponent * 0.6, 3)))
-        : 0;
+      const effectivenessScore =
+        sampleSize > 0
+          ? Math.min(1, Math.max(0, round(successRate * 0.4 + qualityComponent * 0.6, 3)))
+          : 0;
 
       return HeatmapCellSchema.parse({
         angleId: entry.angleId,
@@ -321,17 +324,20 @@ export function generateAngleHeatmap(events: AnalyticsEvent[]): AngleHeatmap {
 
 /** Analyze user-level innovation behavior patterns from analytics events. */
 export function analyzeTeamPatterns(events: AnalyticsEvent[]): TeamPattern[] {
-  const patterns = new Map<string, {
-    userId: string;
-    displayName?: string;
-    sessionsCount: number;
-    totalIdeas: number;
-    qualitySum: number;
-    qualityCount: number;
-    angleCounts: Map<string, number>;
-    hourCounts: Map<number, number>;
-    activeDays: Set<string>;
-  }>();
+  const patterns = new Map<
+    string,
+    {
+      userId: string;
+      displayName?: string;
+      sessionsCount: number;
+      totalIdeas: number;
+      qualitySum: number;
+      qualityCount: number;
+      angleCounts: Map<string, number>;
+      hourCounts: Map<number, number>;
+      activeDays: Set<string>;
+    }
+  >();
 
   for (const event of events) {
     const userId = getUserId(event);
@@ -376,26 +382,24 @@ export function analyzeTeamPatterns(events: AnalyticsEvent[]): TeamPattern[] {
   }
 
   return Array.from(patterns.values())
-    .map((entry) => TeamPatternSchema.parse({
-      userId: entry.userId,
-      displayName: entry.displayName ?? entry.userId,
-      sessionsCount: entry.sessionsCount,
-      totalIdeas: entry.totalIdeas,
-      avgQualityScore: entry.qualityCount > 0
-        ? round(entry.qualitySum / entry.qualityCount)
-        : 0,
-      favoriteAngles: Array.from(entry.angleCounts.entries())
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .slice(0, 5)
-        .map(([angleId]) => angleId),
-      peakHours: Array.from(entry.hourCounts.entries())
-        .sort((a, b) => b[1] - a[1] || a[0] - b[0])
-        .slice(0, 5)
-        .map(([hour]) => hour),
-      innovationVelocity: round(
-        entry.totalIdeas / Math.max(1, entry.activeDays.size),
-      ),
-    }))
+    .map((entry) =>
+      TeamPatternSchema.parse({
+        userId: entry.userId,
+        displayName: entry.displayName ?? entry.userId,
+        sessionsCount: entry.sessionsCount,
+        totalIdeas: entry.totalIdeas,
+        avgQualityScore: entry.qualityCount > 0 ? round(entry.qualitySum / entry.qualityCount) : 0,
+        favoriteAngles: Array.from(entry.angleCounts.entries())
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          .slice(0, 5)
+          .map(([angleId]) => angleId),
+        peakHours: Array.from(entry.hourCounts.entries())
+          .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+          .slice(0, 5)
+          .map(([hour]) => hour),
+        innovationVelocity: round(entry.totalIdeas / Math.max(1, entry.activeDays.size)),
+      })
+    )
     .sort((a, b) => b.innovationVelocity - a.innovationVelocity || b.totalIdeas - a.totalIdeas);
 }
 
@@ -410,8 +414,9 @@ export function velocityTrendToMarkdown(trend: VelocityTrend): string {
     "",
     "| Period | Ideas | Sessions | Avg Quality | Active Users |",
     "|--------|-------|----------|-------------|--------------|",
-    ...trend.dataPoints.map((point) =>
-      `| ${point.period} | ${point.ideaCount} | ${point.sessionCount} | ${point.avgQualityScore.toFixed(2)} | ${point.activeUsers} |`,
+    ...trend.dataPoints.map(
+      (point) =>
+        `| ${point.period} | ${point.ideaCount} | ${point.sessionCount} | ${point.avgQualityScore.toFixed(2)} | ${point.activeUsers} |`
     ),
   ];
 

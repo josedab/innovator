@@ -147,21 +147,15 @@ export function ingestConcepts(
     }
   }
 
-  graph.totalSessions = new Set(
-    graph.nodes.flatMap((n) => n.sessionIds)
-  ).size;
+  graph.totalSessions = new Set(graph.nodes.flatMap((n) => n.sessionIds)).size;
   graph.lastUpdatedAt = now;
 
   // Bound graph size
   if (graph.nodes.length > 10000) {
-    graph.nodes.sort(
-      (a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime()
-    );
+    graph.nodes.sort((a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime());
     graph.nodes = graph.nodes.slice(0, 10000);
     const validIds = new Set(graph.nodes.map((n) => n.id));
-    graph.edges = graph.edges.filter(
-      (e) => validIds.has(e.source) && validIds.has(e.target)
-    );
+    graph.edges = graph.edges.filter((e) => validIds.has(e.source) && validIds.has(e.target));
   }
 
   saveMemoryGraph(graph, dir);
@@ -182,43 +176,28 @@ export function trackEvent(
   };
 
   const validated = InnovationEventSchema.parse(fullEvent);
-  appendFileSync(
-    join(dir, EVENTS_FILE),
-    JSON.stringify(validated) + "\n",
-    "utf-8"
-  );
+  appendFileSync(join(dir, EVENTS_FILE), JSON.stringify(validated) + "\n", "utf-8");
   return validated;
 }
 
-export function loadEvents(
-  limit: number = 1000,
-  dir: string = DEFAULT_DIR
-): InnovationEvent[] {
+export function loadEvents(limit: number = 1000, dir: string = DEFAULT_DIR): InnovationEvent[] {
   const path = join(dir, EVENTS_FILE);
   if (!existsSync(path)) return [];
 
   const lines = readFileSync(path, "utf-8").trim().split("\n").filter(Boolean);
-  return lines
-    .slice(-limit)
-    .map((line) => InnovationEventSchema.parse(JSON.parse(line)));
+  return lines.slice(-limit).map((line) => InnovationEventSchema.parse(JSON.parse(line)));
 }
 
 // ---- Domain Profiles ----
 
-export function computeDomainProfile(
-  domain: string,
-  dir: string = DEFAULT_DIR
-): DomainProfile {
+export function computeDomainProfile(domain: string, dir: string = DEFAULT_DIR): DomainProfile {
   const events = loadEvents(5000, dir);
   const domainEvents = events.filter(
     (e) => e.metadata?.domain?.toLowerCase() === domain.toLowerCase()
   );
 
   const sessions = new Set(domainEvents.map((e) => e.sessionId).filter(Boolean));
-  const angleStats = new Map<
-    string,
-    { total: number; quality: number; count: number }
-  >();
+  const angleStats = new Map<string, { total: number; quality: number; count: number }>();
 
   for (const event of domainEvents) {
     if (event.type === "angle.generated" && event.metadata?.angleId) {
@@ -246,9 +225,7 @@ export function computeDomainProfile(
     .filter((e) => e.metadata?.qualityScore)
     .map((e) => e.metadata!.qualityScore!);
   const avgQuality =
-    totalQuality.length > 0
-      ? totalQuality.reduce((a, b) => a + b, 0) / totalQuality.length
-      : 0;
+    totalQuality.length > 0 ? totalQuality.reduce((a, b) => a + b, 0) / totalQuality.length : 0;
 
   const lastEvent = domainEvents.sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -280,16 +257,13 @@ export function generatePreSessionRecommendations(
   const relatedNodes = graph.nodes.filter((n) =>
     subjectWords.some(
       (w) =>
-        n.label.toLowerCase().includes(w) ||
-        (n.description?.toLowerCase().includes(w) ?? false)
+        n.label.toLowerCase().includes(w) || (n.description?.toLowerCase().includes(w) ?? false)
     )
   );
 
   if (relatedNodes.length > 0) {
     // Prior exploration recommendation
-    const topNode = relatedNodes.sort(
-      (a, b) => b.occurrenceCount - a.occurrenceCount
-    )[0];
+    const topNode = relatedNodes.sort((a, b) => b.occurrenceCount - a.occurrenceCount)[0];
 
     recommendations.push(
       MemoryRecommendationSchema.parse({
@@ -308,14 +282,10 @@ export function generatePreSessionRecommendations(
     // Find connected concepts for serendipitous suggestions
     const relatedIds = new Set(relatedNodes.map((n) => n.id));
     const connectedEdges = graph.edges.filter(
-      (e) =>
-        (relatedIds.has(e.source) || relatedIds.has(e.target)) &&
-        e.weight >= 0.4
+      (e) => (relatedIds.has(e.source) || relatedIds.has(e.target)) && e.weight >= 0.4
     );
 
-    const connectedNodeIds = new Set(
-      connectedEdges.flatMap((e) => [e.source, e.target])
-    );
+    const connectedNodeIds = new Set(connectedEdges.flatMap((e) => [e.source, e.target]));
     const serendipitousNodes = graph.nodes.filter(
       (n) => connectedNodeIds.has(n.id) && !relatedIds.has(n.id)
     );
@@ -389,9 +359,7 @@ export function generateMidSessionNudges(
 
   // Find concepts in memory that connect to current session concepts
   const currentLower = new Set(currentConcepts.map((c) => c.toLowerCase()));
-  const matchedNodes = graph.nodes.filter((n) =>
-    currentLower.has(n.label.toLowerCase())
-  );
+  const matchedNodes = graph.nodes.filter((n) => currentLower.has(n.label.toLowerCase()));
 
   if (matchedNodes.length === 0) return nudges;
 
@@ -408,9 +376,7 @@ export function generateMidSessionNudges(
     .sort((a, b) => b.weight - a.weight);
 
   for (const edge of recurrentEdges.slice(0, 2)) {
-    const otherNodeId = matchedIds.has(edge.source)
-      ? edge.target
-      : edge.source;
+    const otherNodeId = matchedIds.has(edge.source) ? edge.target : edge.source;
     const otherNode = graph.nodes.find((n) => n.id === otherNodeId);
     if (!otherNode) continue;
 
@@ -440,9 +406,7 @@ export function findRelatedConcepts(
   dir: string = DEFAULT_DIR
 ): MemoryNode[] {
   const graph = loadMemoryGraph(dir);
-  const rootNode = graph.nodes.find(
-    (n) => n.label.toLowerCase() === label.toLowerCase()
-  );
+  const rootNode = graph.nodes.find((n) => n.label.toLowerCase() === label.toLowerCase());
   if (!rootNode) return [];
 
   const visited = new Set<string>([rootNode.id]);
@@ -478,9 +442,7 @@ export function getMemoryStats(dir: string = DEFAULT_DIR): {
   recentSessions: number;
 } {
   const graph = loadMemoryGraph(dir);
-  const thirtyDaysAgo = new Date(
-    Date.now() - 30 * 86400000
-  ).toISOString();
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
 
   return {
     totalNodes: graph.nodes.length,
@@ -491,9 +453,7 @@ export function getMemoryStats(dir: string = DEFAULT_DIR): {
       .slice(0, 10)
       .map((n) => ({ label: n.label, occurrences: n.occurrenceCount })),
     recentSessions: new Set(
-      graph.nodes
-        .filter((n) => n.lastSeenAt >= thirtyDaysAgo)
-        .flatMap((n) => n.sessionIds)
+      graph.nodes.filter((n) => n.lastSeenAt >= thirtyDaysAgo).flatMap((n) => n.sessionIds)
     ).size,
   };
 }

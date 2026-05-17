@@ -148,11 +148,10 @@ export function runMonteCarloDiffusion(
   const getPercentile = (pct: number): DiffusionDataPoint[] => {
     const result: DiffusionDataPoint[] = [];
     for (let t = 0; t <= baseParams.timeHorizon; t++) {
-      const values = allCurves
-        .map((c) => c[t]?.cumulativeAdopters ?? 0)
-        .sort((a, b) => a - b);
+      const values = allCurves.map((c) => c[t]?.cumulativeAdopters ?? 0).sort((a, b) => a - b);
       const idx = Math.min(Math.floor(pct * values.length), values.length - 1);
-      const adopters = t > 0 ? Math.max(0, values[idx] - (result[t - 1]?.cumulativeAdopters ?? 0)) : values[idx];
+      const adopters =
+        t > 0 ? Math.max(0, values[idx] - (result[t - 1]?.cumulativeAdopters ?? 0)) : values[idx];
       result.push({
         month: t,
         adopters,
@@ -284,23 +283,43 @@ export async function simulateDiffusion(
   );
 
   const params = DiffusionParametersSchema.parse(parsed.parameters);
-  const network = z.array(NetworkNodeSchema).max(200).parse(parsed.network ?? []);
-  const strategies = z.array(DiffusionStrategySchema).max(10).parse(parsed.strategies ?? []);
-  const summary = z.string().max(2000).parse(parsed.summary ?? "");
+  const network = z
+    .array(NetworkNodeSchema)
+    .max(200)
+    .parse(parsed.network ?? []);
+  const strategies = z
+    .array(DiffusionStrategySchema)
+    .max(10)
+    .parse(parsed.strategies ?? []);
+  const summary = z
+    .string()
+    .max(2000)
+    .parse(parsed.summary ?? "");
 
   const baseCurve = computeBassCurve(params);
-  const peakMonth = baseCurve.reduce((max, pt, idx) =>
-    pt.adopters > (baseCurve[max]?.adopters ?? 0) ? idx : max, 0);
+  const peakMonth = baseCurve.reduce(
+    (max, pt, idx) => (pt.adopters > (baseCurve[max]?.adopters ?? 0) ? idx : max),
+    0
+  );
   const majorityMonth = baseCurve.findIndex((pt) => pt.marketPenetration >= 0.5);
 
-  const monteCarlo = options.runMonteCarlo !== false
-    ? runMonteCarloDiffusion(params, options.monteCarloIterations)
-    : undefined;
+  const monteCarlo =
+    options.runMonteCarlo !== false
+      ? runMonteCarloDiffusion(params, options.monteCarloIterations)
+      : undefined;
 
   // Simulate network adoption timing
-  const adoptionNetwork = network.map((node, idx) => {
-    const typeMultiplier = { innovator: 0.1, "early-adopter": 0.25, "early-majority": 0.5, "late-majority": 0.75, laggard: 0.9 };
-    const adoptionMonth = Math.round(params.timeHorizon * (typeMultiplier[node.type] ?? 0.5) * (0.8 + Math.random() * 0.4));
+  const adoptionNetwork = network.map((node, _idx) => {
+    const typeMultiplier = {
+      innovator: 0.1,
+      "early-adopter": 0.25,
+      "early-majority": 0.5,
+      "late-majority": 0.75,
+      laggard: 0.9,
+    };
+    const adoptionMonth = Math.round(
+      params.timeHorizon * (typeMultiplier[node.type] ?? 0.5) * (0.8 + Math.random() * 0.4)
+    );
     return { ...node, adoptionMonth, adopted: adoptionMonth <= params.timeHorizon };
   });
 
@@ -333,7 +352,11 @@ export function getDiffusionSimulation(id: string): DiffusionSimulation | undefi
 /**
  * List all stored diffusion simulations.
  */
-export function listDiffusionSimulations(): Array<{ id: string; ideaTitle: string; simulatedAt: string }> {
+export function listDiffusionSimulations(): Array<{
+  id: string;
+  ideaTitle: string;
+  simulatedAt: string;
+}> {
   return Array.from(diffusionSimulations.entries()).map(([id, s]) => ({
     id,
     ideaTitle: s.ideaTitle,
@@ -353,7 +376,7 @@ export function clearDiffusionSimulations(): void {
  */
 export function diffusionToMarkdown(simulation: DiffusionSimulation): string {
   const lines: string[] = [];
-  const { parameters: p, baseCurve, monteCarlo, strategies, network } = simulation;
+  const { parameters: p, baseCurve, monteCarlo, strategies, network: _network } = simulation;
 
   lines.push(`# Diffusion Simulation: ${simulation.ideaTitle}\n`);
   lines.push(`*Simulated: ${simulation.simulatedAt}*\n`);
@@ -374,7 +397,9 @@ export function diffusionToMarkdown(simulation: DiffusionSimulation): string {
     lines.push(`\n## Monte Carlo Analysis (${monteCarlo.iterations} iterations)\n`);
     lines.push(`- **Adoption probability:** ${(monteCarlo.adoptionProbability * 100).toFixed(1)}%`);
     lines.push(`- **Mean time to mainstream:** ${monteCarlo.meanTimeToMainstream} months`);
-    lines.push(`- **90% CI:** ${monteCarlo.confidenceInterval.lower}-${monteCarlo.confidenceInterval.upper} months`);
+    lines.push(
+      `- **90% CI:** ${monteCarlo.confidenceInterval.lower}-${monteCarlo.confidenceInterval.upper} months`
+    );
   }
 
   lines.push(`\n## Adoption Curve (Key Points)\n`);
@@ -384,7 +409,9 @@ export function diffusionToMarkdown(simulation: DiffusionSimulation): string {
   for (const m of keyMonths) {
     const pt = baseCurve[m];
     if (pt) {
-      lines.push(`| ${m} | ${pt.adopters.toLocaleString()} | ${pt.cumulativeAdopters.toLocaleString()} | ${(pt.marketPenetration * 100).toFixed(1)}% |`);
+      lines.push(
+        `| ${m} | ${pt.adopters.toLocaleString()} | ${pt.cumulativeAdopters.toLocaleString()} | ${(pt.marketPenetration * 100).toFixed(1)}% |`
+      );
     }
   }
 

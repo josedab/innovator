@@ -192,7 +192,7 @@ export default function SentinelBatchApproval() {
             <p className="text-gray-500">No conversion data yet.</p>
           ) : (
             <div className="space-y-2">
-              {funnel.map((stage, i) => {
+              {funnel.map((stage, _i) => {
                 const maxCount = Math.max(...funnel.map((s) => s.count), 1);
                 const widthPct = Math.max(5, (stage.count / maxCount) * 100);
                 return (

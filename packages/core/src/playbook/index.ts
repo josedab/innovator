@@ -10,19 +10,11 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
-import type {
-  Investigation,
-  AngleResult,
-  Synthesis,
-  PipelineProgress,
-} from "../types.js";
+import type { Investigation, AngleResult, Synthesis, PipelineProgress } from "../types.js";
 
 // ---- Schemas ----
 
-export const PlaybookFormatSchema = z.enum([
-  "markdown",
-  "html",
-]);
+export const PlaybookFormatSchema = z.enum(["markdown", "html"]);
 
 export type PlaybookFormat = z.infer<typeof PlaybookFormatSchema>;
 
@@ -83,10 +75,7 @@ async function generatePlaybookSections(
     .join("\n");
 
   const topIdeasContext = synthesis.topIdeas
-    .map(
-      (i) =>
-        `- ${i.title} [${i.feasibility}]: ${i.description.slice(0, 200)}`
-    )
+    .map((i) => `- ${i.title} [${i.feasibility}]: ${i.description.slice(0, 200)}`)
     .join("\n");
 
   const prompt = `You are a senior innovation consultant creating a professional Innovation Playbook.
@@ -260,14 +249,10 @@ function renderMarkdownPlaybook(
 
   // Risk Assessment
   lines.push("## Risk Assessment\n");
-  lines.push(
-    "| Risk | Likelihood | Impact | Mitigation |"
-  );
+  lines.push("| Risk | Likelihood | Impact | Mitigation |");
   lines.push("| --- | --- | --- | --- |");
   for (const risk of sections.risks) {
-    lines.push(
-      `| ${risk.risk} | ${risk.likelihood} | ${risk.impact} | ${risk.mitigation} |`
-    );
+    lines.push(`| ${risk.risk} | ${risk.likelihood} | ${risk.impact} | ${risk.mitigation} |`);
   }
   lines.push("");
 
@@ -377,9 +362,7 @@ export async function generatePlaybook(
   );
 
   const content =
-    format === "html"
-      ? renderHtmlPlaybook(markdownContent, subject)
-      : markdownContent;
+    format === "html" ? renderHtmlPlaybook(markdownContent, subject) : markdownContent;
 
   return {
     title: `Innovation Playbook: ${subject}`,
@@ -400,11 +383,7 @@ export async function generatePlaybookFromPipeline(
   model?: string,
   signal?: AbortSignal
 ): Promise<Playbook> {
-  if (
-    progress.stage !== "complete" ||
-    !progress.investigation ||
-    !progress.synthesis
-  ) {
+  if (progress.stage !== "complete" || !progress.investigation || !progress.synthesis) {
     throw new Error(
       "Pipeline must be complete with investigation and synthesis to generate a playbook"
     );

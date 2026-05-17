@@ -48,7 +48,11 @@ const RecordEffectivenessSchema = z.object({
 });
 
 const RequestSchema = z.discriminatedUnion("action", [
-  DiversitySchema, HallucinationSchema, TrendsSchema, RecordEffectivenessSchema, DashboardSchema,
+  DiversitySchema,
+  HallucinationSchema,
+  TrendsSchema,
+  RecordEffectivenessSchema,
+  DashboardSchema,
 ]);
 
 export async function POST(request: Request) {
@@ -90,7 +94,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/telemetry" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/telemetry",
+    });
     return Response.json(
       { error: "Internal server error" },
       { status: 500, headers: API_RESPONSE_HEADERS }

@@ -157,7 +157,10 @@ const INITIAL_BACKOFF_MS = 1000;
 
 /** Slack notification provider — POST to Slack webhook with formatted blocks. */
 export class SlackNotificationProvider implements NotificationProvider {
-  async send(payload: NotificationPayload, config: Record<string, unknown>): Promise<DeliveryResult> {
+  async send(
+    payload: NotificationPayload,
+    config: Record<string, unknown>
+  ): Promise<DeliveryResult> {
     const parsed = SlackChannelConfigSchema.parse(config);
     const slackPayload = formatForSlack(payload);
 
@@ -190,13 +193,16 @@ export class SlackNotificationProvider implements NotificationProvider {
 
 /** Email notification provider — SMTP email via nodemailer (dynamic import). */
 export class EmailNotificationProvider implements NotificationProvider {
-  async send(payload: NotificationPayload, config: Record<string, unknown>): Promise<DeliveryResult> {
+  async send(
+    payload: NotificationPayload,
+    config: Record<string, unknown>
+  ): Promise<DeliveryResult> {
     const parsed = EmailChannelConfigSchema.parse(config);
     const html = formatForEmail(payload);
 
     try {
       const moduleName = "nodemailer";
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- optional runtime dependency
       const nodemailer = await (import(/* webpackIgnore: true */ moduleName) as Promise<any>);
       const transporter = nodemailer.createTransport({
         host: parsed.smtpHost,
@@ -225,7 +231,10 @@ export class EmailNotificationProvider implements NotificationProvider {
 
 /** Teams notification provider — POST to Teams webhook with adaptive cards. */
 export class TeamsNotificationProvider implements NotificationProvider {
-  async send(payload: NotificationPayload, config: Record<string, unknown>): Promise<DeliveryResult> {
+  async send(
+    payload: NotificationPayload,
+    config: Record<string, unknown>
+  ): Promise<DeliveryResult> {
     const parsed = TeamsChannelConfigSchema.parse(config);
     const card = formatForTeams(payload);
 
@@ -254,17 +263,20 @@ export class TeamsNotificationProvider implements NotificationProvider {
 
 /** Push notification provider — Web Push API via web-push (dynamic import). */
 export class PushNotificationProvider implements NotificationProvider {
-  async send(payload: NotificationPayload, config: Record<string, unknown>): Promise<DeliveryResult> {
+  async send(
+    payload: NotificationPayload,
+    config: Record<string, unknown>
+  ): Promise<DeliveryResult> {
     const parsed = PushChannelConfigSchema.parse(config);
 
     try {
       const moduleName = "web-push";
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- optional runtime dependency
       const webpush = await (import(/* webpackIgnore: true */ moduleName) as Promise<any>);
       webpush.setVapidDetails(
         "mailto:notifications@innovator.dev",
         parsed.vapidPublicKey,
-        parsed.vapidPrivateKey,
+        parsed.vapidPrivateKey
       );
 
       const pushPayload = JSON.stringify({
@@ -278,7 +290,7 @@ export class PushNotificationProvider implements NotificationProvider {
       const results = await Promise.allSettled(
         parsed.subscriptions.map((sub: Record<string, unknown>) =>
           webpush.sendNotification(sub, pushPayload)
-        ),
+        )
       );
 
       const failures = results.filter((r) => r.status === "rejected");
@@ -303,7 +315,10 @@ export class PushNotificationProvider implements NotificationProvider {
 
 /** Generic webhook notification provider — POST to arbitrary URL. */
 export class WebhookNotificationProvider implements NotificationProvider {
-  async send(payload: NotificationPayload, config: Record<string, unknown>): Promise<DeliveryResult> {
+  async send(
+    payload: NotificationPayload,
+    config: Record<string, unknown>
+  ): Promise<DeliveryResult> {
     const url = typeof config.url === "string" ? config.url : undefined;
     if (!url) {
       return { success: false, error: "Missing webhook URL", timestamp: new Date().toISOString() };
@@ -359,7 +374,7 @@ const providers: Record<ChannelType, NotificationProvider> = {
  */
 export async function sendNotification(
   payload: NotificationPayload,
-  targetChannels: NotificationChannel[],
+  targetChannels: NotificationChannel[]
 ): Promise<NotificationDelivery[]> {
   const parsed = NotificationPayloadSchema.parse(payload);
   const deliveries: NotificationDelivery[] = [];
@@ -394,7 +409,7 @@ export async function sendNotification(
       if (attempt < MAX_RETRY_ATTEMPTS) {
         delivery.status = "retried";
         await new Promise((resolve) =>
-          setTimeout(resolve, INITIAL_BACKOFF_MS * Math.pow(2, attempt - 1)),
+          setTimeout(resolve, INITIAL_BACKOFF_MS * Math.pow(2, attempt - 1))
         );
       } else {
         delivery.status = "failed";
@@ -413,7 +428,7 @@ export async function sendNotification(
  */
 export async function sendDigest(
   userId: string,
-  config?: Partial<DigestConfig>,
+  config?: Partial<DigestConfig>
 ): Promise<NotificationDelivery[]> {
   const prefs = preferences.get(userId);
   const userChannels = prefs
@@ -480,7 +495,7 @@ export function getChannels(userId?: string): NotificationChannel[] {
  */
 export function updatePreferences(
   userId: string,
-  prefs: Partial<Omit<NotificationPreferences, "userId">>,
+  prefs: Partial<Omit<NotificationPreferences, "userId">>
 ): NotificationPreferences {
   const existing = preferences.get(userId);
   const updated: NotificationPreferences = {
@@ -508,7 +523,7 @@ export function getPreferences(userId: string): NotificationPreferences | undefi
  */
 export async function notifySessionComplete(
   sessionData: { subject: string; ideaCount: number; topScore?: number; sessionId: string },
-  targetChannels?: NotificationChannel[],
+  targetChannels?: NotificationChannel[]
 ): Promise<NotificationDelivery[]> {
   const payload: NotificationPayload = {
     title: "Session Complete",
@@ -527,7 +542,7 @@ export async function notifySessionComplete(
 export async function notifyHighScoreIdea(
   idea: { title: string; description: string; sourceAngle: string },
   score: number,
-  targetChannels?: NotificationChannel[],
+  targetChannels?: NotificationChannel[]
 ): Promise<NotificationDelivery[]> {
   const payload: NotificationPayload = {
     title: `High-Scoring Idea: ${idea.title}`,
@@ -545,7 +560,7 @@ export async function notifyHighScoreIdea(
  */
 export async function notifyCollaborationEvent(
   event: { type: string; userId: string; details: string },
-  targetChannels?: NotificationChannel[],
+  targetChannels?: NotificationChannel[]
 ): Promise<NotificationDelivery[]> {
   const payload: NotificationPayload = {
     title: `Collaboration: ${event.type}`,
@@ -564,9 +579,7 @@ export async function notifyCollaborationEvent(
  * Query delivery history, optionally filtered by channel.
  */
 export function getDeliveryHistory(channelId?: string, limit?: number): NotificationDelivery[] {
-  let results = channelId
-    ? deliveryLog.filter((d) => d.channelId === channelId)
-    : [...deliveryLog];
+  let results = channelId ? deliveryLog.filter((d) => d.channelId === channelId) : [...deliveryLog];
   if (limit && limit > 0) {
     results = results.slice(-limit);
   }
@@ -576,11 +589,9 @@ export function getDeliveryHistory(channelId?: string, limit?: number): Notifica
 /**
  * Retry failed notification deliveries.
  */
-export async function retryFailedDeliveries(
-  channelId?: string,
-): Promise<NotificationDelivery[]> {
+export async function retryFailedDeliveries(channelId?: string): Promise<NotificationDelivery[]> {
   const failed = deliveryLog.filter(
-    (d) => d.status === "failed" && (!channelId || d.channelId === channelId),
+    (d) => d.status === "failed" && (!channelId || d.channelId === channelId)
   );
 
   const retried: NotificationDelivery[] = [];
@@ -607,9 +618,7 @@ export async function retryFailedDeliveries(
 /**
  * Format a notification payload as Slack blocks.
  */
-export function formatForSlack(
-  payload: NotificationPayload,
-): Record<string, unknown> {
+export function formatForSlack(payload: NotificationPayload): Record<string, unknown> {
   const priorityEmoji: Record<NotificationPriority, string> = {
     low: "ℹ️",
     medium: "📋",
@@ -644,9 +653,7 @@ export function formatForSlack(
 /**
  * Format a notification payload as a Teams adaptive card.
  */
-export function formatForTeams(
-  payload: NotificationPayload,
-): Record<string, unknown> {
+export function formatForTeams(payload: NotificationPayload): Record<string, unknown> {
   return {
     type: "message",
     attachments: [

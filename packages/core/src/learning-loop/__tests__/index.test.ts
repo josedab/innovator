@@ -40,12 +40,8 @@ describe("learning-loop", () => {
     });
 
     it("should throw on invalid rating", () => {
-      expect(() =>
-        recordOutcome("id", "subject", "angle", { rating: 11 })
-      ).toThrow("rating");
-      expect(() =>
-        recordOutcome("id", "subject", "angle", { rating: -1 })
-      ).toThrow("rating");
+      expect(() => recordOutcome("id", "subject", "angle", { rating: 11 })).toThrow("rating");
+      expect(() => recordOutcome("id", "subject", "angle", { rating: -1 })).toThrow("rating");
     });
 
     it("should persist signals to learning data", () => {
@@ -150,7 +146,9 @@ describe("learning-loop", () => {
       const profiles = listDomainProfiles();
       expect(profiles.length).toBeGreaterThanOrEqual(1);
       // First should have more sessions
-      expect(profiles[0].totalSessions).toBeGreaterThanOrEqual(profiles[profiles.length - 1].totalSessions);
+      expect(profiles[0].totalSessions).toBeGreaterThanOrEqual(
+        profiles[profiles.length - 1].totalSessions
+      );
     });
   });
 

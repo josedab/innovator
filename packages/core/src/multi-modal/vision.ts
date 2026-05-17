@@ -209,7 +209,7 @@ export async function processWhiteboard(
     session.innovationSubject = visionToSubject(analysis);
     session.status = "completed";
     session.processedAt = new Date().toISOString();
-  } catch (err) {
+  } catch {
     session.status = "failed";
   }
 

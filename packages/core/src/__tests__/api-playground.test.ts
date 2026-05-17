@@ -132,7 +132,7 @@ describe("validateRequest", () => {
       const result = validateRequest(
         postEndpoint.path,
         postEndpoint.method,
-        postEndpoint.requestBody.example,
+        postEndpoint.requestBody.example
       );
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);

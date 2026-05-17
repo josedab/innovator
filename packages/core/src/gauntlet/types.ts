@@ -27,20 +27,34 @@ export const ADVERSARY_DESCRIPTIONS: Record<AdversaryRole, string> = {
     "Simulates a savvy market rival. Looks for ways a competitor could pre-empt, clone, or undercut the idea.",
   regulator:
     "Acts as a regulatory compliance officer. Identifies legal, privacy, safety, and ethical risks.",
-  skeptic:
-    "A devil's advocate who challenges every core assumption and looks for logical gaps.",
-  economist:
-    "Stress-tests unit economics, cost structure, pricing, and market sizing.",
-  engineer:
-    "Evaluates technical feasibility, scalability bottlenecks, and implementation risks.",
+  skeptic: "A devil's advocate who challenges every core assumption and looks for logical gaps.",
+  economist: "Stress-tests unit economics, cost structure, pricing, and market sizing.",
+  engineer: "Evaluates technical feasibility, scalability bottlenecks, and implementation risks.",
 };
 
 export const ADVERSARY_ATTACK_CATEGORIES: Record<AdversaryRole, string[]> = {
-  competitor: ["market-preemption", "differentiation-weakness", "speed-to-market", "pricing-undercut"],
+  competitor: [
+    "market-preemption",
+    "differentiation-weakness",
+    "speed-to-market",
+    "pricing-undercut",
+  ],
   regulator: ["compliance-gap", "privacy-risk", "safety-concern", "ethical-issue", "ip-conflict"],
-  skeptic: ["flawed-assumption", "logical-gap", "confirmation-bias", "survivorship-bias", "missing-evidence"],
+  skeptic: [
+    "flawed-assumption",
+    "logical-gap",
+    "confirmation-bias",
+    "survivorship-bias",
+    "missing-evidence",
+  ],
   economist: ["unit-economics", "market-size", "cost-structure", "pricing-model", "funding-risk"],
-  engineer: ["scalability-bottleneck", "technical-debt", "integration-complexity", "performance-risk", "security-vulnerability"],
+  engineer: [
+    "scalability-bottleneck",
+    "technical-debt",
+    "integration-complexity",
+    "performance-risk",
+    "security-vulnerability",
+  ],
 };
 
 // ---- Attack Schema ----

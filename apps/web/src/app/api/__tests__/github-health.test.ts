@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@innovator/core", () => ({
@@ -133,7 +132,9 @@ describe("POST /api/github-health", () => {
         community: 85,
       },
     } as any);
-    mockGenerateBadgeMarkdown.mockReturnValue("![Health](https://img.shields.io/badge/health-85-green)");
+    mockGenerateBadgeMarkdown.mockReturnValue(
+      "![Health](https://img.shields.io/badge/health-85-green)"
+    );
 
     const res = await POST(makeRequest(VALID_REPO));
     const data = await res.json();

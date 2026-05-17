@@ -13,7 +13,11 @@ export interface WebhookTemplate {
   urlPattern: string;
   events: EventType[];
   headers?: Record<string, string>;
-  bodyTemplate: (event: { type: string; payload: Record<string, unknown>; subject?: string }) => Record<string, unknown>;
+  bodyTemplate: (event: {
+    type: string;
+    payload: Record<string, unknown>;
+    subject?: string;
+  }) => Record<string, unknown>;
 }
 
 export const SLACK_TEMPLATE: WebhookTemplate = {
@@ -84,7 +88,8 @@ export const JIRA_TEMPLATE: WebhookTemplate = {
 export const EMAIL_TEMPLATE: WebhookTemplate = {
   id: "email",
   name: "Email Notification",
-  description: "Send email notifications via a webhook-compatible email service (e.g., SendGrid, Mailgun)",
+  description:
+    "Send email notifications via a webhook-compatible email service (e.g., SendGrid, Mailgun)",
   urlPattern: "https://api.sendgrid.com/v3/mail/send",
   events: ["pipeline.completed", "pipeline.failed"],
   bodyTemplate: (event) => ({

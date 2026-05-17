@@ -53,11 +53,7 @@ export {
   WeeklyDigestSchema,
   InnovationProfileSchema,
 } from "./serendipity.js";
-export type {
-  SerendipitousConnection,
-  WeeklyDigest,
-  InnovationProfile,
-} from "./serendipity.js";
+export type { SerendipitousConnection, WeeklyDigest, InnovationProfile } from "./serendipity.js";
 
 export {
   computeAngleWeights,

@@ -8,9 +8,27 @@ import {
 } from "../multi-modal/visual-output.js";
 
 const sampleIdeas: IdeaInput[] = [
-  { title: "AI-powered triage", score: 0.9, angle: "first-principles", feasibility: "high", impact: 0.8 },
-  { title: "Gamified learning", score: 0.7, angle: "cross-industry", feasibility: "medium", impact: 0.6 },
-  { title: "Decentralized records", score: 0.5, angle: "first-principles", feasibility: "low", impact: 0.9 },
+  {
+    title: "AI-powered triage",
+    score: 0.9,
+    angle: "first-principles",
+    feasibility: "high",
+    impact: 0.8,
+  },
+  {
+    title: "Gamified learning",
+    score: 0.7,
+    angle: "cross-industry",
+    feasibility: "medium",
+    impact: 0.6,
+  },
+  {
+    title: "Decentralized records",
+    score: 0.5,
+    angle: "first-principles",
+    feasibility: "low",
+    impact: 0.9,
+  },
 ];
 
 describe("visual-output", () => {
@@ -111,7 +129,13 @@ describe("visual-output", () => {
 
     it("computes average score when score is not provided", () => {
       const angleResults: AngleResultInput[] = [
-        { angle: "lateral-thinking", ideas: [{ title: "X", score: 0.6 }, { title: "Y", score: 0.8 }] },
+        {
+          angle: "lateral-thinking",
+          ideas: [
+            { title: "X", score: 0.6 },
+            { title: "Y", score: 0.8 },
+          ],
+        },
       ];
       const artifact = generator.generateComparisonChart(angleResults);
       const data = JSON.parse(artifact.content);
@@ -119,9 +143,7 @@ describe("visual-output", () => {
     });
 
     it("assigns colors based on angle name", () => {
-      const angleResults: AngleResultInput[] = [
-        { angle: "biomimicry", ideas: [], score: 0.5 },
-      ];
+      const angleResults: AngleResultInput[] = [{ angle: "biomimicry", ideas: [], score: 0.5 }];
       const artifact = generator.generateComparisonChart(angleResults);
       const data = JSON.parse(artifact.content);
       expect(data[0].color).toBe("#10b981");

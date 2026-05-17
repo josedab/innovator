@@ -154,7 +154,9 @@ export default function InnovationDashboardPage() {
         fetchDashboard<QualityHeatmapData>("heatmap"),
         fetchDashboard<TeamComparisonData>("leaderboard", { limit: 20 }),
         fetchDashboard<ROISummaryData>("roi_summary"),
-        fetchDashboard<ExecutiveSummaryReport>("executive_summary", { period: `last_${rangeDays}_days` }),
+        fetchDashboard<ExecutiveSummaryReport>("executive_summary", {
+          period: `last_${rangeDays}_days`,
+        }),
       ]);
       setOverview(ov);
       setVelocity(vel);
@@ -306,7 +308,9 @@ function SummaryCard({
         <span className="text-lg">{icon}</span>
         {trend && <span className="text-xs">{TREND_ICON[trend] ?? ""}</span>}
       </div>
-      <p className="text-2xl font-bold">{typeof value === "number" ? formatNumber(value) : value}</p>
+      <p className="text-2xl font-bold">
+        {typeof value === "number" ? formatNumber(value) : value}
+      </p>
       <p className="text-xs text-neutral-500">{label}</p>
     </div>
   );
@@ -324,35 +328,46 @@ function OverviewTab({
   return (
     <div className="space-y-6">
       {/* Executive Summary */}
-      {execSummary && (execSummary.highlights.length > 0 || execSummary.recommendations.length > 0) && (
-        <div className="p-5 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-200 dark:border-blue-800">
-          <h3 className="font-semibold mb-3">💡 Executive Summary</h3>
-          {execSummary.highlights.length > 0 && (
-            <div className="mb-2">
-              <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">Highlights</p>
-              {execSummary.highlights.map((h, i) => (
-                <p key={i} className="text-sm text-neutral-700 dark:text-neutral-300">• {h}</p>
-              ))}
-            </div>
-          )}
-          {execSummary.risks.length > 0 && (
-            <div className="mb-2">
-              <p className="text-xs font-medium text-red-700 dark:text-red-400 mb-1">Risks</p>
-              {execSummary.risks.map((r, i) => (
-                <p key={i} className="text-sm text-neutral-700 dark:text-neutral-300">• {r}</p>
-              ))}
-            </div>
-          )}
-          {execSummary.recommendations.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">Recommendations</p>
-              {execSummary.recommendations.map((r, i) => (
-                <p key={i} className="text-sm text-neutral-700 dark:text-neutral-300">• {r}</p>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {execSummary &&
+        (execSummary.highlights.length > 0 || execSummary.recommendations.length > 0) && (
+          <div className="p-5 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-200 dark:border-blue-800">
+            <h3 className="font-semibold mb-3">💡 Executive Summary</h3>
+            {execSummary.highlights.length > 0 && (
+              <div className="mb-2">
+                <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">
+                  Highlights
+                </p>
+                {execSummary.highlights.map((h, i) => (
+                  <p key={i} className="text-sm text-neutral-700 dark:text-neutral-300">
+                    • {h}
+                  </p>
+                ))}
+              </div>
+            )}
+            {execSummary.risks.length > 0 && (
+              <div className="mb-2">
+                <p className="text-xs font-medium text-red-700 dark:text-red-400 mb-1">Risks</p>
+                {execSummary.risks.map((r, i) => (
+                  <p key={i} className="text-sm text-neutral-700 dark:text-neutral-300">
+                    • {r}
+                  </p>
+                ))}
+              </div>
+            )}
+            {execSummary.recommendations.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">
+                  Recommendations
+                </p>
+                {execSummary.recommendations.map((r, i) => (
+                  <p key={i} className="text-sm text-neutral-700 dark:text-neutral-300">
+                    • {r}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
       {/* CSS-based Velocity Line Chart */}
       {velocity && velocity.sessions.length > 0 && (
@@ -415,7 +430,9 @@ function OverviewTab({
         <div className="text-center py-12 text-neutral-500">
           <p className="text-4xl mb-4">🚀</p>
           <p>No innovation sessions yet.</p>
-          <p className="text-sm mt-1">Start an innovation session to see your dashboard come alive.</p>
+          <p className="text-sm mt-1">
+            Start an innovation session to see your dashboard come alive.
+          </p>
         </div>
       )}
     </div>
@@ -603,10 +620,7 @@ function TeamTab({ teamData }: { teamData: TeamComparisonData | null }) {
           </thead>
           <tbody>
             {teamData.teams.map((team, i) => (
-              <tr
-                key={team.teamId}
-                className="border-b border-neutral-100 dark:border-neutral-800"
-              >
+              <tr key={team.teamId} className="border-b border-neutral-100 dark:border-neutral-800">
                 <td className="p-3 font-bold text-neutral-400">{i + 1}</td>
                 <td className="p-3 font-medium">{team.teamId}</td>
                 <td className="p-3 text-right">{team.sessions}</td>
@@ -647,7 +661,9 @@ function ROITab({ roiData }: { roiData: ROISummaryData | null }) {
           <p className="text-xs text-neutral-500">Actual Value</p>
         </div>
         <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-700">
-          <p className={`text-2xl font-bold ${roiData.roi >= 0 ? "text-green-600" : "text-red-600"}`}>
+          <p
+            className={`text-2xl font-bold ${roiData.roi >= 0 ? "text-green-600" : "text-red-600"}`}
+          >
             {roiData.roi}%
           </p>
           <p className="text-xs text-neutral-500">ROI</p>
@@ -671,9 +687,7 @@ function ROITab({ roiData }: { roiData: ROISummaryData | null }) {
                     className="h-full bg-blue-500 dark:bg-blue-400 rounded flex items-center px-2"
                     style={{ width: `${width}%` }}
                   >
-                    <span className="text-xs text-white font-medium">
-                      {stage.count}
-                    </span>
+                    <span className="text-xs text-white font-medium">{stage.count}</span>
                   </div>
                 </div>
               </div>
@@ -700,7 +714,9 @@ function ROITab({ roiData }: { roiData: ROISummaryData | null }) {
           </div>
           <div>
             <p className="text-neutral-500">Return on Investment</p>
-            <p className={`text-lg font-bold ${roiData.roi >= 0 ? "text-green-600" : "text-red-600"}`}>
+            <p
+              className={`text-lg font-bold ${roiData.roi >= 0 ? "text-green-600" : "text-red-600"}`}
+            >
               {roiData.roi}%
             </p>
           </div>

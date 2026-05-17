@@ -63,7 +63,6 @@ import {
   transitionItem,
   getPortfolioMetrics,
   generateScaffold,
-  scaffoldToMarkdown,
 } from "@innovator/core";
 
 async function main() {

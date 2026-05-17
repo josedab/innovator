@@ -7,7 +7,11 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { VisualOutputGenerator } from "@innovator/core";
-import type { VisualIdeaInput as IdeaInput, VisualSynthesisInput as SynthesisInput, VisualAngleResultInput as AngleResultInput } from "@innovator/core";
+import type {
+  VisualIdeaInput as IdeaInput,
+  VisualSynthesisInput as SynthesisInput,
+  VisualAngleResultInput as AngleResultInput,
+} from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 // ---- Zod Schemas ----
@@ -54,30 +58,36 @@ const ComparisonSchema = z.object({
 
 const ExportFigmaSchema = z.object({
   action: z.literal("export_figma"),
-  artifacts: z.array(
-    z.object({
-      id: z.string().max(200),
-      type: z.enum(["chart", "diagram", "mindmap", "matrix"]),
-      format: z.enum(["mermaid", "svg", "json"]),
-      content: z.string(),
-      title: z.string().max(500),
-      metadata: z.record(z.unknown()).optional(),
-    })
-  ).min(1).max(20),
+  artifacts: z
+    .array(
+      z.object({
+        id: z.string().max(200),
+        type: z.enum(["chart", "diagram", "mindmap", "matrix"]),
+        format: z.enum(["mermaid", "svg", "json"]),
+        content: z.string(),
+        title: z.string().max(500),
+        metadata: z.record(z.unknown()).optional(),
+      })
+    )
+    .min(1)
+    .max(20),
 });
 
 const ExportMiroSchema = z.object({
   action: z.literal("export_miro"),
-  artifacts: z.array(
-    z.object({
-      id: z.string().max(200),
-      type: z.enum(["chart", "diagram", "mindmap", "matrix"]),
-      format: z.enum(["mermaid", "svg", "json"]),
-      content: z.string(),
-      title: z.string().max(500),
-      metadata: z.record(z.unknown()).optional(),
-    })
-  ).min(1).max(20),
+  artifacts: z
+    .array(
+      z.object({
+        id: z.string().max(200),
+        type: z.enum(["chart", "diagram", "mindmap", "matrix"]),
+        format: z.enum(["mermaid", "svg", "json"]),
+        content: z.string(),
+        title: z.string().max(500),
+        metadata: z.record(z.unknown()).optional(),
+      })
+    )
+    .min(1)
+    .max(20),
 });
 
 const PostBodySchema = z.discriminatedUnion("action", [
@@ -128,9 +138,7 @@ export async function POST(request: Request) {
       }
 
       case "comparison": {
-        const artifact = generator.generateComparisonChart(
-          data.angleResults as AngleResultInput[]
-        );
+        const artifact = generator.generateComparisonChart(data.angleResults as AngleResultInput[]);
         return NextResponse.json({ artifact }, { headers: API_RESPONSE_HEADERS });
       }
 
@@ -146,9 +154,6 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Visual generation failed";
-    return NextResponse.json(
-      { error: message },
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return NextResponse.json({ error: message }, { status: 500, headers: API_RESPONSE_HEADERS });
   }
 }

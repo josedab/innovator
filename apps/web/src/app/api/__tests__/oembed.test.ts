@@ -47,7 +47,10 @@ async function GET(request: Request) {
       });
     }
 
-    const ideaCount = session.angleResults.reduce((sum: number, ar: { ideas: unknown[] }) => sum + ar.ideas.length, 0);
+    const ideaCount = session.angleResults.reduce(
+      (sum: number, ar: { ideas: unknown[] }) => sum + ar.ideas.length,
+      0
+    );
     const baseUrl = url.origin;
     const embedUrl = `${baseUrl}/embed/${sessionId}`;
     const width = Math.min(maxWidth, 600);
@@ -82,7 +85,16 @@ const MOCK_SESSION = {
   subject: "AI innovation",
   createdAt: "2024-01-01T00:00:00Z",
   updatedAt: "2024-01-01T00:00:00Z",
-  angleResults: [{ angleId: "scamper", angleName: "SCAMPER", ideas: [{ title: "Idea 1", description: "Desc", potentialImpact: "High", implementationHint: "" }], reasoning: "" }],
+  angleResults: [
+    {
+      angleId: "scamper",
+      angleName: "SCAMPER",
+      ideas: [
+        { title: "Idea 1", description: "Desc", potentialImpact: "High", implementationHint: "" },
+      ],
+      reasoning: "",
+    },
+  ],
   tags: [],
 };
 
@@ -102,7 +114,9 @@ describe("GET /api/oembed", () => {
   it("returns oEmbed JSON with type 'rich' for a valid URL", async () => {
     mockGetSession.mockReturnValue(MOCK_SESSION as never);
 
-    const res = await GET(makeRequest({ url: "https://example.com/share/session-1", format: "json" }));
+    const res = await GET(
+      makeRequest({ url: "https://example.com/share/session-1", format: "json" })
+    );
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -129,7 +143,9 @@ describe("GET /api/oembed", () => {
   it("returns 404 when session is not found", async () => {
     mockGetSession.mockReturnValue(undefined as never);
 
-    const res = await GET(makeRequest({ url: "https://example.com/share/nonexistent", format: "json" }));
+    const res = await GET(
+      makeRequest({ url: "https://example.com/share/nonexistent", format: "json" })
+    );
     const data = await res.json();
 
     expect(res.status).toBe(404);
@@ -137,7 +153,9 @@ describe("GET /api/oembed", () => {
   });
 
   it("returns 501 for non-JSON format", async () => {
-    const res = await GET(makeRequest({ url: "https://example.com/share/session-1", format: "xml" }));
+    const res = await GET(
+      makeRequest({ url: "https://example.com/share/session-1", format: "xml" })
+    );
     const data = await res.json();
 
     expect(res.status).toBe(501);
@@ -147,7 +165,9 @@ describe("GET /api/oembed", () => {
   it("includes iframe HTML in the response", async () => {
     mockGetSession.mockReturnValue(MOCK_SESSION as never);
 
-    const res = await GET(makeRequest({ url: "https://example.com/share/session-1", format: "json" }));
+    const res = await GET(
+      makeRequest({ url: "https://example.com/share/session-1", format: "json" })
+    );
     const data = await res.json();
 
     expect(data.html).toContain("<iframe");
@@ -157,7 +177,9 @@ describe("GET /api/oembed", () => {
   it("includes provider_name 'Innovator'", async () => {
     mockGetSession.mockReturnValue(MOCK_SESSION as never);
 
-    const res = await GET(makeRequest({ url: "https://example.com/share/session-1", format: "json" }));
+    const res = await GET(
+      makeRequest({ url: "https://example.com/share/session-1", format: "json" })
+    );
     const data = await res.json();
 
     expect(data.provider_name).toBe("Innovator");

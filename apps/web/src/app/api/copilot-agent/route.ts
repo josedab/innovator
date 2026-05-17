@@ -46,10 +46,7 @@ const RespondSchema = z.object({
   feedback: z.string().max(5000).optional(),
 });
 
-const RequestSchema = z.discriminatedUnion("action", [
-  RunCycleSchema,
-  RespondSchema,
-]);
+const RequestSchema = z.discriminatedUnion("action", [RunCycleSchema, RespondSchema]);
 
 /** Run the copilot agent cycle or respond to a proposal. */
 export async function POST(request: Request) {
@@ -88,21 +85,13 @@ export async function POST(request: Request) {
     if (data.action === "respond") {
       const run = loadCopilotAgentRun(data.runId);
       if (!run) {
-        return new Response(
-          JSON.stringify({ error: `Run ${data.runId} not found` }),
-          {
-            status: 404,
-            headers: { ...SECURITY_HEADERS, "Content-Type": "application/json" },
-          }
-        );
+        return new Response(JSON.stringify({ error: `Run ${data.runId} not found` }), {
+          status: 404,
+          headers: { ...SECURITY_HEADERS, "Content-Type": "application/json" },
+        });
       }
 
-      const updated = respondToProposal(
-        run,
-        data.proposalId,
-        data.response,
-        data.feedback
-      );
+      const updated = respondToProposal(run, data.proposalId, data.response, data.feedback);
 
       return new Response(JSON.stringify(updated), {
         status: 200,
@@ -141,9 +130,7 @@ export async function POST(request: Request) {
             (progress: CopilotAgentProgress) => {
               try {
                 controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({ type: "progress", ...progress })}\n\n`
-                  )
+                  encoder.encode(`data: ${JSON.stringify({ type: "progress", ...progress })}\n\n`)
                 );
               } catch {
                 /* client disconnected */
@@ -152,17 +139,13 @@ export async function POST(request: Request) {
           );
 
           controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: "result", run: result })}\n\n`
-            )
+            encoder.encode(`data: ${JSON.stringify({ type: "result", run: result })}\n\n`)
           );
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           logger.error("Copilot agent cycle failed", { error: message, requestId });
           controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: "error", error: message })}\n\n`
-            )
+            encoder.encode(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`)
           );
         } finally {
           clearInterval(heartbeat);
@@ -200,13 +183,10 @@ export async function GET(request: Request) {
     if (runId) {
       const run = loadCopilotAgentRun(runId);
       if (!run) {
-        return new Response(
-          JSON.stringify({ error: `Run ${runId} not found` }),
-          {
-            status: 404,
-            headers: { ...SECURITY_HEADERS, "Content-Type": "application/json" },
-          }
-        );
+        return new Response(JSON.stringify({ error: `Run ${runId} not found` }), {
+          status: 404,
+          headers: { ...SECURITY_HEADERS, "Content-Type": "application/json" },
+        });
       }
       return new Response(JSON.stringify(run), {
         status: 200,

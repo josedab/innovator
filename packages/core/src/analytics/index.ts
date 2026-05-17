@@ -13,7 +13,7 @@ import { z } from "zod";
 
 const ANALYTICS_DIR = join(homedir(), ".innovator", "analytics");
 const EVENTS_FILE = join(ANALYTICS_DIR, "events.jsonl");
-const INSIGHTS_FILE = join(ANALYTICS_DIR, "insights.json");
+const _INSIGHTS_FILE = join(ANALYTICS_DIR, "insights.json");
 
 function ensureDir(): void {
   if (!existsSync(ANALYTICS_DIR)) mkdirSync(ANALYTICS_DIR, { recursive: true });
@@ -138,7 +138,7 @@ export function generateSummary(events?: AnalyticsEvent[]): AnalyticsSummary {
 
   const pipelineStarts = allEvents.filter((e) => e.type === "pipeline_started");
   const pipelineCompletes = allEvents.filter((e) => e.type === "pipeline_completed");
-  const pipelineFails = allEvents.filter((e) => e.type === "pipeline_failed");
+  const _pipelineFails = allEvents.filter((e) => e.type === "pipeline_failed");
   const angleEvents = allEvents.filter((e) => e.type === "angle_generated");
 
   const totalPipelines = pipelineStarts.length;
@@ -423,8 +423,4 @@ export {
   getDueSchedules,
   clearReportSchedules,
 } from "./scheduled-reports.js";
-export type {
-  ReportSchedule,
-  GeneratedReport,
-  ReportScheduleInput,
-} from "./scheduled-reports.js";
+export type { ReportSchedule, GeneratedReport, ReportScheduleInput } from "./scheduled-reports.js";

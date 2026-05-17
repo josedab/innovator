@@ -13,7 +13,6 @@ import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
 import type { InnovationIdea } from "../types.js";
 import {
-  AdversaryRoleSchema,
   ADVERSARY_DESCRIPTIONS,
   ADVERSARY_ATTACK_CATEGORIES,
   AttackSchema,

@@ -35,7 +35,9 @@ export interface PostgreSQLConfig {
 const SAFE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 function assertSafeIdentifier(name: string, label: string): void {
   if (!SAFE_IDENTIFIER.test(name) || name.length > 128) {
-    throw new Error(`Invalid ${label}: "${name}". Identifiers must be alphanumeric/underscore and ≤128 chars.`);
+    throw new Error(
+      `Invalid ${label}: "${name}". Identifiers must be alphanumeric/underscore and ≤128 chars.`
+    );
   }
 }
 

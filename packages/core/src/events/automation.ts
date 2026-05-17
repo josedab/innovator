@@ -9,7 +9,7 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { getEventBus } from "./emitter.js";
-import type { EventType, PipelineEvent } from "./types.js";
+import type { PipelineEvent } from "./types.js";
 import { EventTypeSchema } from "./types.js";
 
 // ---- Schemas ----

@@ -48,11 +48,7 @@ function getIdeaCount(event: AnalyticsEvent): number {
 }
 
 function getQualityScore(event: AnalyticsEvent): number | undefined {
-  const candidates = [
-    event.data?.avgScore,
-    event.data?.overallScore,
-    event.data?.qualityScore,
-  ];
+  const candidates = [event.data?.avgScore, event.data?.overallScore, event.data?.qualityScore];
 
   for (const candidate of candidates) {
     if (typeof candidate === "number" && Number.isFinite(candidate)) {
@@ -71,16 +67,17 @@ function summarizeEvents(events: AnalyticsEvent[]): MetricSnapshot {
   const activeUsers = new Set(
     events
       .map((event) => (typeof event.data?.userId === "string" ? event.data.userId : undefined))
-      .filter((userId): userId is string => Boolean(userId)),
+      .filter((userId): userId is string => Boolean(userId))
   );
 
   return {
     sessions: events.filter((event) => event.type === "pipeline_started").length,
     completedSessions: events.filter((event) => event.type === "pipeline_completed").length,
     ideas: events.reduce((sum, event) => sum + getIdeaCount(event), 0),
-    avgQuality: qualityScores.length > 0
-      ? round(qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length, 2)
-      : 0,
+    avgQuality:
+      qualityScores.length > 0
+        ? round(qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length, 2)
+        : 0,
     activeUsers: activeUsers.size,
     exports: events.filter((event) => event.type === "session_exported").length,
   };
@@ -88,7 +85,7 @@ function summarizeEvents(events: AnalyticsEvent[]): MetricSnapshot {
 
 function filterEventsByPeriod(
   events: AnalyticsEvent[],
-  period: { start: string; end: string },
+  period: { start: string; end: string }
 ): AnalyticsEvent[] {
   const start = new Date(period.start).getTime();
   const end = new Date(period.end).getTime();
@@ -123,17 +120,18 @@ function buildMetric(
   unit: string,
   value: number,
   previousValue: number,
-  target?: number,
+  target?: number
 ): KPIMetric {
   const changePercent = getChange(value, previousValue);
   const trend = getTrend(changePercent);
-  const status = target != null
-    ? getTargetStatus(value, target)
-    : value === 0
-      ? "behind"
-      : trend === "down"
-        ? "at-risk"
-        : "on-track";
+  const status =
+    target != null
+      ? getTargetStatus(value, target)
+      : value === 0
+        ? "behind"
+        : trend === "down"
+          ? "at-risk"
+          : "on-track";
 
   return KPIMetricSchema.parse({
     id,
@@ -160,7 +158,7 @@ function derivePeriod(events: AnalyticsEvent[], period?: { start: string; end: s
 /** Compute innovation KPI metrics from analytics events. */
 export function computeKPIs(
   events: AnalyticsEvent[],
-  period?: { start: string; end: string },
+  period?: { start: string; end: string }
 ): KPIDashboard {
   const resolvedPeriod = derivePeriod(events, period);
   const currentEvents = filterEventsByPeriod(events, resolvedPeriod);
@@ -178,12 +176,10 @@ export function computeKPIs(
     previous = summarizeEvents(filterEventsByPeriod(events, previousPeriod));
   }
 
-  const currentSuccessRate = current.sessions > 0
-    ? round((current.completedSessions / current.sessions) * 100, 2)
-    : 0;
-  const previousSuccessRate = previous.sessions > 0
-    ? round((previous.completedSessions / previous.sessions) * 100, 2)
-    : 0;
+  const currentSuccessRate =
+    current.sessions > 0 ? round((current.completedSessions / current.sessions) * 100, 2) : 0;
+  const previousSuccessRate =
+    previous.sessions > 0 ? round((previous.completedSessions / previous.sessions) * 100, 2) : 0;
 
   const metrics = [
     buildMetric(
@@ -192,7 +188,7 @@ export function computeKPIs(
       "sessions",
       current.sessions,
       previous.sessions,
-      previous.sessions > 0 ? previous.sessions : undefined,
+      previous.sessions > 0 ? previous.sessions : undefined
     ),
     buildMetric(
       "ideas-generated",
@@ -200,23 +196,16 @@ export function computeKPIs(
       "ideas",
       current.ideas,
       previous.ideas,
-      previous.ideas > 0 ? previous.ideas : undefined,
+      previous.ideas > 0 ? previous.ideas : undefined
     ),
-    buildMetric(
-      "success-rate",
-      "Success Rate",
-      "%",
-      currentSuccessRate,
-      previousSuccessRate,
-      80,
-    ),
+    buildMetric("success-rate", "Success Rate", "%", currentSuccessRate, previousSuccessRate, 80),
     buildMetric(
       "average-quality",
       "Average Quality",
       "/10",
       current.avgQuality,
       previous.avgQuality,
-      7.5,
+      7.5
     ),
     buildMetric(
       "active-users",
@@ -224,7 +213,7 @@ export function computeKPIs(
       "users",
       current.activeUsers,
       previous.activeUsers,
-      previous.activeUsers > 0 ? previous.activeUsers : undefined,
+      previous.activeUsers > 0 ? previous.activeUsers : undefined
     ),
     buildMetric(
       "reports-exported",
@@ -232,7 +221,7 @@ export function computeKPIs(
       "exports",
       current.exports,
       previous.exports,
-      previous.exports > 0 ? previous.exports : undefined,
+      previous.exports > 0 ? previous.exports : undefined
     ),
   ];
 

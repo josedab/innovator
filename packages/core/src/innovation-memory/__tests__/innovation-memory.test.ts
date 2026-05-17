@@ -24,7 +24,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  try { rmSync(testDir, { recursive: true, force: true }); } catch { /* ignore */ }
+  try {
+    rmSync(testDir, { recursive: true, force: true });
+  } catch {
+    /* ignore */
+  }
 });
 
 describe("innovation-memory", () => {
@@ -115,7 +119,10 @@ describe("innovation-memory", () => {
   describe("trackEvent and loadEvents", () => {
     it("tracks and loads events", () => {
       trackEvent({ type: "session.started", sessionId: "s1" }, testDir);
-      trackEvent({ type: "angle.generated", sessionId: "s1", metadata: { angleId: "scamper" } }, testDir);
+      trackEvent(
+        { type: "angle.generated", sessionId: "s1", metadata: { angleId: "scamper" } },
+        testDir
+      );
 
       const events = loadEvents(100, testDir);
       expect(events).toHaveLength(2);
@@ -147,9 +154,24 @@ describe("innovation-memory", () => {
 
   describe("computeDomainProfile", () => {
     it("computes profile from events", () => {
-      trackEvent({ type: "angle.generated", metadata: { domain: "Healthcare", angleId: "scamper", qualityScore: 80 } }, testDir);
-      trackEvent({ type: "angle.generated", metadata: { domain: "Healthcare", angleId: "scamper", qualityScore: 90 } }, testDir);
-      trackEvent({ type: "angle.generated", metadata: { domain: "Fintech", angleId: "inversion" } }, testDir);
+      trackEvent(
+        {
+          type: "angle.generated",
+          metadata: { domain: "Healthcare", angleId: "scamper", qualityScore: 80 },
+        },
+        testDir
+      );
+      trackEvent(
+        {
+          type: "angle.generated",
+          metadata: { domain: "Healthcare", angleId: "scamper", qualityScore: 90 },
+        },
+        testDir
+      );
+      trackEvent(
+        { type: "angle.generated", metadata: { domain: "Fintech", angleId: "inversion" } },
+        testDir
+      );
 
       const profile = computeDomainProfile("Healthcare", testDir);
       expect(profile.domain).toBe("Healthcare");
@@ -214,7 +236,12 @@ describe("innovation-memory", () => {
 
   describe("getMemoryStats", () => {
     it("returns stats for populated graph", () => {
-      ingestConcepts("s1", [{ label: "A" }, { label: "B" }], [{ sourceLabel: "A", targetLabel: "B" }], testDir);
+      ingestConcepts(
+        "s1",
+        [{ label: "A" }, { label: "B" }],
+        [{ sourceLabel: "A", targetLabel: "B" }],
+        testDir
+      );
 
       const stats = getMemoryStats(testDir);
       expect(stats.totalNodes).toBe(2);

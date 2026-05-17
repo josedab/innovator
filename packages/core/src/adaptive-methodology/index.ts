@@ -306,10 +306,7 @@ export function getEffectivenessHistory(options?: {
 /**
  * Suggest optimal angle selection for a domain based on historical effectiveness.
  */
-export function getAngleRecommendations(
-  domain: string,
-  teamId?: string
-): AngleRecommendation[] {
+export function getAngleRecommendations(domain: string, teamId?: string): AngleRecommendation[] {
   loadState();
 
   let records = effectivenessRecords.filter((r) => r.domain === domain);
@@ -343,9 +340,7 @@ export function getAngleRecommendations(
 
   for (const [angleId, group] of angleGroups) {
     const avgScore =
-      group.scores.length > 0
-        ? group.scores.reduce((a, b) => a + b, 0) / group.scores.length
-        : 0;
+      group.scores.length > 0 ? group.scores.reduce((a, b) => a + b, 0) / group.scores.length : 0;
     const avgRating =
       group.ratings.length > 0
         ? group.ratings.reduce((a, b) => a + b, 0) / group.ratings.length
@@ -502,9 +497,7 @@ function buildPipelineExplanation(
 
   if (model) parts.push(`Suggested model: ${model} (best historical performance).`);
 
-  parts.push(
-    `Estimated quality: ${Math.round(quality * 100)}% based on historical outcomes.`
-  );
+  parts.push(`Estimated quality: ${Math.round(quality * 100)}% based on historical outcomes.`);
 
   return parts.join(" ");
 }
@@ -620,23 +613,21 @@ export function recalculateProfiles(): MethodologyProfile[] {
 
     const angleEffectiveness: Record<string, number> = {};
     for (const [angleId, scores] of angleGroups) {
-      angleEffectiveness[angleId] = Math.round(
-        scores.reduce((a, b) => a + b, 0) / scores.length
-      );
+      angleEffectiveness[angleId] = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
     }
 
     // Determine optimal config
-    const rankedAngles = Object.entries(angleEffectiveness)
-      .sort(([, a], [, b]) => b - a);
+    const rankedAngles = Object.entries(angleEffectiveness).sort(([, a], [, b]) => b - a);
 
     const preferredAngles = rankedAngles
       .filter(([, score]) => score >= 40)
       .slice(0, 10)
       .map(([id]) => id);
 
-    const avgEffectiveness = rankedAngles.length > 0
-      ? rankedAngles.reduce((s, [, v]) => s + v, 0) / rankedAngles.length
-      : 0;
+    const avgEffectiveness =
+      rankedAngles.length > 0
+        ? rankedAngles.reduce((s, [, v]) => s + v, 0) / rankedAngles.length
+        : 0;
 
     const suggestedDepth = avgEffectiveness >= 70 ? 4 : avgEffectiveness >= 40 ? 3 : 2;
 
@@ -871,8 +862,7 @@ export function generateMethodologyInsights(domain?: string): MethodologyInsight
   if (records.length >= 10) {
     const sorted = [...records].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
     const midpoint = Math.floor(sorted.length / 2);
-    const olderAvg =
-      sorted.slice(0, midpoint).reduce((s, r) => s + r.outputScore, 0) / midpoint;
+    const olderAvg = sorted.slice(0, midpoint).reduce((s, r) => s + r.outputScore, 0) / midpoint;
     const recentAvg =
       sorted.slice(midpoint).reduce((s, r) => s + r.outputScore, 0) / (sorted.length - midpoint);
 

@@ -24,7 +24,6 @@ import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
-import { investigate } from "../innovation/investigate.js";
 import { collectSignals } from "../sentinel/sentinel.js";
 import { z } from "zod";
 import {
@@ -35,7 +34,6 @@ import {
   type CopilotAgentProgress,
   type DetectedChange,
   type Proposal,
-  type MonitoringSource,
 } from "./types.js";
 
 // ---- Constants ----
@@ -64,10 +62,7 @@ const VALID_TRANSITIONS: Record<CopilotAgentState, CopilotAgentState[]> = {
   error: ["idle", "monitoring"],
 };
 
-function transition(
-  run: CopilotAgentRun,
-  newState: CopilotAgentState
-): CopilotAgentRun {
+function transition(run: CopilotAgentRun, newState: CopilotAgentState): CopilotAgentRun {
   const allowed = VALID_TRANSITIONS[run.state];
   if (!allowed.includes(newState)) {
     throw new Error(
@@ -103,10 +98,7 @@ export function listRuns(): CopilotAgentRun[] {
       const raw = readFileSync(join(dir, f), "utf-8");
       return CopilotAgentRunSchema.parse(JSON.parse(raw));
     })
-    .sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 }
 
 // ---- Monitoring ----
@@ -248,9 +240,7 @@ Respond in JSON:
           model: config.model,
           signal: config.signal,
         });
-        return AnalysisResponseSchema.parse(
-          JSON.parse(extractJson(sanitizeLlmOutput(raw)))
-        );
+        return AnalysisResponseSchema.parse(JSON.parse(extractJson(sanitizeLlmOutput(raw))));
       },
       { signal: config.signal }
     );
@@ -266,10 +256,7 @@ Respond in JSON:
 
     return { scored, themes: result.emergingThemes };
   } catch (err) {
-    console.warn(
-      "[copilot-agent] Analysis failed:",
-      err instanceof Error ? err.message : err
-    );
+    console.warn("[copilot-agent] Analysis failed:", err instanceof Error ? err.message : err);
     return { scored: [], themes: [] };
   }
 }
@@ -299,10 +286,7 @@ async function generateProposal(
   runId: string
 ): Promise<Proposal | null> {
   const changeDescriptions = changes
-    .map(
-      (c) =>
-        `- ${c.change.title} (relevance: ${c.score.toFixed(2)}, potential: ${c.potential})`
-    )
+    .map((c) => `- ${c.change.title} (relevance: ${c.score.toFixed(2)}, potential: ${c.potential})`)
     .join("\n");
 
   const prompt = `Generate an innovation proposal based on these detected changes and themes.
@@ -331,9 +315,7 @@ Respond in JSON:
           model: config.model,
           signal: config.signal,
         });
-        return ProposalResponseSchema.parse(
-          JSON.parse(extractJson(sanitizeLlmOutput(raw)))
-        );
+        return ProposalResponseSchema.parse(JSON.parse(extractJson(sanitizeLlmOutput(raw))));
       },
       { signal: config.signal }
     );
@@ -379,9 +361,7 @@ export function formatProposalForDelivery(proposal: Proposal): string {
     lines.push("## Opportunities");
     lines.push("");
     for (const opp of proposal.opportunities) {
-      lines.push(
-        `### ${opp.title} (Impact: ${opp.impact}, Effort: ${opp.effort})`
-      );
+      lines.push(`### ${opp.title} (Impact: ${opp.impact}, Effort: ${opp.effort})`);
       lines.push(opp.description);
       lines.push("");
     }
@@ -406,9 +386,7 @@ export function respondToProposal(
     throw new Error(`Proposal ${proposalId} not found`);
   }
   if (proposal.status !== "pending") {
-    throw new Error(
-      `Proposal ${proposalId} already responded to (${proposal.status})`
-    );
+    throw new Error(`Proposal ${proposalId} already responded to (${proposal.status})`);
   }
 
   proposal.status = action;
@@ -421,9 +399,7 @@ export function respondToProposal(
   else if (action === "deferred") run.stats.deferredProposals++;
 
   // Transition back to monitoring if no pending proposals remain
-  const pendingCount = run.proposals.filter(
-    (p) => p.status === "pending"
-  ).length;
+  const pendingCount = run.proposals.filter((p) => p.status === "pending").length;
   if (pendingCount === 0 && run.state === "waiting-for-feedback") {
     run = transition(run, "monitoring");
     run = transition(run, "idle");
@@ -455,7 +431,7 @@ export async function runCopilotAgentCycle(
 
   // Load or create run
   let run: CopilotAgentRun = existingRunId
-    ? loadRun(existingRunId) ?? createNewRun(config)
+    ? (loadRun(existingRunId) ?? createNewRun(config))
     : createNewRun(config);
 
   try {
@@ -494,15 +470,9 @@ export async function runCopilotAgentCycle(
     });
 
     // Analyze changes
-    const { scored, themes } = await analyzeChanges(
-      newChanges,
-      config.topics,
-      config
-    );
+    const { scored, themes } = await analyzeChanges(newChanges, config.topics, config);
 
-    const relevantChanges = scored.filter(
-      (s) => s.score >= (config.relevanceThreshold ?? 0.5)
-    );
+    const relevantChanges = scored.filter((s) => s.score >= (config.relevanceThreshold ?? 0.5));
 
     if (relevantChanges.length === 0) {
       // Nothing relevant — go back to idle
@@ -582,9 +552,7 @@ function createNewRun(config: CopilotAgentConfig): CopilotAgentRun {
     sources: config.sources,
     detectedChanges: [],
     proposals: [],
-    deliveryChannels: config.deliveryChannels ?? [
-      { channel: "web", enabled: true },
-    ],
+    deliveryChannels: config.deliveryChannels ?? [{ channel: "web", enabled: true }],
     config: {
       monitoringIntervalMs: config.monitoringIntervalMs ?? 300000,
       relevanceThreshold: config.relevanceThreshold ?? 0.5,

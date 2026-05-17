@@ -217,7 +217,7 @@ export async function checkPluginHealth(): Promise<Record<string, boolean>> {
  * Primarily intended for test teardown.
  */
 export async function clearPlugins(): Promise<void> {
-  for (const [id, plugin] of plugins) {
+  for (const [_id, plugin] of plugins) {
     if (plugin.onDestroy) {
       try {
         await plugin.onDestroy();

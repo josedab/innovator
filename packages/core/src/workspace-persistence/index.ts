@@ -8,11 +8,7 @@
 
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type {
-  DatabaseDriver,
-  Migration,
-  QueryCondition,
-} from "../storage/drivers/types.js";
+import type { DatabaseDriver, Migration, QueryCondition } from "../storage/drivers/types.js";
 
 // ── Zod Schemas & Types ─────────────────────────────────────────────────────
 
@@ -182,14 +178,11 @@ export class PostgresProjectStore implements ProjectStore {
       updated_at: new Date().toISOString(),
     };
     if (updates.name !== undefined) data.name = updates.name;
-    if (updates.description !== undefined)
-      data.description = updates.description;
+    if (updates.description !== undefined) data.description = updates.description;
     if (updates.ownerId !== undefined) data.owner_id = updates.ownerId;
-    if (updates.teamMembers !== undefined)
-      data.team_members = JSON.stringify(updates.teamMembers);
+    if (updates.teamMembers !== undefined) data.team_members = JSON.stringify(updates.teamMembers);
     if (updates.status !== undefined) data.status = updates.status;
-    if (updates.settings !== undefined)
-      data.settings = JSON.stringify(updates.settings);
+    if (updates.settings !== undefined) data.settings = JSON.stringify(updates.settings);
 
     const affected = await this.driver.update({
       table: "innovation_projects",
@@ -215,8 +208,7 @@ export class PostgresProjectStore implements ProjectStore {
     offset?: number;
   }): Promise<InnovationProject[]> {
     const conditions: QueryCondition[] = [];
-    if (filter?.status)
-      conditions.push({ field: "status", operator: "eq", value: filter.status });
+    if (filter?.status) conditions.push({ field: "status", operator: "eq", value: filter.status });
     if (filter?.ownerId)
       conditions.push({
         field: "owner_id",
@@ -234,12 +226,9 @@ export class PostgresProjectStore implements ProjectStore {
     return rows.map((r) => this.rowToProject(r));
   }
 
-  async searchProjects(
-    query: ProjectSearchQuery
-  ): Promise<InnovationProject[]> {
+  async searchProjects(query: ProjectSearchQuery): Promise<InnovationProject[]> {
     const conditions: QueryCondition[] = [];
-    if (query.status)
-      conditions.push({ field: "status", operator: "eq", value: query.status });
+    if (query.status) conditions.push({ field: "status", operator: "eq", value: query.status });
     if (query.ownerId)
       conditions.push({
         field: "owner_id",
@@ -459,9 +448,7 @@ export class InMemoryProjectStore implements ProjectStore {
   private snapshots = new Map<string, ProjectSnapshot[]>();
   private teamContexts = new Map<string, TeamContext>();
 
-  async createProject(
-    project: InnovationProject
-  ): Promise<InnovationProject> {
+  async createProject(project: InnovationProject): Promise<InnovationProject> {
     this.projects.set(project.id, structuredClone(project));
     return project;
   }
@@ -497,33 +484,26 @@ export class InMemoryProjectStore implements ProjectStore {
     offset?: number;
   }): Promise<InnovationProject[]> {
     let results = Array.from(this.projects.values());
-    if (filter?.status)
-      results = results.filter((p) => p.status === filter.status);
-    if (filter?.ownerId)
-      results = results.filter((p) => p.ownerId === filter.ownerId);
+    if (filter?.status) results = results.filter((p) => p.status === filter.status);
+    if (filter?.ownerId) results = results.filter((p) => p.ownerId === filter.ownerId);
     results.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     const offset = filter?.offset ?? 0;
     const limit = filter?.limit ?? 100;
     return results.slice(offset, offset + limit).map((p) => structuredClone(p));
   }
 
-  async searchProjects(
-    query: ProjectSearchQuery
-  ): Promise<InnovationProject[]> {
+  async searchProjects(query: ProjectSearchQuery): Promise<InnovationProject[]> {
     const lower = query.query.toLowerCase();
     let results = Array.from(this.projects.values()).filter(
       (p) =>
         p.name.toLowerCase().includes(lower) ||
         (p.description?.toLowerCase().includes(lower) ?? false)
     );
-    if (query.status)
-      results = results.filter((p) => p.status === query.status);
-    if (query.ownerId)
-      results = results.filter((p) => p.ownerId === query.ownerId);
+    if (query.status) results = results.filter((p) => p.status === query.status);
+    if (query.ownerId) results = results.filter((p) => p.ownerId === query.ownerId);
     if (query.dateRange?.from)
       results = results.filter((p) => p.createdAt >= query.dateRange!.from!);
-    if (query.dateRange?.to)
-      results = results.filter((p) => p.createdAt <= query.dateRange!.to!);
+    if (query.dateRange?.to) results = results.filter((p) => p.createdAt <= query.dateRange!.to!);
     return results
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
       .map((p) => structuredClone(p));
@@ -621,9 +601,7 @@ export async function createProject(
   return _store.createProject(project);
 }
 
-export async function getProject(
-  id: string
-): Promise<InnovationProject | undefined> {
+export async function getProject(id: string): Promise<InnovationProject | undefined> {
   return _store.getProject(id);
 }
 
@@ -634,9 +612,7 @@ export async function updateProject(
   return _store.updateProject(id, updates);
 }
 
-export async function archiveProject(
-  id: string
-): Promise<InnovationProject | undefined> {
+export async function archiveProject(id: string): Promise<InnovationProject | undefined> {
   return _store.updateProject(id, { status: "archived" });
 }
 
@@ -673,9 +649,7 @@ export async function getProjectSessions(
   return _store.getProjectSessions(projectId, options);
 }
 
-export async function searchProjects(
-  query: ProjectSearchQuery
-): Promise<InnovationProject[]> {
+export async function searchProjects(query: ProjectSearchQuery): Promise<InnovationProject[]> {
   return _store.searchProjects(query);
 }
 
@@ -701,15 +675,11 @@ export async function removeTeamMember(
   const project = await _store.getProject(projectId);
   if (!project) return undefined;
 
-  const members = (project.teamMembers ?? []).filter(
-    (m) => m.userId !== userId
-  );
+  const members = (project.teamMembers ?? []).filter((m) => m.userId !== userId);
   return _store.updateProject(projectId, { teamMembers: members });
 }
 
-export async function createSnapshot(
-  projectId: string
-): Promise<ProjectSnapshot | undefined> {
+export async function createSnapshot(projectId: string): Promise<ProjectSnapshot | undefined> {
   const project = await _store.getProject(projectId);
   if (!project) return undefined;
 
@@ -732,9 +702,7 @@ export interface TimelineEntry {
   details: string;
 }
 
-export async function getProjectTimeline(
-  projectId: string
-): Promise<TimelineEntry[]> {
+export async function getProjectTimeline(projectId: string): Promise<TimelineEntry[]> {
   const project = await _store.getProject(projectId);
   if (!project) return [];
 
@@ -805,16 +773,10 @@ export async function exportProject(
     return lines.join("\n");
   }
 
-  return JSON.stringify(
-    { project, sessions, teamContext, snapshots },
-    null,
-    2
-  );
+  return JSON.stringify({ project, sessions, teamContext, snapshots }, null, 2);
 }
 
-export async function importProject(
-  data: string
-): Promise<InnovationProject | undefined> {
+export async function importProject(data: string): Promise<InnovationProject | undefined> {
   try {
     const parsed = JSON.parse(data) as {
       project: InnovationProject;

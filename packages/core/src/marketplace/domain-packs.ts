@@ -123,22 +123,26 @@ export const DOMAIN_PACKS: DomainPack[] = [
         {
           name: "Clinical impact",
           weight: 0.35,
-          description: "Degree to which the idea can improve diagnosis, treatment, outcomes, or care quality.",
+          description:
+            "Degree to which the idea can improve diagnosis, treatment, outcomes, or care quality.",
         },
         {
           name: "Patient safety",
           weight: 0.25,
-          description: "Likelihood that the concept preserves safety, reduces harm, and supports reliable care delivery.",
+          description:
+            "Likelihood that the concept preserves safety, reduces harm, and supports reliable care delivery.",
         },
         {
           name: "Regulatory fit",
           weight: 0.2,
-          description: "How realistic the concept is given privacy, reimbursement, and compliance requirements.",
+          description:
+            "How realistic the concept is given privacy, reimbursement, and compliance requirements.",
         },
         {
           name: "Scalability",
           weight: 0.2,
-          description: "Ability to deploy across sites, populations, or care pathways without excessive complexity.",
+          description:
+            "Ability to deploy across sites, populations, or care pathways without excessive complexity.",
         },
       ],
     },
@@ -224,7 +228,8 @@ export const DOMAIN_PACKS: DomainPack[] = [
         {
           name: "Market potential",
           weight: 0.35,
-          description: "Strength of the addressable demand, willingness to pay, and competitive whitespace.",
+          description:
+            "Strength of the addressable demand, willingness to pay, and competitive whitespace.",
         },
         {
           name: "Regulatory risk",
@@ -234,12 +239,14 @@ export const DOMAIN_PACKS: DomainPack[] = [
         {
           name: "Technical feasibility",
           weight: 0.2,
-          description: "Likelihood the concept can be built securely with current infrastructure and data availability.",
+          description:
+            "Likelihood the concept can be built securely with current infrastructure and data availability.",
         },
         {
           name: "User trust",
           weight: 0.25,
-          description: "Ability to win confidence around money movement, security, transparency, and dispute handling.",
+          description:
+            "Ability to win confidence around money movement, security, transparency, and dispute handling.",
         },
       ],
     },
@@ -325,22 +332,26 @@ export const DOMAIN_PACKS: DomainPack[] = [
         {
           name: "Revenue impact",
           weight: 0.35,
-          description: "Potential to grow ARR through acquisition, expansion, pricing, or new product revenue.",
+          description:
+            "Potential to grow ARR through acquisition, expansion, pricing, or new product revenue.",
         },
         {
           name: "User acquisition",
           weight: 0.2,
-          description: "Ability to attract more users or shorten the path from awareness to activation.",
+          description:
+            "Ability to attract more users or shorten the path from awareness to activation.",
         },
         {
           name: "Retention",
           weight: 0.25,
-          description: "Expected improvement in usage depth, renewal likelihood, and long-term account value.",
+          description:
+            "Expected improvement in usage depth, renewal likelihood, and long-term account value.",
         },
         {
           name: "Implementation effort",
           weight: 0.2,
-          description: "Relative complexity to deliver the concept with existing product and go-to-market capabilities.",
+          description:
+            "Relative complexity to deliver the concept with existing product and go-to-market capabilities.",
         },
       ],
     },
@@ -383,8 +394,7 @@ export const DOMAIN_PACKS: DomainPack[] = [
       {
         id: "circular-economy",
         name: "Circular Economy Lens",
-        description:
-          "Looks for reuse, repair, recovery, and lifecycle redesign opportunities.",
+        description: "Looks for reuse, repair, recovery, and lifecycle redesign opportunities.",
         promptTemplate:
           "Analyze {subject} through a circular-economy lens. Consider waste streams, product longevity, refurbishment, material recovery, reverse logistics, and incentives for reuse or repair. Propose business-model and product innovations that keep valuable materials in circulation and reduce landfill or virgin-resource dependence.",
         category: "circularity",
@@ -426,22 +436,26 @@ export const DOMAIN_PACKS: DomainPack[] = [
         {
           name: "Environmental impact",
           weight: 0.4,
-          description: "Expected magnitude and credibility of emissions, waste, or resource-use improvement.",
+          description:
+            "Expected magnitude and credibility of emissions, waste, or resource-use improvement.",
         },
         {
           name: "Economic viability",
           weight: 0.2,
-          description: "Ability for the concept to sustain itself through savings, revenue, or financing support.",
+          description:
+            "Ability for the concept to sustain itself through savings, revenue, or financing support.",
         },
         {
           name: "Scalability",
           weight: 0.2,
-          description: "Likelihood the concept can expand across sites, sectors, or markets with practical execution.",
+          description:
+            "Likelihood the concept can expand across sites, sectors, or markets with practical execution.",
         },
         {
           name: "Urgency",
           weight: 0.2,
-          description: "How strongly the problem demands immediate action due to climate, regulatory, or market pressure.",
+          description:
+            "How strongly the problem demands immediate action due to climate, regulatory, or market pressure.",
         },
       ],
     },
@@ -527,22 +541,26 @@ export const DOMAIN_PACKS: DomainPack[] = [
         {
           name: "Learning outcomes",
           weight: 0.35,
-          description: "How strongly the concept can improve mastery, understanding, or learner progress.",
+          description:
+            "How strongly the concept can improve mastery, understanding, or learner progress.",
         },
         {
           name: "Accessibility",
           weight: 0.2,
-          description: "Degree to which the idea serves diverse learners and reduces barriers to participation.",
+          description:
+            "Degree to which the idea serves diverse learners and reduces barriers to participation.",
         },
         {
           name: "Scalability",
           weight: 0.2,
-          description: "Ability to deliver the concept across classrooms, institutions, or learner populations.",
+          description:
+            "Ability to deliver the concept across classrooms, institutions, or learner populations.",
         },
         {
           name: "Engagement",
           weight: 0.25,
-          description: "Likelihood that learners and educators will find the experience motivating and sticky.",
+          description:
+            "Likelihood that learners and educators will find the experience motivating and sticky.",
         },
       ],
     },

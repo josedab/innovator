@@ -29,15 +29,9 @@ export const NegotiationMessageSchema = z.object({
   content: z.string().max(5000),
   phase: NegotiationPhaseSchema,
   timestamp: z.string(),
-  challengeType: z.enum([
-    "feasibility",
-    "market-fit",
-    "ethical",
-    "technical",
-    "financial",
-    "competitive",
-    "none",
-  ]).default("none"),
+  challengeType: z
+    .enum(["feasibility", "market-fit", "ethical", "technical", "financial", "competitive", "none"])
+    .default("none"),
 });
 
 export const IdeaDeltaSchema = z.object({
@@ -151,7 +145,12 @@ Return your response as a JSON object:
   try {
     const raw = await withRetry(
       async () => {
-        const result = await generateText({ prompt: openingPrompt, model, serverMode: true, signal });
+        const result = await generateText({
+          prompt: openingPrompt,
+          model,
+          serverMode: true,
+          signal,
+        });
         return extractJson(result);
       },
       { signal }
@@ -206,14 +205,20 @@ export async function negotiateStep(
 
   // Determine if phase should advance
   const messageCount = session.messages.filter((m) => m.phase === session.phase).length;
-  const shouldAdvance = messageCount >= 4 || userMessage.toLowerCase().includes("next") || userMessage.toLowerCase().includes("move on");
+  const shouldAdvance =
+    messageCount >= 4 ||
+    userMessage.toLowerCase().includes("next") ||
+    userMessage.toLowerCase().includes("move on");
 
   if (shouldAdvance && PHASE_TRANSITIONS[session.phase].length > 0) {
     session.phase = PHASE_TRANSITIONS[session.phase][0];
   }
 
   // Build context
-  const recentMessages = session.messages.slice(-8).map((m) => `${m.role}: ${m.content}`).join("\n\n");
+  const recentMessages = session.messages
+    .slice(-8)
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n\n");
 
   const prompt = `${PHASE_PROMPTS[session.phase]}
 
@@ -262,7 +267,12 @@ Based on this negotiation phase and conversation, respond with JSON:
 
     // Apply suggested changes with validated field names
     if (parsed.suggestedChanges) {
-      const validFields = ["title", "description", "potentialImpact", "implementationHint"] as const;
+      const validFields = [
+        "title",
+        "description",
+        "potentialImpact",
+        "implementationHint",
+      ] as const;
       type IdeaField = (typeof validFields)[number];
       for (const change of parsed.suggestedChanges) {
         if (validFields.includes(change.field as IdeaField)) {
@@ -356,12 +366,14 @@ export function listNegotiations(): NegotiationSession[] {
 /**
  * Complete a negotiation, producing the final refined idea.
  */
-export function completeNegotiation(sessionId: string): {
-  finalIdea: InnovationIdea;
-  deltas: IdeaDelta[];
-  convergenceScore: number;
-  messageCount: number;
-} | undefined {
+export function completeNegotiation(sessionId: string):
+  | {
+      finalIdea: InnovationIdea;
+      deltas: IdeaDelta[];
+      convergenceScore: number;
+      messageCount: number;
+    }
+  | undefined {
   const session = sessions.get(sessionId);
   if (!session) return undefined;
 

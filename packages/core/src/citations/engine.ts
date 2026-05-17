@@ -1,13 +1,7 @@
 /**
  * Citation extraction, verification, and source management engine.
  */
-import type {
-  CitationSource,
-  Citation,
-  CitationContext,
-  CitationStatus,
-  GroundedIdea,
-} from "./types.js";
+import type { CitationSource, Citation, CitationContext, GroundedIdea } from "./types.js";
 
 const sessionContexts = new Map<string, CitationContext>();
 
@@ -53,7 +47,7 @@ export function removeSource(sessionId: string, sourceId: string): boolean {
 }
 
 /** Extract citations from LLM output text by matching claims against sources. */
-export function extractCitations(sessionId: string, text: string, ideaId: string): Citation[] {
+export function extractCitations(sessionId: string, text: string, _ideaId: string): Citation[] {
   const ctx = getCitationContext(sessionId);
   if (ctx.sources.length === 0) return [];
 

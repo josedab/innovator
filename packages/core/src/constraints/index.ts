@@ -8,8 +8,8 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
-import type { AngleResult, InnovationIdea } from "../types.js";
+import { sanitizeLlmOutput } from "../prompts/sanitize.js";
+import type { AngleResult } from "../types.js";
 
 // ---- Schemas ----
 

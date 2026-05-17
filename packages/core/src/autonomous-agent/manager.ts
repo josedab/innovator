@@ -12,7 +12,6 @@ import type {
   AutonomousProgress,
   AutonomousAgentConfig,
   AgentStatus,
-  AgentDecision,
 } from "./types.js";
 import { runAutonomousAgent } from "./agent.js";
 
@@ -21,7 +20,11 @@ import { runAutonomousAgent } from "./agent.js";
 export const AgentBudgetSchema = z.object({
   maxCost: z.number().min(0).default(5),
   maxLLMCalls: z.number().int().min(1).default(200),
-  maxWallTimeMs: z.number().int().min(1000).default(4 * 60 * 60 * 1000),
+  maxWallTimeMs: z
+    .number()
+    .int()
+    .min(1000)
+    .default(4 * 60 * 60 * 1000),
   currentCost: z.number().min(0).default(0),
   currentLLMCalls: z.number().int().min(0).default(0),
   startTimeMs: z.number().default(0),
@@ -141,10 +144,7 @@ export async function startAgentRun(
     }
 
     // Create checkpoint on branch completion
-    if (
-      progress.completedBranches > 0 &&
-      managed.checkpoints.length < progress.completedBranches
-    ) {
+    if (progress.completedBranches > 0 && managed.checkpoints.length < progress.completedBranches) {
       managed.checkpoints.push({
         id: randomUUID(),
         runId: managed.run.id,

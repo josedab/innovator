@@ -16,9 +16,9 @@ describe("Error page", () => {
   it("renders fallback message when error has no message", () => {
     const error = new Error("");
     render(<ErrorPage error={error} reset={vi.fn()} />);
-    expect(
-      screen.getByText("An unexpected error occurred. Please try again.")
-    ).toBeInstanceOf(HTMLElement);
+    expect(screen.getByText("An unexpected error occurred. Please try again.")).toBeInstanceOf(
+      HTMLElement
+    );
   });
 
   it("calls reset on Try again click", () => {

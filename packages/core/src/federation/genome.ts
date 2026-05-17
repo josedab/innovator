@@ -6,15 +6,11 @@
  * pipeline enrichment, gossip-based sync, and genome analytics.
  */
 
-import { z } from "zod";
-import { randomUUID } from "node:crypto";
-import type { AngleId } from "../types.js";
-import type { FederationPattern, PeerNode, NetworkDashboard } from "./index.js";
+import { createHmac } from "node:crypto";
+import type { FederationPattern } from "./index.js";
 import {
-  createFederationNode,
   getNode,
   listNodes,
-  extractPatterns,
   fetchRemotePatterns,
   mergePatterns,
   publishPatterns,
@@ -43,7 +39,12 @@ function laplaceMechanism(value: number, sensitivity: number, epsilon: number): 
 }
 
 /** Add Gaussian noise for differential privacy. */
-function gaussianMechanism(value: number, sensitivity: number, epsilon: number, delta = 1e-5): number {
+function gaussianMechanism(
+  value: number,
+  sensitivity: number,
+  epsilon: number,
+  delta = 1e-5
+): number {
   const sigma = (sensitivity * Math.sqrt(2 * Math.log(1.25 / delta))) / epsilon;
   const u1 = Math.random();
   const u2 = Math.random();
@@ -71,7 +72,10 @@ export function privatizePattern(
   return {
     ...pattern,
     frequency: Math.max(0, Math.round(applyDifferentialPrivacy(pattern.frequency, 1, config))),
-    successRate: Math.max(0, Math.min(1, applyDifferentialPrivacy(pattern.successRate, 0.1, config))),
+    successRate: Math.max(
+      0,
+      Math.min(1, applyDifferentialPrivacy(pattern.successRate, 0.1, config))
+    ),
   };
 }
 
@@ -115,7 +119,6 @@ export function signPattern(
   pattern: Omit<PublishedPattern, "sourceNodeSignature">,
   secretKey: string
 ): string {
-  const { createHmac } = require("node:crypto") as typeof import("node:crypto");
   const payload = JSON.stringify({
     id: pattern.id,
     type: pattern.type,
@@ -128,10 +131,7 @@ export function signPattern(
 }
 
 /** Verify a pattern's signature. */
-export function verifyPatternSignature(
-  pattern: PublishedPattern,
-  secretKey: string
-): boolean {
+export function verifyPatternSignature(pattern: PublishedPattern, secretKey: string): boolean {
   const expectedSignature = signPattern(pattern, secretKey);
   return pattern.sourceNodeSignature === expectedSignature;
 }
@@ -203,10 +203,7 @@ export interface GenomeInsight {
 }
 
 /** Generate insights for a domain based on network patterns. */
-export function generateGenomeInsights(
-  nodeId: string,
-  domainHint?: string
-): GenomeInsight[] {
+export function generateGenomeInsights(nodeId: string, domainHint?: string): GenomeInsight[] {
   const dashboard = getNetworkDashboard(nodeId);
   const insights: GenomeInsight[] = [];
 
@@ -227,7 +224,8 @@ export function generateGenomeInsights(
   // Methodology chains from successful-combination patterns
   const combos = dashboard.topPatterns.filter((p) => p.type === "successful-combination");
   for (const combo of combos.slice(0, 5)) {
-    const domainMatch = !domainHint || combo.anonymizedDomain.toLowerCase().includes(domainHint.toLowerCase());
+    const domainMatch =
+      !domainHint || combo.anonymizedDomain.toLowerCase().includes(domainHint.toLowerCase());
     if (domainMatch) {
       insights.push({
         type: "methodology-chain",
@@ -242,11 +240,12 @@ export function generateGenomeInsights(
 
   // Domain trends
   if (domainHint) {
-    const domainPatterns = dashboard.topPatterns.filter(
-      (p) => p.anonymizedDomain.toLowerCase().includes(domainHint.toLowerCase())
+    const domainPatterns = dashboard.topPatterns.filter((p) =>
+      p.anonymizedDomain.toLowerCase().includes(domainHint.toLowerCase())
     );
     if (domainPatterns.length > 0) {
-      const avgSuccess = domainPatterns.reduce((s, p) => s + p.successRate, 0) / domainPatterns.length;
+      const avgSuccess =
+        domainPatterns.reduce((s, p) => s + p.successRate, 0) / domainPatterns.length;
       insights.push({
         type: "domain-trend",
         content: `${domainPatterns.length} patterns found for "${domainHint}" with ${(avgSuccess * 100).toFixed(0)}% average success rate`,
@@ -293,7 +292,9 @@ export function enrichAngleSelection(
       for (const angle of insight.angleIds) {
         if (!recommendedAngles.has(angle)) {
           recommendedAngles.add(angle);
-          enrichments.push(`🌐 Network suggests adding "${angle}" (${(insight.confidence * 100).toFixed(0)}% confidence)`);
+          enrichments.push(
+            `🌐 Network suggests adding "${angle}" (${(insight.confidence * 100).toFixed(0)}% confidence)`
+          );
         }
       }
     }
@@ -321,17 +322,25 @@ export function createGossipDigest(nodeId: string): GossipDigest | null {
   if (!node) return null;
 
   const patterns = node.localPatterns;
-  const checksum = patterns.length > 0
-    ? patterns.map((p) => p.id).sort().join(",").slice(0, 64)
-    : "";
+  const checksum =
+    patterns.length > 0
+      ? patterns
+          .map((p) => p.id)
+          .sort()
+          .join(",")
+          .slice(0, 64)
+      : "";
 
   return {
     nodeId,
     patternCount: patterns.length,
-    latestTimestamp: patterns.length > 0
-      ? patterns.reduce((latest, p) =>
-          p.lastSeenAt > latest ? p.lastSeenAt : latest, patterns[0].lastSeenAt)
-      : new Date().toISOString(),
+    latestTimestamp:
+      patterns.length > 0
+        ? patterns.reduce(
+            (latest, p) => (p.lastSeenAt > latest ? p.lastSeenAt : latest),
+            patterns[0].lastSeenAt
+          )
+        : new Date().toISOString(),
     checksum,
   };
 }

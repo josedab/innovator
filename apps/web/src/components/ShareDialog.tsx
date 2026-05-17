@@ -53,9 +53,17 @@ export function ShareDialog({ sessionId, subject, baseUrl = "", onClose }: Share
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-xl dark:border-neutral-700 dark:bg-neutral-900 max-w-md w-full">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">Share Session</h3>
+        <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">
+          Share Session
+        </h3>
         {onClose && (
-          <button onClick={onClose} aria-label="Close" className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition">✕</button>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition"
+          >
+            ✕
+          </button>
         )}
       </div>
 
@@ -95,13 +103,26 @@ export function ShareDialog({ sessionId, subject, baseUrl = "", onClose }: Share
           </div>
 
           <div className="flex gap-2">
-            <a href={twitterUrl} target="_blank" rel="noopener noreferrer" className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-center text-sm hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800 transition">
+            <a
+              href={twitterUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-center text-sm hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800 transition"
+            >
               𝕏 Twitter
             </a>
-            <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-center text-sm hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800 transition">
+            <a
+              href={linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-center text-sm hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800 transition"
+            >
               💼 LinkedIn
             </a>
-            <a href={emailUrl} className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-center text-sm hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800 transition">
+            <a
+              href={emailUrl}
+              className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-center text-sm hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800 transition"
+            >
               ✉️ Email
             </a>
           </div>
@@ -124,7 +145,10 @@ export function ShareDialog({ sessionId, subject, baseUrl = "", onClose }: Share
             {copied === "embed" ? "✓ Copied" : "Copy Embed Code"}
           </button>
           <p className="text-xs text-neutral-500">
-            oEmbed: <code className="bg-neutral-100 px-1 rounded dark:bg-neutral-800">/api/oembed?url={shareUrl}</code>
+            oEmbed:{" "}
+            <code className="bg-neutral-100 px-1 rounded dark:bg-neutral-800">
+              /api/oembed?url={shareUrl}
+            </code>
           </p>
         </div>
       )}
@@ -132,7 +156,6 @@ export function ShareDialog({ sessionId, subject, baseUrl = "", onClose }: Share
       {/* QR Code tab */}
       {tab === "qr" && (
         <div className="flex flex-col items-center gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={qrUrl}
             alt={`QR code for ${subject}`}

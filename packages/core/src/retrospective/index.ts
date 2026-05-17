@@ -9,7 +9,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 
 // ---- Schemas ----
 
@@ -558,8 +558,8 @@ export type AutoConfig = z.infer<typeof AutoConfigSchema>;
  */
 export async function generateAutoConfig(
   outcomeList?: IdeaOutcome[],
-  model?: string,
-  signal?: AbortSignal
+  _model?: string,
+  _signal?: AbortSignal
 ): Promise<AutoConfig> {
   const data = outcomeList ?? listOutcomes();
   const reasoning: string[] = [];
@@ -821,7 +821,7 @@ export function compareRetrospectives(
 
   // Pattern diffs
   const aTitles = new Set(a.successPatterns.map((p) => p.title));
-  const bTitles = new Set(b.successPatterns.map((p) => p.title));
+  const _bTitles = new Set(b.successPatterns.map((p) => p.title));
   const newPatterns = b.successPatterns.filter((p) => !aTitles.has(p.title)).map((p) => p.title);
 
   const aFailures = new Set(a.failureModes.map((f) => f.title));

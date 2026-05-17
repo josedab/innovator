@@ -238,7 +238,7 @@ export async function GET(request: Request) {
       status: 200,
       headers: API_RESPONSE_HEADERS,
     });
-  } catch (err) {
+  } catch {
     return new Response(JSON.stringify({ error: "Failed to fetch social data." }), {
       status: 500,
       headers: API_RESPONSE_HEADERS,

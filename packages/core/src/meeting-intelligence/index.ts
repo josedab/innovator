@@ -207,7 +207,7 @@ Respond in JSON:
   const parsed = JSON.parse(extractJson(raw));
 
   const signals: MeetingSignal[] = (parsed.signals ?? []).map(
-    (s: Record<string, unknown>, i: number) => ({
+    (s: Record<string, unknown>, _i: number) => ({
       id: `signal-${transcriptId}-${++signalIdCounter}`,
       meetingId: transcriptId,
       type: s.type ?? "idea-spark",

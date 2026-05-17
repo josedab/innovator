@@ -6,7 +6,6 @@ export const runtime = "nodejs";
 import {
   createTenant,
   getTenant,
-  listTenants,
   updateTenantTier,
   addTenantApiKey,
   getDeveloperPortalInfo,
@@ -65,7 +64,9 @@ export async function POST(request: Request) {
     switch (parsed.action) {
       case "create-tenant": {
         const tenant = createTenant(parsed.name, parsed.ownerEmail, parsed.tier);
-        logger.info(`Created tenant ${tenant.id} for ${parsed.ownerEmail}`, { route: "/api/portal" });
+        logger.info(`Created tenant ${tenant.id} for ${parsed.ownerEmail}`, {
+          route: "/api/portal",
+        });
         return Response.json({ tenant }, { headers: API_RESPONSE_HEADERS });
       }
       case "get-portal": {
@@ -101,7 +102,10 @@ export async function POST(request: Request) {
       }
       case "demo": {
         const demoKey = createDemoKey();
-        return Response.json({ demoKey, message: "Demo key valid for 1 hour, 5 calls/day" }, { headers: API_RESPONSE_HEADERS });
+        return Response.json(
+          { demoKey, message: "Demo key valid for 1 hour, 5 calls/day" },
+          { headers: API_RESPONSE_HEADERS }
+        );
       }
     }
   } catch (error) {
@@ -111,7 +115,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/portal" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/portal",
+    });
     return Response.json(
       { error: "Internal server error" },
       { status: 500, headers: API_RESPONSE_HEADERS }

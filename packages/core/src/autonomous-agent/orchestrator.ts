@@ -117,33 +117,56 @@ function buildSteps(objective: Objective, planId: string): ExecutionStep[] {
   const descriptions: Array<{ type: ExecutionStep["type"]; description: string }> = [
     {
       type: "investigate",
-      description: `Investigate the current state, evidence, and context for: ${objective.description}`.slice(0, 1000),
+      description:
+        `Investigate the current state, evidence, and context for: ${objective.description}`.slice(
+          0,
+          1000
+        ),
     },
   ];
 
   if ((objective.constraints?.length ?? 0) > 0) {
     descriptions.push({
       type: "investigate",
-      description: `Investigate how these constraints shape execution: ${objective.constraints?.join("; ")}`.slice(0, 1000),
+      description:
+        `Investigate how these constraints shape execution: ${objective.constraints?.join("; ")}`.slice(
+          0,
+          1000
+        ),
     });
   }
 
   descriptions.push(
     {
       type: "generate",
-      description: `Generate strategic options that address the objective while respecting constraints.`.slice(0, 1000),
+      description:
+        `Generate strategic options that address the objective while respecting constraints.`.slice(
+          0,
+          1000
+        ),
     },
     {
       type: "synthesize",
-      description: `Synthesize the strongest findings into a cohesive strategic direction.`.slice(0, 1000),
+      description: `Synthesize the strongest findings into a cohesive strategic direction.`.slice(
+        0,
+        1000
+      ),
     },
     {
       type: "evaluate",
-      description: `Evaluate the proposed direction against desired outcomes${objective.targetOutcomes?.length ? `: ${objective.targetOutcomes.join("; ")}` : "."}`.slice(0, 1000),
+      description:
+        `Evaluate the proposed direction against desired outcomes${objective.targetOutcomes?.length ? `: ${objective.targetOutcomes.join("; ")}` : "."}`.slice(
+          0,
+          1000
+        ),
     },
     {
       type: "refine",
-      description: `Refine the recommended plan into concrete next moves, sequencing, and risk mitigations.`.slice(0, 1000),
+      description:
+        `Refine the recommended plan into concrete next moves, sequencing, and risk mitigations.`.slice(
+          0,
+          1000
+        ),
     }
   );
 
@@ -186,15 +209,30 @@ function buildStepResult(plan: OrchestrationPlan, step: ExecutionStep): string {
 
   switch (step.type) {
     case "investigate":
-      return `Investigation completed for step ${step.id}. Evidence was mapped for objective \"${objective?.description ?? plan.objectiveId}\".${outcomeText}`.slice(0, 5000);
+      return `Investigation completed for step ${step.id}. Evidence was mapped for objective \"${objective?.description ?? plan.objectiveId}\".${outcomeText}`.slice(
+        0,
+        5000
+      );
     case "generate":
-      return `Generation completed for step ${step.id}. Produced strategic options spanning new bets, experiments, and delivery paths.`.slice(0, 5000);
+      return `Generation completed for step ${step.id}. Produced strategic options spanning new bets, experiments, and delivery paths.`.slice(
+        0,
+        5000
+      );
     case "synthesize":
-      return `Synthesis completed for step ${step.id}. Findings converged into a coherent innovation thesis with differentiated moves.`.slice(0, 5000);
+      return `Synthesis completed for step ${step.id}. Findings converged into a coherent innovation thesis with differentiated moves.`.slice(
+        0,
+        5000
+      );
     case "evaluate":
-      return `Evaluation completed for step ${step.id}. The preferred strategy was scored against feasibility, impact, and learning velocity.${outcomeText}`.slice(0, 5000);
+      return `Evaluation completed for step ${step.id}. The preferred strategy was scored against feasibility, impact, and learning velocity.${outcomeText}`.slice(
+        0,
+        5000
+      );
     case "refine":
-      return `Refinement completed for step ${step.id}. The plan now includes execution sequencing, decision checkpoints, and mitigation actions.`.slice(0, 5000);
+      return `Refinement completed for step ${step.id}. The plan now includes execution sequencing, decision checkpoints, and mitigation actions.`.slice(
+        0,
+        5000
+      );
   }
 }
 
@@ -258,7 +296,11 @@ export function executeStep(planId: string, stepId: string): ExecutionStep | und
       status: "failed",
       startedAt: current.startedAt ?? now(),
       completedAt: now(),
-      result: `Execution stopped because the remaining budget could not cover ${tokenCost} tokens.`.slice(0, 5000),
+      result:
+        `Execution stopped because the remaining budget could not cover ${tokenCost} tokens.`.slice(
+          0,
+          5000
+        ),
       confidence: 0,
     });
     plan.steps[stepIndex] = failed;
@@ -322,7 +364,11 @@ export function branchExploration(
       id: randomUUID(),
       planId,
       type: "synthesize",
-      description: `Branch synthesis for ${parentStepId}: convert branch findings into a recommendation.`.slice(0, 1000),
+      description:
+        `Branch synthesis for ${parentStepId}: convert branch findings into a recommendation.`.slice(
+          0,
+          1000
+        ),
       status: "pending",
     }),
   ];
@@ -377,19 +423,15 @@ export function generateStrategyOutput(planId: string): StrategyOutput | undefin
             : step.type === "synthesize"
               ? "medium"
               : "low",
-      effort:
-        step.type === "refine"
-          ? "medium"
-          : step.type === "generate"
-            ? "high"
-            : "low",
+      effort: step.type === "refine" ? "medium" : step.type === "generate" ? "high" : "low",
     })
   );
 
   const completionRatio = plan.steps.length > 0 ? completedSteps.length / plan.steps.length : 0;
   const averageConfidence =
     completedSteps.length > 0
-      ? completedSteps.reduce((sum, step) => sum + (step.confidence ?? 0.5), 0) / completedSteps.length
+      ? completedSteps.reduce((sum, step) => sum + (step.confidence ?? 0.5), 0) /
+        completedSteps.length
       : 0;
   const coverageGaps = plan.steps
     .filter((step) => step.status !== "completed")
@@ -400,7 +442,11 @@ export function generateStrategyOutput(planId: string): StrategyOutput | undefin
     id: randomUUID(),
     planId,
     title: `Strategy Output: ${(objective?.description ?? planId).slice(0, 460)}`,
-    executiveSummary: `Completed ${completedSteps.length} of ${plan.steps.length} execution steps for ${(objective?.description ?? planId).slice(0, 400)}. ${recommendations.length} recommendations were distilled while consuming ${plan.usedTokens}/${plan.totalTokenBudget} planned tokens.`.slice(0, 3000),
+    executiveSummary:
+      `Completed ${completedSteps.length} of ${plan.steps.length} execution steps for ${(objective?.description ?? planId).slice(0, 400)}. ${recommendations.length} recommendations were distilled while consuming ${plan.usedTokens}/${plan.totalTokenBudget} planned tokens.`.slice(
+        0,
+        3000
+      ),
     findings,
     recommendations,
     confidenceAssessment: {

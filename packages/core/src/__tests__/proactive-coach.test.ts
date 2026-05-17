@@ -42,11 +42,11 @@ describe("proactive-coach", () => {
     });
 
     it("suggests blind spot angles when profile exists", () => {
-      profileBuilder.buildProfile("user-1", [
-        makeSession({ anglesUsed: ["scamper"] }),
-      ]);
+      profileBuilder.buildProfile("user-1", [makeSession({ anglesUsed: ["scamper"] })]);
       const recs = engine.getPreSessionRecommendations("user-1", "AI in healthcare");
-      const angleSuggestion = recs.find((r) => r.actionType === "try_angle" && r.priority === "high");
+      const angleSuggestion = recs.find(
+        (r) => r.actionType === "try_angle" && r.priority === "high"
+      );
       expect(angleSuggestion).toBeDefined();
       expect(angleSuggestion!.message).toContain("blind spot");
     });
@@ -58,9 +58,7 @@ describe("proactive-coach", () => {
     });
 
     it("suggests domain exploration for new domains", () => {
-      profileBuilder.buildProfile("user-1", [
-        makeSession({ domain: "fintech" }),
-      ]);
+      profileBuilder.buildProfile("user-1", [makeSession({ domain: "fintech" })]);
       const recs = engine.getPreSessionRecommendations("user-1", "healthcare patient monitoring");
       const domainRec = recs.find((r) => r.actionType === "explore_domain");
       expect(domainRec).toBeDefined();
@@ -175,7 +173,10 @@ describe("proactive-coach", () => {
     });
 
     it("suggests using more angles when few are used", () => {
-      const analysis = engine.getPostSessionAnalysis("user-1", makeSession({ anglesUsed: ["scamper"] }));
+      const analysis = engine.getPostSessionAnalysis(
+        "user-1",
+        makeSession({ anglesUsed: ["scamper"] })
+      );
       const moreAngles = analysis.improvements.find((i) => i.includes("more angles"));
       expect(moreAngles).toBeDefined();
     });
@@ -183,9 +184,7 @@ describe("proactive-coach", () => {
 
   describe("generateChallenge", () => {
     it("generates a challenge targeting blind spot angle", () => {
-      profileBuilder.buildProfile("user-1", [
-        makeSession({ anglesUsed: ["scamper"] }),
-      ]);
+      profileBuilder.buildProfile("user-1", [makeSession({ anglesUsed: ["scamper"] })]);
       const challenge = engine.generateChallenge("user-1");
       expect(challenge.id).toContain("challenge-user-1");
       expect(challenge.targetAngle).toBeDefined();
@@ -195,12 +194,26 @@ describe("proactive-coach", () => {
 
     it("generates quality challenge when no blind spot angles", () => {
       profileBuilder.buildProfile("user-1", [
-        ...["scamper", "first-principles", "cross-domain", "constraints", "inversion", "perspectives", "what-if", "trend-collision"].map((a) =>
-          makeSession({ anglesUsed: [a], avgQuality: 5 })
-        ),
-        ...["scamper", "first-principles", "cross-domain", "constraints", "inversion", "perspectives", "what-if", "trend-collision"].map((a) =>
-          makeSession({ anglesUsed: [a], avgQuality: 5 })
-        ),
+        ...[
+          "scamper",
+          "first-principles",
+          "cross-domain",
+          "constraints",
+          "inversion",
+          "perspectives",
+          "what-if",
+          "trend-collision",
+        ].map((a) => makeSession({ anglesUsed: [a], avgQuality: 5 })),
+        ...[
+          "scamper",
+          "first-principles",
+          "cross-domain",
+          "constraints",
+          "inversion",
+          "perspectives",
+          "what-if",
+          "trend-collision",
+        ].map((a) => makeSession({ anglesUsed: [a], avgQuality: 5 })),
       ]);
       const challenge = engine.generateChallenge("user-1");
       expect(challenge.title).toContain("Quality");

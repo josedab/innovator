@@ -50,7 +50,6 @@ describe("API /api/share/[slug]", () => {
 
   describe("GET", () => {
     it("returns 200 with investigation data for valid slug", async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(getSharedInvestigation).mockReturnValue(fakeShared as any);
       const res = await GET(makeRequest("GET"), makeParams("test-slug"));
       expect(res.status).toBe(200);
@@ -88,7 +87,7 @@ describe("API /api/share/[slug]", () => {
   describe("POST", () => {
     it("forks investigation and returns 201", async () => {
       const forkResult = { newSessionId: "session-abc123", forkedFrom: "test-slug" };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       vi.mocked(forkInvestigation).mockReturnValue(forkResult as any);
 
       const res = await POST(makeRequest("POST"), makeParams("test-slug"));

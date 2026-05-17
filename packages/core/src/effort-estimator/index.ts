@@ -202,14 +202,12 @@ function generateIdeaId(title: string): string {
 /** Estimate effort for a single innovation idea using LLM analysis. */
 export async function estimateEffort(
   idea: InnovationIdea,
-  config?: Partial<EstimatorConfig>,
+  config?: Partial<EstimatorConfig>
 ): Promise<EffortEstimate> {
   const resolvedConfig = EstimatorConfigSchema.parse(config ?? {});
   const prompt = buildEstimationPrompt(idea, resolvedConfig);
 
-  const raw = await withRetry(() =>
-    generateText({ prompt, serverMode: true }),
-  );
+  const raw = await withRetry(() => generateText({ prompt, serverMode: true }));
   const parsed = JSON.parse(extractJson(raw));
 
   const estimate: EffortEstimate = {
@@ -230,7 +228,7 @@ export async function estimateEffort(
 /** Batch estimate effort for multiple ideas with cross-idea dependency detection. */
 export async function estimateEffortBatch(
   ideas: InnovationIdea[],
-  config?: Partial<EstimatorConfig>,
+  config?: Partial<EstimatorConfig>
 ): Promise<BatchEstimateResult> {
   const resolvedConfig = EstimatorConfigSchema.parse(config ?? {});
   const estimates: EffortEstimate[] = [];
@@ -253,14 +251,13 @@ export async function estimateEffortBatch(
 /** Generate a prioritized roadmap from effort estimates. */
 export async function buildRoadmap(
   estimates: EffortEstimate[],
-  teamSize?: number,
+  teamSize?: number
 ): Promise<RoadmapItem[]> {
   const size = teamSize ?? 3;
 
   const summaries = estimates
     .map(
-      (e) =>
-        `- "${e.ideaTitle}": ${e.totalPersonWeeks} person-weeks, confidence ${e.confidence}`,
+      (e) => `- "${e.ideaTitle}": ${e.totalPersonWeeks} person-weeks, confidence ${e.confidence}`
     )
     .join("\n");
 
@@ -278,22 +275,17 @@ Respond in JSON:
   ]
 }`;
 
-  const raw = await withRetry(() =>
-    generateText({ prompt, serverMode: true }),
-  );
+  const raw = await withRetry(() => generateText({ prompt, serverMode: true }));
   const parsed = JSON.parse(extractJson(raw));
 
-  const items: RoadmapItem[] = (parsed.roadmap ?? []).map(
-    (item: Record<string, unknown>) =>
-      RoadmapItemSchema.parse({
-        ideaTitle: String(item.ideaTitle ?? ""),
-        phase: item.phase ?? 1,
-        startWeek: item.startWeek ?? 0,
-        endWeek: item.endWeek ?? 0,
-        dependencies: Array.isArray(item.dependencies)
-          ? item.dependencies.map(String)
-          : [],
-      }),
+  const items: RoadmapItem[] = (parsed.roadmap ?? []).map((item: Record<string, unknown>) =>
+    RoadmapItemSchema.parse({
+      ideaTitle: String(item.ideaTitle ?? ""),
+      phase: item.phase ?? 1,
+      startWeek: item.startWeek ?? 0,
+      endWeek: item.endWeek ?? 0,
+      dependencies: Array.isArray(item.dependencies) ? item.dependencies.map(String) : [],
+    })
   );
 
   return items;
@@ -303,7 +295,7 @@ Respond in JSON:
 export async function estimateWithCodebaseContext(
   idea: InnovationIdea,
   codebaseContext: CodebaseContext,
-  config?: Partial<EstimatorConfig>,
+  config?: Partial<EstimatorConfig>
 ): Promise<EffortEstimate> {
   const resolvedConfig = EstimatorConfigSchema.parse({
     ...config,
@@ -322,9 +314,7 @@ export async function estimateWithCodebaseContext(
   const basePrompt = buildEstimationPrompt(idea, resolvedConfig);
   const prompt = basePrompt + contextBlock;
 
-  const raw = await withRetry(() =>
-    generateText({ prompt, serverMode: true }),
-  );
+  const raw = await withRetry(() => generateText({ prompt, serverMode: true }));
   const parsed = JSON.parse(extractJson(raw));
 
   const estimate: EffortEstimate = {
@@ -343,9 +333,7 @@ export async function estimateWithCodebaseContext(
 }
 
 /** Extract codebase context by analyzing the project directory. */
-export async function analyzeCodebaseContext(
-  rootDir?: string,
-): Promise<CodebaseContext> {
+export async function analyzeCodebaseContext(rootDir?: string): Promise<CodebaseContext> {
   const dir = rootDir ?? process.cwd();
   const { execSync } = await import("node:child_process");
 
@@ -353,7 +341,7 @@ export async function analyzeCodebaseContext(
   try {
     const wcOutput = execSync(
       `find "${dir}" -type f \\( -name "*.ts" -o -name "*.js" -o -name "*.tsx" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \\) -not -path "*/node_modules/*" -not -path "*/.git/*" | xargs wc -l 2>/dev/null | tail -1`,
-      { encoding: "utf-8" },
+      { encoding: "utf-8" }
     ).trim();
     const match = wcOutput.match(/(\d+)/);
     if (match) loc = parseInt(match[1], 10);
@@ -369,7 +357,7 @@ export async function analyzeCodebaseContext(
   try {
     const files = execSync(
       `find "${dir}" -type f -not -path "*/node_modules/*" -not -path "*/.git/*" | head -500`,
-      { encoding: "utf-8" },
+      { encoding: "utf-8" }
     );
     if (files.includes(".ts") || files.includes(".tsx")) languages.add("TypeScript");
     if (files.includes(".js") || files.includes(".jsx")) languages.add("JavaScript");
@@ -384,9 +372,7 @@ export async function analyzeCodebaseContext(
   // Detect frameworks from package.json
   try {
     const { readFileSync } = await import("node:fs");
-    const pkgJson = JSON.parse(
-      readFileSync(`${dir}/package.json`, "utf-8"),
-    );
+    const pkgJson = JSON.parse(readFileSync(`${dir}/package.json`, "utf-8"));
     const allDeps = {
       ...pkgJson.dependencies,
       ...pkgJson.devDependencies,
@@ -408,7 +394,7 @@ export async function analyzeCodebaseContext(
   try {
     const { readFileSync } = await import("node:fs");
     const coverageSummary = JSON.parse(
-      readFileSync(`${dir}/coverage/coverage-summary.json`, "utf-8"),
+      readFileSync(`${dir}/coverage/coverage-summary.json`, "utf-8")
     );
     testCoverage = coverageSummary?.total?.lines?.pct;
   } catch {
@@ -441,7 +427,7 @@ export function formatEstimateMarkdown(estimate: EffortEstimate): string {
   lines.push("|-------|-------------|----------------|-------------|");
   for (const phase of estimate.breakdown) {
     lines.push(
-      `| ${phase.phase} | ${phase.personWeeks} | ${phase.parallelizable ? "✓" : "✗"} | ${phase.description} |`,
+      `| ${phase.phase} | ${phase.personWeeks} | ${phase.parallelizable ? "✓" : "✗"} | ${phase.description} |`
     );
   }
   lines.push("");
@@ -454,7 +440,7 @@ export function formatEstimateMarkdown(estimate: EffortEstimate): string {
     lines.push("|-------|-------|------------|--------------|");
     for (const skill of estimate.requiredSkills) {
       lines.push(
-        `| ${skill.skill} | ${skill.level} | ${skill.importance} | ${skill.availability} |`,
+        `| ${skill.skill} | ${skill.level} | ${skill.importance} | ${skill.availability} |`
       );
     }
     lines.push("");
@@ -466,7 +452,7 @@ export function formatEstimateMarkdown(estimate: EffortEstimate): string {
     lines.push("");
     for (const tech of estimate.techStack) {
       lines.push(
-        `- **${tech.technology}** (${tech.category}, ${tech.maturity}): ${tech.rationale}`,
+        `- **${tech.technology}** (${tech.category}, ${tech.maturity}): ${tech.rationale}`
       );
       if (tech.alternatives.length > 0) {
         lines.push(`  - Alternatives: ${tech.alternatives.join(", ")}`);
@@ -480,9 +466,7 @@ export function formatEstimateMarkdown(estimate: EffortEstimate): string {
     lines.push("## Risks");
     lines.push("");
     for (const risk of estimate.risks) {
-      lines.push(
-        `- **[${risk.probability}/${risk.impact}]** ${risk.description}`,
-      );
+      lines.push(`- **[${risk.probability}/${risk.impact}]** ${risk.description}`);
       lines.push(`  - Mitigation: ${risk.mitigation}`);
     }
     lines.push("");
@@ -510,15 +494,12 @@ export function formatRoadmapMarkdown(roadmap: RoadmapItem[]): string {
   lines.push("| Idea | Phase | Start Week | End Week | Dependencies |");
   lines.push("|------|-------|-----------|----------|--------------|");
 
-  const sorted = [...roadmap].sort(
-    (a, b) => a.phase - b.phase || a.startWeek - b.startWeek,
-  );
+  const sorted = [...roadmap].sort((a, b) => a.phase - b.phase || a.startWeek - b.startWeek);
 
   for (const item of sorted) {
-    const deps =
-      item.dependencies.length > 0 ? item.dependencies.join(", ") : "—";
+    const deps = item.dependencies.length > 0 ? item.dependencies.join(", ") : "—";
     lines.push(
-      `| ${item.ideaTitle} | Phase ${item.phase} | ${item.startWeek} | ${item.endWeek} | ${deps} |`,
+      `| ${item.ideaTitle} | Phase ${item.phase} | ${item.startWeek} | ${item.endWeek} | ${deps} |`
     );
   }
 
@@ -529,18 +510,16 @@ export function formatRoadmapMarkdown(roadmap: RoadmapItem[]): string {
     const maxWeek = Math.max(...sorted.map((i) => i.endWeek), 1);
     lines.push("## Timeline");
     lines.push("");
-    lines.push(
-      `\`\`\``,
-    );
+    lines.push(`\`\`\``);
     for (const item of sorted) {
       const title = item.ideaTitle.slice(0, 25).padEnd(25);
       const bar = Array.from({ length: maxWeek + 1 }, (_, w) =>
-        w >= item.startWeek && w <= item.endWeek ? "█" : "·",
+        w >= item.startWeek && w <= item.endWeek ? "█" : "·"
       ).join("");
       lines.push(`${title} |${bar}|`);
     }
     lines.push(
-      `${"".padEnd(25)} |${Array.from({ length: maxWeek + 1 }, (_, w) => (w % 5 === 0 ? String(w).charAt(0) : " ")).join("")}|`,
+      `${"".padEnd(25)} |${Array.from({ length: maxWeek + 1 }, (_, w) => (w % 5 === 0 ? String(w).charAt(0) : " ")).join("")}|`
     );
     lines.push("```");
     lines.push("");
@@ -550,9 +529,7 @@ export function formatRoadmapMarkdown(roadmap: RoadmapItem[]): string {
 }
 
 /** Compare multiple estimates by effort-to-impact ratio. */
-export function compareEstimates(
-  estimates: EffortEstimate[],
-): Array<{
+export function compareEstimates(estimates: EffortEstimate[]): Array<{
   ideaTitle: string;
   totalPersonWeeks: number;
   confidence: number;
@@ -562,12 +539,8 @@ export function compareEstimates(
 }> {
   return estimates
     .map((e) => {
-      const riskPenalty =
-        e.risks.filter((r) => r.impact === "high").length * 0.1;
-      const score = Math.max(
-        0,
-        e.confidence / Math.max(e.totalPersonWeeks, 0.1) - riskPenalty,
-      );
+      const riskPenalty = e.risks.filter((r) => r.impact === "high").length * 0.1;
+      const score = Math.max(0, e.confidence / Math.max(e.totalPersonWeeks, 0.1) - riskPenalty);
       return {
         ideaTitle: e.ideaTitle,
         totalPersonWeeks: e.totalPersonWeeks,
@@ -583,12 +556,10 @@ export function compareEstimates(
 /** Calibrate an estimate by recording actual vs estimated data. Returns adjustment factor. */
 export function calibrateEstimate(
   estimate: EffortEstimate,
-  actualWeeks: number,
+  actualWeeks: number
 ): { adjustmentFactor: number; calibratedEstimate: EffortEstimate } {
   const adjustmentFactor =
-    estimate.totalPersonWeeks > 0
-      ? actualWeeks / estimate.totalPersonWeeks
-      : 1;
+    estimate.totalPersonWeeks > 0 ? actualWeeks / estimate.totalPersonWeeks : 1;
 
   const calibratedBreakdown = estimate.breakdown.map((phase) => ({
     ...phase,
@@ -642,8 +613,7 @@ export function getEffortDistribution(estimates: EffortEstimate[]): {
   const phaseDistribution: Record<string, number> = {};
   for (const e of estimates) {
     for (const phase of e.breakdown) {
-      phaseDistribution[phase.phase] =
-        (phaseDistribution[phase.phase] ?? 0) + phase.personWeeks;
+      phaseDistribution[phase.phase] = (phaseDistribution[phase.phase] ?? 0) + phase.personWeeks;
     }
   }
 
@@ -663,16 +633,11 @@ export function getEffortDistribution(estimates: EffortEstimate[]): {
     count: estimates.length,
     totalPersonWeeks: total,
     avgPersonWeeks: parseFloat((total / estimates.length).toFixed(2)),
-    medianPersonWeeks:
-      weeks.length % 2 === 0
-        ? (weeks[mid - 1] + weeks[mid]) / 2
-        : weeks[mid],
+    medianPersonWeeks: weeks.length % 2 === 0 ? (weeks[mid - 1] + weeks[mid]) / 2 : weeks[mid],
     minPersonWeeks: weeks[0],
     maxPersonWeeks: weeks[weeks.length - 1],
     avgConfidence: parseFloat(
-      (
-        estimates.reduce((s, e) => s + e.confidence, 0) / estimates.length
-      ).toFixed(4),
+      (estimates.reduce((s, e) => s + e.confidence, 0) / estimates.length).toFixed(4)
     ),
     phaseDistribution,
     topSkills,

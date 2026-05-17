@@ -111,7 +111,9 @@ const fakeLLMResponse = {
       adaptationStrategy: "Differentiate",
     },
   ],
-  vulnerabilities: [{ area: "Funding", severity: "high" as const, description: "Dependent on VC funding" }],
+  vulnerabilities: [
+    { area: "Funding", severity: "high" as const, description: "Dependent on VC funding" },
+  ],
   hedgingStrategies: [
     {
       strategy: "Diversify revenue",

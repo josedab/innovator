@@ -89,9 +89,7 @@ describe("API /api/billing/checkout", () => {
   });
 
   it("returns 400 for invalid successUrl format", async () => {
-    const res = await POST(
-      makePost({ planId: "pro", tenantId: "t1", successUrl: "not-a-url" })
-    );
+    const res = await POST(makePost({ planId: "pro", tenantId: "t1", successUrl: "not-a-url" }));
     expect(res.status).toBe(400);
   });
 

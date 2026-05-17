@@ -7,7 +7,7 @@ import { runAutoPipeline, ANGLE_IDS } from "@innovator/core";
 import type { PipelineProgress, AngleId } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import { API_RESPONSE_HEADERS, SECURITY_HEADERS } from "@/lib/api-headers";
+import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const EMBED_API_KEY_ENV = "INNOVATOR_EMBED_API_KEY";
 const MAX_SUBJECT_LENGTH = 500;
@@ -20,7 +20,9 @@ const RequestSchema = z.object({
 
 // CORS headers for embeddable widget
 function corsHeaders(origin: string | null): Record<string, string> {
-  const allowedOrigins = (process.env.INNOVATOR_EMBED_ORIGINS ?? "*").split(",").map((o) => o.trim());
+  const allowedOrigins = (process.env.INNOVATOR_EMBED_ORIGINS ?? "*")
+    .split(",")
+    .map((o) => o.trim());
   const isAllowed = allowedOrigins.includes("*") || (origin && allowedOrigins.includes(origin));
 
   return {
@@ -77,10 +79,10 @@ export async function POST(request: Request) {
 
     const parsed = RequestSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request" }),
-        { status: 400, headers: { ...API_RESPONSE_HEADERS, ...cors } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid request" }), {
+        status: 400,
+        headers: { ...API_RESPONSE_HEADERS, ...cors },
+      });
     }
 
     const { subject, angles, model } = parsed.data;
@@ -104,10 +106,10 @@ export async function POST(request: Request) {
       );
 
       if (!finalResult || (finalResult as PipelineProgress).stage === "error") {
-        return new Response(
-          JSON.stringify({ error: "Pipeline failed" }),
-          { status: 500, headers: { ...API_RESPONSE_HEADERS, ...cors } }
-        );
+        return new Response(JSON.stringify({ error: "Pipeline failed" }), {
+          status: 500,
+          headers: { ...API_RESPONSE_HEADERS, ...cors },
+        });
       }
 
       const result = finalResult as PipelineProgress;
@@ -137,9 +139,9 @@ export async function POST(request: Request) {
       requestId,
       durationMs: Date.now() - startTime,
     });
-    return new Response(
-      JSON.stringify({ error: "Widget request failed" }),
-      { status: 500, headers: { ...API_RESPONSE_HEADERS, ...cors } }
-    );
+    return new Response(JSON.stringify({ error: "Widget request failed" }), {
+      status: 500,
+      headers: { ...API_RESPONSE_HEADERS, ...cors },
+    });
   }
 }

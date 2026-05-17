@@ -37,20 +37,26 @@ const NODE_TYPES = [
 ];
 
 const AVAILABLE_ANGLES = [
-  "scamper", "first-principles", "cross-domain", "constraints",
-  "inversion", "perspectives", "what-if", "trend-collision",
+  "scamper",
+  "first-principles",
+  "cross-domain",
+  "constraints",
+  "inversion",
+  "perspectives",
+  "what-if",
+  "trend-collision",
 ];
 
 export default function DAGEditorPanel() {
   const [nodes, setNodes] = useState<DAGNode[]>([
     { id: "investigate", type: "investigate", name: "Investigation" },
   ]);
-  const [edges, setEdges] = useState<DAGEdge[]>([]);
+  const [_edges, setEdges] = useState<DAGEdge[]>([]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState("My Workflow");
   const [yamlOutput, setYamlOutput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [templates, setTemplates] = useState<DAGTemplate[]>([]);
+  const [_templates, setTemplates] = useState<DAGTemplate[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
 
   const addNode = useCallback((type: DAGNode["type"]) => {
@@ -71,11 +77,14 @@ export default function DAGEditorPanel() {
     });
   }, []);
 
-  const removeNode = useCallback((id: string) => {
-    setNodes((prev) => prev.filter((n) => n.id !== id));
-    setEdges((prev) => prev.filter((e) => e.from !== id && e.to !== id));
-    if (selectedNode === id) setSelectedNode(null);
-  }, [selectedNode]);
+  const removeNode = useCallback(
+    (id: string) => {
+      setNodes((prev) => prev.filter((n) => n.id !== id));
+      setEdges((prev) => prev.filter((e) => e.from !== id && e.to !== id));
+      if (selectedNode === id) setSelectedNode(null);
+    },
+    [selectedNode]
+  );
 
   const updateNode = useCallback((id: string, updates: Partial<DAGNode>) => {
     setNodes((prev) => prev.map((n) => (n.id === id ? { ...n, ...updates } : n)));
@@ -230,18 +239,21 @@ export default function DAGEditorPanel() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`w-2 h-2 rounded-full ${nodeType?.color ?? "bg-gray-600"}`} />
+                      <span
+                        className={`w-2 h-2 rounded-full ${nodeType?.color ?? "bg-gray-600"}`}
+                      />
                       <span className="font-medium">{node.name}</span>
                       <span className="text-xs text-gray-500 font-mono">{node.type}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {node.angles && (
-                        <span className="text-xs text-gray-500">
-                          {node.angles.length} angles
-                        </span>
+                        <span className="text-xs text-gray-500">{node.angles.length} angles</span>
                       )}
                       <button
-                        onClick={(e) => { e.stopPropagation(); removeNode(node.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeNode(node.id);
+                        }}
                         className="text-gray-600 hover:text-red-400 text-sm transition"
                       >
                         ✕
@@ -374,15 +386,45 @@ export default function DAGEditorPanel() {
         <div className="border-t border-gray-800 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold">Starter Templates</h3>
-            <button onClick={() => setShowTemplates(false)} className="text-gray-400 hover:text-white">✕</button>
+            <button
+              onClick={() => setShowTemplates(false)}
+              className="text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
           </div>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { id: "quick-ideation", name: "Quick Ideation Sprint", desc: "Fast 3-angle brainstorming", cat: "ideation" },
-              { id: "deep-research", name: "Deep Research Pipeline", desc: "Comprehensive 8-angle analysis", cat: "research" },
-              { id: "competitive-analysis", name: "Competitive Analysis", desc: "Find gaps and differentiators", cat: "strategy" },
-              { id: "product-innovation", name: "Product Innovation", desc: "User-centered feature ideation", cat: "product" },
-              { id: "moonshot-workshop", name: "Moonshot Workshop", desc: "Bold, paradigm-breaking ideas", cat: "moonshot" },
+              {
+                id: "quick-ideation",
+                name: "Quick Ideation Sprint",
+                desc: "Fast 3-angle brainstorming",
+                cat: "ideation",
+              },
+              {
+                id: "deep-research",
+                name: "Deep Research Pipeline",
+                desc: "Comprehensive 8-angle analysis",
+                cat: "research",
+              },
+              {
+                id: "competitive-analysis",
+                name: "Competitive Analysis",
+                desc: "Find gaps and differentiators",
+                cat: "strategy",
+              },
+              {
+                id: "product-innovation",
+                name: "Product Innovation",
+                desc: "User-centered feature ideation",
+                cat: "product",
+              },
+              {
+                id: "moonshot-workshop",
+                name: "Moonshot Workshop",
+                desc: "Bold, paradigm-breaking ideas",
+                cat: "moonshot",
+              },
             ].map((t) => (
               <button
                 key={t.id}
@@ -390,7 +432,12 @@ export default function DAGEditorPanel() {
                   // Load template nodes
                   const templateNodes: DAGNode[] = [
                     { id: "investigate", type: "investigate", name: "Investigation" },
-                    { id: "generate", type: "generate", name: "Generation", angles: ["scamper", "first-principles"] },
+                    {
+                      id: "generate",
+                      type: "generate",
+                      name: "Generation",
+                      angles: ["scamper", "first-principles"],
+                    },
                     { id: "score", type: "score", name: "Scoring" },
                     { id: "filter", type: "filter", name: "Filter", filter: { maxResults: 10 } },
                     { id: "synthesize", type: "synthesize", name: "Synthesis" },

@@ -49,12 +49,16 @@ interface ThematicOverlap {
 }
 
 const IntersectionResponseSchema = z.object({
-  opportunities: z.array(z.object({
-    title: z.string().max(500),
-    description: z.string().max(2000),
-    subjects: z.array(z.string().max(500)),
-    confidence: z.number().min(0).max(1),
-  })).max(20),
+  opportunities: z
+    .array(
+      z.object({
+        title: z.string().max(500),
+        description: z.string().max(2000),
+        subjects: z.array(z.string().max(500)),
+        confidence: z.number().min(0).max(1),
+      })
+    )
+    .max(20),
 });
 
 async function generateIntersectionOpportunities(
@@ -64,14 +68,20 @@ async function generateIntersectionOpportunities(
   model?: string,
   signal?: AbortSignal
 ): Promise<IntersectionOpportunity[]> {
-  const overlapDesc = overlaps.slice(0, 15).map((o) =>
-    `"${o.idea1.title}" (${o.idea1.subject}) ↔ "${o.idea2.title}" (${o.idea2.subject}) [${Math.round(o.similarity * 100)}% similar]`
-  ).join("\n");
+  const overlapDesc = overlaps
+    .slice(0, 15)
+    .map(
+      (o) =>
+        `"${o.idea1.title}" (${o.idea1.subject}) ↔ "${o.idea2.title}" (${o.idea2.subject}) [${Math.round(o.similarity * 100)}% similar]`
+    )
+    .join("\n");
 
-  const subjectSummaries = subjects.map((s) => {
-    const inv = investigations.get(s);
-    return `${s}: ${inv?.summary ?? "No investigation data"}`;
-  }).join("\n\n");
+  const subjectSummaries = subjects
+    .map((s) => {
+      const inv = investigations.get(s);
+      return `${s}: ${inv?.summary ?? "No investigation data"}`;
+    })
+    .join("\n\n");
 
   const pairLabels: string[] = [];
   for (let i = 0; i < subjects.length; i++) {
@@ -172,12 +182,20 @@ export async function POST(request: Request) {
       async start(controller) {
         const heartbeat = setInterval(() => {
           if (streamClosed) return;
-          try { controller.enqueue(encoder.encode(": keepalive\n\n")); } catch { streamClosed = true; }
+          try {
+            controller.enqueue(encoder.encode(": keepalive\n\n"));
+          } catch {
+            streamClosed = true;
+          }
         }, HEARTBEAT_MS);
 
         const send = (event: Record<string, unknown>) => {
           if (streamClosed) return;
-          try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`)); } catch { streamClosed = true; }
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          } catch {
+            streamClosed = true;
+          }
         };
 
         try {
@@ -205,7 +223,11 @@ export async function POST(request: Request) {
               if (abortController.signal.aborted) break;
               send({ stage: "generating", subject, angle: angle.id });
               const result = await generateForAngle(
-                subject, investigation, angle.id, model, abortController.signal
+                subject,
+                investigation,
+                angle.id,
+                model,
+                abortController.signal
               );
               angleResults.push(result);
             }
@@ -254,12 +276,20 @@ export async function POST(request: Request) {
           overlaps.sort((a, b) => b.similarity - a.similarity);
           clearEmbeddingsIndex();
 
-          send({ stage: "overlaps_found", count: overlaps.length, overlaps: overlaps.slice(0, 10) });
+          send({
+            stage: "overlaps_found",
+            count: overlaps.length,
+            overlaps: overlaps.slice(0, 10),
+          });
 
           // Phase 4: Generate intersection opportunities via LLM
           send({ stage: "generating_intersections" });
           const opportunities = await generateIntersectionOpportunities(
-            subjects, overlaps, investigations, model, abortController.signal
+            subjects,
+            overlaps,
+            investigations,
+            model,
+            abortController.signal
           );
 
           // Final result
@@ -298,7 +328,11 @@ export async function POST(request: Request) {
           request.signal.removeEventListener("abort", onRequestAbort);
           clearInterval(heartbeat);
           if (!streamClosed) {
-            try { controller.close(); } catch { /* already closed */ }
+            try {
+              controller.close();
+            } catch {
+              /* already closed */
+            }
           }
           streamClosed = true;
         }

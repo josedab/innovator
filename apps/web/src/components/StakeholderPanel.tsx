@@ -6,13 +6,17 @@
 import { useState } from "react";
 import type {
   StakeholderSimulation,
-  StakeholderReaction,
   ConflictMatrix,
   StakeholderPersona,
 } from "@innovator/core/types";
 
 interface StakeholderPanelProps {
-  ideas: Array<{ title: string; description: string; potentialImpact: string; implementationHint: string }>;
+  ideas: Array<{
+    title: string;
+    description: string;
+    potentialImpact: string;
+    implementationHint: string;
+  }>;
   model?: string;
 }
 

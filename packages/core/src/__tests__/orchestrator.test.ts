@@ -72,7 +72,11 @@ describe("autonomous-agent/orchestrator", () => {
   it("branches a plan around a parent step", () => {
     const objective = createObjective("Explore adjacencies for a compliance product");
     const plan = decomposeObjective(objective.id, 1000)!;
-    const branched = branchExploration(plan.id, plan.steps[0].id, "Investigate healthcare adjacency")!;
+    const branched = branchExploration(
+      plan.id,
+      plan.steps[0].id,
+      "Investigate healthcare adjacency"
+    )!;
 
     expect(branched.branches).toHaveLength(1);
     expect(branched.branches?.[0]).toEqual(

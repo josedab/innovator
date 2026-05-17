@@ -1,6 +1,4 @@
 import { z } from "zod";
-import type { AngleId, Investigation, PipelineProgress } from "@innovator/core";
-import { ANGLE_IDS } from "@innovator/core";
 
 /**
  * Input schema for the `investigate` MCP tool.

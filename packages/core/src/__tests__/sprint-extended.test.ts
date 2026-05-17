@@ -113,7 +113,9 @@ describe("sprint (extended coverage)", () => {
       startSprint(sprint.id);
       updateSprintData(sprint.id, {
         investigation: { summary: "Investigation done" } as unknown as Investigation,
-        angleResults: [{ angleId: "a1", angleName: "A1", ideas: [{ title: "I1" }] }] as unknown as AngleResult[],
+        angleResults: [
+          { angleId: "a1", angleName: "A1", ideas: [{ title: "I1" }] },
+        ] as unknown as AngleResult[],
       });
 
       mockGenerateText.mockResolvedValue("json");
@@ -208,7 +210,9 @@ describe("sprint (extended coverage)", () => {
 
     it("diverge phase with investigation but no angleResults suggests generating ideas", () => {
       const sprint = createSprint("test");
-      updateSprintData(sprint.id, { investigation: { summary: "done" } as unknown as Investigation });
+      updateSprintData(sprint.id, {
+        investigation: { summary: "done" } as unknown as Investigation,
+      });
       const s = getSprint(sprint.id)!;
       const suggestions = getProgressionSuggestions(s);
       expect(suggestions.some((s) => s.toLowerCase().includes("angle"))).toBe(true);

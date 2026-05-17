@@ -83,9 +83,7 @@ describe("upload-processor", () => {
     });
 
     it("returns error when image exceeds 10MB limit", () => {
-      const errors = validateUploadedFile(
-        makeFile({ sizeBytes: 11 * 1024 * 1024 })
-      );
+      const errors = validateUploadedFile(makeFile({ sizeBytes: 11 * 1024 * 1024 }));
       expect(errors).toHaveLength(1);
       expect(errors[0]).toContain("10MB limit");
     });
@@ -148,17 +146,13 @@ describe("upload-processor", () => {
     it("processFile rejects invalid files with validation errors", async () => {
       const processor = new UploadProcessor();
       const invalidFile = makeFile({ mimeType: "video/mp4" });
-      await expect(processor.processFile(invalidFile)).rejects.toThrow(
-        "Validation failed"
-      );
+      await expect(processor.processFile(invalidFile)).rejects.toThrow("Validation failed");
     });
 
     it("processFile rejects oversized files", async () => {
       const processor = new UploadProcessor();
       const oversized = makeFile({ sizeBytes: 11 * 1024 * 1024 });
-      await expect(processor.processFile(oversized)).rejects.toThrow(
-        "Validation failed"
-      );
+      await expect(processor.processFile(oversized)).rejects.toThrow("Validation failed");
     });
 
     it("buildInnovationPrompt returns empty string for no results", () => {

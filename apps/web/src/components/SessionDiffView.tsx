@@ -13,8 +13,16 @@ interface DiffItem {
 }
 
 interface SessionDiffViewProps {
-  sessionA: { sessionId: string; subject: string; ideas: Array<{ title: string; description: string }> };
-  sessionB: { sessionId: string; subject: string; ideas: Array<{ title: string; description: string }> };
+  sessionA: {
+    sessionId: string;
+    subject: string;
+    ideas: Array<{ title: string; description: string }>;
+  };
+  sessionB: {
+    sessionId: string;
+    subject: string;
+    ideas: Array<{ title: string; description: string }>;
+  };
   onMerge?: (mergedIdeas: Array<{ title: string; description: string }>) => void;
 }
 
@@ -101,7 +109,12 @@ export default function SessionDiffView({ sessionA, sessionB, onMerge }: Session
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-900/20">
         <p className="text-sm text-red-700 dark:text-red-300 mb-3">{error}</p>
-        <button onClick={computeDiff} className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 transition">Retry</button>
+        <button
+          onClick={computeDiff}
+          className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 transition"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -110,7 +123,9 @@ export default function SessionDiffView({ sessionA, sessionB, onMerge }: Session
   if (!computed) {
     return (
       <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-8 dark:border-neutral-700 dark:bg-neutral-900">
-        <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-2">Session Diff View</h3>
+        <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
+          Session Diff View
+        </h3>
         <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
           Compare ideas between two sessions with semantic diff visualization.
         </p>
@@ -118,19 +133,34 @@ export default function SessionDiffView({ sessionA, sessionB, onMerge }: Session
         {/* Session headers */}
         <div className="grid md:grid-cols-2 gap-4 mb-6">
           <div className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-700">
-            <p className="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400 mb-1">Session A</p>
-            <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{sessionA.subject}</p>
-            <p className="text-xs text-neutral-500">{sessionA.ideas.length} idea{sessionA.ideas.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400 mb-1">
+              Session A
+            </p>
+            <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+              {sessionA.subject}
+            </p>
+            <p className="text-xs text-neutral-500">
+              {sessionA.ideas.length} idea{sessionA.ideas.length !== 1 ? "s" : ""}
+            </p>
           </div>
           <div className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-700">
-            <p className="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400 mb-1">Session B</p>
-            <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{sessionB.subject}</p>
-            <p className="text-xs text-neutral-500">{sessionB.ideas.length} idea{sessionB.ideas.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400 mb-1">
+              Session B
+            </p>
+            <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+              {sessionB.subject}
+            </p>
+            <p className="text-xs text-neutral-500">
+              {sessionB.ideas.length} idea{sessionB.ideas.length !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
 
         <div className="text-center">
-          <button onClick={computeDiff} className="rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-700 transition">
+          <button
+            onClick={computeDiff}
+            className="rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-700 transition"
+          >
             Compute Diff
           </button>
         </div>
@@ -147,7 +177,9 @@ export default function SessionDiffView({ sessionA, sessionB, onMerge }: Session
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">Session Diff</h3>
+        <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">
+          Session Diff
+        </h3>
         {onMerge && (
           <button
             onClick={handleMerge}
@@ -183,16 +215,30 @@ export default function SessionDiffView({ sessionA, sessionB, onMerge }: Session
             {sessionA.subject}
           </h4>
           {diffItems
-            .filter((d) => d.category === "unique-to-a" || d.category === "overlap" || d.category === "contradiction")
+            .filter(
+              (d) =>
+                d.category === "unique-to-a" ||
+                d.category === "overlap" ||
+                d.category === "contradiction"
+            )
             .map((item, i) => (
-              <div key={i} className={`rounded-lg border p-3 space-y-1 ${CATEGORY_COLORS[item.category]}`}>
+              <div
+                key={i}
+                className={`rounded-lg border p-3 space-y-1 ${CATEGORY_COLORS[item.category]}`}
+              >
                 <div className="flex items-center justify-between">
-                  <h5 className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{item.title}</h5>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_BADGE[item.category]}`}>
+                  <h5 className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                    {item.title}
+                  </h5>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_BADGE[item.category]}`}
+                  >
                     {CATEGORY_LABEL[item.category]}
                   </span>
                 </div>
-                <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">{item.description}</p>
+                <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">
+                  {item.description}
+                </p>
                 {item.category === "overlap" && (
                   <span className="text-xs font-medium text-green-600 dark:text-green-400">
                     {Math.round(item.similarityScore * 100)}% similar
@@ -208,16 +254,30 @@ export default function SessionDiffView({ sessionA, sessionB, onMerge }: Session
             {sessionB.subject}
           </h4>
           {diffItems
-            .filter((d) => d.category === "unique-to-b" || d.category === "overlap" || d.category === "contradiction")
+            .filter(
+              (d) =>
+                d.category === "unique-to-b" ||
+                d.category === "overlap" ||
+                d.category === "contradiction"
+            )
             .map((item, i) => (
-              <div key={i} className={`rounded-lg border p-3 space-y-1 ${CATEGORY_COLORS[item.category]}`}>
+              <div
+                key={i}
+                className={`rounded-lg border p-3 space-y-1 ${CATEGORY_COLORS[item.category]}`}
+              >
                 <div className="flex items-center justify-between">
-                  <h5 className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{item.title}</h5>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_BADGE[item.category]}`}>
+                  <h5 className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                    {item.title}
+                  </h5>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_BADGE[item.category]}`}
+                  >
                     {CATEGORY_LABEL[item.category]}
                   </span>
                 </div>
-                <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">{item.description}</p>
+                <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">
+                  {item.description}
+                </p>
                 {item.category === "overlap" && (
                   <span className="text-xs font-medium text-green-600 dark:text-green-400">
                     {Math.round(item.similarityScore * 100)}% similar

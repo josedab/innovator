@@ -22,7 +22,6 @@ vi.mock("node:readline", () => ({
 }));
 
 vi.mock("chalk", () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handler: ProxyHandler<any> = {
     get: () => new Proxy((s: string) => s, handler),
     apply: (_target, _thisArg, args) => args[0],
@@ -83,7 +82,6 @@ describe("create-innovator smoke tests", () => {
       createInterface: mockCreateInterface,
     }));
     vi.doMock("chalk", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const handler: ProxyHandler<any> = {
         get: () => new Proxy((s: string) => s, handler),
         apply: (_target, _thisArg, args) => args[0],

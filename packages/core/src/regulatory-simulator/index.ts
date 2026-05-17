@@ -20,7 +20,16 @@ export const RegulatoryFrameworkSchema = z.object({
   id: z.string().max(100),
   name: z.string().max(200),
   jurisdiction: z.string().max(100),
-  category: z.enum(["data-privacy", "ai-regulation", "healthcare", "financial", "consumer-protection", "environmental", "trade", "intellectual-property"]),
+  category: z.enum([
+    "data-privacy",
+    "ai-regulation",
+    "healthcare",
+    "financial",
+    "consumer-protection",
+    "environmental",
+    "trade",
+    "intellectual-property",
+  ]),
   description: z.string().max(500),
   keyRequirements: z.array(z.string().max(300)).max(10),
   penaltyRange: z.string().max(200),
@@ -33,14 +42,16 @@ export const ComplianceCheckSchema = z.object({
   frameworkName: z.string().max(200),
   status: z.enum(["green", "yellow", "red"]),
   score: z.number().min(0).max(1),
-  findings: z.array(
-    z.object({
-      requirement: z.string().max(300),
-      status: z.enum(["compliant", "partial", "non-compliant", "not-applicable"]),
-      detail: z.string().max(500),
-      remediation: z.string().max(500).optional(),
-    })
-  ).max(20),
+  findings: z
+    .array(
+      z.object({
+        requirement: z.string().max(300),
+        status: z.enum(["compliant", "partial", "non-compliant", "not-applicable"]),
+        detail: z.string().max(500),
+        remediation: z.string().max(500).optional(),
+      })
+    )
+    .max(20),
   estimatedComplianceCost: z.string().max(200).optional(),
   timeToCompliance: z.string().max(200).optional(),
 });
@@ -53,7 +64,12 @@ export const JurisdictionResultSchema = z.object({
   overallScore: z.number().min(0).max(1),
   frameworkChecks: z.array(ComplianceCheckSchema).max(20),
   summary: z.string().max(500),
-  recommendation: z.enum(["proceed", "proceed-with-modifications", "significant-changes-needed", "not-recommended"]),
+  recommendation: z.enum([
+    "proceed",
+    "proceed-with-modifications",
+    "significant-changes-needed",
+    "not-recommended",
+  ]),
 });
 
 /** Schema for the full regulatory simulation. */
@@ -82,100 +98,280 @@ const simulations: Map<string, RegulatorySimulation> = new Map();
 
 export const REGULATORY_FRAMEWORKS: RegulatoryFramework[] = [
   {
-    id: "gdpr", name: "General Data Protection Regulation", jurisdiction: "European Union",
-    category: "data-privacy", description: "EU data protection and privacy regulation",
-    keyRequirements: ["Lawful basis for processing", "Data minimization", "Right to erasure", "Data portability", "DPO appointment", "72-hour breach notification"],
-    penaltyRange: "Up to €20M or 4% of global revenue", effectiveDate: "2018-05-25",
+    id: "gdpr",
+    name: "General Data Protection Regulation",
+    jurisdiction: "European Union",
+    category: "data-privacy",
+    description: "EU data protection and privacy regulation",
+    keyRequirements: [
+      "Lawful basis for processing",
+      "Data minimization",
+      "Right to erasure",
+      "Data portability",
+      "DPO appointment",
+      "72-hour breach notification",
+    ],
+    penaltyRange: "Up to €20M or 4% of global revenue",
+    effectiveDate: "2018-05-25",
   },
   {
-    id: "eu-ai-act", name: "EU AI Act", jurisdiction: "European Union",
-    category: "ai-regulation", description: "EU regulation on artificial intelligence systems",
-    keyRequirements: ["Risk classification", "Transparency obligations", "Human oversight", "Data quality requirements", "Conformity assessment", "Registration in EU database"],
-    penaltyRange: "Up to €35M or 7% of global revenue", effectiveDate: "2024-08-01",
+    id: "eu-ai-act",
+    name: "EU AI Act",
+    jurisdiction: "European Union",
+    category: "ai-regulation",
+    description: "EU regulation on artificial intelligence systems",
+    keyRequirements: [
+      "Risk classification",
+      "Transparency obligations",
+      "Human oversight",
+      "Data quality requirements",
+      "Conformity assessment",
+      "Registration in EU database",
+    ],
+    penaltyRange: "Up to €35M or 7% of global revenue",
+    effectiveDate: "2024-08-01",
   },
   {
-    id: "hipaa", name: "Health Insurance Portability and Accountability Act", jurisdiction: "United States",
-    category: "healthcare", description: "US healthcare data protection",
-    keyRequirements: ["PHI safeguards", "Access controls", "Audit trails", "Business associate agreements", "Breach notification", "Minimum necessary standard"],
-    penaltyRange: "$100-$50,000 per violation, up to $1.5M annually", effectiveDate: "1996-08-21",
+    id: "hipaa",
+    name: "Health Insurance Portability and Accountability Act",
+    jurisdiction: "United States",
+    category: "healthcare",
+    description: "US healthcare data protection",
+    keyRequirements: [
+      "PHI safeguards",
+      "Access controls",
+      "Audit trails",
+      "Business associate agreements",
+      "Breach notification",
+      "Minimum necessary standard",
+    ],
+    penaltyRange: "$100-$50,000 per violation, up to $1.5M annually",
+    effectiveDate: "1996-08-21",
   },
   {
-    id: "ccpa", name: "California Consumer Privacy Act", jurisdiction: "United States - California",
-    category: "data-privacy", description: "California consumer data privacy rights",
-    keyRequirements: ["Right to know", "Right to delete", "Right to opt-out", "Non-discrimination", "Privacy policy disclosure", "Financial incentive notices"],
-    penaltyRange: "$2,500-$7,500 per violation", effectiveDate: "2020-01-01",
+    id: "ccpa",
+    name: "California Consumer Privacy Act",
+    jurisdiction: "United States - California",
+    category: "data-privacy",
+    description: "California consumer data privacy rights",
+    keyRequirements: [
+      "Right to know",
+      "Right to delete",
+      "Right to opt-out",
+      "Non-discrimination",
+      "Privacy policy disclosure",
+      "Financial incentive notices",
+    ],
+    penaltyRange: "$2,500-$7,500 per violation",
+    effectiveDate: "2020-01-01",
   },
   {
-    id: "sox", name: "Sarbanes-Oxley Act", jurisdiction: "United States",
-    category: "financial", description: "US corporate financial reporting and controls",
-    keyRequirements: ["Internal controls", "CEO/CFO certification", "Audit committee independence", "Whistleblower protection", "Document retention", "Real-time disclosure"],
-    penaltyRange: "Up to $5M fine and 20 years imprisonment", effectiveDate: "2002-07-30",
+    id: "sox",
+    name: "Sarbanes-Oxley Act",
+    jurisdiction: "United States",
+    category: "financial",
+    description: "US corporate financial reporting and controls",
+    keyRequirements: [
+      "Internal controls",
+      "CEO/CFO certification",
+      "Audit committee independence",
+      "Whistleblower protection",
+      "Document retention",
+      "Real-time disclosure",
+    ],
+    penaltyRange: "Up to $5M fine and 20 years imprisonment",
+    effectiveDate: "2002-07-30",
   },
   {
-    id: "pci-dss", name: "Payment Card Industry Data Security Standard", jurisdiction: "Global",
-    category: "financial", description: "Payment card data security requirements",
-    keyRequirements: ["Network security", "Cardholder data protection", "Vulnerability management", "Access control", "Network monitoring", "Security policy"],
-    penaltyRange: "$5,000-$100,000 per month", effectiveDate: "2004-12-15",
+    id: "pci-dss",
+    name: "Payment Card Industry Data Security Standard",
+    jurisdiction: "Global",
+    category: "financial",
+    description: "Payment card data security requirements",
+    keyRequirements: [
+      "Network security",
+      "Cardholder data protection",
+      "Vulnerability management",
+      "Access control",
+      "Network monitoring",
+      "Security policy",
+    ],
+    penaltyRange: "$5,000-$100,000 per month",
+    effectiveDate: "2004-12-15",
   },
   {
-    id: "pipeda", name: "Personal Information Protection and Electronic Documents Act", jurisdiction: "Canada",
-    category: "data-privacy", description: "Canadian private-sector privacy law",
-    keyRequirements: ["Consent", "Limited collection", "Limited use", "Accuracy", "Safeguards", "Openness", "Individual access", "Accountability"],
-    penaltyRange: "Up to CAD $100,000", effectiveDate: "2000-04-13",
+    id: "pipeda",
+    name: "Personal Information Protection and Electronic Documents Act",
+    jurisdiction: "Canada",
+    category: "data-privacy",
+    description: "Canadian private-sector privacy law",
+    keyRequirements: [
+      "Consent",
+      "Limited collection",
+      "Limited use",
+      "Accuracy",
+      "Safeguards",
+      "Openness",
+      "Individual access",
+      "Accountability",
+    ],
+    penaltyRange: "Up to CAD $100,000",
+    effectiveDate: "2000-04-13",
   },
   {
-    id: "lgpd", name: "Lei Geral de Proteção de Dados", jurisdiction: "Brazil",
-    category: "data-privacy", description: "Brazilian general data protection law",
-    keyRequirements: ["Legal basis", "Purpose limitation", "Necessity", "Free access", "Data quality", "Transparency", "Security", "DPO designation"],
-    penaltyRange: "Up to 2% of revenue, max R$50M", effectiveDate: "2020-09-18",
+    id: "lgpd",
+    name: "Lei Geral de Proteção de Dados",
+    jurisdiction: "Brazil",
+    category: "data-privacy",
+    description: "Brazilian general data protection law",
+    keyRequirements: [
+      "Legal basis",
+      "Purpose limitation",
+      "Necessity",
+      "Free access",
+      "Data quality",
+      "Transparency",
+      "Security",
+      "DPO designation",
+    ],
+    penaltyRange: "Up to 2% of revenue, max R$50M",
+    effectiveDate: "2020-09-18",
   },
   {
-    id: "pdpa-sg", name: "Personal Data Protection Act", jurisdiction: "Singapore",
-    category: "data-privacy", description: "Singapore personal data protection regulation",
-    keyRequirements: ["Consent", "Purpose limitation", "Notification", "Access and correction", "Accuracy", "Protection", "Retention limitation", "Transfer limitation"],
-    penaltyRange: "Up to SGD $1M", effectiveDate: "2014-07-02",
+    id: "pdpa-sg",
+    name: "Personal Data Protection Act",
+    jurisdiction: "Singapore",
+    category: "data-privacy",
+    description: "Singapore personal data protection regulation",
+    keyRequirements: [
+      "Consent",
+      "Purpose limitation",
+      "Notification",
+      "Access and correction",
+      "Accuracy",
+      "Protection",
+      "Retention limitation",
+      "Transfer limitation",
+    ],
+    penaltyRange: "Up to SGD $1M",
+    effectiveDate: "2014-07-02",
   },
   {
-    id: "appi", name: "Act on the Protection of Personal Information", jurisdiction: "Japan",
-    category: "data-privacy", description: "Japanese personal information protection",
-    keyRequirements: ["Purpose specification", "Proper acquisition", "Accuracy", "Safety management", "Third-party restrictions", "Cross-border transfer rules"],
-    penaltyRange: "Up to ¥100M", effectiveDate: "2003-05-30",
+    id: "appi",
+    name: "Act on the Protection of Personal Information",
+    jurisdiction: "Japan",
+    category: "data-privacy",
+    description: "Japanese personal information protection",
+    keyRequirements: [
+      "Purpose specification",
+      "Proper acquisition",
+      "Accuracy",
+      "Safety management",
+      "Third-party restrictions",
+      "Cross-border transfer rules",
+    ],
+    penaltyRange: "Up to ¥100M",
+    effectiveDate: "2003-05-30",
   },
   {
-    id: "pipl", name: "Personal Information Protection Law", jurisdiction: "China",
-    category: "data-privacy", description: "Chinese personal information protection",
-    keyRequirements: ["Consent and legal basis", "Purpose limitation", "Minimum necessity", "Cross-border transfer assessment", "Data localization", "DPO appointment"],
-    penaltyRange: "Up to ¥50M or 5% of annual revenue", effectiveDate: "2021-11-01",
+    id: "pipl",
+    name: "Personal Information Protection Law",
+    jurisdiction: "China",
+    category: "data-privacy",
+    description: "Chinese personal information protection",
+    keyRequirements: [
+      "Consent and legal basis",
+      "Purpose limitation",
+      "Minimum necessity",
+      "Cross-border transfer assessment",
+      "Data localization",
+      "DPO appointment",
+    ],
+    penaltyRange: "Up to ¥50M or 5% of annual revenue",
+    effectiveDate: "2021-11-01",
   },
   {
-    id: "dpdp", name: "Digital Personal Data Protection Act", jurisdiction: "India",
-    category: "data-privacy", description: "Indian digital personal data protection",
-    keyRequirements: ["Consent-based processing", "Purpose limitation", "Data minimization", "Storage limitation", "Data fiduciary obligations", "Cross-border transfer rules"],
-    penaltyRange: "Up to ₹250 crore (~$30M)", effectiveDate: "2023-08-11",
+    id: "dpdp",
+    name: "Digital Personal Data Protection Act",
+    jurisdiction: "India",
+    category: "data-privacy",
+    description: "Indian digital personal data protection",
+    keyRequirements: [
+      "Consent-based processing",
+      "Purpose limitation",
+      "Data minimization",
+      "Storage limitation",
+      "Data fiduciary obligations",
+      "Cross-border transfer rules",
+    ],
+    penaltyRange: "Up to ₹250 crore (~$30M)",
+    effectiveDate: "2023-08-11",
   },
   {
-    id: "popia", name: "Protection of Personal Information Act", jurisdiction: "South Africa",
-    category: "data-privacy", description: "South African data protection",
-    keyRequirements: ["Accountability", "Processing limitation", "Purpose specification", "Information quality", "Openness", "Security safeguards"],
-    penaltyRange: "Up to ZAR 10M or imprisonment", effectiveDate: "2021-07-01",
+    id: "popia",
+    name: "Protection of Personal Information Act",
+    jurisdiction: "South Africa",
+    category: "data-privacy",
+    description: "South African data protection",
+    keyRequirements: [
+      "Accountability",
+      "Processing limitation",
+      "Purpose specification",
+      "Information quality",
+      "Openness",
+      "Security safeguards",
+    ],
+    penaltyRange: "Up to ZAR 10M or imprisonment",
+    effectiveDate: "2021-07-01",
   },
   {
-    id: "uk-gdpr", name: "UK GDPR + Data Protection Act 2018", jurisdiction: "United Kingdom",
-    category: "data-privacy", description: "UK data protection post-Brexit",
-    keyRequirements: ["Lawful basis", "Data minimization", "Right to erasure", "Data portability", "DPO", "International transfer mechanisms"],
-    penaltyRange: "Up to £17.5M or 4% of global revenue", effectiveDate: "2021-01-01",
+    id: "uk-gdpr",
+    name: "UK GDPR + Data Protection Act 2018",
+    jurisdiction: "United Kingdom",
+    category: "data-privacy",
+    description: "UK data protection post-Brexit",
+    keyRequirements: [
+      "Lawful basis",
+      "Data minimization",
+      "Right to erasure",
+      "Data portability",
+      "DPO",
+      "International transfer mechanisms",
+    ],
+    penaltyRange: "Up to £17.5M or 4% of global revenue",
+    effectiveDate: "2021-01-01",
   },
   {
-    id: "kvkk", name: "Kişisel Verilerin Korunması Kanunu", jurisdiction: "Turkey",
-    category: "data-privacy", description: "Turkish personal data protection law",
-    keyRequirements: ["Explicit consent", "Data registration", "Cross-border transfer approval", "Data controller obligations", "Retention periods"],
-    penaltyRange: "Up to TRY 1.8M", effectiveDate: "2016-04-07",
+    id: "kvkk",
+    name: "Kişisel Verilerin Korunması Kanunu",
+    jurisdiction: "Turkey",
+    category: "data-privacy",
+    description: "Turkish personal data protection law",
+    keyRequirements: [
+      "Explicit consent",
+      "Data registration",
+      "Cross-border transfer approval",
+      "Data controller obligations",
+      "Retention periods",
+    ],
+    penaltyRange: "Up to TRY 1.8M",
+    effectiveDate: "2016-04-07",
   },
   {
-    id: "dora", name: "Digital Operational Resilience Act", jurisdiction: "European Union",
-    category: "financial", description: "EU digital operational resilience for financial entities",
-    keyRequirements: ["ICT risk management", "Incident reporting", "Digital resilience testing", "Third-party risk management", "Information sharing"],
-    penaltyRange: "Up to 1% of average daily worldwide turnover", effectiveDate: "2025-01-17",
+    id: "dora",
+    name: "Digital Operational Resilience Act",
+    jurisdiction: "European Union",
+    category: "financial",
+    description: "EU digital operational resilience for financial entities",
+    keyRequirements: [
+      "ICT risk management",
+      "Incident reporting",
+      "Digital resilience testing",
+      "Third-party risk management",
+      "Information sharing",
+    ],
+    penaltyRange: "Up to 1% of average daily worldwide turnover",
+    effectiveDate: "2025-01-17",
   },
 ];
 
@@ -247,15 +443,17 @@ export async function simulateRegulatory(
     throw new Error("Idea title is required");
   }
 
-  const targetJurisdictions = options.jurisdictions ??
-    [...new Set(REGULATORY_FRAMEWORKS.map((f) => f.jurisdiction))];
+  const targetJurisdictions = options.jurisdictions ?? [
+    ...new Set(REGULATORY_FRAMEWORKS.map((f) => f.jurisdiction)),
+  ];
 
-  const relevantFrameworks = REGULATORY_FRAMEWORKS.filter(
-    (f) => targetJurisdictions.some((j) => f.jurisdiction.toLowerCase().includes(j.toLowerCase()))
+  const relevantFrameworks = REGULATORY_FRAMEWORKS.filter((f) =>
+    targetJurisdictions.some((j) => f.jurisdiction.toLowerCase().includes(j.toLowerCase()))
   );
 
   // Use all frameworks if none matched
-  const frameworksToUse = relevantFrameworks.length > 0 ? relevantFrameworks : REGULATORY_FRAMEWORKS;
+  const frameworksToUse =
+    relevantFrameworks.length > 0 ? relevantFrameworks : REGULATORY_FRAMEWORKS;
 
   const prompt = buildSimulationPrompt(idea, targetJurisdictions, frameworksToUse);
   const parsed = await withRetry(
@@ -281,8 +479,14 @@ export async function simulateRegulatory(
   const jurisdictions = z.array(JurisdictionResultSchema).parse(parsed.jurisdictions ?? []);
 
   const sortedByScore = [...jurisdictions].sort((a, b) => b.overallScore - a.overallScore);
-  const lowestRisk = sortedByScore.filter((j) => j.overallStatus === "green").map((j) => j.jurisdiction).slice(0, 5);
-  const highestRisk = sortedByScore.filter((j) => j.overallStatus === "red").map((j) => j.jurisdiction).slice(0, 5);
+  const lowestRisk = sortedByScore
+    .filter((j) => j.overallStatus === "green")
+    .map((j) => j.jurisdiction)
+    .slice(0, 5);
+  const highestRisk = sortedByScore
+    .filter((j) => j.overallStatus === "red")
+    .map((j) => j.jurisdiction)
+    .slice(0, 5);
 
   const simulation: RegulatorySimulation = {
     ideaTitle: idea.title,
@@ -305,8 +509,8 @@ export async function simulateRegulatory(
  */
 export function getRegulatoryFrameworks(jurisdiction?: string): RegulatoryFramework[] {
   if (!jurisdiction) return [...REGULATORY_FRAMEWORKS];
-  return REGULATORY_FRAMEWORKS.filter(
-    (f) => f.jurisdiction.toLowerCase().includes(jurisdiction.toLowerCase())
+  return REGULATORY_FRAMEWORKS.filter((f) =>
+    f.jurisdiction.toLowerCase().includes(jurisdiction.toLowerCase())
   );
 }
 
@@ -320,7 +524,11 @@ export function getRegulatorySimulation(id: string): RegulatorySimulation | unde
 /**
  * List all stored simulations.
  */
-export function listRegulatorySimulations(): Array<{ id: string; ideaTitle: string; simulatedAt: string }> {
+export function listRegulatorySimulations(): Array<{
+  id: string;
+  ideaTitle: string;
+  simulatedAt: string;
+}> {
   return Array.from(simulations.entries()).map(([id, s]) => ({
     id,
     ideaTitle: s.ideaTitle,
@@ -359,19 +567,32 @@ export function regulatoryToMarkdown(simulation: RegulatorySimulation): string {
   lines.push(`| Jurisdiction | Status | Score | Recommendation |`);
   lines.push(`|-------------|--------|-------|----------------|`);
   for (const j of simulation.jurisdictions) {
-    lines.push(`| ${j.jurisdiction} | ${statusEmoji[j.overallStatus]} ${j.overallStatus} | ${(j.overallScore * 100).toFixed(0)}% | ${j.recommendation} |`);
+    lines.push(
+      `| ${j.jurisdiction} | ${statusEmoji[j.overallStatus]} ${j.overallStatus} | ${(j.overallScore * 100).toFixed(0)}% | ${j.recommendation} |`
+    );
   }
 
   for (const j of simulation.jurisdictions) {
     lines.push(`\n### ${j.jurisdiction} (${j.region})\n`);
-    lines.push(`**Status:** ${statusEmoji[j.overallStatus]} ${j.overallStatus} (${(j.overallScore * 100).toFixed(0)}%)`);
+    lines.push(
+      `**Status:** ${statusEmoji[j.overallStatus]} ${j.overallStatus} (${(j.overallScore * 100).toFixed(0)}%)`
+    );
     lines.push(`**Recommendation:** ${j.recommendation}\n`);
     lines.push(j.summary);
 
     for (const fc of j.frameworkChecks) {
-      lines.push(`\n#### ${fc.frameworkName} — ${statusEmoji[fc.status]} ${(fc.score * 100).toFixed(0)}%\n`);
+      lines.push(
+        `\n#### ${fc.frameworkName} — ${statusEmoji[fc.status]} ${(fc.score * 100).toFixed(0)}%\n`
+      );
       for (const f of fc.findings) {
-        const statusIcon = f.status === "compliant" ? "✅" : f.status === "partial" ? "⚠️" : f.status === "non-compliant" ? "❌" : "➖";
+        const statusIcon =
+          f.status === "compliant"
+            ? "✅"
+            : f.status === "partial"
+              ? "⚠️"
+              : f.status === "non-compliant"
+                ? "❌"
+                : "➖";
         lines.push(`- ${statusIcon} **${f.requirement}**: ${f.detail}`);
         if (f.remediation) lines.push(`  - *Remediation:* ${f.remediation}`);
       }

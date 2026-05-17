@@ -66,10 +66,10 @@ export async function POST(request: Request) {
       requestId,
       durationMs: Date.now() - startTime,
     });
-    return new Response(
-      JSON.stringify({ error: "Routing failed." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Routing failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }
 
@@ -82,9 +82,9 @@ export async function GET() {
       error: err instanceof Error ? err.message : String(err),
       route: "/api/distillation",
     });
-    return new Response(
-      JSON.stringify({ error: "Failed to get cost dashboard." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Failed to get cost dashboard." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

@@ -1,4 +1,3 @@
-// @ts-nocheck — test mocks use simplified types
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@innovator/core", () => ({
@@ -57,15 +56,26 @@ function makeGetRequest(params?: Record<string, string>): Request {
 describe("API /api/monitor", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(addMonitorSource).mockImplementation((s: Record<string, unknown>) => ({
-      id: s.id ?? "src-1",
-      ...s,
-    }) as ReturnType<typeof addMonitorSource>);
-    vi.mocked(getMonitorState).mockReturnValue({ running: false, sourceCount: 0 } as ReturnType<typeof getMonitorState>);
+    vi.mocked(addMonitorSource).mockImplementation(
+      (s: Record<string, unknown>) =>
+        ({
+          id: s.id ?? "src-1",
+          ...s,
+        }) as ReturnType<typeof addMonitorSource>
+    );
+    vi.mocked(getMonitorState).mockReturnValue({ running: false, sourceCount: 0 } as ReturnType<
+      typeof getMonitorState
+    >);
     vi.mocked(listMonitorSources).mockReturnValue([]);
     vi.mocked(getRecentSignals).mockReturnValue([]);
-    vi.mocked(startMonitor).mockReturnValue({ running: true, sourceCount: 0, digestSchedule: "daily" } as ReturnType<typeof startMonitor>);
-    vi.mocked(stopMonitor).mockReturnValue({ running: false, sourceCount: 0 } as ReturnType<typeof stopMonitor>);
+    vi.mocked(startMonitor).mockReturnValue({
+      running: true,
+      sourceCount: 0,
+      digestSchedule: "daily",
+    } as ReturnType<typeof startMonitor>);
+    vi.mocked(stopMonitor).mockReturnValue({ running: false, sourceCount: 0 } as ReturnType<
+      typeof stopMonitor
+    >);
     vi.mocked(generateMonitorDigest).mockResolvedValue({
       period: "daily",
       signals: [],
@@ -131,9 +141,7 @@ describe("API /api/monitor", () => {
 
   describe("POST — remove-source", () => {
     it("returns 200 with removed sourceId", async () => {
-      const res = await POST(
-        makePostRequest({ action: "remove-source", sourceId: "src-1" })
-      );
+      const res = await POST(makePostRequest({ action: "remove-source", sourceId: "src-1" }));
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.removed).toBe("src-1");

@@ -135,7 +135,9 @@ describe("sprint", () => {
     it("cannot advance from diverge without angle results", () => {
       const sprint = createSprint("test");
       startSprint(sprint.id);
-      updateSprintData(sprint.id, { investigation: { summary: "test" } as unknown as Investigation });
+      updateSprintData(sprint.id, {
+        investigation: { summary: "test" } as unknown as Investigation,
+      });
       const current = getSprint(sprint.id)!;
       const result = canAdvancePhase(current);
       expect(result.canAdvance).toBe(false);
@@ -197,7 +199,9 @@ describe("sprint", () => {
   describe("updateSprintData", () => {
     it("merges partial data without overwriting other fields", () => {
       const sprint = createSprint("test");
-      updateSprintData(sprint.id, { investigation: { summary: "inv" } as unknown as Investigation });
+      updateSprintData(sprint.id, {
+        investigation: { summary: "inv" } as unknown as Investigation,
+      });
       updateSprintData(sprint.id, { selectedIdeas: ["Idea 1"] });
       const s = getSprint(sprint.id)!;
       expect(s.investigation).toEqual({ summary: "inv" });

@@ -22,9 +22,7 @@ import {
 } from "../index.js";
 
 vi.mock("../../copilot/client.js", () => ({
-  generateText: vi
-    .fn()
-    .mockResolvedValue('{"summary":"Test executive summary"}'),
+  generateText: vi.fn().mockResolvedValue('{"summary":"Test executive summary"}'),
   extractJson: vi.fn((s: string) => s),
 }));
 
@@ -110,9 +108,7 @@ describe("impact-tracker", () => {
     });
 
     it("preserves tags", () => {
-      const idea = trackIdea(
-        makeIdea({ id: "idea-tags", tags: ["team-a", "frontend"] }),
-      );
+      const idea = trackIdea(makeIdea({ id: "idea-tags", tags: ["team-a", "frontend"] }));
       expect(idea.tags).toEqual(["team-a", "frontend"]);
     });
   });
@@ -134,7 +130,7 @@ describe("impact-tracker", () => {
 
     it("throws for an unknown idea ID", () => {
       expect(() => updateIdeaStatus("nonexistent", "shipped")).toThrow(
-        "Tracked idea not found: nonexistent",
+        "Tracked idea not found: nonexistent"
       );
     });
   });
@@ -145,9 +141,7 @@ describe("impact-tracker", () => {
     it("links a PR URL to an idea", () => {
       trackIdea(makeIdea({ id: "idea-1" }));
       const updated = linkPR("idea-1", "https://github.com/org/repo/pull/1");
-      expect(updated.linkedPRs).toContain(
-        "https://github.com/org/repo/pull/1",
-      );
+      expect(updated.linkedPRs).toContain("https://github.com/org/repo/pull/1");
     });
 
     it("does not duplicate an already-linked PR", () => {
@@ -158,9 +152,9 @@ describe("impact-tracker", () => {
     });
 
     it("throws for an unknown idea", () => {
-      expect(() =>
-        linkPR("nonexistent", "https://github.com/org/repo/pull/1"),
-      ).toThrow("Tracked idea not found: nonexistent");
+      expect(() => linkPR("nonexistent", "https://github.com/org/repo/pull/1")).toThrow(
+        "Tracked idea not found: nonexistent"
+      );
     });
   });
 
@@ -169,13 +163,8 @@ describe("impact-tracker", () => {
   describe("linkIssue", () => {
     it("links an issue URL to an idea", () => {
       trackIdea(makeIdea({ id: "idea-1" }));
-      const updated = linkIssue(
-        "idea-1",
-        "https://github.com/org/repo/issues/42",
-      );
-      expect(updated.linkedIssues).toContain(
-        "https://github.com/org/repo/issues/42",
-      );
+      const updated = linkIssue("idea-1", "https://github.com/org/repo/issues/42");
+      expect(updated.linkedIssues).toContain("https://github.com/org/repo/issues/42");
     });
 
     it("does not duplicate an already-linked issue", () => {
@@ -186,9 +175,9 @@ describe("impact-tracker", () => {
     });
 
     it("throws for an unknown idea", () => {
-      expect(() =>
-        linkIssue("nonexistent", "https://github.com/org/repo/issues/42"),
-      ).toThrow("Tracked idea not found: nonexistent");
+      expect(() => linkIssue("nonexistent", "https://github.com/org/repo/issues/42")).toThrow(
+        "Tracked idea not found: nonexistent"
+      );
     });
   });
 
@@ -246,15 +235,9 @@ describe("impact-tracker", () => {
     });
 
     it("filters by both status and tag", () => {
-      trackIdea(
-        makeIdea({ id: "a", status: "shipped", tags: ["frontend"] }),
-      );
-      trackIdea(
-        makeIdea({ id: "b", status: "proposed", tags: ["frontend"] }),
-      );
-      trackIdea(
-        makeIdea({ id: "c", status: "shipped", tags: ["backend"] }),
-      );
+      trackIdea(makeIdea({ id: "a", status: "shipped", tags: ["frontend"] }));
+      trackIdea(makeIdea({ id: "b", status: "proposed", tags: ["frontend"] }));
+      trackIdea(makeIdea({ id: "c", status: "shipped", tags: ["backend"] }));
       const result = listTrackedIdeas({ status: "shipped", tag: "frontend" });
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe("a");
@@ -266,17 +249,15 @@ describe("impact-tracker", () => {
   describe("recordOutcome", () => {
     it("records an outcome for a tracked idea", () => {
       trackIdea(makeIdea({ id: "idea-1" }));
-      const outcome = recordOutcome(
-        makeOutcome({ id: "o1", ideaId: "idea-1" }),
-      );
+      const outcome = recordOutcome(makeOutcome({ id: "o1", ideaId: "idea-1" }));
       expect(outcome.id).toBe("o1");
       expect(outcome.ideaId).toBe("idea-1");
     });
 
     it("throws when the idea does not exist", () => {
-      expect(() =>
-        recordOutcome(makeOutcome({ ideaId: "nonexistent" })),
-      ).toThrow("Tracked idea not found: nonexistent");
+      expect(() => recordOutcome(makeOutcome({ ideaId: "nonexistent" }))).toThrow(
+        "Tracked idea not found: nonexistent"
+      );
     });
 
     it("allows multiple outcomes for the same idea", () => {
@@ -319,7 +300,7 @@ describe("impact-tracker", () => {
         makeIdea({
           id: "idea-1",
           linkedPRs: ["https://github.com/org/repo/pull/1"],
-        }),
+        })
       );
       const result = await autoDetectOutcomes("idea-1");
       expect(result.detected).toBe(true);
@@ -329,7 +310,7 @@ describe("impact-tracker", () => {
 
     it("throws for an unknown idea", async () => {
       await expect(autoDetectOutcomes("nonexistent")).rejects.toThrow(
-        "Tracked idea not found: nonexistent",
+        "Tracked idea not found: nonexistent"
       );
     });
   });
@@ -339,7 +320,7 @@ describe("impact-tracker", () => {
   describe("calculateImpactScore", () => {
     it("throws for an unknown idea", () => {
       expect(() => calculateImpactScore("nonexistent")).toThrow(
-        "Tracked idea not found: nonexistent",
+        "Tracked idea not found: nonexistent"
       );
     });
 
@@ -357,19 +338,17 @@ describe("impact-tracker", () => {
       trackIdea(
         makeIdea({
           id: "no-pr",
-        }),
+        })
       );
       trackIdea(
         makeIdea({
           id: "with-pr",
           linkedPRs: ["https://github.com/org/repo/pull/1"],
-        }),
+        })
       );
       const nopr = calculateImpactScore("no-pr");
       const withpr = calculateImpactScore("with-pr");
-      expect(withpr.implementationScore).toBeGreaterThan(
-        nopr.implementationScore,
-      );
+      expect(withpr.implementationScore).toBeGreaterThan(nopr.implementationScore);
     });
 
     it("increases score when idea is shipped", () => {
@@ -377,9 +356,7 @@ describe("impact-tracker", () => {
       const proposedScore = calculateImpactScore("idea-1");
       updateIdeaStatus("idea-1", "shipped");
       const shippedScore = calculateImpactScore("idea-1");
-      expect(shippedScore.implementationScore).toBeGreaterThan(
-        proposedScore.implementationScore,
-      );
+      expect(shippedScore.implementationScore).toBeGreaterThan(proposedScore.implementationScore);
     });
 
     it("computes adoption score from user-adoption outcomes", () => {
@@ -390,7 +367,7 @@ describe("impact-tracker", () => {
           ideaId: "idea-1",
           type: "user-adoption",
           value: 50,
-        }),
+        })
       );
       const score = calculateImpactScore("idea-1");
       expect(score.adoptionScore).toBe(50);
@@ -404,7 +381,7 @@ describe("impact-tracker", () => {
           ideaId: "idea-1",
           type: "revenue-impact",
           value: 40,
-        }),
+        })
       );
       const score = calculateImpactScore("idea-1");
       expect(score.businessScore).toBe(40);
@@ -419,7 +396,7 @@ describe("impact-tracker", () => {
             ideaId: "idea-1",
             type: "user-adoption",
             value: 50,
-          }),
+          })
         );
       }
       const score = calculateImpactScore("idea-1");
@@ -429,12 +406,8 @@ describe("impact-tracker", () => {
     it("confidence increases with more outcomes", () => {
       trackIdea(makeIdea({ id: "idea-1" }));
       const scoreBefore = calculateImpactScore("idea-1");
-      recordOutcome(
-        makeOutcome({ id: "o1", ideaId: "idea-1", type: "pr-merged" }),
-      );
-      recordOutcome(
-        makeOutcome({ id: "o2", ideaId: "idea-1", type: "feature-shipped" }),
-      );
+      recordOutcome(makeOutcome({ id: "o1", ideaId: "idea-1", type: "pr-merged" }));
+      recordOutcome(makeOutcome({ id: "o2", ideaId: "idea-1", type: "feature-shipped" }));
       const scoreAfter = calculateImpactScore("idea-1");
       expect(scoreAfter.confidence).toBeGreaterThan(scoreBefore.confidence);
     });
@@ -454,14 +427,14 @@ describe("impact-tracker", () => {
           id: "high",
           status: "shipped",
           linkedPRs: ["https://github.com/org/repo/pull/1"],
-        }),
+        })
       );
       recordOutcome(
         makeOutcome({
           id: "o1",
           ideaId: "high",
           type: "pr-merged",
-        }),
+        })
       );
       const ranked = rankByImpact();
       expect(ranked).toHaveLength(2);
@@ -559,7 +532,7 @@ describe("impact-tracker", () => {
           id: "a",
           tags: ["low-team"],
           status: "proposed",
-        }),
+        })
       );
       trackIdea(
         makeIdea({
@@ -567,11 +540,9 @@ describe("impact-tracker", () => {
           tags: ["high-team"],
           status: "shipped",
           linkedPRs: ["https://github.com/org/repo/pull/1"],
-        }),
+        })
       );
-      recordOutcome(
-        makeOutcome({ id: "o1", ideaId: "b", type: "pr-merged" }),
-      );
+      recordOutcome(makeOutcome({ id: "o1", ideaId: "b", type: "pr-merged" }));
       const comparisons = getTeamComparisons();
       expect(comparisons[0].teamId).toBe("high-team");
     });
@@ -593,7 +564,7 @@ describe("impact-tracker", () => {
           status: "shipped",
           tags: ["team-a"],
           createdAt: "2024-03-01T00:00:00Z",
-        }),
+        })
       );
       const dashboard = await generateImpactDashboard();
       expect(dashboard.funnel).toBeDefined();

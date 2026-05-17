@@ -102,7 +102,8 @@ export default function DashboardPage() {
                   <span>Exported: {stats.exported}</span>
                   <span>Shipped: {stats.shipped}</span>
                   <span>
-                    Rate: {stats.exported > 0 ? Math.round((stats.shipped / stats.exported) * 100) : 0}%
+                    Rate:{" "}
+                    {stats.exported > 0 ? Math.round((stats.shipped / stats.exported) * 100) : 0}%
                   </span>
                 </div>
               </div>
@@ -124,10 +125,13 @@ export default function DashboardPage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{idea.ideaTitle}</p>
                   <p className="text-xs text-neutral-500">
-                    {idea.platform} • {idea.angleId} • {new Date(idea.exportedAt).toLocaleDateString()}
+                    {idea.platform} • {idea.angleId} •{" "}
+                    {new Date(idea.exportedAt).toLocaleDateString()}
                   </p>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[idea.status]}`}>
+                <span
+                  className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[idea.status]}`}
+                >
                   {idea.status}
                 </span>
               </div>
@@ -140,7 +144,9 @@ export default function DashboardPage() {
         <div className="text-center py-12 text-neutral-500">
           <p className="text-4xl mb-4">📭</p>
           <p>No ideas tracked yet.</p>
-          <p className="text-sm mt-1">Export ideas to GitHub Issues, Linear, or Jira to start tracking.</p>
+          <p className="text-sm mt-1">
+            Export ideas to GitHub Issues, Linear, or Jira to start tracking.
+          </p>
         </div>
       )}
     </div>

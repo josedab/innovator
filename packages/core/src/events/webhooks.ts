@@ -1,12 +1,6 @@
 import { createHmac } from "node:crypto";
 import { randomUUID } from "node:crypto";
-import type {
-  PipelineEvent,
-  WebhookConfig,
-  WebhookDelivery,
-  DeadLetterEntry,
-  EventType,
-} from "./types.js";
+import type { PipelineEvent, WebhookConfig, WebhookDelivery, DeadLetterEntry } from "./types.js";
 import { getEventBus } from "./emitter.js";
 
 const MAX_RETRY_ATTEMPTS = 3;

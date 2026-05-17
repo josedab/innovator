@@ -35,8 +35,14 @@ interface SwarmResult {
 const PERSONALITY_PRESETS = [
   { name: "Balanced Debate", personalities: ["researcher", "critic", "synthesizer", "visionary"] },
   { name: "Devil's Advocate", personalities: ["pragmatist", "contrarian", "critic", "optimizer"] },
-  { name: "Moonshot Team", personalities: ["visionary", "risk-taker", "provocateur", "integrator"] },
-  { name: "Technical Review", personalities: ["domain-expert", "researcher", "optimizer", "pragmatist"] },
+  {
+    name: "Moonshot Team",
+    personalities: ["visionary", "risk-taker", "provocateur", "integrator"],
+  },
+  {
+    name: "Technical Review",
+    personalities: ["domain-expert", "researcher", "optimizer", "pragmatist"],
+  },
 ];
 
 const PERSONALITY_COLORS: Record<string, string> = {
@@ -55,7 +61,12 @@ const PERSONALITY_COLORS: Record<string, string> = {
 
 export default function SwarmPanel() {
   const [subject, setSubject] = useState("");
-  const [personalities, setPersonalities] = useState<string[]>(["researcher", "critic", "synthesizer", "visionary"]);
+  const [personalities, setPersonalities] = useState<string[]>([
+    "researcher",
+    "critic",
+    "synthesizer",
+    "visionary",
+  ]);
   const [maxIterations, setMaxIterations] = useState(3);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SwarmResult | null>(null);
@@ -253,7 +264,9 @@ export default function SwarmPanel() {
               {result.agentContributions.map((c) => (
                 <div key={c.agentId} className="bg-gray-900 rounded-lg border border-gray-800 p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`w-2 h-2 rounded-full ${PERSONALITY_COLORS[c.personality] ?? "bg-gray-600"}`} />
+                    <span
+                      className={`w-2 h-2 rounded-full ${PERSONALITY_COLORS[c.personality] ?? "bg-gray-600"}`}
+                    />
                     <span className="text-sm font-medium capitalize">{c.personality}</span>
                   </div>
                   <div className="text-xs text-gray-500 space-x-3">

@@ -21,7 +21,10 @@ export const RubricCriterionSchema = z.object({
 
 /** Schema for an evaluation rubric. */
 export const EvaluationRubricSchema = z.object({
-  id: z.string().max(100).regex(/^[a-z0-9-]+$/),
+  id: z
+    .string()
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
   name: z.string().max(200),
   criteria: z.array(RubricCriterionSchema).max(20),
   passingScore: z.number().min(0).max(10),
@@ -29,21 +32,24 @@ export const EvaluationRubricSchema = z.object({
 
 /** Schema for a compliance rule. */
 export const ComplianceRuleSchema = z.object({
-  id: z.string().max(100).regex(/^[a-z0-9-]+$/),
+  id: z
+    .string()
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
   name: z.string().max(200),
   regulation: z.string().max(200),
   description: z.string().max(2000),
   severity: z.enum(["critical", "high", "medium", "low"]),
-  checkFunction: z
-    .string()
-    .max(2000)
-    .describe("Natural language description of what to check"),
+  checkFunction: z.string().max(2000).describe("Natural language description of what to check"),
   autoDetectable: z.boolean(),
 });
 
 /** Schema for a domain angle definition within an extended pack. */
 export const PackAngleDefinitionSchema = z.object({
-  id: z.string().max(100).regex(/^[a-z0-9-]+$/),
+  id: z
+    .string()
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
   name: z.string().max(200),
   description: z.string().max(2000),
   promptContext: z.string().max(5000),
@@ -67,7 +73,10 @@ export const PackMetadataSchema = z.object({
 
 /** Schema for an extended vertical pack with rubrics, compliance, glossary, and examples. */
 export const ExtendedVerticalPackSchema = z.object({
-  id: z.string().max(100).regex(/^[a-z0-9-]+$/),
+  id: z
+    .string()
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
   name: z.string().max(200),
   version: z.string().max(50),
   description: z.string().max(2000),
@@ -129,9 +138,7 @@ const extendedPackRegistry: Map<string, ExtendedVerticalPack> = new Map();
 /**
  * Validate a pack against the schema and return any issues.
  */
-function validatePackSchema(
-  pack: unknown
-): { valid: boolean; errors: string[] } {
+function validatePackSchema(pack: unknown): { valid: boolean; errors: string[] } {
   const result = ExtendedVerticalPackSchema.safeParse(pack);
   if (result.success) {
     // Additional semantic checks
@@ -141,9 +148,7 @@ function validatePackSchema(
     for (const rubric of p.evaluationRubrics) {
       const totalWeight = rubric.criteria.reduce((sum, c) => sum + c.weight, 0);
       if (Math.abs(totalWeight - 1.0) > 0.01) {
-        errors.push(
-          `Rubric "${rubric.name}" criteria weights sum to ${totalWeight}, expected 1.0`
-        );
+        errors.push(`Rubric "${rubric.name}" criteria weights sum to ${totalWeight}, expected 1.0`);
       }
     }
 
@@ -159,9 +164,7 @@ function validatePackSchema(
   }
   return {
     valid: false,
-    errors: result.error.issues.map(
-      (i) => `${i.path.join(".")}: ${i.message}`
-    ),
+    errors: result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
   };
 }
 
@@ -186,17 +189,12 @@ export class VerticalPackRegistry {
   }
 
   /** List packs with optional filtering. */
-  list(filters?: {
-    tag?: string;
-    search?: string;
-  }): ExtendedVerticalPack[] {
+  list(filters?: { tag?: string; search?: string }): ExtendedVerticalPack[] {
     let packs = Array.from(extendedPackRegistry.values());
 
     if (filters?.tag) {
       const tag = filters.tag.toLowerCase();
-      packs = packs.filter((p) =>
-        p.metadata.tags.some((t) => t.toLowerCase().includes(tag))
-      );
+      packs = packs.filter((p) => p.metadata.tags.some((t) => t.toLowerCase().includes(tag)));
     }
 
     if (filters?.search) {
@@ -218,9 +216,7 @@ export class VerticalPackRegistry {
   }
 
   /** Validate a pack against the schema and return any issues. */
-  validatePack(
-    pack: unknown
-  ): { valid: boolean; errors: string[] } {
+  validatePack(pack: unknown): { valid: boolean; errors: string[] } {
     return validatePackSchema(pack);
   }
 
@@ -228,10 +224,7 @@ export class VerticalPackRegistry {
    * Score ideas against a rubric from a registered pack.
    * Uses keyword heuristics for each criterion (no LLM required).
    */
-  evaluateWithRubric(
-    ideas: string[],
-    rubricId: string
-  ): RubricEvaluationResult | undefined {
+  evaluateWithRubric(ideas: string[], rubricId: string): RubricEvaluationResult | undefined {
     let rubric: EvaluationRubric | undefined;
     for (const pack of extendedPackRegistry.values()) {
       rubric = pack.evaluationRubrics.find((r) => r.id === rubricId);
@@ -243,9 +236,15 @@ export class VerticalPackRegistry {
 
     const scores = rubric.criteria.map((criterion) => {
       // Heuristic scoring based on keyword presence in ideas
-      const keywords = criterion.description.toLowerCase().split(/\s+/).filter((w) => w.length > 4);
+      const keywords = criterion.description
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 4);
       const matches = keywords.filter((kw) => combined.includes(kw)).length;
-      const raw = Math.min(criterion.scaleMax, (matches / Math.max(keywords.length, 1)) * criterion.scaleMax);
+      const raw = Math.min(
+        criterion.scaleMax,
+        (matches / Math.max(keywords.length, 1)) * criterion.scaleMax
+      );
       const score = Math.round(raw * 10) / 10;
       return {
         criterion: criterion.name,
@@ -255,8 +254,7 @@ export class VerticalPackRegistry {
       };
     });
 
-    const totalScore =
-      Math.round(scores.reduce((sum, s) => sum + s.weightedScore, 0) * 100) / 100;
+    const totalScore = Math.round(scores.reduce((sum, s) => sum + s.weightedScore, 0) * 100) / 100;
 
     return {
       rubricId: rubric.id,
@@ -272,10 +270,7 @@ export class VerticalPackRegistry {
    * Run compliance checks for ideas against a pack's rules.
    * Uses keyword heuristics (no LLM required).
    */
-  checkCompliance(
-    ideas: string[],
-    packId: string
-  ): ComplianceCheckResult | undefined {
+  checkCompliance(ideas: string[], packId: string): ComplianceCheckResult | undefined {
     const pack = extendedPackRegistry.get(packId);
     if (!pack) return undefined;
 
@@ -301,12 +296,8 @@ export class VerticalPackRegistry {
       };
     });
 
-    const criticalFailures = results.filter(
-      (r) => !r.passed && r.severity === "critical"
-    ).length;
-    const highFailures = results.filter(
-      (r) => !r.passed && r.severity === "high"
-    ).length;
+    const criticalFailures = results.filter((r) => !r.passed && r.severity === "critical").length;
+    const highFailures = results.filter((r) => !r.passed && r.severity === "high").length;
 
     return {
       packId,

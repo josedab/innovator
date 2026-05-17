@@ -250,9 +250,7 @@ describe("InMemoryStorageProvider", () => {
         scopes: [],
       };
       await provider.apiGateway.saveApiKey(key as any);
-      expect(await provider.apiGateway.updateApiKey("key-1", { name: "New" } as any)).toBe(
-        true
-      );
+      expect(await provider.apiGateway.updateApiKey("key-1", { name: "New" } as any)).toBe(true);
       const updated = await provider.apiGateway.getApiKey("key-1");
       expect(updated!.name).toBe("New");
     });

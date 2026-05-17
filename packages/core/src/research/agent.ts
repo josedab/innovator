@@ -1,5 +1,5 @@
 import { generateText, extractJson } from "../copilot/client.js";
-import { sanitizeUserInput, wrapUserInput } from "../prompts/sanitize.js";
+import { wrapUserInput } from "../prompts/sanitize.js";
 import type {
   ResearchBrief,
   ResearchConfig,
@@ -254,7 +254,8 @@ export async function deepInvestigate(
   onProgress?: (progress: ResearchProgress) => void
 ): Promise<{ brief: ResearchBrief; investigation: import("../types.js").Investigation }> {
   const { investigate } = await import("../innovation/investigate.js");
-  const { buildInvestigationPrompt } = await import("../prompts/investigation.js");
+  const { buildInvestigationPrompt: _buildInvestigationPrompt } =
+    await import("../prompts/investigation.js");
 
   const agent = new ResearchAgent({
     depth: researchDepth,
@@ -265,7 +266,7 @@ export async function deepInvestigate(
   const brief = await agent.research(subject, onProgress);
 
   // Feed research context into investigation
-  const contextBlock = `RESEARCH BRIEF:
+  const _contextBlock = `RESEARCH BRIEF:
 ${brief.summary}
 
 Key Findings: ${brief.keyFindings.join("; ")}

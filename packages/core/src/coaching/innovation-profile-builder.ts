@@ -118,11 +118,11 @@ export class InnovationProfileBuilder {
     const angleCounts = new Map<string, { total: number; qualitySum: number }>();
     const domainCounts = new Map<string, number>();
     let totalQuality = 0;
-    let totalIdeas = 0;
+    let _totalIdeas = 0;
 
     for (const session of sessionHistory) {
       totalQuality += session.avgQuality;
-      totalIdeas += session.ideaCount;
+      _totalIdeas += session.ideaCount;
 
       for (const angle of session.anglesUsed) {
         const existing = angleCounts.get(angle) ?? { total: 0, qualitySum: 0 };
@@ -192,7 +192,7 @@ export class InnovationProfileBuilder {
   assessCreativityStyle(
     profile: InnovationProfileDetailed
   ): "divergent" | "convergent" | "balanced" {
-    const usedAngles = new Set(profile.preferredAngles.map((a) => a.angleId));
+    const _usedAngles = new Set(profile.preferredAngles.map((a) => a.angleId));
     let divergentScore = 0;
     let convergentScore = 0;
 
@@ -263,13 +263,10 @@ export class InnovationProfileBuilder {
     const recentWindow = trends.slice(-5);
     const olderWindow = trends.slice(0, Math.max(trends.length - 5, 1));
 
-    const recentAvg =
-      recentWindow.reduce((s, t) => s + t.avgQuality, 0) / recentWindow.length;
-    const olderAvg =
-      olderWindow.reduce((s, t) => s + t.avgQuality, 0) / olderWindow.length;
+    const recentAvg = recentWindow.reduce((s, t) => s + t.avgQuality, 0) / recentWindow.length;
+    const olderAvg = olderWindow.reduce((s, t) => s + t.avgQuality, 0) / olderWindow.length;
 
-    const changePercent =
-      olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg) * 100 : 0;
+    const changePercent = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg) * 100 : 0;
 
     let trend: GrowthTrajectory["trend"] = "stable";
     if (changePercent > 10) trend = "improving";
@@ -316,8 +313,7 @@ export class InnovationProfileBuilder {
       };
     }
 
-    const teamAvgQuality =
-      teamProfiles.reduce((s, p) => s + p.avgQuality, 0) / teamProfiles.length;
+    const teamAvgQuality = teamProfiles.reduce((s, p) => s + p.avgQuality, 0) / teamProfiles.length;
     const teamAvgSessions =
       teamProfiles.reduce((s, p) => s + p.totalSessions, 0) / teamProfiles.length;
 
@@ -386,9 +382,18 @@ export class InnovationProfileBuilder {
 
     for (const s of history) {
       totalIdeas += s.ideaCount;
-      if (s.feasibility !== undefined) { feasSum += s.feasibility; feasCount++; }
-      if (s.novelty !== undefined) { novSum += s.novelty; novCount++; }
-      if (s.impact !== undefined) { impSum += s.impact; impCount++; }
+      if (s.feasibility !== undefined) {
+        feasSum += s.feasibility;
+        feasCount++;
+      }
+      if (s.novelty !== undefined) {
+        novSum += s.novelty;
+        novCount++;
+      }
+      if (s.impact !== undefined) {
+        impSum += s.impact;
+        impCount++;
+      }
       if (s.domain) domainsSet.add(s.domain);
     }
 
@@ -435,9 +440,9 @@ export class InnovationProfileBuilder {
   private computeStreak(history: SessionHistoryEntry[]): number {
     if (history.length === 0) return 0;
 
-    const dates = Array.from(
-      new Set(history.map((s) => s.completedAt.slice(0, 10)))
-    ).sort((a, b) => b.localeCompare(a));
+    const dates = Array.from(new Set(history.map((s) => s.completedAt.slice(0, 10)))).sort((a, b) =>
+      b.localeCompare(a)
+    );
 
     const today = new Date().toISOString().slice(0, 10);
     if (dates[0] !== today) {
@@ -466,9 +471,7 @@ export class InnovationProfileBuilder {
     return xp;
   }
 
-  private computeLevel(
-    xp: number
-  ): "beginner" | "intermediate" | "advanced" | "expert" {
+  private computeLevel(xp: number): "beginner" | "intermediate" | "advanced" | "expert" {
     if (xp >= LEVEL_THRESHOLDS.expert) return "expert";
     if (xp >= LEVEL_THRESHOLDS.advanced) return "advanced";
     if (xp >= LEVEL_THRESHOLDS.intermediate) return "intermediate";

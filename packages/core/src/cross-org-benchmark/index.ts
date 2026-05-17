@@ -131,9 +131,7 @@ export function compareToPeers(
   if (!orgData) return undefined;
 
   // Filter metrics from the same period
-  const peerMetrics = metricsStore.filter(
-    (m) => m.periodStart === orgData.periodStart
-  );
+  const peerMetrics = metricsStore.filter((m) => m.periodStart === orgData.periodStart);
 
   if (peerMetrics.length < 2) {
     return {
@@ -164,11 +162,24 @@ export function compareToPeers(
   const scores = peerMetrics.map((m) => m.averageIdeaScore).sort((a, b) => a - b);
   const velocities = peerMetrics.map((m) => m.ideaVelocity).sort((a, b) => a - b);
   const qualityRatios = peerMetrics
-    .map((m) => m.qualityDistribution.high / Math.max(1, m.qualityDistribution.low + m.qualityDistribution.medium + m.qualityDistribution.high))
+    .map(
+      (m) =>
+        m.qualityDistribution.high /
+        Math.max(
+          1,
+          m.qualityDistribution.low + m.qualityDistribution.medium + m.qualityDistribution.high
+        )
+    )
     .sort((a, b) => a - b);
 
-  const orgQualityRatio = orgData.qualityDistribution.high /
-    Math.max(1, orgData.qualityDistribution.low + orgData.qualityDistribution.medium + orgData.qualityDistribution.high);
+  const orgQualityRatio =
+    orgData.qualityDistribution.high /
+    Math.max(
+      1,
+      orgData.qualityDistribution.low +
+        orgData.qualityDistribution.medium +
+        orgData.qualityDistribution.high
+    );
 
   const percentiles = {
     sessionCount: computePercentile(sessionCounts, orgData.sessionCount),
@@ -181,19 +192,29 @@ export function compareToPeers(
   // Generate recommendations
   const recommendations: string[] = [];
   if (percentiles.ideaVelocity < 30) {
-    recommendations.push("Your idea velocity is below average. Try using more angles per session or shorter investigation subjects.");
+    recommendations.push(
+      "Your idea velocity is below average. Try using more angles per session or shorter investigation subjects."
+    );
   }
   if (percentiles.averageScore < 30) {
-    recommendations.push("Quality scores are below peers. Consider using angle recommendations and deeper investigations.");
+    recommendations.push(
+      "Quality scores are below peers. Consider using angle recommendations and deeper investigations."
+    );
   }
   if (percentiles.sessionCount < 30) {
-    recommendations.push("Session frequency is low. Regular innovation cadences lead to better outcomes.");
+    recommendations.push(
+      "Session frequency is low. Regular innovation cadences lead to better outcomes."
+    );
   }
   if (percentiles.qualityRatio > 80) {
-    recommendations.push("Excellent quality ratio! You're consistently producing high-scoring ideas.");
+    recommendations.push(
+      "Excellent quality ratio! You're consistently producing high-scoring ideas."
+    );
   }
   if (percentiles.ideaVelocity > 80) {
-    recommendations.push("Outstanding idea velocity! Consider focusing on idea quality and follow-through.");
+    recommendations.push(
+      "Outstanding idea velocity! Consider focusing on idea quality and follow-through."
+    );
   }
 
   return {
@@ -240,8 +261,8 @@ export function getNetworkStats(): NetworkStats {
       angleCounts.set(angle, (angleCounts.get(angle) ?? 0) + count);
     }
   }
-  const mostPopularAngle = Array.from(angleCounts.entries())
-    .sort((a, b) => b[1] - a[1])[0]?.[0] ?? "N/A";
+  const mostPopularAngle =
+    Array.from(angleCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "N/A";
 
   // Velocity distribution
   const velocities = metricsStore.map((m) => m.ideaVelocity).sort((a, b) => a - b);
@@ -338,15 +359,28 @@ export function submitMetricsWithPrivacy(
     ...metrics,
     sessionCount: Math.max(0, Math.round(metrics.sessionCount + laplace(1 / dpConfig.epsilon))),
     ideaCount: Math.max(0, Math.round(metrics.ideaCount + laplace(1 / dpConfig.epsilon))),
-    averageIdeaScore: Math.max(0, Math.min(10,
-      Math.round((metrics.averageIdeaScore + laplace(0.5 / dpConfig.epsilon)) * 10) / 10)),
+    averageIdeaScore: Math.max(
+      0,
+      Math.min(
+        10,
+        Math.round((metrics.averageIdeaScore + laplace(0.5 / dpConfig.epsilon)) * 10) / 10
+      )
+    ),
     uniqueSubjects: Math.max(0, Math.round(metrics.uniqueSubjects + laplace(1 / dpConfig.epsilon))),
-    ideaVelocity: Math.max(0,
-      Math.round((metrics.ideaVelocity + laplace(0.5 / dpConfig.epsilon)) * 10) / 10),
+    ideaVelocity: Math.max(
+      0,
+      Math.round((metrics.ideaVelocity + laplace(0.5 / dpConfig.epsilon)) * 10) / 10
+    ),
     qualityDistribution: {
       low: Math.max(0, Math.round(metrics.qualityDistribution.low + laplace(1 / dpConfig.epsilon))),
-      medium: Math.max(0, Math.round(metrics.qualityDistribution.medium + laplace(1 / dpConfig.epsilon))),
-      high: Math.max(0, Math.round(metrics.qualityDistribution.high + laplace(1 / dpConfig.epsilon))),
+      medium: Math.max(
+        0,
+        Math.round(metrics.qualityDistribution.medium + laplace(1 / dpConfig.epsilon))
+      ),
+      high: Math.max(
+        0,
+        Math.round(metrics.qualityDistribution.high + laplace(1 / dpConfig.epsilon))
+      ),
     },
   };
 

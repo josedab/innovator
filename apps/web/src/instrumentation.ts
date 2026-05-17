@@ -33,7 +33,10 @@ const globalForInstrumentation = globalThis as typeof globalThis & {
 export async function register() {
   validateEnv();
 
-  if (process.env.NEXT_RUNTIME === "nodejs" && !globalForInstrumentation.__innovatorProcessHandlersRegistered) {
+  if (
+    process.env.NEXT_RUNTIME === "nodejs" &&
+    !globalForInstrumentation.__innovatorProcessHandlersRegistered
+  ) {
     globalForInstrumentation.__innovatorProcessHandlersRegistered = true;
 
     const { stopCopilotClient } = await import("@innovator/core");
@@ -54,7 +57,10 @@ export async function register() {
     // These occur when browsers disconnect mid-stream (SSE, navigation, tab close).
     process.on("uncaughtException", (err) => {
       if (isConnectionError(err)) {
-        console.warn("[innovator] Connection closed by client (suppressed):", (err as NodeJS.ErrnoException).code ?? err.message);
+        console.warn(
+          "[innovator] Connection closed by client (suppressed):",
+          (err as NodeJS.ErrnoException).code ?? err.message
+        );
         return;
       }
       console.error("[innovator] Uncaught exception:", err);
@@ -63,7 +69,12 @@ export async function register() {
 
     process.on("unhandledRejection", (reason) => {
       if (isConnectionError(reason)) {
-        console.warn("[innovator] Unhandled rejection from client disconnect (suppressed):", reason instanceof Error ? ((reason as NodeJS.ErrnoException).code ?? reason.message) : reason);
+        console.warn(
+          "[innovator] Unhandled rejection from client disconnect (suppressed):",
+          reason instanceof Error
+            ? ((reason as NodeJS.ErrnoException).code ?? reason.message)
+            : reason
+        );
         return;
       }
       console.error("[innovator] Unhandled rejection:", reason);

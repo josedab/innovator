@@ -39,10 +39,13 @@ export async function POST(request: Request) {
 
     const parsed = QuerySchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid request", details: parsed.error.issues }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
+      return new Response(
+        JSON.stringify({ error: "Invalid request", details: parsed.error.issues }),
+        {
+          status: 400,
+          headers: API_RESPONSE_HEADERS,
+        }
+      );
     }
 
     const { query, threshold, limit, sessionFilter } = parsed.data;
@@ -52,9 +55,16 @@ export async function POST(request: Request) {
       sessionFilter: sessionFilter ? [sessionFilter] : undefined,
     });
 
-    logger.info("Memory graph query", { requestId, query: query.slice(0, 100), resultCount: results.nodes.length });
+    logger.info("Memory graph query", {
+      requestId,
+      query: query.slice(0, 100),
+      resultCount: results.nodes.length,
+    });
 
-    return new Response(JSON.stringify({ results }), { status: 200, headers: API_RESPONSE_HEADERS });
+    return new Response(JSON.stringify({ results }), {
+      status: 200,
+      headers: API_RESPONSE_HEADERS,
+    });
   } catch (err) {
     logger.error("Memory graph query failed", { requestId, error: String(err) });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
@@ -87,7 +97,10 @@ export async function GET(request: Request) {
       }
       case "convergence": {
         const patterns = detectConvergence();
-        return new Response(JSON.stringify({ patterns }), { status: 200, headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ patterns }), {
+          status: 200,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
       case "lineage": {
         const ideaId = url.searchParams.get("ideaId");
@@ -98,7 +111,10 @@ export async function GET(request: Request) {
           });
         }
         const lineage = getIdeaLineage(ideaId);
-        return new Response(JSON.stringify(lineage), { status: 200, headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify(lineage), {
+          status: 200,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
       case "graph":
       default: {

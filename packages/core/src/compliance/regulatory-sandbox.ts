@@ -9,7 +9,6 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { runRegulatoryPreScreening, detectBias, addAuditEntry } from "./governance.js";
-import type { RegulatoryCheck, BiasCheck } from "./governance.js";
 
 // ---- Constraint Set Schemas ----
 

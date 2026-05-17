@@ -65,7 +65,6 @@ describe("getAngleById", () => {
   });
 
   it("returns undefined for numeric-like input", () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(getAngleById("123" as any)).toBeUndefined();
   });
 

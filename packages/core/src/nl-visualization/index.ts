@@ -13,7 +13,6 @@ import type {
   NLVisualizationConfig,
   VisualizationResult,
   ChartConfig,
-  D3Spec,
   ChartType,
 } from "./types.js";
 

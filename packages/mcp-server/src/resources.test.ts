@@ -5,10 +5,23 @@ vi.mock("@innovator/core", () => ({
   getSession: vi.fn().mockResolvedValue(undefined),
   ANGLES: [
     { id: "scamper", name: "SCAMPER", shortDescription: "Substitute, Combine...", icon: "🔄" },
-    { id: "first-principles", name: "First Principles", shortDescription: "Decompose to...", icon: "🧱" },
+    {
+      id: "first-principles",
+      name: "First Principles",
+      shortDescription: "Decompose to...",
+      icon: "🧱",
+    },
   ],
   getPresets: vi.fn().mockReturnValue([
-    { id: "saas", name: "SaaS Innovation", description: "For SaaS companies", icon: "☁️", category: "tech", selectedAngles: ["scamper"], suggestedSubject: "SaaS growth" },
+    {
+      id: "saas",
+      name: "SaaS Innovation",
+      description: "For SaaS companies",
+      icon: "☁️",
+      category: "tech",
+      selectedAngles: ["scamper"],
+      suggestedSubject: "SaaS growth",
+    },
   ]),
   KNOWN_MODELS: ["gpt-4.1", "gpt-5"],
 }));

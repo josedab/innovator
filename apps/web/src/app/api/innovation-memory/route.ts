@@ -3,9 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import {
-  getInnovationMemoryService,
-} from "@innovator/core";
+import { getInnovationMemoryService } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
@@ -66,12 +64,18 @@ export async function POST(request: Request) {
           limit: parsed.limit,
           similarityThreshold: 0,
         });
-        logger.info("Memory query executed", { route: "/api/innovation-memory", domain: parsed.domain });
+        logger.info("Memory query executed", {
+          route: "/api/innovation-memory",
+          domain: parsed.domain,
+        });
         return Response.json({ results }, { headers: API_RESPONSE_HEADERS });
       }
       case "recommendations": {
         const recommendations = memoryService.getRecommendations(parsed.domain, parsed.userId);
-        logger.info("Recommendations fetched", { route: "/api/innovation-memory", domain: parsed.domain });
+        logger.info("Recommendations fetched", {
+          route: "/api/innovation-memory",
+          domain: parsed.domain,
+        });
         return Response.json({ recommendations }, { headers: API_RESPONSE_HEADERS });
       }
       case "nudges": {
@@ -80,7 +84,10 @@ export async function POST(request: Request) {
           currentAngles: parsed.currentAngles,
           domain: parsed.domain,
         });
-        logger.info("Mid-session nudges generated", { route: "/api/innovation-memory", sessionId: parsed.sessionId });
+        logger.info("Mid-session nudges generated", {
+          route: "/api/innovation-memory",
+          sessionId: parsed.sessionId,
+        });
         return Response.json({ nudges }, { headers: API_RESPONSE_HEADERS });
       }
       case "effectiveness": {
@@ -89,7 +96,10 @@ export async function POST(request: Request) {
       }
       case "bias": {
         const bias = memoryService.getBiasFrequency(parsed.userId);
-        logger.info("Bias analysis fetched", { route: "/api/innovation-memory", userId: parsed.userId });
+        logger.info("Bias analysis fetched", {
+          route: "/api/innovation-memory",
+          userId: parsed.userId,
+        });
         return Response.json({ bias }, { headers: API_RESPONSE_HEADERS });
       }
     }
@@ -100,7 +110,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/innovation-memory" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/innovation-memory",
+    });
     return Response.json(
       { error: "Internal server error" },
       { status: 500, headers: API_RESPONSE_HEADERS }

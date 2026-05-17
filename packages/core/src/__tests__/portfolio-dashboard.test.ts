@@ -100,10 +100,34 @@ describe("portfolio/dashboard", () => {
 
   it("generates an executive report with actionable recommendations", () => {
     mockListPortfolioItems.mockReturnValue([
-      makeItem({ id: "1", stage: "ideation", sourceAngle: "scamper", impactScore: 3, assignee: "alice" }),
-      makeItem({ id: "2", stage: "ideation", sourceAngle: "scamper", impactScore: 4, assignee: "alice" }),
-      makeItem({ id: "3", stage: "evaluation", sourceAngle: "scamper", impactScore: 2, assignee: "alice" }),
-      makeItem({ id: "4", stage: "prototyping", sourceAngle: "first-principles", impactScore: 8, assignee: "bob" }),
+      makeItem({
+        id: "1",
+        stage: "ideation",
+        sourceAngle: "scamper",
+        impactScore: 3,
+        assignee: "alice",
+      }),
+      makeItem({
+        id: "2",
+        stage: "ideation",
+        sourceAngle: "scamper",
+        impactScore: 4,
+        assignee: "alice",
+      }),
+      makeItem({
+        id: "3",
+        stage: "evaluation",
+        sourceAngle: "scamper",
+        impactScore: 2,
+        assignee: "alice",
+      }),
+      makeItem({
+        id: "4",
+        stage: "prototyping",
+        sourceAngle: "first-principles",
+        impactScore: 8,
+        assignee: "bob",
+      }),
     ]);
 
     const report = generateExecutiveReport("Q3");
@@ -127,7 +151,14 @@ describe("portfolio/dashboard", () => {
       ],
       stageDistribution: { ideation: 4, evaluation: 1, prototyping: 0, shipped: 0, abandoned: 0 },
       riskDistribution: { low: 1, medium: 1, high: 3 },
-      teamPatterns: [{ memberId: "alice", initiativeCount: 5, avgCompletionDays: null, preferredAngles: ["scamper"] }],
+      teamPatterns: [
+        {
+          memberId: "alice",
+          initiativeCount: 5,
+          avgCompletionDays: null,
+          preferredAngles: ["scamper"],
+        },
+      ],
     });
 
     expect(suggestions).toEqual(

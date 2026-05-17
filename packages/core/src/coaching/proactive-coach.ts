@@ -7,10 +7,7 @@
  */
 
 import { getInnovationProfileBuilder } from "./innovation-profile-builder.js";
-import type {
-  InnovationProfileDetailed,
-  SessionResult,
-} from "./innovation-profile-builder.js";
+import type { SessionResult } from "./innovation-profile-builder.js";
 
 // ---- Types ----
 
@@ -81,22 +78,10 @@ const DOMAIN_PITFALLS: Record<string, string[]> = {
     "Overlooking regulatory constraints (HIPAA, FDA)",
     "Ignoring patient experience in favor of technology",
   ],
-  fintech: [
-    "Underestimating compliance requirements",
-    "Neglecting financial inclusion angles",
-  ],
-  edtech: [
-    "Focusing on technology over pedagogy",
-    "Not considering diverse learning styles",
-  ],
-  climate: [
-    "Ignoring scalability of solutions",
-    "Overlooking behavioral change aspects",
-  ],
-  saas: [
-    "Feature creep without user validation",
-    "Ignoring churn drivers",
-  ],
+  fintech: ["Underestimating compliance requirements", "Neglecting financial inclusion angles"],
+  edtech: ["Focusing on technology over pedagogy", "Not considering diverse learning styles"],
+  climate: ["Ignoring scalability of solutions", "Overlooking behavioral change aspects"],
+  saas: ["Feature creep without user validation", "Ignoring churn drivers"],
 };
 
 // ---- In-Memory Store ----
@@ -109,10 +94,7 @@ export class ProactiveCoachingEngine {
   private builder = getInnovationProfileBuilder();
 
   /** Get recommendations before starting a session. */
-  getPreSessionRecommendations(
-    userId: string,
-    subject: string
-  ): CoachingRecommendation[] {
+  getPreSessionRecommendations(userId: string, subject: string): CoachingRecommendation[] {
     const profile = this.builder.getProfile(userId);
     const recommendations: CoachingRecommendation[] = [];
 
@@ -174,10 +156,7 @@ export class ProactiveCoachingEngine {
   }
 
   /** Get nudges during an active session. */
-  getMidSessionNudges(
-    userId: string,
-    context: SessionContext
-  ): CoachingRecommendation[] {
+  getMidSessionNudges(userId: string, context: SessionContext): CoachingRecommendation[] {
     const profile = this.builder.getProfile(userId);
     const nudges: CoachingRecommendation[] = [];
 
@@ -219,8 +198,7 @@ export class ProactiveCoachingEngine {
 
     // Quality alert: recent ideas below personal average
     if (profile && context.qualityScores.length >= 3) {
-      const recentAvg =
-        context.qualityScores.slice(-3).reduce((s, v) => s + v, 0) / 3;
+      const recentAvg = context.qualityScores.slice(-3).reduce((s, v) => s + v, 0) / 3;
       if (recentAvg < profile.avgQuality * 0.75) {
         nudges.push({
           type: "mid_session",
@@ -247,10 +225,7 @@ export class ProactiveCoachingEngine {
   }
 
   /** Analyze a completed session. */
-  getPostSessionAnalysis(
-    userId: string,
-    sessionResult: SessionResult
-  ): PostSessionAnalysis {
+  getPostSessionAnalysis(userId: string, sessionResult: SessionResult): PostSessionAnalysis {
     const profile = this.builder.getProfile(userId);
     const personalAvg = profile?.avgQuality ?? 5;
     const delta = sessionResult.avgQuality - personalAvg;
@@ -273,9 +248,7 @@ export class ProactiveCoachingEngine {
       );
     }
     if (sessionResult.anglesUsed.length < 3) {
-      improvements.push(
-        "Try using more angles (3+) for greater perspective diversity."
-      );
+      improvements.push("Try using more angles (3+) for greater perspective diversity.");
     }
     if (sessionResult.duration < 10) {
       improvements.push(
@@ -283,9 +256,7 @@ export class ProactiveCoachingEngine {
       );
     }
 
-    const unusedAngles = ALL_ANGLES.filter(
-      (a) => !sessionResult.anglesUsed.includes(a)
-    );
+    const unusedAngles = ALL_ANGLES.filter((a) => !sessionResult.anglesUsed.includes(a));
     if (unusedAngles.length > 4) {
       improvements.push(
         `Consider trying: ${unusedAngles.slice(0, 2).join(", ")} in your next session.`

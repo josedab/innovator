@@ -197,9 +197,9 @@ describe("realtime collaborative enhancements", () => {
         { angleId: "customer", ideaCount: 2 },
         { angleId: "operations", ideaCount: 1 },
       ]);
-      expect(summary.highlights.some((highlight) => highlight.includes("Reusable refill hubs"))).toBe(
-        true
-      );
+      expect(
+        summary.highlights.some((highlight) => highlight.includes("Reusable refill hubs"))
+      ).toBe(true);
       expect(markdown).toContain("# Collaborative Innovation Session");
       expect(markdown).toContain("## Top Ideas");
       expect(markdown).toContain("Reusable refill hubs");

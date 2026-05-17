@@ -21,7 +21,10 @@ describe("workflow/templates", () => {
     it("should have valid configs that pass Zod validation", () => {
       for (const template of WORKFLOW_TEMPLATES) {
         const result = WorkflowConfigSchema.safeParse(template.config);
-        expect(result.success, `Template "${template.id}" config failed validation: ${JSON.stringify(result.error?.errors)}`).toBe(true);
+        expect(
+          result.success,
+          `Template "${template.id}" config failed validation: ${JSON.stringify(result.error?.errors)}`
+        ).toBe(true);
       }
     });
 

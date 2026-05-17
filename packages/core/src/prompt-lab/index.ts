@@ -27,7 +27,9 @@ export const PromptExperimentSchema = z.object({
   angleId: z.string().max(100),
   variants: z.array(PromptVariantSchema).min(2).max(10),
   allocation: AllocationStrategySchema.default("random"),
-  successMetric: z.enum(["idea-score", "user-rating", "export-rate", "selection-rate"]).default("idea-score"),
+  successMetric: z
+    .enum(["idea-score", "user-rating", "export-rate", "selection-rate"])
+    .default("idea-score"),
   status: z.enum(["draft", "running", "completed", "promoted"]).default("draft"),
   minSampleSize: z.number().min(5).max(1000).default(30),
   createdAt: z.string(),
@@ -187,10 +189,7 @@ export function recordExperimentScore(
  * Welch's t-test for comparing two variants' score distributions.
  * Returns significance at p < 0.05 with minimum sample sizes.
  */
-export function welchTTest(
-  scoresA: number[],
-  scoresB: number[]
-): StatisticalTestResult {
+export function welchTTest(scoresA: number[], scoresB: number[]): StatisticalTestResult {
   const nA = scoresA.length;
   const nB = scoresB.length;
 
@@ -208,15 +207,12 @@ export function welchTTest(
 
   // Welch-Satterthwaite degrees of freedom
   const dfNumerator = (seA + seB) ** 2;
-  const dfDenominator =
-    (nA > 1 ? seA ** 2 / (nA - 1) : 0) + (nB > 1 ? seB ** 2 / (nB - 1) : 0);
+  const dfDenominator = (nA > 1 ? seA ** 2 / (nA - 1) : 0) + (nB > 1 ? seB ** 2 / (nB - 1) : 0);
   const df = dfDenominator > 0 ? dfNumerator / dfDenominator : 1;
 
   // Approximate p-value using normal approximation for large df
   const absT = Math.abs(tStatistic);
-  const pValue = df > 30
-    ? 2 * (1 - normalCDF(absT))
-    : approximateTwoTailedP(absT, Math.round(df));
+  const pValue = df > 30 ? 2 * (1 - normalCDF(absT)) : approximateTwoTailedP(absT, Math.round(df));
 
   const pooledStd = Math.sqrt(
     ((nA > 1 ? varA * (nA - 1) : 0) + (nB > 1 ? varB * (nB - 1) : 0)) / Math.max(nA + nB - 2, 1)
@@ -263,12 +259,14 @@ function approximateTwoTailedP(t: number, df: number): number {
  * Analyze an experiment's results and determine if there's a winner.
  * Auto-promotes winner when p < 0.05 and minimum sample size is met.
  */
-export function analyzeExperiment(experimentId: string): {
-  experiment: PromptExperiment;
-  variantResults: ExperimentResult[];
-  tests: StatisticalTestResult[];
-  recommendation: string;
-} | undefined {
+export function analyzeExperiment(experimentId: string):
+  | {
+      experiment: PromptExperiment;
+      variantResults: ExperimentResult[];
+      tests: StatisticalTestResult[];
+      recommendation: string;
+    }
+  | undefined {
   const exp = experiments.get(experimentId);
   if (!exp) return undefined;
 
@@ -279,9 +277,7 @@ export function analyzeExperiment(experimentId: string): {
     const scores = results.get(v.id) ?? [];
     const mean = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
     const variance =
-      scores.length > 1
-        ? scores.reduce((s, x) => s + (x - mean) ** 2, 0) / (scores.length - 1)
-        : 0;
+      scores.length > 1 ? scores.reduce((s, x) => s + (x - mean) ** 2, 0) / (scores.length - 1) : 0;
     return {
       variantId: v.id,
       sampleSize: scores.length,
@@ -301,7 +297,9 @@ export function analyzeExperiment(experimentId: string): {
     test.controlId = exp.variants[0].id;
     test.treatmentId = exp.variants[i].id;
     test.winner = test.isSignificant
-      ? (test.tStatistic > 0 ? exp.variants[0].id : exp.variants[i].id)
+      ? test.tStatistic > 0
+        ? exp.variants[0].id
+        : exp.variants[i].id
       : undefined;
     tests.push(test);
   }
@@ -378,9 +376,7 @@ export function getActivePromptVersion(angleId: string): PromptVersion | undefin
  * Get the version history for an angle.
  */
 export function getPromptVersionHistory(angleId: string): PromptVersion[] {
-  return promptVersions
-    .filter((v) => v.angleId === angleId)
-    .sort((a, b) => b.version - a.version);
+  return promptVersions.filter((v) => v.angleId === angleId).sort((a, b) => b.version - a.version);
 }
 
 /**

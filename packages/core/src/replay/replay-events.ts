@@ -7,7 +7,6 @@
  */
 
 import { z } from "zod";
-import type { RunRecord, TimelineBranch, TimelineSnapshot } from "./index.js";
 
 // ---- Replay Event Schemas ----
 

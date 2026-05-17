@@ -160,7 +160,7 @@ function yamlToJson(yaml: string): string {
     { obj: result, indent: -1 },
   ];
   let currentArray: unknown[] | null = null;
-  let currentArrayKey = "";
+  let _currentArrayKey = "";
   let currentArrayIndent = -1;
 
   for (const rawLine of lines) {
@@ -201,7 +201,7 @@ function yamlToJson(yaml: string): string {
         const nextLine = lines[lines.indexOf(rawLine) + 1]?.trim();
         if (nextLine?.startsWith("- ")) {
           currentArray = [];
-          currentArrayKey = key;
+          _currentArrayKey = key;
           currentArrayIndent = indent + 2;
           parent[key] = currentArray;
         } else {

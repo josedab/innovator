@@ -44,7 +44,13 @@ export const InnovationOpportunitySchema = z.object({
   title: z.string().max(500),
   description: z.string().max(2000),
   confidence: z.number().min(0).max(1),
-  category: z.enum(["new-product", "optimization", "integration", "platform-play", "developer-tool"]),
+  category: z.enum([
+    "new-product",
+    "optimization",
+    "integration",
+    "platform-play",
+    "developer-tool",
+  ]),
   unlockedBy: z.array(z.string()), // capability node IDs
   effort: z.enum(["low", "medium", "high"]),
   impact: z.enum(["low", "medium", "high"]),

@@ -32,7 +32,8 @@ export async function POST(request: Request) {
     const subscriptionId = await billing.createSubscription(tenantId, planId);
 
     const checkoutUrl =
-      successUrl ?? `${request.headers.get("origin") ?? ""}/billing/success?session=${subscriptionId}`;
+      successUrl ??
+      `${request.headers.get("origin") ?? ""}/billing/success?session=${subscriptionId}`;
 
     return NextResponse.json(
       {

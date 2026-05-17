@@ -7,7 +7,7 @@
  */
 
 import { z } from "zod";
-import type { AngleResult, InnovationIdea } from "../types.js";
+import type { AngleResult } from "../types.js";
 
 // ---- Schemas ----
 
@@ -424,11 +424,15 @@ export const TelemetrySpanSchema = z.object({
   durationMs: z.number().min(0).optional(),
   status: z.enum(["ok", "error", "in_progress"]).default("in_progress"),
   attributes: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).default({}),
-  events: z.array(z.object({
-    name: z.string().max(200),
-    timestamp: z.string(),
-    attributes: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
-  })).default([]),
+  events: z
+    .array(
+      z.object({
+        name: z.string().max(200),
+        timestamp: z.string(),
+        attributes: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
+      })
+    )
+    .default([]),
 });
 
 export type TelemetrySpan = z.infer<typeof TelemetrySpanSchema>;
@@ -526,9 +530,7 @@ const metricsStore: PipelineMetric[] = [];
 /**
  * Record a pipeline metric data point.
  */
-export function recordPipelineMetric(
-  metric: Omit<PipelineMetric, "timestamp">
-): PipelineMetric {
+export function recordPipelineMetric(metric: Omit<PipelineMetric, "timestamp">): PipelineMetric {
   const record: PipelineMetric = {
     ...metric,
     timestamp: new Date().toISOString(),
@@ -540,37 +542,41 @@ export function recordPipelineMetric(
 /**
  * Get aggregated metrics grouped by stage or angle.
  */
-export function getAggregatedMetrics(
-  groupBy: "stage" | "angle" | "model" = "stage"
-): Map<string, {
-  count: number;
-  avgDurationMs: number;
-  totalTokens: number;
-  totalCostUsd: number;
-  avgIdeaCount: number;
-  successRate: number;
-}> {
-  const grouped = new Map<string, PipelineMetric[]>();
-  for (const metric of metricsStore) {
-    const key =
-      groupBy === "stage"
-        ? metric.stage
-        : groupBy === "angle"
-          ? metric.angleId ?? "unknown"
-          : metric.model ?? "unknown";
-    const group = grouped.get(key) ?? [];
-    group.push(metric);
-    grouped.set(key, group);
-  }
-
-  const result = new Map<string, {
+export function getAggregatedMetrics(groupBy: "stage" | "angle" | "model" = "stage"): Map<
+  string,
+  {
     count: number;
     avgDurationMs: number;
     totalTokens: number;
     totalCostUsd: number;
     avgIdeaCount: number;
     successRate: number;
-  }>();
+  }
+> {
+  const grouped = new Map<string, PipelineMetric[]>();
+  for (const metric of metricsStore) {
+    const key =
+      groupBy === "stage"
+        ? metric.stage
+        : groupBy === "angle"
+          ? (metric.angleId ?? "unknown")
+          : (metric.model ?? "unknown");
+    const group = grouped.get(key) ?? [];
+    group.push(metric);
+    grouped.set(key, group);
+  }
+
+  const result = new Map<
+    string,
+    {
+      count: number;
+      avgDurationMs: number;
+      totalTokens: number;
+      totalCostUsd: number;
+      avgIdeaCount: number;
+      successRate: number;
+    }
+  >();
 
   for (const [key, records] of grouped) {
     result.set(key, {
@@ -578,8 +584,10 @@ export function getAggregatedMetrics(
       avgDurationMs: Math.round(records.reduce((s, r) => s + r.durationMs, 0) / records.length),
       totalTokens: records.reduce((s, r) => s + r.tokenCount, 0),
       totalCostUsd: Math.round(records.reduce((s, r) => s + r.estimatedCostUsd, 0) * 10000) / 10000,
-      avgIdeaCount: Math.round((records.reduce((s, r) => s + r.ideaCount, 0) / records.length) * 10) / 10,
-      successRate: Math.round((records.filter((r) => r.success).length / records.length) * 100) / 100,
+      avgIdeaCount:
+        Math.round((records.reduce((s, r) => s + r.ideaCount, 0) / records.length) * 10) / 10,
+      successRate:
+        Math.round((records.filter((r) => r.success).length / records.length) * 100) / 100,
     });
   }
 
@@ -593,29 +601,73 @@ export function buildTelemetryDashboard(): {
   totalPipelines: number;
   totalSpans: number;
   recentSpans: TelemetrySpan[];
-  stageMetrics: Record<string, { count: number; avgDurationMs: number; totalTokens: number; totalCostUsd: number; avgIdeaCount: number; successRate: number }>;
-  angleMetrics: Record<string, { count: number; avgDurationMs: number; totalTokens: number; totalCostUsd: number; avgIdeaCount: number; successRate: number }>;
+  stageMetrics: Record<
+    string,
+    {
+      count: number;
+      avgDurationMs: number;
+      totalTokens: number;
+      totalCostUsd: number;
+      avgIdeaCount: number;
+      successRate: number;
+    }
+  >;
+  angleMetrics: Record<
+    string,
+    {
+      count: number;
+      avgDurationMs: number;
+      totalTokens: number;
+      totalCostUsd: number;
+      avgIdeaCount: number;
+      successRate: number;
+    }
+  >;
   qualityTrend: QualityTrend;
-  timeSeries: Array<{ timestamp: string; durationMs: number; tokenCount: number; ideaCount: number; stage: string }>;
+  timeSeries: Array<{
+    timestamp: string;
+    durationMs: number;
+    tokenCount: number;
+    ideaCount: number;
+    stage: string;
+  }>;
 } {
   const stageMap = getAggregatedMetrics("stage");
   const angleMap = getAggregatedMetrics("angle");
 
-  const stageMetrics: Record<string, { count: number; avgDurationMs: number; totalTokens: number; totalCostUsd: number; avgIdeaCount: number; successRate: number }> = {};
+  const stageMetrics: Record<
+    string,
+    {
+      count: number;
+      avgDurationMs: number;
+      totalTokens: number;
+      totalCostUsd: number;
+      avgIdeaCount: number;
+      successRate: number;
+    }
+  > = {};
   for (const [key, value] of stageMap) stageMetrics[key] = value;
 
-  const angleMetrics: Record<string, { count: number; avgDurationMs: number; totalTokens: number; totalCostUsd: number; avgIdeaCount: number; successRate: number }> = {};
+  const angleMetrics: Record<
+    string,
+    {
+      count: number;
+      avgDurationMs: number;
+      totalTokens: number;
+      totalCostUsd: number;
+      avgIdeaCount: number;
+      successRate: number;
+    }
+  > = {};
   for (const [key, value] of angleMap) angleMetrics[key] = value;
 
-  const timeSeries = metricsStore
-    .slice(-100)
-    .map((m) => ({
-      timestamp: m.timestamp,
-      durationMs: m.durationMs,
-      tokenCount: m.tokenCount,
-      ideaCount: m.ideaCount,
-      stage: m.stage,
-    }));
+  const timeSeries = metricsStore.slice(-100).map((m) => ({
+    timestamp: m.timestamp,
+    durationMs: m.durationMs,
+    tokenCount: m.tokenCount,
+    ideaCount: m.ideaCount,
+    stage: m.stage,
+  }));
 
   return {
     totalPipelines: metricsStore.filter((m) => m.stage === "full-pipeline").length,

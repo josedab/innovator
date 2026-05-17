@@ -15,16 +15,26 @@ export const ScimUserSchema = z.object({
   externalId: z.string().max(200).optional(),
   userName: z.string().max(200),
   displayName: z.string().max(200),
-  emails: z.array(z.object({
-    value: z.string().email(),
-    type: z.enum(["work", "home", "other"]).optional(),
-    primary: z.boolean().optional(),
-  })).min(1).max(10),
+  emails: z
+    .array(
+      z.object({
+        value: z.string().email(),
+        type: z.enum(["work", "home", "other"]).optional(),
+        primary: z.boolean().optional(),
+      })
+    )
+    .min(1)
+    .max(10),
   active: z.boolean(),
-  groups: z.array(z.object({
-    value: z.string().max(200),
-    display: z.string().max(200).optional(),
-  })).max(50).optional(),
+  groups: z
+    .array(
+      z.object({
+        value: z.string().max(200),
+        display: z.string().max(200).optional(),
+      })
+    )
+    .max(50)
+    .optional(),
   roles: z.array(z.string().max(100)).max(20).optional(),
   meta: z.object({
     resourceType: z.literal("User"),
@@ -38,10 +48,14 @@ export const ScimGroupSchema = z.object({
   id: z.string().max(200),
   externalId: z.string().max(200).optional(),
   displayName: z.string().max(200),
-  members: z.array(z.object({
-    value: z.string().max(200),
-    display: z.string().max(200).optional(),
-  })).max(500),
+  members: z
+    .array(
+      z.object({
+        value: z.string().max(200),
+        display: z.string().max(200).optional(),
+      })
+    )
+    .max(500),
   meta: z.object({
     resourceType: z.literal("Group"),
     created: z.string(),
@@ -156,11 +170,10 @@ export function scimDeleteUser(id: string): boolean {
 }
 
 /** List SCIM users with pagination and filtering (GET /scim/v2/Users). */
-export function scimListUsers(options?: {
-  startIndex?: number;
-  count?: number;
-  filter?: string;
-}): { users: ScimUser[]; totalResults: number } {
+export function scimListUsers(options?: { startIndex?: number; count?: number; filter?: string }): {
+  users: ScimUser[];
+  totalResults: number;
+} {
   let users = Array.from(scimUsers.values());
 
   if (options?.filter) {

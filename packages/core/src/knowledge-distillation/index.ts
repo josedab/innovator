@@ -196,7 +196,7 @@ export function buildDataset(
   patternIds?: string[]
 ): DistillationDataset {
   const selectedPatterns = patternIds
-    ? patternIds.map((id) => patterns.get(id)).filter(Boolean) as InvestigationPattern[]
+    ? (patternIds.map((id) => patterns.get(id)).filter(Boolean) as InvestigationPattern[])
     : Array.from(patterns.values());
 
   if (selectedPatterns.length === 0) {
@@ -298,7 +298,8 @@ export function routeRequest(
   const premiumCosts = MODEL_COSTS_PER_1K[premiumModel] ?? { input: 0.01, output: 0.03 };
   const distilledCosts = MODEL_COSTS_PER_1K[distilledModel] ?? { input: 0, output: 0 };
 
-  const useDistilled = complexity === "simple" || (complexity === "moderate" && qualityThreshold <= 0.7);
+  const useDistilled =
+    complexity === "simple" || (complexity === "moderate" && qualityThreshold <= 0.7);
 
   const selectedModel = useDistilled ? distilledModel : premiumModel;
   const costs = useDistilled ? distilledCosts : premiumCosts;
@@ -344,9 +345,10 @@ export function getCostDashboard(): CostDashboard {
   const totalSpent = modelUsage.reduce((sum, m) => sum + m.cost, 0);
   const premiumCost = routingLog.length * 0.02; // estimated if all were premium
   const totalSaved = Math.max(0, premiumCost - totalSpent);
-  const avgQuality = routingLog.length > 0
-    ? routingLog.reduce((sum, d) => sum + d.estimatedQuality, 0) / routingLog.length
-    : 0;
+  const avgQuality =
+    routingLog.length > 0
+      ? routingLog.reduce((sum, d) => sum + d.estimatedQuality, 0) / routingLog.length
+      : 0;
 
   return {
     totalSaved,

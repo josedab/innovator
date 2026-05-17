@@ -26,13 +26,29 @@ function makeEstimate(overrides: Record<string, unknown> = {}) {
       { phase: "testing", personWeeks: 2, description: "QA", parallelizable: true },
     ],
     requiredSkills: [
-      { skill: "Machine Learning", level: "senior", importance: "required", availability: "moderate" },
+      {
+        skill: "Machine Learning",
+        level: "senior",
+        importance: "required",
+        availability: "moderate",
+      },
     ],
     techStack: [
-      { technology: "TensorFlow", rationale: "Industry standard", category: "ml", maturity: "mature", alternatives: ["PyTorch"] },
+      {
+        technology: "TensorFlow",
+        rationale: "Industry standard",
+        category: "ml",
+        maturity: "mature",
+        alternatives: ["PyTorch"],
+      },
     ],
     risks: [
-      { description: "Model accuracy", probability: "medium", impact: "high", mitigation: "Iterative training" },
+      {
+        description: "Model accuracy",
+        probability: "medium",
+        impact: "high",
+        mitigation: "Iterative training",
+      },
     ],
     assumptions: ["Team has ML experience"],
     ...overrides,
@@ -78,8 +94,22 @@ describe("formatEstimateMarkdown", () => {
 describe("formatRoadmapMarkdown", () => {
   it("formats a roadmap with multiple items", () => {
     const roadmap = [
-      { ideaTitle: "Idea A", startWeek: 0, endWeek: 4, totalPersonWeeks: 4, priority: 1, dependencies: [] },
-      { ideaTitle: "Idea B", startWeek: 4, endWeek: 10, totalPersonWeeks: 6, priority: 2, dependencies: ["Idea A"] },
+      {
+        ideaTitle: "Idea A",
+        startWeek: 0,
+        endWeek: 4,
+        totalPersonWeeks: 4,
+        priority: 1,
+        dependencies: [],
+      },
+      {
+        ideaTitle: "Idea B",
+        startWeek: 4,
+        endWeek: 10,
+        totalPersonWeeks: 6,
+        priority: 2,
+        dependencies: ["Idea A"],
+      },
     ];
     const md = formatRoadmapMarkdown(roadmap as never[]);
     expect(typeof md).toBe("string");
@@ -120,7 +150,7 @@ describe("calibrateEstimate", () => {
     const { calibratedEstimate } = calibrateEstimate(estimate as never, 20);
     const totalPhaseWeeks = calibratedEstimate.breakdown.reduce(
       (sum: number, p: { personWeeks: number }) => sum + p.personWeeks,
-      0,
+      0
     );
     expect(totalPhaseWeeks).toBeGreaterThan(0);
   });

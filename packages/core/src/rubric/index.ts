@@ -78,10 +78,38 @@ export const BUILT_IN_RUBRICS: ScoringRubric[] = [
     name: "Regulatory Risk Assessment",
     description: "Evaluate ideas through regulatory and compliance lenses",
     dimensions: [
-      { id: "compliance-burden", name: "Compliance Burden", description: "Level of regulatory compliance required", weight: 0.3, minScore: 1, maxScore: 10 },
-      { id: "regulatory-risk", name: "Regulatory Risk", description: "Risk of regulatory pushback or delays", weight: 0.3, minScore: 1, maxScore: 10 },
-      { id: "data-privacy", name: "Data Privacy Impact", description: "Impact on user data and privacy regulations", weight: 0.2, minScore: 1, maxScore: 10 },
-      { id: "market-access", name: "Market Access", description: "Regulatory barriers to market entry", weight: 0.2, minScore: 1, maxScore: 10 },
+      {
+        id: "compliance-burden",
+        name: "Compliance Burden",
+        description: "Level of regulatory compliance required",
+        weight: 0.3,
+        minScore: 1,
+        maxScore: 10,
+      },
+      {
+        id: "regulatory-risk",
+        name: "Regulatory Risk",
+        description: "Risk of regulatory pushback or delays",
+        weight: 0.3,
+        minScore: 1,
+        maxScore: 10,
+      },
+      {
+        id: "data-privacy",
+        name: "Data Privacy Impact",
+        description: "Impact on user data and privacy regulations",
+        weight: 0.2,
+        minScore: 1,
+        maxScore: 10,
+      },
+      {
+        id: "market-access",
+        name: "Market Access",
+        description: "Regulatory barriers to market entry",
+        weight: 0.2,
+        minScore: 1,
+        maxScore: 10,
+      },
     ],
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -92,10 +120,38 @@ export const BUILT_IN_RUBRICS: ScoringRubric[] = [
     name: "Sustainability Impact",
     description: "Evaluate ideas through environmental and social impact lenses",
     dimensions: [
-      { id: "environmental", name: "Environmental Impact", description: "Net effect on the environment", weight: 0.3, minScore: 1, maxScore: 10 },
-      { id: "social", name: "Social Impact", description: "Positive social outcomes", weight: 0.3, minScore: 1, maxScore: 10 },
-      { id: "circular-economy", name: "Circular Economy Fit", description: "Alignment with circular economy principles", weight: 0.2, minScore: 1, maxScore: 10 },
-      { id: "long-term-viability", name: "Long-term Viability", description: "Sustainability of the approach over time", weight: 0.2, minScore: 1, maxScore: 10 },
+      {
+        id: "environmental",
+        name: "Environmental Impact",
+        description: "Net effect on the environment",
+        weight: 0.3,
+        minScore: 1,
+        maxScore: 10,
+      },
+      {
+        id: "social",
+        name: "Social Impact",
+        description: "Positive social outcomes",
+        weight: 0.3,
+        minScore: 1,
+        maxScore: 10,
+      },
+      {
+        id: "circular-economy",
+        name: "Circular Economy Fit",
+        description: "Alignment with circular economy principles",
+        weight: 0.2,
+        minScore: 1,
+        maxScore: 10,
+      },
+      {
+        id: "long-term-viability",
+        name: "Long-term Viability",
+        description: "Sustainability of the approach over time",
+        weight: 0.2,
+        minScore: 1,
+        maxScore: 10,
+      },
     ],
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -106,10 +162,38 @@ export const BUILT_IN_RUBRICS: ScoringRubric[] = [
     name: "Brand Alignment",
     description: "Evaluate ideas for brand consistency and strategic fit",
     dimensions: [
-      { id: "brand-fit", name: "Brand Fit", description: "Alignment with brand values and positioning", weight: 0.3, minScore: 1, maxScore: 10 },
-      { id: "audience-resonance", name: "Audience Resonance", description: "Appeal to target audience", weight: 0.3, minScore: 1, maxScore: 10 },
-      { id: "differentiation", name: "Differentiation", description: "How well it differentiates from competitors", weight: 0.2, minScore: 1, maxScore: 10 },
-      { id: "story-potential", name: "Story Potential", description: "Narrative and PR potential", weight: 0.2, minScore: 1, maxScore: 10 },
+      {
+        id: "brand-fit",
+        name: "Brand Fit",
+        description: "Alignment with brand values and positioning",
+        weight: 0.3,
+        minScore: 1,
+        maxScore: 10,
+      },
+      {
+        id: "audience-resonance",
+        name: "Audience Resonance",
+        description: "Appeal to target audience",
+        weight: 0.3,
+        minScore: 1,
+        maxScore: 10,
+      },
+      {
+        id: "differentiation",
+        name: "Differentiation",
+        description: "How well it differentiates from competitors",
+        weight: 0.2,
+        minScore: 1,
+        maxScore: 10,
+      },
+      {
+        id: "story-potential",
+        name: "Story Potential",
+        description: "Narrative and PR potential",
+        weight: 0.2,
+        minScore: 1,
+        maxScore: 10,
+      },
     ],
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -230,9 +314,12 @@ export async function scoreWithRubric(
     }))
   );
 
-  const dimensionDescriptions = rubric.dimensions.map((d) =>
-    `- **${d.name}** (id: "${d.id}", weight: ${d.weight}): ${d.description}${d.scoringGuidelines ? ` Guidelines: ${d.scoringGuidelines}` : ""}`
-  ).join("\n");
+  const dimensionDescriptions = rubric.dimensions
+    .map(
+      (d) =>
+        `- **${d.name}** (id: "${d.id}", weight: ${d.weight}): ${d.description}${d.scoringGuidelines ? ` Guidelines: ${d.scoringGuidelines}` : ""}`
+    )
+    .join("\n");
 
   const context = investigation
     ? `\nCONTEXT:\nSummary: ${investigation.summary}\nChallenges: ${investigation.challenges.join("; ")}`
@@ -281,7 +368,10 @@ Return valid JSON only:
         throw new Error(`Failed to parse rubric scores: ${jsonStr.slice(0, 200)}`);
       }
     },
-    { signal, isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse") }
+    {
+      signal,
+      isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse"),
+    }
   );
 
   const result = z.object({ scores: z.array(RubricScoreSchema).max(100) }).parse(parsed);

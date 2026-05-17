@@ -143,9 +143,7 @@ describe("API /api/social", () => {
   describe("POST like/unlike", () => {
     it("likes an idea", async () => {
       vi.mocked(likeIdea).mockReturnValue({ likes: 5 } as never);
-      const res = await POST(
-        makePost({ action: "like", userId: "user-1", ideaId: "idea-1" })
-      );
+      const res = await POST(makePost({ action: "like", userId: "user-1", ideaId: "idea-1" }));
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.likes).toBe(5);
@@ -153,9 +151,7 @@ describe("API /api/social", () => {
 
     it("unlikes an idea", async () => {
       vi.mocked(unlikeIdea).mockReturnValue({ likes: 4 } as never);
-      const res = await POST(
-        makePost({ action: "unlike", userId: "user-1", ideaId: "idea-1" })
-      );
+      const res = await POST(makePost({ action: "unlike", userId: "user-1", ideaId: "idea-1" }));
       expect(res.status).toBe(200);
       expect(unlikeIdea).toHaveBeenCalledWith("user-1", "idea-1");
     });
@@ -207,7 +203,13 @@ describe("API /api/social", () => {
           content: "Top-level",
         })
       );
-      expect(commentOnIdea).toHaveBeenCalledWith("user-1", "Test User", "idea-1", "Top-level", null);
+      expect(commentOnIdea).toHaveBeenCalledWith(
+        "user-1",
+        "Test User",
+        "idea-1",
+        "Top-level",
+        null
+      );
     });
   });
 
@@ -240,9 +242,7 @@ describe("API /api/social", () => {
   describe("POST repost", () => {
     it("reposts an idea", async () => {
       vi.mocked(repostIdea).mockReturnValue({ repostId: "r-1" } as never);
-      const res = await POST(
-        makePost({ action: "repost", userId: "user-1", ideaId: "idea-1" })
-      );
+      const res = await POST(makePost({ action: "repost", userId: "user-1", ideaId: "idea-1" }));
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.repostId).toBe("r-1");
@@ -268,7 +268,11 @@ describe("API /api/social", () => {
       const body = await res.json();
       expect(body.title).toBe("My Story");
       expect(publishStory).toHaveBeenCalledWith(
-        "user-1", "My Story", "Story content here.", ["idea-1"], ["innovation"]
+        "user-1",
+        "My Story",
+        "Story content here.",
+        ["idea-1"],
+        ["innovation"]
       );
     });
   });

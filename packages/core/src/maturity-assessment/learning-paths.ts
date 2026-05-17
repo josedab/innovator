@@ -303,7 +303,7 @@ export function generateLearningPath(
     (f) => f.minLevel > currentLevel && f.minLevel <= targetLevel
   );
 
-  const steps: LearningPathStep[] = relevantFeatures.map((feature, index) => ({
+  const steps: LearningPathStep[] = relevantFeatures.map((feature, _index) => ({
     id: randomUUID(),
     title: `Learn ${feature.feature}`,
     description: feature.description,

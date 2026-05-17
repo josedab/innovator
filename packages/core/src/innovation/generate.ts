@@ -12,13 +12,7 @@ import {
   buildTrendCollisionPrompt,
 } from "../prompts/angles/index.js";
 import { investigationContext } from "../prompts/investigation.js";
-import {
-  AngleResultSchema,
-  type AngleId,
-  type AngleResult,
-  type Investigation,
-  type CustomAngle,
-} from "../types.js";
+import { AngleResultSchema, type AngleId, type AngleResult, type Investigation } from "../types.js";
 import { buildCustomAnglePrompt, getCustomAngle } from "./custom-angles.js";
 
 type PromptBuilder = (subject: string, investigation: Investigation) => string;

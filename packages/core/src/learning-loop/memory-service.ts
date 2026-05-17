@@ -9,8 +9,6 @@
 
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type { AngleId } from "../types.js";
-import { OutcomeSignalSchema, type OutcomeSignal, type AnglePerformance } from "./index.js";
 
 // ---- Schemas ----
 
@@ -239,7 +237,7 @@ export class InnovationMemoryService {
     // If user has bias, suggest underused angles
     if (bias.length > 0) {
       const overused = new Set(bias.filter((b) => b.percentage > 40).map((b) => b.angleId));
-      const allAngles = new Set(effectiveness.map((e) => e.angleId));
+      const _allAngles = new Set(effectiveness.map((e) => e.angleId));
       for (const e of effectiveness) {
         if (!overused.has(e.angleId) && e.averageQuality >= 5) {
           const alreadySuggested = suggestedAngles.some((s) => s.angleId === e.angleId);

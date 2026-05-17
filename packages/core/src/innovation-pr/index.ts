@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import type { InnovationIdea, Synthesis } from "../types.js";
-import { generateScaffold, scaffoldToFileMap, scaffoldToMarkdown } from "../scaffolding/index.js";
+import { generateScaffold, scaffoldToFileMap } from "../scaffolding/index.js";
 import type { IdeaScaffold, ScaffoldOptions } from "../scaffolding/index.js";
 
 // ---- Schemas ----

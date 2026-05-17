@@ -66,9 +66,24 @@ describe("cross-org-benchmark", () => {
     });
 
     it("should generate recommendations for low performers", () => {
-      submitMetrics("org-a", { ...sampleMetrics, sessionCount: 1, ideaCount: 2, averageIdeaScore: 2 });
-      submitMetrics("org-b", { ...sampleMetrics, sessionCount: 100, ideaCount: 400, averageIdeaScore: 9 });
-      submitMetrics("org-c", { ...sampleMetrics, sessionCount: 80, ideaCount: 300, averageIdeaScore: 8 });
+      submitMetrics("org-a", {
+        ...sampleMetrics,
+        sessionCount: 1,
+        ideaCount: 2,
+        averageIdeaScore: 2,
+      });
+      submitMetrics("org-b", {
+        ...sampleMetrics,
+        sessionCount: 100,
+        ideaCount: 400,
+        averageIdeaScore: 9,
+      });
+      submitMetrics("org-c", {
+        ...sampleMetrics,
+        sessionCount: 80,
+        ideaCount: 300,
+        averageIdeaScore: 8,
+      });
 
       const comparison = compareToPeers("org-a");
       expect(comparison).toBeTruthy();

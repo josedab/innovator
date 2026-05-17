@@ -3,11 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import {
-  WebhookManager,
-  EventTypeSchema,
-  listWebhookTemplates,
-} from "@innovator/core";
+import { WebhookManager, EventTypeSchema, listWebhookTemplates } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-request";
@@ -95,7 +91,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/webhooks" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/webhooks",
+    });
     return Response.json(
       { error: "Internal server error" },
       { status: 500, headers: API_RESPONSE_HEADERS }

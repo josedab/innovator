@@ -4,11 +4,7 @@
 "use client";
 
 import { useState } from "react";
-import type {
-  IdeaDependencyGraph,
-  IdeaDependencyNode,
-  IdeaDependencyEdge,
-} from "@innovator/core/types";
+import type { IdeaDependencyGraph } from "@innovator/core/types";
 
 interface DependencyGraphViewProps {
   graph: IdeaDependencyGraph;
@@ -37,7 +33,7 @@ export default function DependencyGraphView({ graph }: DependencyGraphViewProps)
     ? graph.edges.filter((e) => e.source === selectedNode || e.target === selectedNode)
     : [];
 
-  const connectedNodeIds = new Set(selectedEdges.flatMap((e) => [e.source, e.target]));
+  const _connectedNodeIds = new Set(selectedEdges.flatMap((e) => [e.source, e.target]));
 
   return (
     <div className="border rounded-lg p-4 my-4">
@@ -91,14 +87,17 @@ export default function DependencyGraphView({ graph }: DependencyGraphViewProps)
                 {graph.edges.map((edge, idx) => {
                   const source = graph.nodes.find((n) => n.id === edge.source);
                   const target = graph.nodes.find((n) => n.id === edge.target);
-                  const isHighlighted = selectedNode && (edge.source === selectedNode || edge.target === selectedNode);
+                  const isHighlighted =
+                    selectedNode && (edge.source === selectedNode || edge.target === selectedNode);
                   return (
                     <tr key={idx} className={isHighlighted ? "bg-blue-50" : ""}>
                       <td className="p-2 border">{source?.title ?? edge.source}</td>
                       <td className="p-2 border text-center">
                         <span
                           className="px-2 py-0.5 rounded text-white text-xs"
-                          style={{ backgroundColor: RELATIONSHIP_COLORS[edge.relationship] ?? "#999" }}
+                          style={{
+                            backgroundColor: RELATIONSHIP_COLORS[edge.relationship] ?? "#999",
+                          }}
                         >
                           {edge.relationship}
                         </span>

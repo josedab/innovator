@@ -12,15 +12,29 @@ function makeGraphLayout(overrides: Record<string, unknown> = {}) {
   return {
     layout: {
       nodes: [
-        { id: "n1", label: "AI Ethics", type: "concept", size: 20, color: "#3b82f6", x: 100, y: 100, cluster: 0 },
-        { id: "n2", label: "Machine Learning", type: "technology", size: 15, color: "#22c55e", x: 200, y: 200, cluster: 0 },
+        {
+          id: "n1",
+          label: "AI Ethics",
+          type: "concept",
+          size: 20,
+          color: "#3b82f6",
+          x: 100,
+          y: 100,
+          cluster: 0,
+        },
+        {
+          id: "n2",
+          label: "Machine Learning",
+          type: "technology",
+          size: 15,
+          color: "#22c55e",
+          x: 200,
+          y: 200,
+          cluster: 0,
+        },
       ],
-      edges: [
-        { source: "n1", target: "n2", weight: 0.8, type: "related", label: "uses" },
-      ],
-      clusters: [
-        { id: 0, label: "Tech Cluster", nodeIds: ["n1", "n2"], dominantType: "concept" },
-      ],
+      edges: [{ source: "n1", target: "n2", weight: 0.8, type: "related", label: "uses" }],
+      clusters: [{ id: 0, label: "Tech Cluster", nodeIds: ["n1", "n2"], dominantType: "concept" }],
       bounds: { minX: 0, minY: 0, maxX: 600, maxY: 400 },
       ...overrides,
     },
@@ -41,7 +55,15 @@ describe("KnowledgeGraphExplorer", () => {
   it("renders empty state when no nodes", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ layout: { nodes: [], edges: [], clusters: [], bounds: { minX: 0, minY: 0, maxX: 600, maxY: 400 } } }),
+      json: () =>
+        Promise.resolve({
+          layout: {
+            nodes: [],
+            edges: [],
+            clusters: [],
+            bounds: { minX: 0, minY: 0, maxX: 600, maxY: 400 },
+          },
+        }),
     });
     render(<KnowledgeGraphExplorer />);
     await waitFor(() => {

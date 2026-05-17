@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { generateText, extractJson } from "../copilot/client.js";
+import { generateText } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
-import type { ExportData, InnovationIdea } from "../types.js";
+import type { ExportData } from "../types.js";
 
 // ---- Report Template Schemas ----
 

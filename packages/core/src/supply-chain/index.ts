@@ -17,7 +17,15 @@ import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 export const SupplyChainItemSchema = z.object({
   id: z.string().max(100),
   name: z.string().max(200),
-  category: z.enum(["technology", "skill", "partnership", "ip", "resource", "infrastructure", "data"]),
+  category: z.enum([
+    "technology",
+    "skill",
+    "partnership",
+    "ip",
+    "resource",
+    "infrastructure",
+    "data",
+  ]),
   description: z.string().max(1000),
   acquisition: z.enum(["build", "buy", "partner"]),
   criticality: z.enum(["essential", "important", "nice-to-have"]),
@@ -139,15 +147,20 @@ Return valid JSON only:
         throw new Error(`Failed to parse supply chain: ${jsonStr.slice(0, 200)}`);
       }
     },
-    { signal, isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse") }
+    {
+      signal,
+      isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse"),
+    }
   );
 
-  const rawResult = z.object({
-    items: z.array(SupplyChainItemSchema).max(50),
-    gaps: z.array(SupplyChainGapSchema).max(20),
-    criticalPath: z.array(z.string().max(200)).max(10),
-    summary: z.string().max(2000),
-  }).parse(parsed);
+  const rawResult = z
+    .object({
+      items: z.array(SupplyChainItemSchema).max(50),
+      gaps: z.array(SupplyChainGapSchema).max(20),
+      criticalPath: z.array(z.string().max(200)).max(10),
+      summary: z.string().max(2000),
+    })
+    .parse(parsed);
 
   const buildItems = rawResult.items.filter((i) => i.acquisition === "build").length;
   const buyItems = rawResult.items.filter((i) => i.acquisition === "buy").length;
@@ -155,7 +168,9 @@ Return valid JSON only:
   const totalCost = rawResult.items.reduce((sum, i) => sum + (i.estimatedCostUsd ?? 0), 0);
 
   // Compute readiness score based on availability and gaps
-  const availableCount = rawResult.items.filter((i) => i.currentAvailability === "available").length;
+  const availableCount = rawResult.items.filter(
+    (i) => i.currentAvailability === "available"
+  ).length;
   const totalItems = rawResult.items.length || 1;
   const blockingGaps = rawResult.gaps.filter((g) => g.severity === "blocking").length;
   const readinessScore = Math.max(
@@ -212,7 +227,9 @@ export function supplyChainToMarkdown(map: SupplyChainMap): string {
 
   for (const item of map.items) {
     const cost = item.estimatedCostUsd ? `$${item.estimatedCostUsd.toLocaleString()}` : "TBD";
-    lines.push(`| ${item.name} | ${item.category} | ${item.acquisition} | ${item.criticality} | ${item.currentAvailability} | ${cost} |`);
+    lines.push(
+      `| ${item.name} | ${item.category} | ${item.acquisition} | ${item.criticality} | ${item.currentAvailability} | ${cost} |`
+    );
   }
 
   if (map.gaps.length > 0) {
@@ -220,7 +237,8 @@ export function supplyChainToMarkdown(map: SupplyChainMap): string {
     for (const gap of map.gaps) {
       lines.push(`### ${gap.itemName} [${gap.severity}]`);
       lines.push(`**Type:** ${gap.gapType} | **Mitigation:** ${gap.mitigationStrategy}`);
-      if (gap.estimatedCostToClose) lines.push(`**Cost to close:** $${gap.estimatedCostToClose.toLocaleString()}`);
+      if (gap.estimatedCostToClose)
+        lines.push(`**Cost to close:** $${gap.estimatedCostToClose.toLocaleString()}`);
       lines.push("");
     }
   }

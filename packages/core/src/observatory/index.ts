@@ -20,17 +20,23 @@ export const PromptCallSchema = z.object({
   outputTokens: z.number(),
   latencyMs: z.number(),
   qualityScore: z.number().min(0).max(100).optional(),
-  stage: z.string().max(100).optional().describe("Pipeline stage: investigate, generate, synthesize"),
+  stage: z
+    .string()
+    .max(100)
+    .optional()
+    .describe("Pipeline stage: investigate, generate, synthesize"),
   metadata: z.record(z.string()).optional(),
 });
 
 export const PromptDiffSchema = z.object({
   callIdA: z.string(),
   callIdB: z.string(),
-  promptDiff: z.array(z.object({
-    type: z.enum(["added", "removed", "unchanged"]),
-    text: z.string().max(10000),
-  })),
+  promptDiff: z.array(
+    z.object({
+      type: z.enum(["added", "removed", "unchanged"]),
+      text: z.string().max(10000),
+    })
+  ),
   tokenDiff: z.object({
     inputDelta: z.number(),
     outputDelta: z.number(),
@@ -48,10 +54,12 @@ export const ObservatoryStatsSchema = z.object({
   callsByModel: z.record(z.number()),
   callsByStage: z.record(z.number()),
   tokensByModel: z.record(z.number()),
-  qualityDistribution: z.array(z.object({
-    bucket: z.string(),
-    count: z.number(),
-  })),
+  qualityDistribution: z.array(
+    z.object({
+      bucket: z.string(),
+      count: z.number(),
+    })
+  ),
 });
 
 export const ABComparisonSchema = z.object({
@@ -145,7 +153,12 @@ function estimateTokens(text: string): number {
 /**
  * Get the call timeline, optionally filtered by time range.
  */
-export function getCallTimeline(options?: { since?: string; limit?: number; stage?: string; model?: string }): PromptCall[] {
+export function getCallTimeline(options?: {
+  since?: string;
+  limit?: number;
+  stage?: string;
+  model?: string;
+}): PromptCall[] {
   let results = [...callLog];
 
   if (options?.since) {
@@ -183,8 +196,11 @@ export function getObservatoryStats(): ObservatoryStats {
   const totalOutputTokens = callLog.reduce((s, c) => s + c.outputTokens, 0);
   const avgLatency = totalCalls > 0 ? callLog.reduce((s, c) => s + c.latencyMs, 0) / totalCalls : 0;
 
-  const qualityScores = callLog.filter((c) => c.qualityScore !== undefined).map((c) => c.qualityScore!);
-  const avgQuality = qualityScores.length > 0 ? qualityScores.reduce((s, q) => s + q, 0) / qualityScores.length : 0;
+  const qualityScores = callLog
+    .filter((c) => c.qualityScore !== undefined)
+    .map((c) => c.qualityScore!);
+  const avgQuality =
+    qualityScores.length > 0 ? qualityScores.reduce((s, q) => s + q, 0) / qualityScores.length : 0;
 
   const callsByModel: Record<string, number> = {};
   const callsByStage: Record<string, number> = {};
@@ -192,7 +208,8 @@ export function getObservatoryStats(): ObservatoryStats {
 
   for (const call of callLog) {
     callsByModel[call.model] = (callsByModel[call.model] ?? 0) + 1;
-    tokensByModel[call.model] = (tokensByModel[call.model] ?? 0) + call.inputTokens + call.outputTokens;
+    tokensByModel[call.model] =
+      (tokensByModel[call.model] ?? 0) + call.inputTokens + call.outputTokens;
     if (call.stage) {
       callsByStage[call.stage] = (callsByStage[call.stage] ?? 0) + 1;
     }

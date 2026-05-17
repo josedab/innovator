@@ -11,7 +11,6 @@ import {
   CONTENT_AUDIENCES,
   InnovationIdeaSchema,
   InvestigationSchema,
-  RevisionRequestSchema,
 } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";

@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import type { Investigation, InnovationIdea } from "../types.js";

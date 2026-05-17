@@ -30,11 +30,15 @@ export const GuardrailSchema = z.object({
   description: z.string().max(2000),
   severity: GuardrailSeveritySchema,
   enabled: z.boolean().default(true),
-  rules: z.array(z.object({
-    id: z.string().max(200),
-    pattern: z.string().max(1000),
-    message: z.string().max(1000),
-  })).max(50),
+  rules: z
+    .array(
+      z.object({
+        id: z.string().max(200),
+        pattern: z.string().max(1000),
+        message: z.string().max(1000),
+      })
+    )
+    .max(50),
   jurisdictions: z.array(z.string().max(100)).max(20).optional(),
   createdAt: z.string(),
 });
@@ -44,11 +48,15 @@ export const GuardrailResultSchema = z.object({
   guardrailName: z.string(),
   passed: z.boolean(),
   severity: GuardrailSeveritySchema,
-  findings: z.array(z.object({
-    ruleId: z.string(),
-    message: z.string().max(2000),
-    context: z.string().max(1000).optional(),
-  })).max(50),
+  findings: z
+    .array(
+      z.object({
+        ruleId: z.string(),
+        message: z.string().max(2000),
+        context: z.string().max(1000).optional(),
+      })
+    )
+    .max(50),
   evaluatedAt: z.string(),
 });
 
@@ -56,12 +64,16 @@ export const RegulatoryCheckSchema = z.object({
   regulation: z.string().max(200),
   jurisdiction: z.string().max(200),
   status: z.enum(["compliant", "non-compliant", "needs-review", "not-applicable"]),
-  requirements: z.array(z.object({
-    id: z.string().max(200),
-    name: z.string().max(500),
-    met: z.boolean(),
-    notes: z.string().max(1000).optional(),
-  })).max(30),
+  requirements: z
+    .array(
+      z.object({
+        id: z.string().max(200),
+        name: z.string().max(500),
+        met: z.boolean(),
+        notes: z.string().max(1000).optional(),
+      })
+    )
+    .max(30),
   checkedAt: z.string(),
 });
 
@@ -109,44 +121,145 @@ const auditTrail: ComplianceAuditEntry[] = [];
 
 // ---- Regulatory Knowledge Base ----
 
-const REGULATORY_REQUIREMENTS: Record<string, Array<{ id: string; name: string; description: string }>> = {
+const REGULATORY_REQUIREMENTS: Record<
+  string,
+  Array<{ id: string; name: string; description: string }>
+> = {
   GDPR: [
-    { id: "gdpr-consent", name: "Explicit Consent", description: "Obtain explicit consent before processing personal data." },
-    { id: "gdpr-minimization", name: "Data Minimization", description: "Collect only data necessary for the stated purpose." },
-    { id: "gdpr-portability", name: "Data Portability", description: "Allow users to export their personal data." },
-    { id: "gdpr-erasure", name: "Right to Erasure", description: "Allow users to request deletion of their data." },
-    { id: "gdpr-dpia", name: "Data Protection Impact Assessment", description: "Conduct DPIA for high-risk processing activities." },
-    { id: "gdpr-dpo", name: "Data Protection Officer", description: "Appoint a DPO if required by processing activities." },
+    {
+      id: "gdpr-consent",
+      name: "Explicit Consent",
+      description: "Obtain explicit consent before processing personal data.",
+    },
+    {
+      id: "gdpr-minimization",
+      name: "Data Minimization",
+      description: "Collect only data necessary for the stated purpose.",
+    },
+    {
+      id: "gdpr-portability",
+      name: "Data Portability",
+      description: "Allow users to export their personal data.",
+    },
+    {
+      id: "gdpr-erasure",
+      name: "Right to Erasure",
+      description: "Allow users to request deletion of their data.",
+    },
+    {
+      id: "gdpr-dpia",
+      name: "Data Protection Impact Assessment",
+      description: "Conduct DPIA for high-risk processing activities.",
+    },
+    {
+      id: "gdpr-dpo",
+      name: "Data Protection Officer",
+      description: "Appoint a DPO if required by processing activities.",
+    },
   ],
   HIPAA: [
-    { id: "hipaa-phi", name: "PHI Protection", description: "Protect all Protected Health Information with appropriate safeguards." },
-    { id: "hipaa-minimum", name: "Minimum Necessary", description: "Access only the minimum PHI necessary for the intended purpose." },
-    { id: "hipaa-baa", name: "Business Associate Agreement", description: "Execute BAAs with all entities accessing PHI." },
-    { id: "hipaa-breach", name: "Breach Notification", description: "Report breaches of unsecured PHI within 60 days." },
-    { id: "hipaa-audit", name: "Audit Controls", description: "Implement mechanisms to record and examine system activity." },
+    {
+      id: "hipaa-phi",
+      name: "PHI Protection",
+      description: "Protect all Protected Health Information with appropriate safeguards.",
+    },
+    {
+      id: "hipaa-minimum",
+      name: "Minimum Necessary",
+      description: "Access only the minimum PHI necessary for the intended purpose.",
+    },
+    {
+      id: "hipaa-baa",
+      name: "Business Associate Agreement",
+      description: "Execute BAAs with all entities accessing PHI.",
+    },
+    {
+      id: "hipaa-breach",
+      name: "Breach Notification",
+      description: "Report breaches of unsecured PHI within 60 days.",
+    },
+    {
+      id: "hipaa-audit",
+      name: "Audit Controls",
+      description: "Implement mechanisms to record and examine system activity.",
+    },
   ],
   SOX: [
-    { id: "sox-controls", name: "Internal Controls", description: "Maintain internal controls over financial reporting." },
-    { id: "sox-retention", name: "Document Retention", description: "Retain all audit/review work papers for 7 years." },
-    { id: "sox-certification", name: "Management Certification", description: "CEO/CFO must certify financial report accuracy." },
-    { id: "sox-whistleblower", name: "Whistleblower Protection", description: "Establish confidential mechanisms for reporting concerns." },
+    {
+      id: "sox-controls",
+      name: "Internal Controls",
+      description: "Maintain internal controls over financial reporting.",
+    },
+    {
+      id: "sox-retention",
+      name: "Document Retention",
+      description: "Retain all audit/review work papers for 7 years.",
+    },
+    {
+      id: "sox-certification",
+      name: "Management Certification",
+      description: "CEO/CFO must certify financial report accuracy.",
+    },
+    {
+      id: "sox-whistleblower",
+      name: "Whistleblower Protection",
+      description: "Establish confidential mechanisms for reporting concerns.",
+    },
   ],
   "PCI-DSS": [
-    { id: "pci-encryption", name: "Data Encryption", description: "Encrypt cardholder data in transit and at rest." },
-    { id: "pci-access", name: "Access Control", description: "Restrict access to cardholder data on a need-to-know basis." },
-    { id: "pci-testing", name: "Regular Testing", description: "Conduct regular security testing and vulnerability scans." },
-    { id: "pci-logging", name: "Logging & Monitoring", description: "Track and monitor all access to network resources and cardholder data." },
+    {
+      id: "pci-encryption",
+      name: "Data Encryption",
+      description: "Encrypt cardholder data in transit and at rest.",
+    },
+    {
+      id: "pci-access",
+      name: "Access Control",
+      description: "Restrict access to cardholder data on a need-to-know basis.",
+    },
+    {
+      id: "pci-testing",
+      name: "Regular Testing",
+      description: "Conduct regular security testing and vulnerability scans.",
+    },
+    {
+      id: "pci-logging",
+      name: "Logging & Monitoring",
+      description: "Track and monitor all access to network resources and cardholder data.",
+    },
   ],
 };
 
 // ---- Bias Detection Patterns ----
 
 const BIAS_DIMENSIONS = [
-  { dimension: "demographic", keywords: ["only for", "not suitable for", "targeted at men", "targeted at women", "young people", "elderly"] },
-  { dimension: "geographic", keywords: ["western", "developed countries", "first world", "english-speaking only"] },
-  { dimension: "economic", keywords: ["premium users", "wealthy", "affluent", "luxury only", "high-income"] },
-  { dimension: "technological", keywords: ["smartphone required", "high-bandwidth only", "latest devices", "tech-savvy only"] },
-  { dimension: "accessibility", keywords: ["requires vision", "hearing required", "physically able", "neurotypical"] },
+  {
+    dimension: "demographic",
+    keywords: [
+      "only for",
+      "not suitable for",
+      "targeted at men",
+      "targeted at women",
+      "young people",
+      "elderly",
+    ],
+  },
+  {
+    dimension: "geographic",
+    keywords: ["western", "developed countries", "first world", "english-speaking only"],
+  },
+  {
+    dimension: "economic",
+    keywords: ["premium users", "wealthy", "affluent", "luxury only", "high-income"],
+  },
+  {
+    dimension: "technological",
+    keywords: ["smartphone required", "high-bandwidth only", "latest devices", "tech-savvy only"],
+  },
+  {
+    dimension: "accessibility",
+    keywords: ["requires vision", "hearing required", "physically able", "neurotypical"],
+  },
 ];
 
 // ---- Core Functions ----
@@ -217,7 +330,11 @@ export function evaluateGuardrails(text: string): GuardrailResult[] {
   addAuditEntry({
     action: "guardrail-evaluation",
     resource: text.slice(0, 200),
-    outcome: results.some((r) => !r.passed && r.severity === "blocker") ? "denied" : results.some((r) => !r.passed) ? "flagged" : "allowed",
+    outcome: results.some((r) => !r.passed && r.severity === "blocker")
+      ? "denied"
+      : results.some((r) => !r.passed)
+        ? "flagged"
+        : "allowed",
   });
 
   return results;
@@ -242,7 +359,10 @@ export function runRegulatoryPreScreening(
   const lower = ideaDescription.toLowerCase();
   const requirements = reqs.map((req) => {
     // Simple heuristic: check if the idea mentions anything related to the requirement
-    const relatedTerms = req.description.toLowerCase().split(" ").filter((w) => w.length > 4);
+    const relatedTerms = req.description
+      .toLowerCase()
+      .split(" ")
+      .filter((w) => w.length > 4);
     const mentioned = relatedTerms.some((term) => lower.includes(term));
     return {
       id: req.id,
@@ -253,11 +373,12 @@ export function runRegulatoryPreScreening(
   });
 
   const metCount = requirements.filter((r) => r.met).length;
-  const status = metCount === requirements.length
-    ? "compliant"
-    : metCount > requirements.length / 2
-      ? "needs-review"
-      : "non-compliant";
+  const status =
+    metCount === requirements.length
+      ? "compliant"
+      : metCount > requirements.length / 2
+        ? "needs-review"
+        : "non-compliant";
 
   const jurisdictionMap: Record<string, string> = {
     GDPR: "European Union",
@@ -289,19 +410,25 @@ export function detectBias(text: string): BiasCheck[] {
 
   for (const dim of BIAS_DIMENSIONS) {
     const matched = dim.keywords.filter((k) => lower.includes(k.toLowerCase()));
-    const score = matched.length > 0 ? Math.min(matched.length / dim.keywords.length + 0.2, 1.0) : 0;
+    const score =
+      matched.length > 0 ? Math.min(matched.length / dim.keywords.length + 0.2, 1.0) : 0;
     const level = score === 0 ? "none" : score < 0.3 ? "low" : score < 0.6 ? "medium" : "high";
 
     checks.push({
       dimension: dim.dimension,
       score,
       level,
-      details: matched.length > 0
-        ? `Detected ${dim.dimension} bias indicators: ${matched.join(", ")}`
-        : `No ${dim.dimension} bias detected.`,
-      suggestions: matched.length > 0
-        ? [`Consider broadening the target audience beyond ${matched[0]}`, `Add inclusive alternatives for ${dim.dimension} accessibility`]
-        : [],
+      details:
+        matched.length > 0
+          ? `Detected ${dim.dimension} bias indicators: ${matched.join(", ")}`
+          : `No ${dim.dimension} bias detected.`,
+      suggestions:
+        matched.length > 0
+          ? [
+              `Consider broadening the target audience beyond ${matched[0]}`,
+              `Add inclusive alternatives for ${dim.dimension} accessibility`,
+            ]
+          : [],
     });
   }
 
@@ -355,7 +482,8 @@ export function getComplianceDashboard(): ComplianceDashboard {
     totalGuardrails: all.length,
     enabledGuardrails: all.filter((g) => g.enabled).length,
     recentAuditEntries: recent.slice(-20),
-    complianceScore: total > 0 ? Math.round(((total - denied - flagged * 0.5) / total) * 100) / 100 : 1.0,
+    complianceScore:
+      total > 0 ? Math.round(((total - denied - flagged * 0.5) / total) * 100) / 100 : 1.0,
     blockersCount: denied,
     warningsCount: flagged,
   };

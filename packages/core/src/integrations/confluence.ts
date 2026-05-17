@@ -46,9 +46,7 @@ export class ConfluenceIntegration {
             representation: "storage",
           },
         },
-        ...(config.parentPageId
-          ? { ancestors: [{ id: config.parentPageId }] }
-          : {}),
+        ...(config.parentPageId ? { ancestors: [{ id: config.parentPageId }] } : {}),
       };
 
       const res = await fetch(`${config.apiUrl}/wiki/rest/api/content`, {
@@ -73,9 +71,10 @@ export class ConfluenceIntegration {
         id: string;
         _links?: { webui?: string; base?: string };
       };
-      const webUrl = data._links?.base && data._links?.webui
-        ? `${data._links.base}${data._links.webui}`
-        : undefined;
+      const webUrl =
+        data._links?.base && data._links?.webui
+          ? `${data._links.base}${data._links.webui}`
+          : undefined;
 
       return {
         success: true,
@@ -107,9 +106,7 @@ export class ConfluenceIntegration {
       )
       .join("\n");
 
-    const themesList = synthesis.themes
-      .map((t) => `<li>${escapeHtml(t)}</li>`)
-      .join("\n");
+    const themesList = synthesis.themes.map((t) => `<li>${escapeHtml(t)}</li>`).join("\n");
 
     return `
 <ac:structured-macro ac:name="info"><ac:rich-text-body>

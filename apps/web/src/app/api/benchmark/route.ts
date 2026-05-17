@@ -45,11 +45,7 @@ const StatsSchema = z.object({
   action: z.literal("stats"),
 });
 
-const RequestSchema = z.discriminatedUnion("action", [
-  SubmitSchema,
-  CompareSchema,
-  StatsSchema,
-]);
+const RequestSchema = z.discriminatedUnion("action", [SubmitSchema, CompareSchema, StatsSchema]);
 
 /**
  * POST /api/benchmark — Submit, compare, or get network stats.
@@ -101,7 +97,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/benchmark" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/benchmark",
+    });
     return Response.json(
       { error: "Internal server error" },
       { status: 500, headers: API_RESPONSE_HEADERS }

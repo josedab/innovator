@@ -203,7 +203,7 @@ describe("proxy", () => {
 
   describe("body size enforcement", () => {
     it("rejects oversized request bodies with 413", async () => {
-      const res =proxy(
+      const res = proxy(
         makeReq("/api/investigate", {
           method: "POST",
           headers: { "content-length": String(200 * 1024) },
@@ -216,7 +216,7 @@ describe("proxy", () => {
     });
 
     it("allows request bodies under the size limit", () => {
-      const res =proxy(
+      const res = proxy(
         makeReq("/api/investigate", {
           method: "POST",
           headers: { "content-length": "500" },
@@ -298,7 +298,7 @@ describe("proxy", () => {
     it("allows auto requests under the stricter limit", () => {
       for (let i = 0; i < AUTO_MAX_REQUESTS; i++) {
         inFlightMap.delete("1.2.3.4");
-        const res =proxy(
+        const res = proxy(
           makeReq("/api/auto", {
             method: "POST",
             headers: { "content-length": "100" },
@@ -312,7 +312,7 @@ describe("proxy", () => {
     it("rejects auto requests exceeding the auto limit with 429", async () => {
       for (let i = 0; i < AUTO_MAX_REQUESTS; i++) {
         inFlightMap.delete("1.2.3.4");
-       proxy(
+        proxy(
           makeReq("/api/auto", {
             method: "POST",
             headers: { "content-length": "100" },
@@ -321,7 +321,7 @@ describe("proxy", () => {
         );
       }
       inFlightMap.delete("1.2.3.4");
-      const res =proxy(
+      const res = proxy(
         makeReq("/api/auto", {
           method: "POST",
           headers: { "content-length": "100" },
@@ -339,7 +339,7 @@ describe("proxy", () => {
     it("allows innovate requests under the limit", () => {
       for (let i = 0; i < INNOVATE_MAX_REQUESTS; i++) {
         inFlightMap.delete("1.2.3.4");
-        const res =proxy(
+        const res = proxy(
           makeReq("/api/innovate", {
             method: "POST",
             headers: { "content-length": "100" },
@@ -353,7 +353,7 @@ describe("proxy", () => {
     it("rejects innovate requests exceeding the limit with 429", async () => {
       for (let i = 0; i < INNOVATE_MAX_REQUESTS; i++) {
         inFlightMap.delete("1.2.3.4");
-       proxy(
+        proxy(
           makeReq("/api/innovate", {
             method: "POST",
             headers: { "content-length": "100" },
@@ -362,7 +362,7 @@ describe("proxy", () => {
         );
       }
       inFlightMap.delete("1.2.3.4");
-      const res =proxy(
+      const res = proxy(
         makeReq("/api/innovate", {
           method: "POST",
           headers: { "content-length": "100" },
@@ -407,7 +407,7 @@ describe("proxy", () => {
 
   describe("security headers", () => {
     it("includes security headers on error responses", async () => {
-      const res =proxy(
+      const res = proxy(
         makeReq("/api/investigate", {
           method: "POST",
           headers: { "content-length": String(200 * 1024) },

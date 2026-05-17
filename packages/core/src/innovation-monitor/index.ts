@@ -327,7 +327,8 @@ export function getRecentSignals(options?: {
   if (options?.sourceId) result = result.filter((s) => s.sourceId === options.sourceId);
   if (options?.type) result = result.filter((s) => s.type === options.type);
   if (options?.urgency) result = result.filter((s) => s.urgency === options.urgency);
-  if (options?.timeRange?.from) result = result.filter((s) => s.detectedAt >= options.timeRange!.from!);
+  if (options?.timeRange?.from)
+    result = result.filter((s) => s.detectedAt >= options.timeRange!.from!);
   if (options?.timeRange?.to) result = result.filter((s) => s.detectedAt <= options.timeRange!.to!);
 
   result.sort((a, b) => b.detectedAt.localeCompare(a.detectedAt));
@@ -389,7 +390,9 @@ export async function generateDigest(
   let recommendedActions: string[] = [];
 
   if (digestSignals.length > 0) {
-    const signalsSummary = digestSignals.map((s) => `- [${s.type}] ${s.title} (${s.urgency})`).join("\n");
+    const signalsSummary = digestSignals
+      .map((s) => `- [${s.type}] ${s.title} (${s.urgency})`)
+      .join("\n");
 
     const prompt = `You are an innovation analyst generating a ${period} digest.
 
@@ -458,15 +461,25 @@ export function digestToMarkdown(digest: InnovationDigest): string {
   lines.push(`## Stats`);
   lines.push(`- **Total signals:** ${digest.stats.totalSignals}`);
   lines.push(`- **Avg confidence:** ${(digest.stats.avgConfidence * 100).toFixed(1)}%`);
-  lines.push(`- **By type:** ${Object.entries(digest.stats.byType).map(([k, v]) => `${k}(${v})`).join(", ")}`);
-  lines.push(`- **By urgency:** ${Object.entries(digest.stats.byUrgency).map(([k, v]) => `${k}(${v})`).join(", ")}`);
+  lines.push(
+    `- **By type:** ${Object.entries(digest.stats.byType)
+      .map(([k, v]) => `${k}(${v})`)
+      .join(", ")}`
+  );
+  lines.push(
+    `- **By urgency:** ${Object.entries(digest.stats.byUrgency)
+      .map(([k, v]) => `${k}(${v})`)
+      .join(", ")}`
+  );
   lines.push("");
 
   if (digest.topOpportunities.length > 0) {
     lines.push(`## Top Opportunities`);
     for (const opp of digest.topOpportunities) {
       lines.push(`### ${opp.signal.title} (${opp.innovationScore}/10)`);
-      lines.push(`- **Type:** ${opp.signal.type} | **Urgency:** ${opp.signal.urgency} | **Confidence:** ${(opp.signal.confidence * 100).toFixed(0)}%`);
+      lines.push(
+        `- **Type:** ${opp.signal.type} | **Urgency:** ${opp.signal.urgency} | **Confidence:** ${(opp.signal.confidence * 100).toFixed(0)}%`
+      );
       lines.push(`- ${opp.rationale}`);
       lines.push("");
     }
@@ -483,7 +496,9 @@ export function digestToMarkdown(digest: InnovationDigest): string {
   if (digest.signals.length > 0) {
     lines.push(`## All Signals`);
     for (const sig of digest.signals) {
-      lines.push(`- **[${sig.type}]** ${sig.title} — ${sig.urgency} (${(sig.confidence * 100).toFixed(0)}%)`);
+      lines.push(
+        `- **[${sig.type}]** ${sig.title} — ${sig.urgency} (${(sig.confidence * 100).toFixed(0)}%)`
+      );
     }
     lines.push("");
   }
@@ -496,7 +511,9 @@ export function digestToHtml(digest: InnovationDigest): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const lines: string[] = [];
 
-  lines.push(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Innovation Digest</title></head><body>`);
+  lines.push(
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Innovation Digest</title></head><body>`
+  );
   lines.push(`<h1>Innovation Digest &mdash; ${esc(digest.period)}</h1>`);
   lines.push(`<p><em>Generated: ${esc(digest.generatedAt)}</em></p>`);
 
@@ -504,16 +521,32 @@ export function digestToHtml(digest: InnovationDigest): string {
 
   lines.push(`<h2>Stats</h2><ul>`);
   lines.push(`<li><strong>Total signals:</strong> ${digest.stats.totalSignals}</li>`);
-  lines.push(`<li><strong>Avg confidence:</strong> ${(digest.stats.avgConfidence * 100).toFixed(1)}%</li>`);
-  lines.push(`<li><strong>By type:</strong> ${esc(Object.entries(digest.stats.byType).map(([k, v]) => `${k}(${v})`).join(", "))}</li>`);
-  lines.push(`<li><strong>By urgency:</strong> ${esc(Object.entries(digest.stats.byUrgency).map(([k, v]) => `${k}(${v})`).join(", "))}</li>`);
+  lines.push(
+    `<li><strong>Avg confidence:</strong> ${(digest.stats.avgConfidence * 100).toFixed(1)}%</li>`
+  );
+  lines.push(
+    `<li><strong>By type:</strong> ${esc(
+      Object.entries(digest.stats.byType)
+        .map(([k, v]) => `${k}(${v})`)
+        .join(", ")
+    )}</li>`
+  );
+  lines.push(
+    `<li><strong>By urgency:</strong> ${esc(
+      Object.entries(digest.stats.byUrgency)
+        .map(([k, v]) => `${k}(${v})`)
+        .join(", ")
+    )}</li>`
+  );
   lines.push(`</ul>`);
 
   if (digest.topOpportunities.length > 0) {
     lines.push(`<h2>Top Opportunities</h2>`);
     for (const opp of digest.topOpportunities) {
       lines.push(`<h3>${esc(opp.signal.title)} (${opp.innovationScore}/10)</h3>`);
-      lines.push(`<p><strong>Type:</strong> ${esc(opp.signal.type)} | <strong>Urgency:</strong> ${esc(opp.signal.urgency)} | <strong>Confidence:</strong> ${(opp.signal.confidence * 100).toFixed(0)}%</p>`);
+      lines.push(
+        `<p><strong>Type:</strong> ${esc(opp.signal.type)} | <strong>Urgency:</strong> ${esc(opp.signal.urgency)} | <strong>Confidence:</strong> ${(opp.signal.confidence * 100).toFixed(0)}%</p>`
+      );
       lines.push(`<p>${esc(opp.rationale)}</p>`);
     }
   }
@@ -529,7 +562,9 @@ export function digestToHtml(digest: InnovationDigest): string {
   if (digest.signals.length > 0) {
     lines.push(`<h2>All Signals</h2><ul>`);
     for (const sig of digest.signals) {
-      lines.push(`<li><strong>[${esc(sig.type)}]</strong> ${esc(sig.title)} &mdash; ${esc(sig.urgency)} (${(sig.confidence * 100).toFixed(0)}%)</li>`);
+      lines.push(
+        `<li><strong>[${esc(sig.type)}]</strong> ${esc(sig.title)} &mdash; ${esc(sig.urgency)} (${(sig.confidence * 100).toFixed(0)}%)</li>`
+      );
     }
     lines.push(`</ul>`);
   }

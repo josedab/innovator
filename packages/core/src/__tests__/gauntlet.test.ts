@@ -16,7 +16,11 @@ vi.mock("../copilot/retry.js", () => ({
   withRetry: vi.fn((fn: () => Promise<unknown>) => fn()),
 }));
 
-import { computeSurvivabilityIndex, runGauntlet, gauntletToMarkdown } from "../gauntlet/gauntlet.js";
+import {
+  computeSurvivabilityIndex,
+  runGauntlet,
+  gauntletToMarkdown,
+} from "../gauntlet/gauntlet.js";
 import { generateText } from "../copilot/client.js";
 import { makeAttack, makeIdea } from "../__test-utils__/factories.js";
 import type { Attack, AdversaryRole, GauntletResult } from "../gauntlet/types.js";
@@ -121,7 +125,7 @@ describe("gauntlet", () => {
 
     it("invokes progress callback with correct stages", async () => {
       // Mock generateText to return valid attack JSON
-      
+
       vi.mocked(generateText).mockResolvedValue(
         JSON.stringify({
           attacks: [
@@ -150,7 +154,6 @@ describe("gauntlet", () => {
     });
 
     it("handles LLM failure gracefully (non-fatal per adversary)", async () => {
-      
       vi.mocked(generateText).mockRejectedValue(new Error("LLM unavailable"));
 
       const idea = makeIdea({ title: "Test Idea", description: "Test description" });
@@ -170,7 +173,6 @@ describe("gauntlet", () => {
       const controller = new AbortController();
       controller.abort();
 
-      
       vi.mocked(generateText).mockResolvedValue("{}");
 
       const idea = makeIdea({ title: "Test", description: "Test" });
@@ -219,7 +221,6 @@ describe("gauntlet", () => {
     });
 
     it("returns proper result structure", async () => {
-      
       vi.mocked(generateText).mockResolvedValue(
         JSON.stringify({
           attacks: [

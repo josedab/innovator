@@ -18,13 +18,15 @@ import { sanitizeUserInput } from "../prompts/sanitize.js";
 export const ComplexityClassificationSchema = z.object({
   level: z.enum(["trivial", "simple", "moderate", "complex", "highly-complex"]),
   score: z.number().min(0).max(1),
-  factors: z.array(
-    z.object({
-      factor: z.string().max(200),
-      weight: z.number().min(0).max(1),
-      assessment: z.string().max(300),
-    })
-  ).max(10),
+  factors: z
+    .array(
+      z.object({
+        factor: z.string().max(200),
+        weight: z.number().min(0).max(1),
+        assessment: z.string().max(300),
+      })
+    )
+    .max(10),
   domainSpecificity: z.number().min(0).max(1),
   novelty: z.number().min(0).max(1),
   technicalDepth: z.number().min(0).max(1),
@@ -62,14 +64,16 @@ export const AdaptiveExecutionPlanSchema = z.object({
   estimatedTimeSeconds: z.number().min(0),
   costSavingsPercent: z.number().min(0).max(100),
   rationale: z.string().max(1000),
-  adjustments: z.array(
-    z.object({
-      parameter: z.string().max(200),
-      original: z.string().max(200),
-      adjusted: z.string().max(200),
-      reason: z.string().max(300),
-    })
-  ).max(10),
+  adjustments: z
+    .array(
+      z.object({
+        parameter: z.string().max(200),
+        original: z.string().max(200),
+        adjusted: z.string().max(200),
+        reason: z.string().max(300),
+      })
+    )
+    .max(10),
 });
 
 // ---- Types ----
@@ -81,7 +85,11 @@ export type AdaptiveExecutionPlan = z.infer<typeof AdaptiveExecutionPlanSchema>;
 
 // ---- In-memory state ----
 
-const executionHistory: Array<{ plan: AdaptiveExecutionPlan; actualCost: number; quality: number }> = [];
+const executionHistory: Array<{
+  plan: AdaptiveExecutionPlan;
+  actualCost: number;
+  quality: number;
+}> = [];
 
 // ---- Heuristic complexity classifier ----
 
@@ -92,27 +100,38 @@ export function classifyComplexityHeuristic(subject: string): ComplexityClassifi
   const words = subject.trim().split(/\s+/);
   const wordCount = words.length;
 
-  const technicalTerms = /\b(algorithm|quantum|blockchain|neural|genome|cryptograph|nanotech|bioinformatics|distributed|consensus)\b/i;
-  const domainTerms = /\b(healthcare|fintech|aerospace|pharmaceutical|regulatory|compliance|patent)\b/i;
+  const technicalTerms =
+    /\b(algorithm|quantum|blockchain|neural|genome|cryptograph|nanotech|bioinformatics|distributed|consensus)\b/i;
+  const domainTerms =
+    /\b(healthcare|fintech|aerospace|pharmaceutical|regulatory|compliance|patent)\b/i;
   const novelTerms = /\b(novel|revolutionary|unprecedented|first-ever|breakthrough|paradigm)\b/i;
 
   const technicalDepth = technicalTerms.test(subject) ? 0.8 : wordCount > 20 ? 0.5 : 0.2;
   const domainSpecificity = domainTerms.test(subject) ? 0.8 : 0.3;
   const novelty = novelTerms.test(subject) ? 0.7 : 0.3;
 
-  const score = (technicalDepth * 0.4 + domainSpecificity * 0.3 + novelty * 0.3);
+  const score = technicalDepth * 0.4 + domainSpecificity * 0.3 + novelty * 0.3;
   const level: ComplexityClassification["level"] =
-    score >= 0.75 ? "highly-complex" :
-    score >= 0.55 ? "complex" :
-    score >= 0.35 ? "moderate" :
-    score >= 0.2 ? "simple" : "trivial";
+    score >= 0.75
+      ? "highly-complex"
+      : score >= 0.55
+        ? "complex"
+        : score >= 0.35
+          ? "moderate"
+          : score >= 0.2
+            ? "simple"
+            : "trivial";
 
   return {
     level,
     score,
     factors: [
       { factor: "Technical depth", weight: 0.4, assessment: `Score: ${technicalDepth.toFixed(2)}` },
-      { factor: "Domain specificity", weight: 0.3, assessment: `Score: ${domainSpecificity.toFixed(2)}` },
+      {
+        factor: "Domain specificity",
+        weight: 0.3,
+        assessment: `Score: ${domainSpecificity.toFixed(2)}`,
+      },
       { factor: "Novelty indicators", weight: 0.3, assessment: `Score: ${novelty.toFixed(2)}` },
     ],
     domainSpecificity,
@@ -192,7 +211,12 @@ const MODEL_TIERS = {
 export function generateExecutionPlan(
   subject: string,
   complexity: ComplexityClassification,
-  expertise: ExpertiseProfile = { level: "intermediate", domains: [], preferredDepth: "standard", sessionCount: 0 },
+  expertise: ExpertiseProfile = {
+    level: "intermediate",
+    domains: [],
+    preferredDepth: "standard",
+    sessionCount: 0,
+  },
   budget: BudgetConstraint = { prioritizeSpeed: false, prioritizeQuality: false }
 ): AdaptiveExecutionPlan {
   // Determine depth
@@ -213,7 +237,10 @@ export function generateExecutionPlan(
   let angleCount = budget.maxAngles ?? angleCountMap[depth];
 
   // Model selection based on complexity
-  const modelTierMap: Record<ComplexityClassification["level"], typeof MODEL_TIERS[keyof typeof MODEL_TIERS]> = {
+  const modelTierMap: Record<
+    ComplexityClassification["level"],
+    (typeof MODEL_TIERS)[keyof typeof MODEL_TIERS]
+  > = {
     trivial: MODEL_TIERS.economy,
     simple: MODEL_TIERS.economy,
     moderate: MODEL_TIERS.standard,
@@ -235,8 +262,9 @@ export function generateExecutionPlan(
   const tokensPerStage = { shallow: 2000, standard: 5000, deep: 10000 };
   const totalTokens = tokensPerStage[depth] * (1 + angleCount + 1); // investigation + angles + synthesis
   const estimatedCost = (totalTokens / 1000) * tier.costPer1k;
-  const fullCost = (tokensPerStage.deep * 10 / 1000) * MODEL_TIERS.premium.costPer1k;
-  const costSavingsPercent = fullCost > 0 ? Math.max(0, ((fullCost - estimatedCost) / fullCost) * 100) : 0;
+  const fullCost = ((tokensPerStage.deep * 10) / 1000) * MODEL_TIERS.premium.costPer1k;
+  const costSavingsPercent =
+    fullCost > 0 ? Math.max(0, ((fullCost - estimatedCost) / fullCost) * 100) : 0;
 
   const adjustments: AdaptiveExecutionPlan["adjustments"] = [];
   if (depth !== "deep") {
@@ -264,7 +292,16 @@ export function generateExecutionPlan(
     });
   }
 
-  const defaultAngles = ["first-principles", "scamper", "cross-domain", "constraints", "inversion", "perspectives", "what-if", "trend-collision"];
+  const defaultAngles = [
+    "first-principles",
+    "scamper",
+    "cross-domain",
+    "constraints",
+    "inversion",
+    "perspectives",
+    "what-if",
+    "trend-collision",
+  ];
 
   return {
     subjectComplexity: complexity,
@@ -283,7 +320,11 @@ export function generateExecutionPlan(
 /**
  * Record execution result for adaptive learning.
  */
-export function recordExecution(plan: AdaptiveExecutionPlan, actualCost: number, quality: number): void {
+export function recordExecution(
+  plan: AdaptiveExecutionPlan,
+  actualCost: number,
+  quality: number
+): void {
   executionHistory.push({ plan, actualCost, quality });
 }
 
@@ -300,7 +341,8 @@ export function getExecutionStats(): {
     return { totalExecutions: 0, avgCostSavings: 0, avgQuality: 0, byComplexity: {} };
   }
 
-  const byComplexity: Record<string, { count: number; totalCost: number; totalQuality: number }> = {};
+  const byComplexity: Record<string, { count: number; totalCost: number; totalQuality: number }> =
+    {};
 
   for (const h of executionHistory) {
     const level = h.plan.subjectComplexity.level;
@@ -311,10 +353,13 @@ export function getExecutionStats(): {
   }
 
   const avgCostSavings =
-    executionHistory.reduce((sum, h) => sum + h.plan.costSavingsPercent, 0) / executionHistory.length;
-  const avgQuality = executionHistory.reduce((sum, h) => sum + h.quality, 0) / executionHistory.length;
+    executionHistory.reduce((sum, h) => sum + h.plan.costSavingsPercent, 0) /
+    executionHistory.length;
+  const avgQuality =
+    executionHistory.reduce((sum, h) => sum + h.quality, 0) / executionHistory.length;
 
-  const byComplexityStats: Record<string, { count: number; avgCost: number; avgQuality: number }> = {};
+  const byComplexityStats: Record<string, { count: number; avgCost: number; avgQuality: number }> =
+    {};
   for (const [level, stats] of Object.entries(byComplexity)) {
     byComplexityStats[level] = {
       count: stats.count,
@@ -391,10 +436,7 @@ const MODE_PRESETS: Record<Exclude<InnovationMode, "auto">, Omit<ModeConfig, "mo
 /**
  * Get a mode configuration by name, or auto-detect from subject complexity.
  */
-export function getModeConfig(
-  mode: InnovationMode,
-  subject?: string
-): ModeConfig {
+export function getModeConfig(mode: InnovationMode, subject?: string): ModeConfig {
   if (mode !== "auto") {
     return { mode, ...MODE_PRESETS[mode] };
   }

@@ -137,17 +137,19 @@ export function updateGalleryItem(
 
 // ---- Search & Discovery ----
 
-export function searchGallery(options: {
-  query?: string;
-  type?: GalleryItemType;
-  tags?: string[];
-  author?: string;
-  featured?: boolean;
-  premium?: boolean;
-  sortBy?: "stars" | "downloads" | "recent" | "trending";
-  limit?: number;
-  offset?: number;
-} = {}): { items: GalleryItem[]; total: number } {
+export function searchGallery(
+  options: {
+    query?: string;
+    type?: GalleryItemType;
+    tags?: string[];
+    author?: string;
+    featured?: boolean;
+    premium?: boolean;
+    sortBy?: "stars" | "downloads" | "recent" | "trending";
+    limit?: number;
+    offset?: number;
+  } = {}
+): { items: GalleryItem[]; total: number } {
   let items = Array.from(galleryItems.values()).filter(
     (item) => item.status === "published" && item.visibility === "public"
   );
@@ -168,9 +170,7 @@ export function searchGallery(options: {
 
   if (options.tags && options.tags.length > 0) {
     const tagSet = new Set(options.tags.map((t) => t.toLowerCase()));
-    items = items.filter((item) =>
-      item.tags.some((t) => tagSet.has(t.toLowerCase()))
-    );
+    items = items.filter((item) => item.tags.some((t) => tagSet.has(t.toLowerCase())));
   }
 
   if (options.author) {
@@ -209,10 +209,7 @@ export function searchGallery(options: {
       break;
     case "recent":
     default:
-      items.sort(
-        (a, b) =>
-          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      );
+      items.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
   }
 
   const total = items.length;
@@ -319,10 +316,7 @@ export function getComments(itemId: string): Comment[] {
 
 // ---- Moderation ----
 
-export function flagItem(
-  itemId: string,
-  reason: string
-): boolean {
+export function flagItem(itemId: string, _reason: string): boolean {
   const item = galleryItems.get(itemId);
   if (!item) return false;
   item.status = "under-review";

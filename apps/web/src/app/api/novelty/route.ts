@@ -7,7 +7,6 @@ import {
   generateNoveltyReport,
   noveltyReportToMarkdown,
   addPriorArt,
-  clearPriorArt,
   getPriorArtCount,
 } from "@innovator/core";
 import { z } from "zod";
@@ -31,21 +30,24 @@ const AssessRequestSchema = z.object({
 
 const SeedRequestSchema = z.object({
   action: z.literal("seed"),
-  entries: z.array(
-    z.object({
-      id: z.string(),
-      source: z.enum(["patent", "academic", "product", "pattern", "internal"]),
-      title: z.string().max(500),
-      description: z.string().max(2000),
-      url: z.string().max(2000).optional(),
-      similarity: z.number().min(0).max(1).default(0),
-      patentNumber: z.string().max(100).optional(),
-      doi: z.string().max(200).optional(),
-    })
-  ).min(1).max(1000),
+  entries: z
+    .array(
+      z.object({
+        id: z.string(),
+        source: z.enum(["patent", "academic", "product", "pattern", "internal"]),
+        title: z.string().max(500),
+        description: z.string().max(2000),
+        url: z.string().max(2000).optional(),
+        similarity: z.number().min(0).max(1).default(0),
+        patentNumber: z.string().max(100).optional(),
+        doi: z.string().max(200).optional(),
+      })
+    )
+    .min(1)
+    .max(1000),
 });
 
-const RequestSchema = z.union([AssessRequestSchema, SeedRequestSchema]);
+const _RequestSchema = z.union([AssessRequestSchema, SeedRequestSchema]);
 
 /**
  * POST /api/novelty — Assess novelty of ideas or seed prior art database.
@@ -119,10 +121,10 @@ export async function POST(request: Request) {
       requestId,
       durationMs: Date.now() - startTime,
     });
-    return new Response(
-      JSON.stringify({ error: "Novelty assessment failed. Please try again." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Novelty assessment failed. Please try again." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }
 

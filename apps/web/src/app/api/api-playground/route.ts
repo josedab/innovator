@@ -3,7 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import { generateOpenAPISpec, getSwaggerUIHTML, exportAsSwaggerJSON } from "@innovator/core";
+import { getSwaggerUIHTML, exportAsSwaggerJSON } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 import { logger } from "@/lib/logger";
 

@@ -7,7 +7,7 @@
 
 import { z } from "zod";
 import type { PlaygroundSession } from "../playground/index.js";
-import type { Tenant, UsageRecord, SaasApiKey } from "./index.js";
+import type { Tenant, UsageRecord } from "./index.js";
 
 // ---- Storage Interface ----
 

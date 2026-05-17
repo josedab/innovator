@@ -57,7 +57,13 @@ function makeOntologyJson() {
       { id: "radiology", name: "Radiology", type: "concept", description: "Medical imaging" },
     ],
     relationships: [
-      { sourceId: "ai-ml", targetId: "radiology", type: "enables", strength: 0.9, description: "ML enables automated radiology" },
+      {
+        sourceId: "ai-ml",
+        targetId: "radiology",
+        type: "enables",
+        strength: 0.9,
+        description: "ML enables automated radiology",
+      },
       { sourceId: "radiology", targetId: "healthcare", type: "part-of", strength: 1.0 },
     ],
     taxonomies: [
@@ -234,12 +240,8 @@ describe("ontology", () => {
     it("builds prompt with entity and relationship context", () => {
       const graph: OntologyGraph = {
         subject: "test",
-        entities: [
-          { id: "e1", name: "Entity1", type: "concept", description: "Desc1" },
-        ],
-        relationships: [
-          { sourceId: "e1", targetId: "e2", type: "enables", strength: 0.8 },
-        ],
+        entities: [{ id: "e1", name: "Entity1", type: "concept", description: "Desc1" }],
+        relationships: [{ sourceId: "e1", targetId: "e2", type: "enables", strength: 0.8 }],
         taxonomies: [],
         versions: [],
       };

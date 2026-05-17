@@ -18,10 +18,20 @@ import type { Investigation, AngleResult, Synthesis } from "../types.js";
 
 /** Schema for a visual element in a scene. */
 export const VisualElementSchema = z.object({
-  type: z.enum(["idea-card", "score-chart", "comparison-table", "word-cloud", "flow-diagram", "highlight-text", "transition"]),
+  type: z.enum([
+    "idea-card",
+    "score-chart",
+    "comparison-table",
+    "word-cloud",
+    "flow-diagram",
+    "highlight-text",
+    "transition",
+  ]),
   content: z.string().max(2000),
   position: z.enum(["center", "left", "right", "fullscreen", "overlay"]),
-  animation: z.enum(["fade-in", "slide-left", "slide-right", "zoom-in", "pop", "none"]).default("fade-in"),
+  animation: z
+    .enum(["fade-in", "slide-left", "slide-right", "zoom-in", "pop", "none"])
+    .default("fade-in"),
   durationMs: z.number().min(500).max(30000),
 });
 
@@ -171,7 +181,10 @@ export async function generateCinematicScript(
     }
   );
 
-  const scenes = z.array(SceneSchema).max(30).parse(parsed.scenes ?? []);
+  const scenes = z
+    .array(SceneSchema)
+    .max(30)
+    .parse(parsed.scenes ?? []);
   const totalDurationMs = scenes.reduce((sum, s) => sum + s.durationMs, 0);
 
   const ideas = session.angleResults?.flatMap((ar) => ar.ideas) ?? [];
@@ -243,7 +256,9 @@ export function scriptToStoryboard(script: CinematicScript): string {
     if (scene.visuals.length > 0) {
       lines.push(`**🎨 Visuals:**`);
       for (const v of scene.visuals) {
-        lines.push(`- [${v.type}] ${v.content} *(${v.position}, ${v.animation}, ${v.durationMs}ms)*`);
+        lines.push(
+          `- [${v.type}] ${v.content} *(${v.position}, ${v.animation}, ${v.durationMs}ms)*`
+        );
       }
     }
 

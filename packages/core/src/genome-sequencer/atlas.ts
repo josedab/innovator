@@ -2,13 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 function uniqueTraits(traits: string[]): string[] {
-  return Array.from(
-    new Set(
-      traits
-        .map((trait) => trait.trim().toLowerCase())
-        .filter(Boolean)
-    )
-  );
+  return Array.from(new Set(traits.map((trait) => trait.trim().toLowerCase()).filter(Boolean)));
 }
 
 function overlapCount(left: string[], right: string[]): number {
@@ -152,7 +146,8 @@ export function clusterGenomeRecords(minOverlap: number = 2): GenomeCluster[] {
       }
     }
 
-    const possibleEdges = component.length > 1 ? (component.length * (component.length - 1)) / 2 : 1;
+    const possibleEdges =
+      component.length > 1 ? (component.length * (component.length - 1)) / 2 : 1;
     const density = Number(Math.min(1, edges / possibleEdges).toFixed(2));
     const centroidTraits = Array.from(traitCounts.entries())
       .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
@@ -160,7 +155,7 @@ export function clusterGenomeRecords(minOverlap: number = 2): GenomeCluster[] {
       .map(([trait]) => trait);
     const label = centroidTraits[0]
       ? `Cluster around ${centroidTraits[0]}`
-      : component[0]?.title ?? "Singleton cluster";
+      : (component[0]?.title ?? "Singleton cluster");
 
     const cluster = GenomeClusterSchema.parse({
       id: randomUUID(),
@@ -195,13 +190,17 @@ export function identifyWhiteSpaces(clusters: GenomeCluster[]): WhiteSpaceRegion
       const opportunityScore = Number(
         Math.min(
           1,
-          ((suggestedTraits.length / 10) * 0.6 + (1 - (left.density + right.density) / 2) * 0.4)
+          (suggestedTraits.length / 10) * 0.6 + (1 - (left.density + right.density) / 2) * 0.4
         ).toFixed(2)
       );
       regions.push(
         WhiteSpaceRegionSchema.parse({
           id: randomUUID(),
-          description: `Opportunity space between ${left.label} and ${right.label} using complementary traits.`.slice(0, 1000),
+          description:
+            `Opportunity space between ${left.label} and ${right.label} using complementary traits.`.slice(
+              0,
+              1000
+            ),
           adjacentClusters: [left.id, right.id],
           opportunityScore,
           suggestedTraits,
@@ -263,19 +262,28 @@ export function generateRecombinantConcepts(
 
   for (let index = 0; index < iterations; index += 1) {
     const combinedTraits = Array.from(
-      new Set([
-        leftTraits[index % Math.max(leftTraits.length, 1)] ?? leftTraits[0],
-        leftTraits[(index + 1) % Math.max(leftTraits.length, 1)] ?? leftTraits[0],
-        rightTraits[index % Math.max(rightTraits.length, 1)] ?? rightTraits[0],
-        rightTraits[(index + 1) % Math.max(rightTraits.length, 1)] ?? rightTraits[0],
-      ].filter(Boolean))
+      new Set(
+        [
+          leftTraits[index % Math.max(leftTraits.length, 1)] ?? leftTraits[0],
+          leftTraits[(index + 1) % Math.max(leftTraits.length, 1)] ?? leftTraits[0],
+          rightTraits[index % Math.max(rightTraits.length, 1)] ?? rightTraits[0],
+          rightTraits[(index + 1) % Math.max(rightTraits.length, 1)] ?? rightTraits[0],
+        ].filter(Boolean)
+      )
     );
 
     const record = GenomeRecordSchema.parse({
       id: randomUUID(),
       type: "idea",
-      title: `Recombinant Concept ${index + 1}: ${cluster1.label} × ${cluster2.label}`.slice(0, 500),
-      description: `A recombinant concept that blends ${cluster1.label} with ${cluster2.label} to explore an unserved innovation pocket.`.slice(0, 2000),
+      title: `Recombinant Concept ${index + 1}: ${cluster1.label} × ${cluster2.label}`.slice(
+        0,
+        500
+      ),
+      description:
+        `A recombinant concept that blends ${cluster1.label} with ${cluster2.label} to explore an unserved innovation pocket.`.slice(
+          0,
+          2000
+        ),
       traits: combinedTraits.slice(0, 50),
       source: `cluster:${cluster1Id}+${cluster2Id}`,
       createdAt: new Date().toISOString(),

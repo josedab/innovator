@@ -9,7 +9,6 @@ import { randomUUID } from "node:crypto";
 import type {
   SelfHealingConfig,
   CircuitBreaker,
-  CircuitState,
   PipelineFailure,
   PipelineHealth,
   RecoveryStrategy,

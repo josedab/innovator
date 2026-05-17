@@ -8,7 +8,7 @@
  * Commands: /investigate, /innovate, /auto, /angles, /presets
  */
 
-import type { AngleId, Investigation, AngleResult, Synthesis, PipelineProgress } from "../types.js";
+import type { Investigation, AngleResult, Synthesis, PipelineProgress } from "../types.js";
 import { ANGLES } from "../innovation/angles.js";
 import { getPresets } from "../presets/index.js";
 

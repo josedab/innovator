@@ -25,7 +25,7 @@ vi.mock("@innovator/core", () => ({
   ideaToGitHubIssue: (...args: unknown[]) => mockIdeaToGitHubIssue(...args),
   listIaCSessions: (...args: unknown[]) => mockListIaCSessions(...args),
   validateIaCSession: (...args: unknown[]) => mockValidateIaCSession(...args),
-  DEFAULT_CONFIG_YAML: "# config\nversion: \"1.0\"\n",
+  DEFAULT_CONFIG_YAML: '# config\nversion: "1.0"\n',
   DEFAULT_ANGLES_YAML: "# angles\n",
   generateNoveltyReport: (...args: unknown[]) => mockGenerateNoveltyReport(...args),
   noveltyReportToMarkdown: (...args: unknown[]) => mockNoveltyReportToMarkdown(...args),
@@ -65,12 +65,22 @@ function makeTestSession() {
       {
         angleId: "scamper",
         angleName: "SCAMPER",
-        ideas: [{ title: "CLI Idea", description: "d", potentialImpact: "p", implementationHint: "h" }],
+        ideas: [
+          { title: "CLI Idea", description: "d", potentialImpact: "p", implementationHint: "h" },
+        ],
         reasoning: "Applied SCAMPER",
       },
     ],
     synthesis: {
-      topIdeas: [{ title: "Top", description: "d", sourceAngle: "SCAMPER", potentialImpact: "p", feasibility: "high" as const }],
+      topIdeas: [
+        {
+          title: "Top",
+          description: "d",
+          sourceAngle: "SCAMPER",
+          potentialImpact: "p",
+          feasibility: "high" as const,
+        },
+      ],
       themes: ["Theme"],
       recommendation: "Rec",
     },
@@ -127,7 +137,9 @@ describe("CLI IaC init simulation", () => {
       entries: [{ field: "subject", type: "changed", description: "Subject changed" }],
       summary: "1 change",
     });
-    mockFormatSessionDiff.mockReturnValue("Innovation Diff\n━━━━━━━━\nA: CLI test topic\nB: Topic B");
+    mockFormatSessionDiff.mockReturnValue(
+      "Innovation Diff\n━━━━━━━━\nA: CLI test topic\nB: Topic B"
+    );
 
     const diff = diffSessions(a, b);
     expect(diff.entries.length).toBeGreaterThan(0);
@@ -151,7 +163,9 @@ describe("CLI IaC init simulation", () => {
   });
 
   it("lists sessions", () => {
-    mockListIaCSessions.mockReturnValue("Innovation Sessions\n━━━━━━━━\nSession One\nSession Two\nTotal: 2");
+    mockListIaCSessions.mockReturnValue(
+      "Innovation Sessions\n━━━━━━━━\nSession One\nSession Two\nTotal: 2"
+    );
     const text = listIaCSessions([makeTestSession()]);
     expect(text).toContain("Total: 2");
   });
@@ -176,8 +190,13 @@ describe("CLI Novelty commands (unit)", () => {
     });
     mockNoveltyReportToMarkdown.mockReturnValue("# Novelty Report\nNovel DNA Storage — 90/100");
 
-    const { generateNoveltyReport: gnr, noveltyReportToMarkdown: nrm } = vi.mocked({ generateNoveltyReport: mockGenerateNoveltyReport, noveltyReportToMarkdown: mockNoveltyReportToMarkdown });
-    const report = gnr([{ title: "Novel DNA Storage", description: "Store data in synthetic DNA" }]);
+    const { generateNoveltyReport: gnr, noveltyReportToMarkdown: nrm } = vi.mocked({
+      generateNoveltyReport: mockGenerateNoveltyReport,
+      noveltyReportToMarkdown: mockNoveltyReportToMarkdown,
+    });
+    const report = gnr([
+      { title: "Novel DNA Storage", description: "Store data in synthetic DNA" },
+    ]);
     expect(report.summary.totalIdeas).toBe(1);
     const md = nrm(report);
     expect(md).toContain("Novel DNA Storage");

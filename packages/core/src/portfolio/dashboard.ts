@@ -109,7 +109,10 @@ function getTeamPatterns(items: PortfolioItem[]): DashboardMetrics["teamPatterns
     };
 
     team.initiativeCount += 1;
-    team.preferredAngles.set(item.sourceAngle, (team.preferredAngles.get(item.sourceAngle) ?? 0) + 1);
+    team.preferredAngles.set(
+      item.sourceAngle,
+      (team.preferredAngles.get(item.sourceAngle) ?? 0) + 1
+    );
 
     const completionTimestamp = shippedAt(item);
     if (completionTimestamp) {
@@ -143,7 +146,10 @@ export function aggregateDashboardMetrics(): DashboardMetrics {
 
   const stageDistribution = Object.fromEntries(STAGES.map((stage) => [stage, 0]));
   const riskDistribution = Object.fromEntries(RISK_BUCKETS.map((bucket) => [bucket, 0]));
-  const angleStats = new Map<string, { usageCount: number; shippedCount: number; scores: number[] }>();
+  const angleStats = new Map<
+    string,
+    { usageCount: number; shippedCount: number; scores: number[] }
+  >();
 
   for (const initiative of initiatives) {
     stageDistribution[initiative.stage] = (stageDistribution[initiative.stage] ?? 0) + 1;
@@ -165,14 +171,20 @@ export function aggregateDashboardMetrics(): DashboardMetrics {
   const activeInitiatives = initiatives.filter(
     (initiative) => initiative.stage !== "shipped" && initiative.stage !== "abandoned"
   ).length;
-  const completedInitiatives = initiatives.filter((initiative) => initiative.stage === "shipped").length;
+  const completedInitiatives = initiatives.filter(
+    (initiative) => initiative.stage === "shipped"
+  ).length;
 
   const ideaVelocity = {
-    daily: initiatives.filter((initiative) => now - new Date(initiative.createdAt).getTime() <= dayMs).length,
-    weekly: initiatives.filter((initiative) => now - new Date(initiative.createdAt).getTime() <= 7 * dayMs)
-      .length,
-    monthly: initiatives.filter((initiative) => now - new Date(initiative.createdAt).getTime() <= 30 * dayMs)
-      .length,
+    daily: initiatives.filter(
+      (initiative) => now - new Date(initiative.createdAt).getTime() <= dayMs
+    ).length,
+    weekly: initiatives.filter(
+      (initiative) => now - new Date(initiative.createdAt).getTime() <= 7 * dayMs
+    ).length,
+    monthly: initiatives.filter(
+      (initiative) => now - new Date(initiative.createdAt).getTime() <= 30 * dayMs
+    ).length,
   };
 
   const angleEffectiveness = Array.from(angleStats.entries())
@@ -197,11 +209,15 @@ export function aggregateDashboardMetrics(): DashboardMetrics {
 }
 
 // Function to generate executive report
-export function generateExecutiveReport(period: string = "Current portfolio snapshot"): ExecutiveReport {
+export function generateExecutiveReport(
+  period: string = "Current portfolio snapshot"
+): ExecutiveReport {
   const metrics = aggregateDashboardMetrics();
   const completionRate =
     metrics.totalInitiatives > 0 ? metrics.completedInitiatives / metrics.totalInitiatives : 0;
-  const dominantStage = Object.entries(metrics.stageDistribution).sort(([, left], [, right]) => right - left)[0];
+  const dominantStage = Object.entries(metrics.stageDistribution).sort(
+    ([, left], [, right]) => right - left
+  )[0];
   const topAngle = metrics.angleEffectiveness[0];
   const highRiskCount = metrics.riskDistribution.high ?? 0;
   const recommendations = suggestPortfolioRebalance(metrics);
@@ -222,7 +238,8 @@ export function generateExecutiveReport(period: string = "Current portfolio snap
     highRiskCount > 0
       ? `${highRiskCount} initiatives are flagged as high risk based on age, stage, or low impact.`
       : "High-risk initiative count is currently at zero.",
-    metrics.stageDistribution.ideation > metrics.activeInitiatives * 0.5 && metrics.activeInitiatives > 2
+    metrics.stageDistribution.ideation > metrics.activeInitiatives * 0.5 &&
+    metrics.activeInitiatives > 2
       ? "The portfolio is ideation-heavy, which can slow conversion into prototypes and launches."
       : "Stage mix is reasonably balanced across the active pipeline.",
   ];
@@ -248,7 +265,12 @@ export function generateExecutiveReport(period: string = "Current portfolio snap
         name: "Weekly idea velocity",
         value: metrics.ideaVelocity.weekly,
         unit: "ideas/week",
-        trend: metrics.ideaVelocity.weekly >= 3 ? "up" : metrics.ideaVelocity.weekly === 0 ? "down" : "stable",
+        trend:
+          metrics.ideaVelocity.weekly >= 3
+            ? "up"
+            : metrics.ideaVelocity.weekly === 0
+              ? "down"
+              : "stable",
       },
       {
         name: "High-risk initiatives",
@@ -271,28 +293,40 @@ export function suggestPortfolioRebalance(metrics: DashboardMetrics): string[] {
   const topAngle = metrics.angleEffectiveness[0];
 
   if (ideationShare > 0.5 && metrics.activeInitiatives > 2) {
-    suggestions.push("Shift review capacity toward evaluation so ideation backlog converts into validated opportunities.");
+    suggestions.push(
+      "Shift review capacity toward evaluation so ideation backlog converts into validated opportunities."
+    );
   }
 
   if ((metrics.riskDistribution.high ?? 0) > (metrics.riskDistribution.low ?? 0)) {
-    suggestions.push("De-risk the portfolio by pruning or accelerating high-risk initiatives before adding net-new work.");
+    suggestions.push(
+      "De-risk the portfolio by pruning or accelerating high-risk initiatives before adding net-new work."
+    );
   }
 
   if (topAngle && topAngle.usageCount / total > 0.6) {
-    suggestions.push(`Diversify angle usage beyond ${topAngle.angleId} to reduce concentration risk and broaden discovery.`);
+    suggestions.push(
+      `Diversify angle usage beyond ${topAngle.angleId} to reduce concentration risk and broaden discovery.`
+    );
   }
 
   if (metrics.completedInitiatives / total < 0.15 && metrics.activeInitiatives >= 3) {
-    suggestions.push("Prioritize late-stage prototyping and shipping milestones to improve portfolio realization.");
+    suggestions.push(
+      "Prioritize late-stage prototyping and shipping milestones to improve portfolio realization."
+    );
   }
 
   const overloadedMember = metrics.teamPatterns?.find((pattern) => pattern.initiativeCount >= 5);
   if (overloadedMember) {
-    suggestions.push(`Rebalance team ownership away from ${overloadedMember.memberId} to avoid delivery bottlenecks.`);
+    suggestions.push(
+      `Rebalance team ownership away from ${overloadedMember.memberId} to avoid delivery bottlenecks.`
+    );
   }
 
   if (suggestions.length === 0) {
-    suggestions.push("Portfolio mix is healthy; maintain the current balance while monitoring emerging risks weekly.");
+    suggestions.push(
+      "Portfolio mix is healthy; maintain the current balance while monitoring emerging risks weekly."
+    );
   }
 
   return [...new Set(suggestions)];

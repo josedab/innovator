@@ -26,7 +26,13 @@ export const ConsumerPersonaSchema = z.object({
   segment: z.string().max(200),
   needs: z.array(z.string().max(200)).max(5),
   painPoints: z.array(z.string().max(200)).max(5),
-  adoptionType: z.enum(["innovator", "early-adopter", "early-majority", "late-majority", "laggard"]),
+  adoptionType: z.enum([
+    "innovator",
+    "early-adopter",
+    "early-majority",
+    "late-majority",
+    "laggard",
+  ]),
 });
 
 /** Schema for a persona interaction outcome. */
@@ -88,14 +94,24 @@ const marketTests: Map<string, MarketTestResult> = new Map();
 // ---- Persona generation (heuristic for scale) ----
 
 const SEGMENTS = [
-  "tech-enthusiasts", "small-business-owners", "enterprise-buyers",
-  "students", "freelancers", "healthcare-professionals",
-  "educators", "creative-professionals", "government",
+  "tech-enthusiasts",
+  "small-business-owners",
+  "enterprise-buyers",
+  "students",
+  "freelancers",
+  "healthcare-professionals",
+  "educators",
+  "creative-professionals",
+  "government",
   "retail-consumers",
 ];
 
-const ADOPTION_TYPES: ConsumerPersona["adoptionType"][] = [
-  "innovator", "early-adopter", "early-majority", "late-majority", "laggard",
+const _ADOPTION_TYPES: ConsumerPersona["adoptionType"][] = [
+  "innovator",
+  "early-adopter",
+  "early-majority",
+  "late-majority",
+  "laggard",
 ];
 
 /**
@@ -110,12 +126,23 @@ export function generatePersonas(count: number = 1000, segments?: string[]): Con
     const segment = targetSegments[i % targetSegments.length];
     const adoptionIdx = Math.floor(Math.random() * 100);
     const adoptionType: ConsumerPersona["adoptionType"] =
-      adoptionIdx < 3 ? "innovator" :
-      adoptionIdx < 16 ? "early-adopter" :
-      adoptionIdx < 50 ? "early-majority" :
-      adoptionIdx < 84 ? "late-majority" : "laggard";
+      adoptionIdx < 3
+        ? "innovator"
+        : adoptionIdx < 16
+          ? "early-adopter"
+          : adoptionIdx < 50
+            ? "early-majority"
+            : adoptionIdx < 84
+              ? "late-majority"
+              : "laggard";
 
-    const incomes: ConsumerPersona["income"][] = ["low", "lower-middle", "middle", "upper-middle", "high"];
+    const incomes: ConsumerPersona["income"][] = [
+      "low",
+      "lower-middle",
+      "middle",
+      "upper-middle",
+      "high",
+    ];
 
     personas.push({
       id: `persona-${i}`,
@@ -147,15 +174,21 @@ function simulateInteractions(
     const techFit = p.techSavviness * 0.3;
     const riskFit = p.riskTolerance * 0.2;
     const adoptionBoost =
-      p.adoptionType === "innovator" ? 0.3 :
-      p.adoptionType === "early-adopter" ? 0.2 :
-      p.adoptionType === "early-majority" ? 0.05 :
-      p.adoptionType === "late-majority" ? -0.1 : -0.25;
+      p.adoptionType === "innovator"
+        ? 0.3
+        : p.adoptionType === "early-adopter"
+          ? 0.2
+          : p.adoptionType === "early-majority"
+            ? 0.05
+            : p.adoptionType === "late-majority"
+              ? -0.1
+              : -0.25;
     const noise = (Math.random() - 0.5) * 0.2;
 
-    const purchaseProbability = Math.max(0, Math.min(1,
-      ideaAppeal * 0.5 + techFit + riskFit + adoptionBoost + noise
-    ));
+    const purchaseProbability = Math.max(
+      0,
+      Math.min(1, ideaAppeal * 0.5 + techFit + riskFit + adoptionBoost + noise)
+    );
     const purchased = Math.random() < purchaseProbability;
     const wtp = basePrice * (0.5 + purchaseProbability) * (1 / Math.max(0.3, p.priceElasticity));
 
@@ -164,7 +197,9 @@ function simulateInteractions(
       purchased,
       willingnessToPayUsd: Math.round(wtp * 100) / 100,
       satisfaction: purchased ? Math.min(1, purchaseProbability + Math.random() * 0.2) : 0,
-      referralLikelihood: purchased ? Math.min(1, purchaseProbability * 0.8 + Math.random() * 0.2) : 0,
+      referralLikelihood: purchased
+        ? Math.min(1, purchaseProbability * 0.8 + Math.random() * 0.2)
+        : 0,
       concerns: [],
     };
   });
@@ -243,7 +278,10 @@ Respond with JSON:
   const outcomes = simulateInteractions(personas, appealScore, basePrice);
 
   // Aggregate segment analysis
-  const segmentMap = new Map<string, { outcomes: InteractionOutcome[]; personas: ConsumerPersona[] }>();
+  const segmentMap = new Map<
+    string,
+    { outcomes: InteractionOutcome[]; personas: ConsumerPersona[] }
+  >();
   for (let i = 0; i < personas.length; i++) {
     const seg = personas[i].segment;
     if (!segmentMap.has(seg)) segmentMap.set(seg, { outcomes: [], personas: [] });
@@ -251,29 +289,39 @@ Respond with JSON:
     segmentMap.get(seg)!.personas.push(personas[i]);
   }
 
-  const segmentAnalysis: SegmentAnalysis[] = Array.from(segmentMap.entries()).map(([segment, data]) => {
-    const adoptionRate = data.outcomes.filter((o) => o.purchased).length / data.outcomes.length;
-    const avgWtp = data.outcomes.reduce((sum, o) => sum + o.willingnessToPayUsd, 0) / data.outcomes.length;
-    const avgSat = data.outcomes.filter((o) => o.purchased).reduce((sum, o) => sum + o.satisfaction, 0) /
-      Math.max(1, data.outcomes.filter((o) => o.purchased).length);
+  const segmentAnalysis: SegmentAnalysis[] = Array.from(segmentMap.entries()).map(
+    ([segment, data]) => {
+      const adoptionRate = data.outcomes.filter((o) => o.purchased).length / data.outcomes.length;
+      const avgWtp =
+        data.outcomes.reduce((sum, o) => sum + o.willingnessToPayUsd, 0) / data.outcomes.length;
+      const avgSat =
+        data.outcomes.filter((o) => o.purchased).reduce((sum, o) => sum + o.satisfaction, 0) /
+        Math.max(1, data.outcomes.filter((o) => o.purchased).length);
 
-    return {
-      segment,
-      personaCount: data.personas.length,
-      adoptionRate,
-      avgWillingnessToPayUsd: Math.round(avgWtp * 100) / 100,
-      avgSatisfaction: Math.round(avgSat * 100) / 100,
-      topConcerns: [],
-      recommendation: adoptionRate > 0.5 ? "Strong target segment" :
-        adoptionRate > 0.3 ? "Moderate potential — needs positioning" :
-        "Low fit — consider deprioritizing",
-    };
-  });
+      return {
+        segment,
+        personaCount: data.personas.length,
+        adoptionRate,
+        avgWillingnessToPayUsd: Math.round(avgWtp * 100) / 100,
+        avgSatisfaction: Math.round(avgSat * 100) / 100,
+        topConcerns: [],
+        recommendation:
+          adoptionRate > 0.5
+            ? "Strong target segment"
+            : adoptionRate > 0.3
+              ? "Moderate potential — needs positioning"
+              : "Low fit — consider deprioritizing",
+      };
+    }
+  );
 
   // Pricing sensitivity curve
-  const pricePoints = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0].map((mult) => basePrice * mult);
+  const pricePoints = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0].map(
+    (mult) => basePrice * mult
+  );
   const pricingSensitivity: PricingSensitivityPoint[] = pricePoints.map((price) => {
-    const demandPercent = outcomes.filter((o) => o.willingnessToPayUsd >= price).length / outcomes.length * 100;
+    const demandPercent =
+      (outcomes.filter((o) => o.willingnessToPayUsd >= price).length / outcomes.length) * 100;
     return {
       priceUsd: Math.round(price * 100) / 100,
       demandPercent: Math.round(demandPercent * 10) / 10,
@@ -281,14 +329,20 @@ Respond with JSON:
     };
   });
 
-  const optimalPrice = pricingSensitivity.reduce((best, pt) =>
-    pt.revenueIndex > best.revenueIndex ? pt : best, pricingSensitivity[0]);
+  const optimalPrice = pricingSensitivity.reduce(
+    (best, pt) => (pt.revenueIndex > best.revenueIndex ? pt : best),
+    pricingSensitivity[0]
+  );
 
   const overallAdoption = outcomes.filter((o) => o.purchased).length / outcomes.length;
   const viability: MarketTestResult["marketViability"] =
-    overallAdoption > 0.5 ? "high" :
-    overallAdoption > 0.3 ? "moderate" :
-    overallAdoption > 0.1 ? "low" : "not-viable";
+    overallAdoption > 0.5
+      ? "high"
+      : overallAdoption > 0.3
+        ? "moderate"
+        : overallAdoption > 0.1
+          ? "low"
+          : "not-viable";
 
   const result: MarketTestResult = {
     ideaTitle: idea.title,
@@ -356,7 +410,9 @@ export function marketTestToMarkdown(result: MarketTestResult): string {
   lines.push(`| Segment | Personas | Adoption | Avg WTP | Satisfaction |`);
   lines.push(`|---------|----------|----------|---------|-------------|`);
   for (const s of result.segmentAnalysis.sort((a, b) => b.adoptionRate - a.adoptionRate)) {
-    lines.push(`| ${s.segment} | ${s.personaCount} | ${(s.adoptionRate * 100).toFixed(1)}% | $${s.avgWillingnessToPayUsd} | ${(s.avgSatisfaction * 100).toFixed(0)}% |`);
+    lines.push(
+      `| ${s.segment} | ${s.personaCount} | ${(s.adoptionRate * 100).toFixed(1)}% | $${s.avgWillingnessToPayUsd} | ${(s.avgSatisfaction * 100).toFixed(0)}% |`
+    );
   }
 
   lines.push(`\n## Pricing Sensitivity\n`);
@@ -364,7 +420,9 @@ export function marketTestToMarkdown(result: MarketTestResult): string {
   lines.push(`|-------|----------|---------------|`);
   for (const p of result.pricingSensitivity) {
     const marker = p.priceUsd === result.optimalPriceUsd ? " ← optimal" : "";
-    lines.push(`| $${p.priceUsd} | ${p.demandPercent.toFixed(1)}% | ${p.revenueIndex.toFixed(1)}${marker} |`);
+    lines.push(
+      `| $${p.priceUsd} | ${p.demandPercent.toFixed(1)}% | ${p.revenueIndex.toFixed(1)}${marker} |`
+    );
   }
 
   if (result.topInsights.length > 0) {

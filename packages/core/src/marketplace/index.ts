@@ -15,13 +15,11 @@ import {
   readFileSync,
   writeFileSync,
   readdirSync,
-  unlinkSync,
   renameSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { InnovatorPlugin } from "../types.js";
 
 const MARKETPLACE_DIR = join(homedir(), ".innovator", "marketplace");
 const REGISTRY_FILE = join(MARKETPLACE_DIR, "registry.json");
@@ -726,7 +724,7 @@ export function checkDependencyConflicts(
   templateIds: string[]
 ): Array<{ templateId: string; conflictsWith: string; reason: string }> {
   const registry = loadTemplateRegistry();
-  const byId = new Map(registry.templates.map((t) => [t.id, t]));
+  const _byId = new Map(registry.templates.map((t) => [t.id, t]));
   const seen = new Map<string, { version: string; from: string }>();
   const conflicts: Array<{ templateId: string; conflictsWith: string; reason: string }> = [];
 

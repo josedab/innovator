@@ -77,9 +77,9 @@ describe("rbac/scim", () => {
         emails: [{ value: "jdoe@example.com" }],
       });
 
-      expect(() =>
-        scimUpdateUser(user.id, { emails: [{ value: "invalid-email" }] })
-      ).toThrow("Invalid email");
+      expect(() => scimUpdateUser(user.id, { emails: [{ value: "invalid-email" }] })).toThrow(
+        "Invalid email"
+      );
     });
 
     it("should return undefined when updating nonexistent user", () => {

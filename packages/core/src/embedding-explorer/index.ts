@@ -82,7 +82,11 @@ const embeddingSpaces: Map<string, EmbeddingSpace> = new Map();
 // ---- TF-IDF vectorization (lightweight, no external deps) ----
 
 function tokenize(text: string): string[] {
-  return text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((w) => w.length > 2);
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
 }
 
 function computeTfIdfVectors(documents: string[]): number[][] {
@@ -118,7 +122,7 @@ function computeTfIdfVectors(documents: string[]): number[][] {
 
 // ---- Dimensionality reduction (simplified t-SNE-inspired) ----
 
-function reduceToThreeD(vectors: number[][], perplexity: number = 30): Point3D[] {
+function reduceToThreeD(vectors: number[][], _perplexity: number = 30): Point3D[] {
   const n = vectors.length;
   if (n === 0) return [];
   if (n === 1) return [{ x: 0, y: 0, z: 0 }];
@@ -142,7 +146,9 @@ function reduceToThreeD(vectors: number[][], perplexity: number = 30): Point3D[]
   const lr = 0.5;
   for (let iter = 0; iter < 100; iter++) {
     for (let i = 0; i < n; i++) {
-      let fx = 0, fy = 0, fz = 0;
+      let fx = 0,
+        fy = 0,
+        fz = 0;
 
       for (let j = 0; j < n; j++) {
         if (i === j) continue;
@@ -153,7 +159,7 @@ function reduceToThreeD(vectors: number[][], perplexity: number = 30): Point3D[]
 
         // Attraction proportional to high-D similarity, repulsion for all
         const attraction = Math.max(0, 1 - distances[i][j]) * 0.1;
-        const repulsion = 1 / (dist3d * dist3d + 0.01) * 0.01;
+        const repulsion = (1 / (dist3d * dist3d + 0.01)) * 0.01;
 
         fx += (attraction - repulsion) * (dx / dist3d);
         fy += (attraction - repulsion) * (dy / dist3d);
@@ -198,8 +204,12 @@ function kMeansCluster(points: Point3D[], k: number): number[] {
       let minDist = Infinity;
       let best = 0;
       for (let c = 0; c < centroids.length; c++) {
-        const dist = (p.x - centroids[c].x) ** 2 + (p.y - centroids[c].y) ** 2 + (p.z - centroids[c].z) ** 2;
-        if (dist < minDist) { minDist = dist; best = c; }
+        const dist =
+          (p.x - centroids[c].x) ** 2 + (p.y - centroids[c].y) ** 2 + (p.z - centroids[c].z) ** 2;
+        if (dist < minDist) {
+          minDist = dist;
+          best = c;
+        }
       }
       return best;
     });
@@ -240,8 +250,8 @@ function detectWhiteSpaces(clusters: IdeaCluster[], maxSpaces: number = 10): Whi
 
       const dist = Math.sqrt(
         (clusters[i].centroid.x - clusters[j].centroid.x) ** 2 +
-        (clusters[i].centroid.y - clusters[j].centroid.y) ** 2 +
-        (clusters[i].centroid.z - clusters[j].centroid.z) ** 2
+          (clusters[i].centroid.y - clusters[j].centroid.y) ** 2 +
+          (clusters[i].centroid.z - clusters[j].centroid.z) ** 2
       );
 
       // Only flag gaps where clusters are sufficiently far apart
@@ -295,7 +305,8 @@ export async function buildEmbeddingSpace(
   const vectors = computeTfIdfVectors(documents);
   const positions = reduceToThreeD(vectors);
 
-  const clusterCount = options.clusterCount ?? Math.min(Math.max(2, Math.floor(ideas.length / 3)), 10);
+  const clusterCount =
+    options.clusterCount ?? Math.min(Math.max(2, Math.floor(ideas.length / 3)), 10);
   const assignments = kMeansCluster(positions, clusterCount);
 
   const embeddedIdeas: EmbeddedIdea[] = ideas.map((idea, i) => ({
@@ -334,7 +345,11 @@ Respond with JSON array:
 
     const labels = await withRetry(
       async () => {
-        const raw = await generateText({ prompt: labelPrompt, model: options.model, signal: options.signal });
+        const raw = await generateText({
+          prompt: labelPrompt,
+          model: options.model,
+          signal: options.signal,
+        });
         const jsonStr = extractJson(raw);
         try {
           return JSON.parse(jsonStr) as unknown;
@@ -351,10 +366,14 @@ Respond with JSON array:
             err.message.includes("Unbalanced JSON braces")),
       }
     );
-    const labelArray = Array.isArray(labels) ? labels : (labels as Record<string, unknown>).clusters ?? [];
+    const labelArray = Array.isArray(labels)
+      ? labels
+      : ((labels as Record<string, unknown>).clusters ?? []);
 
     clusters = Array.from(clusterMap.entries()).map(([id, members]) => {
-      const labelInfo = (labelArray as Array<{ id: number; label?: string; themes?: string[] }>).find((l) => l.id === id);
+      const labelInfo = (
+        labelArray as Array<{ id: number; label?: string; themes?: string[] }>
+      ).find((l) => l.id === id);
       const centroid: Point3D = {
         x: members.reduce((s, m) => s + m.position.x, 0) / members.length,
         y: members.reduce((s, m) => s + m.position.y, 0) / members.length,
@@ -366,14 +385,27 @@ Respond with JSON array:
         label: labelInfo?.label ?? `Cluster ${id}`,
         centroid,
         ideaCount: members.length,
-        density: members.length / Math.max(1, Math.sqrt(
-          members.reduce((s, m) =>
-            s + (m.position.x - centroid.x) ** 2 + (m.position.y - centroid.y) ** 2 + (m.position.z - centroid.z) ** 2, 0)
-        )),
+        density:
+          members.length /
+          Math.max(
+            1,
+            Math.sqrt(
+              members.reduce(
+                (s, m) =>
+                  s +
+                  (m.position.x - centroid.x) ** 2 +
+                  (m.position.y - centroid.y) ** 2 +
+                  (m.position.z - centroid.z) ** 2,
+                0
+              )
+            )
+          ),
         themes: labelInfo?.themes ?? [],
-        avgScore: members.filter((m) => m.score != null).length > 0
-          ? members.reduce((s, m) => s + (m.score ?? 0), 0) / members.filter((m) => m.score != null).length
-          : undefined,
+        avgScore:
+          members.filter((m) => m.score != null).length > 0
+            ? members.reduce((s, m) => s + (m.score ?? 0), 0) /
+              members.filter((m) => m.score != null).length
+            : undefined,
       };
     });
   } catch {
@@ -384,7 +416,14 @@ Respond with JSON array:
         y: members.reduce((s, m) => s + m.position.y, 0) / members.length,
         z: members.reduce((s, m) => s + m.position.z, 0) / members.length,
       };
-      return { id, label: `Cluster ${id}`, centroid, ideaCount: members.length, density: 1, themes: [] };
+      return {
+        id,
+        label: `Cluster ${id}`,
+        centroid,
+        ideaCount: members.length,
+        density: 1,
+        themes: [],
+      };
     });
   }
 
@@ -458,7 +497,9 @@ Generate 3-5 novel ideas that bridge this gap. Respond with JSON:
           err.message.includes("Unbalanced JSON braces")),
     }
   );
-  const ideasArray = Array.isArray(parsed) ? parsed : ((parsed as Record<string, unknown>).ideas as unknown[]) ?? [];
+  const ideasArray = Array.isArray(parsed)
+    ? parsed
+    : (((parsed as Record<string, unknown>).ideas as unknown[]) ?? []);
   return (ideasArray as Array<{ title: string; description: string }>).map((i) => ({
     title: String(i.title ?? "").slice(0, 500),
     description: String(i.description ?? "").slice(0, 2000),
@@ -475,7 +516,11 @@ export function getEmbeddingSpace(id: string): EmbeddingSpace | undefined {
 /**
  * List all stored embedding spaces.
  */
-export function listEmbeddingSpaces(): Array<{ id: string; totalIdeas: number; generatedAt: string }> {
+export function listEmbeddingSpaces(): Array<{
+  id: string;
+  totalIdeas: number;
+  generatedAt: string;
+}> {
   return Array.from(embeddingSpaces.entries()).map(([id, s]) => ({
     id,
     totalIdeas: s.totalIdeas,

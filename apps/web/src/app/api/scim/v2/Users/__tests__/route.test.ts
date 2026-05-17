@@ -24,10 +24,7 @@ vi.mock("@/lib/logger", () => ({
 
 import { GET, POST } from "../route.js";
 
-function makeRequest(
-  url: string,
-  options?: RequestInit
-): Request {
+function makeRequest(url: string, options?: RequestInit): Request {
   return new Request(url, options);
 }
 
@@ -96,7 +93,7 @@ describe("SCIM /api/scim/v2/Users", () => {
       mockScimListUsers.mockReturnValue({ users: [], totalResults: 0 });
 
       const req = makeRequest(
-        'http://localhost/api/scim/v2/Users?filter=userName%20eq%20%22alice%22',
+        "http://localhost/api/scim/v2/Users?filter=userName%20eq%20%22alice%22",
         { headers: { Authorization: "Bearer valid-token" } }
       );
       await GET(req);

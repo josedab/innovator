@@ -1,14 +1,16 @@
 import { vi } from "vitest";
 
 vi.mock("../../copilot/client.js", () => ({
-  generateText: vi.fn().mockResolvedValue(JSON.stringify({
-    overallScore: 75,
-    dimensionScores: { feasibility: 80, innovation: 70, impact: 75 },
-    strengths: ["Good approach"],
-    concerns: ["Needs validation"],
-    recommendation: "Proceed with caution",
-    riskFlags: [],
-  })),
+  generateText: vi.fn().mockResolvedValue(
+    JSON.stringify({
+      overallScore: 75,
+      dimensionScores: { feasibility: 80, innovation: 70, impact: 75 },
+      strengths: ["Good approach"],
+      concerns: ["Needs validation"],
+      recommendation: "Proceed with caution",
+      riskFlags: [],
+    })
+  ),
   extractJson: vi.fn((s: string) => s),
 }));
 vi.mock("../../copilot/retry.js", () => ({
@@ -113,18 +115,12 @@ describe("persona-evaluation", () => {
     });
 
     it("validates riskTolerance bounds", () => {
-      expect(() =>
-        createPersona(makePersona({ id: "risk-low", riskTolerance: 0 }))
-      ).toThrow();
-      expect(() =>
-        createPersona(makePersona({ id: "risk-high", riskTolerance: 11 }))
-      ).toThrow();
+      expect(() => createPersona(makePersona({ id: "risk-low", riskTolerance: 0 }))).toThrow();
+      expect(() => createPersona(makePersona({ id: "risk-high", riskTolerance: 11 }))).toThrow();
     });
 
     it("validates priorities must not be empty", () => {
-      expect(() =>
-        createPersona(makePersona({ id: "no-priorities", priorities: [] }))
-      ).toThrow();
+      expect(() => createPersona(makePersona({ id: "no-priorities", priorities: [] }))).toThrow();
     });
 
     it("validates evaluationCriteria must not be empty", () => {
@@ -273,9 +269,7 @@ describe("persona-evaluation", () => {
     function makeAssessment(overrides: Partial<StakeholderAssessment> = {}): StakeholderAssessment {
       return {
         idea: "AI-powered widget",
-        scorecards: [
-          makeScorecard({ personaId: "cto", overallScore: 85 }),
-        ],
+        scorecards: [makeScorecard({ personaId: "cto", overallScore: 85 })],
         alignmentMatrix: {
           personas: ["cto"],
           ideas: ["AI-powered widget"],
@@ -400,18 +394,15 @@ describe("persona-evaluation", () => {
     });
 
     it("throws for unknown persona ID", async () => {
-      await expect(
-        evaluateWithPersona("Build a chatbot", "nonexistent-xyz")
-      ).rejects.toThrow("Persona not found: nonexistent-xyz");
+      await expect(evaluateWithPersona("Build a chatbot", "nonexistent-xyz")).rejects.toThrow(
+        "Persona not found: nonexistent-xyz"
+      );
     });
   });
 
   describe("evaluateWithMultiplePersonas", () => {
     it("evaluates across multiple personas", async () => {
-      const results = await evaluateWithMultiplePersonas("Build a chatbot", [
-        "cto",
-        "investor",
-      ]);
+      const results = await evaluateWithMultiplePersonas("Build a chatbot", ["cto", "investor"]);
       expect(results).toHaveLength(2);
       expect(results.map((r) => r.personaId)).toContain("cto");
       expect(results.map((r) => r.personaId)).toContain("investor");
@@ -438,10 +429,7 @@ describe("persona-evaluation", () => {
 
   describe("buildAlignmentMatrix", () => {
     it("builds matrix for single idea and multiple personas", async () => {
-      const matrix = await buildAlignmentMatrix(
-        ["AI Chatbot"],
-        ["cto", "investor"]
-      );
+      const matrix = await buildAlignmentMatrix(["AI Chatbot"], ["cto", "investor"]);
       expect(matrix.personas).toEqual(["cto", "investor"]);
       expect(matrix.ideas).toEqual(["AI Chatbot"]);
       expect(matrix.scores).toHaveLength(2); // 2 personas
@@ -452,19 +440,14 @@ describe("persona-evaluation", () => {
 
     it("identifies consensus when scores are identical", async () => {
       // Mock returns same score for all personas, so spread = 0 < 15
-      const matrix = await buildAlignmentMatrix(
-        ["Consensus Idea"],
-        ["cto", "investor"]
-      );
+      const matrix = await buildAlignmentMatrix(["Consensus Idea"], ["cto", "investor"]);
       expect(matrix.consensusIdeas).toContain("Consensus Idea");
     });
   });
 
   describe("suggestMediation", () => {
     beforeEach(async () => {
-      const { generateText } = vi.mocked(
-        await import("../../copilot/client.js")
-      );
+      const { generateText } = vi.mocked(await import("../../copilot/client.js"));
       generateText.mockResolvedValue(
         JSON.stringify({
           suggestedCompromise: "Phase the rollout",
@@ -497,9 +480,7 @@ describe("persona-evaluation", () => {
 
   describe("generateStakeholderAssessment", () => {
     beforeEach(async () => {
-      const { generateText } = vi.mocked(
-        await import("../../copilot/client.js")
-      );
+      const { generateText } = vi.mocked(await import("../../copilot/client.js"));
       generateText.mockResolvedValue(
         JSON.stringify({
           overallScore: 75,
@@ -520,16 +501,12 @@ describe("persona-evaluation", () => {
       expect(assessment.idea).toBe("Build a chatbot");
       expect(assessment.scorecards.length).toBeGreaterThan(0);
       expect(assessment.alignmentMatrix).toBeDefined();
-      expect(["ready", "conditional", "not-ready"]).toContain(
-        assessment.overallReadiness
-      );
+      expect(["ready", "conditional", "not-ready"]).toContain(assessment.overallReadiness);
       expect(assessment.executiveSummary).toBeTruthy();
     });
 
     it("determines readiness based on average score", async () => {
-      const assessment = await generateStakeholderAssessment("Build a chatbot", [
-        "cto",
-      ]);
+      const assessment = await generateStakeholderAssessment("Build a chatbot", ["cto"]);
       // Mock returns overallScore: 75, no risk flags → should be "ready"
       expect(assessment.overallReadiness).toBe("ready");
     });

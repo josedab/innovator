@@ -125,7 +125,8 @@ export function computePortfolioMetrics(
   let variance = 0;
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      variance += weights[i] * weights[j] * assets[i].risk * assets[j].risk * correlationMatrix[i][j];
+      variance +=
+        weights[i] * weights[j] * assets[i].risk * assets[j].risk * correlationMatrix[i][j];
     }
   }
 
@@ -170,7 +171,10 @@ export function runMonteCarloOptimization(
   const p95 = results[Math.floor(numSims * 0.95)];
 
   // Find optimal (max Sharpe ratio)
-  const optimal = results.reduce((best, curr) => curr.sharpe > best.sharpe ? curr : best, results[0]);
+  const optimal = results.reduce(
+    (best, curr) => (curr.sharpe > best.sharpe ? curr : best),
+    results[0]
+  );
 
   const toWeightRecord = (weights: number[]): Record<string, number> => {
     const record: Record<string, number> = {};
@@ -209,7 +213,8 @@ export function computeEfficientFrontier(
   const samplesPerPoint = 500;
 
   const frontier: EfficientFrontierPoint[] = [];
-  const allResults: Array<{ risk: number; returnVal: number; weights: number[]; sharpe: number }> = [];
+  const allResults: Array<{ risk: number; returnVal: number; weights: number[]; sharpe: number }> =
+    [];
 
   // Generate many random portfolios
   for (let i = 0; i < samplesPerPoint * numPoints; i++) {
@@ -231,7 +236,7 @@ export function computeEfficientFrontier(
     const binItems = allResults.filter((r) => r.risk >= binMin && r.risk < binMax);
 
     if (binItems.length > 0) {
-      const best = binItems.reduce((a, b) => a.returnVal > b.returnVal ? a : b, binItems[0]);
+      const best = binItems.reduce((a, b) => (a.returnVal > b.returnVal ? a : b), binItems[0]);
       const weightRecord: Record<string, number> = {};
       for (let j = 0; j < assets.length; j++) {
         weightRecord[assets[j].id] = best.weights[j];
@@ -268,14 +273,18 @@ export function optimizePortfolio(
   const monteCarlo = runMonteCarloOptimization(assets, correlationMatrix, config);
 
   // Find optimal point on frontier (max Sharpe ratio)
-  const optimal = frontier.length > 0
-    ? frontier.reduce((best, curr) => curr.sharpeRatio > best.sharpeRatio ? curr : best, frontier[0])
-    : {
-        risk: monteCarlo.optimalPortfolio.risk,
-        expectedReturn: monteCarlo.optimalPortfolio.return,
-        weights: monteCarlo.optimalPortfolio.weights,
-        sharpeRatio: monteCarlo.optimalPortfolio.sharpeRatio,
-      };
+  const optimal =
+    frontier.length > 0
+      ? frontier.reduce(
+          (best, curr) => (curr.sharpeRatio > best.sharpeRatio ? curr : best),
+          frontier[0]
+        )
+      : {
+          risk: monteCarlo.optimalPortfolio.risk,
+          expectedReturn: monteCarlo.optimalPortfolio.return,
+          weights: monteCarlo.optimalPortfolio.weights,
+          sharpeRatio: monteCarlo.optimalPortfolio.sharpeRatio,
+        };
 
   // Build summary
   const topAllocations = Object.entries(optimal.weights)
@@ -286,7 +295,8 @@ export function optimizePortfolio(
       return `${asset?.title ?? id}: ${(weight * 100).toFixed(1)}%`;
     });
 
-  const summary = `Optimal portfolio with Sharpe ratio ${optimal.sharpeRatio.toFixed(2)}: ` +
+  const summary =
+    `Optimal portfolio with Sharpe ratio ${optimal.sharpeRatio.toFixed(2)}: ` +
     `Expected return ${(optimal.expectedReturn * 100).toFixed(1)}%, ` +
     `Risk ${(optimal.risk * 100).toFixed(1)}%. ` +
     `Top allocations: ${topAllocations.join(", ")}`;
@@ -321,7 +331,9 @@ export function portfolioOptimizationToMarkdown(result: PortfolioOptimization): 
   for (const asset of result.assets) {
     const weight = result.optimalPortfolio.weights[asset.id] ?? 0;
     if (weight > 0.01) {
-      lines.push(`| ${asset.title} | ${(weight * 100).toFixed(1)}% | ${(asset.expectedReturn * 100).toFixed(1)}% | ${(asset.risk * 100).toFixed(1)}% |`);
+      lines.push(
+        `| ${asset.title} | ${(weight * 100).toFixed(1)}% | ${(asset.expectedReturn * 100).toFixed(1)}% | ${(asset.risk * 100).toFixed(1)}% |`
+      );
     }
   }
 
@@ -329,9 +341,15 @@ export function portfolioOptimizationToMarkdown(result: PortfolioOptimization): 
     const mc = result.monteCarloResult;
     lines.push("", "## Monte Carlo Simulation", "");
     lines.push(`- **Simulations:** ${mc.simulations.toLocaleString()}`);
-    lines.push(`- **5th Percentile:** Return ${(mc.percentile5.return * 100).toFixed(1)}%, Risk ${(mc.percentile5.risk * 100).toFixed(1)}%`);
-    lines.push(`- **50th Percentile:** Return ${(mc.percentile50.return * 100).toFixed(1)}%, Risk ${(mc.percentile50.risk * 100).toFixed(1)}%`);
-    lines.push(`- **95th Percentile:** Return ${(mc.percentile95.return * 100).toFixed(1)}%, Risk ${(mc.percentile95.risk * 100).toFixed(1)}%`);
+    lines.push(
+      `- **5th Percentile:** Return ${(mc.percentile5.return * 100).toFixed(1)}%, Risk ${(mc.percentile5.risk * 100).toFixed(1)}%`
+    );
+    lines.push(
+      `- **50th Percentile:** Return ${(mc.percentile50.return * 100).toFixed(1)}%, Risk ${(mc.percentile50.risk * 100).toFixed(1)}%`
+    );
+    lines.push(
+      `- **95th Percentile:** Return ${(mc.percentile95.return * 100).toFixed(1)}%, Risk ${(mc.percentile95.risk * 100).toFixed(1)}%`
+    );
   }
 
   lines.push("", "## Summary", "", result.summary);

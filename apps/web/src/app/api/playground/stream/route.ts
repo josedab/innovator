@@ -84,7 +84,13 @@ export async function GET(request: Request) {
         };
 
         try {
-          await runAutoPipeline(subject, sendProgress, undefined, undefined, abortController.signal);
+          await runAutoPipeline(
+            subject,
+            sendProgress,
+            undefined,
+            undefined,
+            abortController.signal
+          );
           logger.info("Playground pipeline completed", {
             route: "/api/playground/stream",
             requestId,

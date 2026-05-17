@@ -9,7 +9,7 @@
  */
 
 import { z } from "zod";
-import { generateText, extractJson } from "../copilot/client.js";
+import { generateText } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
 
@@ -171,14 +171,14 @@ export function trainModel(options?: { learningRate?: number; epochs?: number })
 
   // Gradient descent
   for (let epoch = 0; epoch < epochs; epoch++) {
-    let totalLoss = 0;
+    let _totalLoss = 0;
     const gradWeights = new Array(numFeatures).fill(0);
     let gradBias = 0;
 
     for (let i = 0; i < X.length; i++) {
       const pred = logisticPredict(X[i], modelWeights, modelBias);
       const error = pred - y[i];
-      totalLoss += -(y[i] * Math.log(pred + 1e-10) + (1 - y[i]) * Math.log(1 - pred + 1e-10));
+      _totalLoss += -(y[i] * Math.log(pred + 1e-10) + (1 - y[i]) * Math.log(1 - pred + 1e-10));
 
       for (let j = 0; j < numFeatures; j++) {
         gradWeights[j] += error * X[i][j];
@@ -199,7 +199,7 @@ export function trainModel(options?: { learningRate?: number; epochs?: number })
   const sortedPairs = rawScores.map((s, i) => ({ score: s, label: y[i] }));
   const above = sortedPairs.filter((p) => p.score > 0.5);
   const correct = above.filter((p) => p.label === 1).length;
-  const precision = above.length > 0 ? correct / above.length : 0;
+  const _precision = above.length > 0 ? correct / above.length : 0;
 
   // Simple Platt calibration: adjust A/B to minimize calibration error
   const meanScore = rawScores.reduce((a, b) => a + b, 0) / rawScores.length;

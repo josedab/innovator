@@ -10,7 +10,7 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { sanitizeUserInput, sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
+import { sanitizeUserInput, wrapUserInput } from "../prompts/sanitize.js";
 import { ValidationError, LlmParseError } from "../errors.js";
 import type { AngleResult, Investigation, Synthesis } from "../types.js";
 

@@ -1,4 +1,3 @@
-// @ts-nocheck — test mocks use simplified types
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@innovator/core", () => ({
@@ -114,10 +113,10 @@ describe("API /api/negotiate", () => {
   });
 
   it("returns 404 when step session not found", async () => {
-    vi.mocked(negotiateStep).mockResolvedValue(null as unknown as Awaited<ReturnType<typeof negotiateStep>>);
-    const res = await POST(
-      makeRequest({ action: "step", sessionId: "bad-id", message: "test" })
+    vi.mocked(negotiateStep).mockResolvedValue(
+      null as unknown as Awaited<ReturnType<typeof negotiateStep>>
     );
+    const res = await POST(makeRequest({ action: "step", sessionId: "bad-id", message: "test" }));
     expect(res.status).toBe(404);
   });
 
@@ -131,7 +130,9 @@ describe("API /api/negotiate", () => {
   });
 
   it("returns 404 when session not found", async () => {
-    vi.mocked(getNegotiation).mockReturnValue(undefined as unknown as ReturnType<typeof getNegotiation>);
+    vi.mocked(getNegotiation).mockReturnValue(
+      undefined as unknown as ReturnType<typeof getNegotiation>
+    );
     const res = await POST(makeRequest({ action: "get", sessionId: "bad-id" }));
     expect(res.status).toBe(404);
   });
@@ -144,7 +145,9 @@ describe("API /api/negotiate", () => {
   });
 
   it("returns 404 when completing non-existent session", async () => {
-    vi.mocked(completeNegotiation).mockReturnValue(null as unknown as ReturnType<typeof completeNegotiation>);
+    vi.mocked(completeNegotiation).mockReturnValue(
+      null as unknown as ReturnType<typeof completeNegotiation>
+    );
     const res = await POST(makeRequest({ action: "complete", sessionId: "bad-id" }));
     expect(res.status).toBe(404);
   });

@@ -9,7 +9,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { generateTextStream } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { wrapUserInput, sanitizeUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { wrapUserInput, sanitizeUserInput } from "../prompts/sanitize.js";
 import type { InnovationIdea, Investigation } from "../types.js";
 
 // ---- Types ----

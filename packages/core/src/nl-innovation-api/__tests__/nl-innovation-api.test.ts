@@ -1,12 +1,24 @@
 import { vi } from "vitest";
 
 vi.mock("../../copilot/client.js", () => ({
-  generateText: vi.fn().mockResolvedValue(JSON.stringify({
-    steps: [
-      { type: "investigate", description: "Research the topic", params: { subject: "test" }, order: 1 },
-      { type: "generate", description: "Generate ideas", params: { angleId: "scamper" }, order: 2 },
-    ],
-  })),
+  generateText: vi.fn().mockResolvedValue(
+    JSON.stringify({
+      steps: [
+        {
+          type: "investigate",
+          description: "Research the topic",
+          params: { subject: "test" },
+          order: 1,
+        },
+        {
+          type: "generate",
+          description: "Generate ideas",
+          params: { angleId: "scamper" },
+          order: 2,
+        },
+      ],
+    })
+  ),
   extractJson: vi.fn((s) => s),
 }));
 vi.mock("../../copilot/retry.js", () => ({
@@ -61,9 +73,7 @@ describe("nl-innovation-api", () => {
       const result = ExecutionPlanSchema.safeParse({
         id: "plan-1",
         prompt: "test prompt",
-        steps: [
-          { id: "s1", type: "investigate", description: "step 1" },
-        ],
+        steps: [{ id: "s1", type: "investigate", description: "step 1" }],
         createdAt: Date.now(),
       });
       expect(result.success).toBe(true);

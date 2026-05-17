@@ -1,7 +1,11 @@
 import { vi } from "vitest";
 
 vi.mock("../../copilot/client.js", () => ({
-  generateText: vi.fn().mockResolvedValue('{"signals":[{"title":"Test Signal","type":"pattern","confidence":0.8,"description":"A test signal"}]}'),
+  generateText: vi
+    .fn()
+    .mockResolvedValue(
+      '{"signals":[{"title":"Test Signal","type":"pattern","confidence":0.8,"description":"A test signal"}]}'
+    ),
   extractJson: vi.fn((s) => s),
 }));
 vi.mock("../../copilot/retry.js", () => ({
@@ -106,15 +110,11 @@ describe("innovation-monitor", () => {
     });
 
     it("validates source type", () => {
-      expect(() =>
-        addMonitorSource(makeSource({ type: "invalid" as any }))
-      ).toThrow();
+      expect(() => addMonitorSource(makeSource({ type: "invalid" as any }))).toThrow();
     });
 
     it("validates pollIntervalMs minimum", () => {
-      expect(() =>
-        addMonitorSource(makeSource({ pollIntervalMs: 100 }))
-      ).toThrow();
+      expect(() => addMonitorSource(makeSource({ pollIntervalMs: 100 }))).toThrow();
     });
 
     it("accepts all valid source types", () => {
@@ -272,7 +272,13 @@ describe("innovation-monitor", () => {
       (generateText as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
         JSON.stringify({
           opportunities: [
-            { type: "pattern", title: "Crit", description: "D", confidence: 0.9, urgency: "critical" },
+            {
+              type: "pattern",
+              title: "Crit",
+              description: "D",
+              confidence: 0.9,
+              urgency: "critical",
+            },
             { type: "pattern", title: "Low", description: "D", confidence: 0.9, urgency: "low" },
           ],
         })
@@ -555,7 +561,13 @@ describe("innovation-monitor", () => {
       (generateText as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
         JSON.stringify({
           opportunities: [
-            { type: "trend", title: "AI Growth", description: "Rapid AI adoption", confidence: 0.85, urgency: "high" },
+            {
+              type: "trend",
+              title: "AI Growth",
+              description: "Rapid AI adoption",
+              confidence: 0.85,
+              urgency: "high",
+            },
           ],
         })
       );
@@ -762,7 +774,13 @@ describe("innovation-monitor", () => {
       (generateText as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
         JSON.stringify({
           opportunities: [
-            { type: "pattern", title: "TS Test", description: "D", confidence: 0.9, urgency: "low" },
+            {
+              type: "pattern",
+              title: "TS Test",
+              description: "D",
+              confidence: 0.9,
+              urgency: "low",
+            },
           ],
         })
       );

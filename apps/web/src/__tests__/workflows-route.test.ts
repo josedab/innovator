@@ -209,9 +209,7 @@ describe("POST /api/workflows", () => {
   });
 
   it("returns 400 for unknown action", async () => {
-    const res = await POST(
-      makePostRequest({ action: "unknown" })
-    );
+    const res = await POST(makePostRequest({ action: "unknown" }));
     expect(res.status).toBe(400);
   });
 });

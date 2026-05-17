@@ -5,7 +5,6 @@ export const runtime = "nodejs";
 
 import {
   buildTaxonomy,
-  classifyIdeas,
   identifyGaps,
   exportTaxonomyAsMarkdown,
   getTaxonomyStats,

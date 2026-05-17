@@ -8,7 +8,7 @@
  */
 
 import { z } from "zod";
-import type { InvestigationBranch, AutonomousRun, AgentDecision } from "./types.js";
+import type { InvestigationBranch, AutonomousRun } from "./types.js";
 
 // ---- Convergence Schemas ----
 
@@ -95,7 +95,7 @@ export function buildCostEstimate(
   run: AutonomousRun,
   currentSpend: number,
   maxBudget: number,
-  llmCallsSoFar: number
+  _llmCallsSoFar: number
 ): CostEstimate {
   const model = run.config.model;
   const perCallCost = estimateCallCost(model);

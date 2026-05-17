@@ -110,7 +110,9 @@ describe("integration hub", () => {
         integration: "github",
       });
       expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.github.com/repos/acme/innovator/issues");
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
+        "https://api.github.com/repos/acme/innovator/issues"
+      );
       expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toMatchObject({
         title: expect.stringContaining("AI-Powered Code Review"),
         labels: expect.arrayContaining(["innovator", "roadmap"]),

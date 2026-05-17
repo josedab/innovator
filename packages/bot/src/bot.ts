@@ -1,6 +1,6 @@
 import { runAutoPipeline } from "@innovator/core";
 import type { PipelineProgress } from "@innovator/core";
-import type { BotConfig, BotPlatform, BotResponse } from "./types.js";
+import type { BotConfig, BotPlatform } from "./types.js";
 
 /**
  * Innovation bot that handles /innovate commands on any supported platform.

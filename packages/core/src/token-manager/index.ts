@@ -229,7 +229,7 @@ export class TokenBudgetManager {
 
 // ---- Context Compression (TF-IDF Extractive Summarization) ----
 
-interface TermFrequency {
+interface _TermFrequency {
   term: string;
   tf: number;
   idf: number;

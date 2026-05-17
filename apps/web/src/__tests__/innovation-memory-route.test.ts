@@ -47,9 +47,7 @@ describe("API /api/innovation-memory", () => {
 
   it("returns results for query with type and limit", async () => {
     mockService.query.mockReturnValue([]);
-    const res = await POST(
-      makePost({ action: "query", domain: "AI", type: "idea", limit: 5 })
-    );
+    const res = await POST(makePost({ action: "query", domain: "AI", type: "idea", limit: 5 }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.results).toEqual([]);
@@ -57,9 +55,7 @@ describe("API /api/innovation-memory", () => {
 
   it("returns recommendations for domain", async () => {
     mockService.getRecommendations.mockReturnValue([{ rec: "try X" }]);
-    const res = await POST(
-      makePost({ action: "recommendations", domain: "healthcare" })
-    );
+    const res = await POST(makePost({ action: "recommendations", domain: "healthcare" }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.recommendations).toEqual([{ rec: "try X" }]);

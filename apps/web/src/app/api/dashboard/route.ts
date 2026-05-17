@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       });
       return new Response(
         JSON.stringify({ error: "Invalid request. Please check your input and try again." }),
-        { status: 400, headers: API_RESPONSE_HEADERS },
+        { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
 
@@ -144,9 +144,9 @@ export async function POST(request: Request) {
       requestId,
       durationMs: Date.now() - startTime,
     });
-    return new Response(
-      JSON.stringify({ error: "Dashboard request failed. Please try again." }),
-      { status: 500, headers: API_RESPONSE_HEADERS },
-    );
+    return new Response(JSON.stringify({ error: "Dashboard request failed. Please try again." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

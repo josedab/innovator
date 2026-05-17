@@ -41,10 +41,12 @@ describe("POST /api/upload", () => {
     it("validates a valid image", async () => {
       mockValidateImage.mockReturnValue({ valid: true, sizeBytes: 1024 } as never);
 
-      const res = await POST(makePostRequest({
-        action: "validate",
-        imageData: "data:image/png;base64,iVBOR...",
-      }));
+      const res = await POST(
+        makePostRequest({
+          action: "validate",
+          imageData: "data:image/png;base64,iVBOR...",
+        })
+      );
       const data = await res.json();
 
       expect(res.status).toBe(200);
@@ -52,12 +54,18 @@ describe("POST /api/upload", () => {
     });
 
     it("validates an invalid image", async () => {
-      mockValidateImage.mockReturnValue({ valid: false, error: "Too large", sizeBytes: 99999999 } as never);
+      mockValidateImage.mockReturnValue({
+        valid: false,
+        error: "Too large",
+        sizeBytes: 99999999,
+      } as never);
 
-      const res = await POST(makePostRequest({
-        action: "validate",
-        imageData: "data:image/png;base64,big...",
-      }));
+      const res = await POST(
+        makePostRequest({
+          action: "validate",
+          imageData: "data:image/png;base64,big...",
+        })
+      );
       const data = await res.json();
 
       expect(res.status).toBe(200);
@@ -68,11 +76,13 @@ describe("POST /api/upload", () => {
     it("passes custom maxSizeMB", async () => {
       mockValidateImage.mockReturnValue({ valid: true, sizeBytes: 1024 } as never);
 
-      await POST(makePostRequest({
-        action: "validate",
-        imageData: "data:image/png;base64,abc",
-        maxSizeMB: 20,
-      }));
+      await POST(
+        makePostRequest({
+          action: "validate",
+          imageData: "data:image/png;base64,abc",
+          maxSizeMB: 20,
+        })
+      );
 
       expect(mockValidateImage).toHaveBeenCalledWith("data:image/png;base64,abc", 20);
     });
@@ -84,10 +94,12 @@ describe("POST /api/upload", () => {
       mockAnalyzeImage.mockResolvedValue({ description: "A diagram", elements: [] } as never);
       mockVisionToSubject.mockReturnValue("Diagram analysis");
 
-      const res = await POST(makePostRequest({
-        action: "analyze-image",
-        imageData: "data:image/png;base64,valid",
-      }));
+      const res = await POST(
+        makePostRequest({
+          action: "analyze-image",
+          imageData: "data:image/png;base64,valid",
+        })
+      );
       const data = await res.json();
 
       expect(res.status).toBe(200);
@@ -96,12 +108,18 @@ describe("POST /api/upload", () => {
     });
 
     it("returns 400 for invalid image in analyze", async () => {
-      mockValidateImage.mockReturnValue({ valid: false, error: "Invalid format", sizeBytes: 0 } as never);
+      mockValidateImage.mockReturnValue({
+        valid: false,
+        error: "Invalid format",
+        sizeBytes: 0,
+      } as never);
 
-      const res = await POST(makePostRequest({
-        action: "analyze-image",
-        imageData: "bad-data",
-      }));
+      const res = await POST(
+        makePostRequest({
+          action: "analyze-image",
+          imageData: "bad-data",
+        })
+      );
 
       expect(res.status).toBe(400);
       const data = await res.json();
@@ -113,18 +131,23 @@ describe("POST /api/upload", () => {
       mockAnalyzeImage.mockResolvedValue({ description: "Whiteboard notes" } as never);
       mockVisionToSubject.mockReturnValue("Whiteboard analysis");
 
-      const res = await POST(makePostRequest({
-        action: "analyze-image",
-        imageData: "data:image/png;base64,valid",
-        imageType: "whiteboard",
-        context: "Meeting notes from Q4 planning",
-      }));
+      const res = await POST(
+        makePostRequest({
+          action: "analyze-image",
+          imageData: "data:image/png;base64,valid",
+          imageType: "whiteboard",
+          context: "Meeting notes from Q4 planning",
+        })
+      );
 
       expect(res.status).toBe(200);
-      expect(mockAnalyzeImage).toHaveBeenCalledWith("data:image/png;base64,valid", expect.objectContaining({
-        imageType: "whiteboard",
-        context: "Meeting notes from Q4 planning",
-      }));
+      expect(mockAnalyzeImage).toHaveBeenCalledWith(
+        "data:image/png;base64,valid",
+        expect.objectContaining({
+          imageType: "whiteboard",
+          context: "Meeting notes from Q4 planning",
+        })
+      );
     });
   });
 
@@ -135,15 +158,19 @@ describe("POST /api/upload", () => {
         parseResults: [{ id: "r1", status: "completed" }],
       } as never);
 
-      const res = await POST(makePostRequest({
-        action: "process",
-        subject: "AI tool for teams",
-        attachments: [{
-          id: "att-1",
-          type: "image",
-          name: "diagram.png",
-        }],
-      }));
+      const res = await POST(
+        makePostRequest({
+          action: "process",
+          subject: "AI tool for teams",
+          attachments: [
+            {
+              id: "att-1",
+              type: "image",
+              name: "diagram.png",
+            },
+          ],
+        })
+      );
       const data = await res.json();
 
       expect(res.status).toBe(200);
@@ -157,10 +184,12 @@ describe("POST /api/upload", () => {
         parseResults: [],
       } as never);
 
-      const res = await POST(makePostRequest({
-        action: "process",
-        subject: "Simple idea exploration",
-      }));
+      const res = await POST(
+        makePostRequest({
+          action: "process",
+          subject: "Simple idea exploration",
+        })
+      );
 
       expect(res.status).toBe(200);
     });
@@ -183,10 +212,12 @@ describe("POST /api/upload", () => {
     });
 
     it("rejects empty imageData via Zod min(1)", async () => {
-      const res = await POST(makePostRequest({
-        action: "validate",
-        imageData: "",
-      }));
+      const res = await POST(
+        makePostRequest({
+          action: "validate",
+          imageData: "",
+        })
+      );
       expect(res.status).toBe(400);
     });
 
@@ -197,11 +228,13 @@ describe("POST /api/upload", () => {
         name: `file-${i}.png`,
       }));
 
-      const res = await POST(makePostRequest({
-        action: "process",
-        subject: "Test",
-        attachments,
-      }));
+      const res = await POST(
+        makePostRequest({
+          action: "process",
+          subject: "Test",
+          attachments,
+        })
+      );
       expect(res.status).toBe(400);
     });
   });

@@ -108,7 +108,7 @@ const HIGH_IMPACT_WORDS = [
   "paradigm",
   "game-changing",
 ];
-const MED_IMPACT_WORDS = ["significant", "substantial", "meaningful", "notable", "important"];
+const _MED_IMPACT_WORDS = ["significant", "substantial", "meaningful", "notable", "important"];
 const LOW_IMPACT_WORDS = ["incremental", "minor", "small", "marginal"];
 
 const HIGH_FEASIBILITY_WORDS = [

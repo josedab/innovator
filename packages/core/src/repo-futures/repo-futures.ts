@@ -27,10 +27,7 @@ function titleCase(input: string): string {
     .join(" ");
 }
 
-function inferCapabilityType(
-  path: string,
-  explicitType?: string
-): CapabilityNode["type"] {
+function inferCapabilityType(path: string, explicitType?: string): CapabilityNode["type"] {
   const haystack = `${explicitType ?? ""} ${path}`.toLowerCase();
 
   if (["api", "route", "graphql", "rpc", "endpoint"].some((token) => haystack.includes(token))) {
@@ -53,7 +50,10 @@ function inferCapabilityType(
   return "module";
 }
 
-function deriveCapabilityIds(path: string, explicitType?: string): {
+function deriveCapabilityIds(
+  path: string,
+  explicitType?: string
+): {
   rootId: string;
   rootName: string;
   rootType: CapabilityNode["type"];
@@ -67,13 +67,17 @@ function deriveCapabilityIds(path: string, explicitType?: string): {
   if (parts[0] === "packages" && parts.length >= 2) {
     const rootId = `packages/${parts[1]}`;
     const moduleSegment = parts[2] === "src" ? parts[3] : parts[2];
-    const nodeId = moduleSegment && !moduleSegment.includes(".") ? `${rootId}/${moduleSegment}` : rootId;
+    const nodeId =
+      moduleSegment && !moduleSegment.includes(".") ? `${rootId}/${moduleSegment}` : rootId;
     return {
       rootId,
       rootName: titleCase(parts[1]),
       rootType: "library",
       nodeId,
-      nodeName: nodeId === rootId ? titleCase(parts[1]) : `${titleCase(parts[1])} ${titleCase(moduleSegment)}`,
+      nodeName:
+        nodeId === rootId
+          ? titleCase(parts[1])
+          : `${titleCase(parts[1])} ${titleCase(moduleSegment)}`,
       nodeType: inferCapabilityType(normalized, explicitType),
     };
   }
@@ -81,13 +85,17 @@ function deriveCapabilityIds(path: string, explicitType?: string): {
   if (parts[0] === "apps" && parts.length >= 2) {
     const rootId = `apps/${parts[1]}`;
     const moduleSegment = parts[2] === "src" ? parts[3] : parts[2];
-    const nodeId = moduleSegment && !moduleSegment.includes(".") ? `${rootId}/${moduleSegment}` : rootId;
+    const nodeId =
+      moduleSegment && !moduleSegment.includes(".") ? `${rootId}/${moduleSegment}` : rootId;
     return {
       rootId,
       rootName: titleCase(parts[1]),
       rootType: inferCapabilityType(rootId, explicitType === "api" ? "service" : explicitType),
       nodeId,
-      nodeName: nodeId === rootId ? titleCase(parts[1]) : `${titleCase(parts[1])} ${titleCase(moduleSegment)}`,
+      nodeName:
+        nodeId === rootId
+          ? titleCase(parts[1])
+          : `${titleCase(parts[1])} ${titleCase(moduleSegment)}`,
       nodeType: inferCapabilityType(normalized, explicitType),
     };
   }
@@ -171,7 +179,9 @@ function extractSourcePaths(node: CapabilityNode): string[] {
     : [];
 }
 
-function buildPathIndex(graph: CapabilityGraph): Map<string, { nodeId: string; nodeType: CapabilityNode["type"] }> {
+function buildPathIndex(
+  graph: CapabilityGraph
+): Map<string, { nodeId: string; nodeType: CapabilityNode["type"] }> {
   const index = new Map<string, { nodeId: string; nodeType: CapabilityNode["type"] }>();
 
   for (const node of graph.nodes) {
@@ -185,7 +195,13 @@ function buildPathIndex(graph: CapabilityGraph): Map<string, { nodeId: string; n
 
 function findUnlockedNodes(paths: string[], graph: CapabilityGraph): string[] {
   const pathIndex = buildPathIndex(graph);
-  return [...new Set(paths.map((path) => pathIndex.get(path)?.nodeId).filter((value): value is string => Boolean(value)))];
+  return [
+    ...new Set(
+      paths
+        .map((path) => pathIndex.get(path)?.nodeId)
+        .filter((value): value is string => Boolean(value))
+    ),
+  ];
 }
 
 function createOpportunity(params: Omit<InnovationOpportunity, "id">): InnovationOpportunity {
@@ -196,7 +212,9 @@ function createOpportunity(params: Omit<InnovationOpportunity, "id">): Innovatio
 }
 
 // Builds capability graph from file listings
-export function buildCapabilityGraph(files: Array<{ path: string; type?: string }>): CapabilityGraph {
+export function buildCapabilityGraph(
+  files: Array<{ path: string; type?: string }>
+): CapabilityGraph {
   const nodes = new Map<string, CapabilityNode>();
   const edges = new Map<string, CapabilityGraph["edges"][number]>();
 
@@ -228,8 +246,8 @@ export function buildCapabilityGraph(files: Array<{ path: string; type?: string 
 
   return CapabilityGraphSchema.parse({
     nodes: Array.from(nodes.values()).sort((left, right) => left.id.localeCompare(right.id)),
-    edges: Array.from(edges.values()).sort(
-      (left, right) => `${left.from}:${left.to}`.localeCompare(`${right.from}:${right.to}`)
+    edges: Array.from(edges.values()).sort((left, right) =>
+      `${left.from}:${left.to}`.localeCompare(`${right.from}:${right.to}`)
     ),
     analyzedAt: new Date().toISOString(),
   });
@@ -284,16 +302,28 @@ export function generateOpportunities(
   opts?: { minConfidence?: number }
 ): InnovationOpportunity[] {
   const opportunities: InnovationOpportunity[] = [];
-  const addedPaths = delta.files.filter((file) => file.changeType === "added").map((file) => file.path);
-  const modifiedPaths = delta.files.filter((file) => file.changeType === "modified").map((file) => file.path);
-  const deletedPaths = delta.files.filter((file) => file.changeType === "deleted").map((file) => file.path);
+  const addedPaths = delta.files
+    .filter((file) => file.changeType === "added")
+    .map((file) => file.path);
+  const modifiedPaths = delta.files
+    .filter((file) => file.changeType === "modified")
+    .map((file) => file.path);
+  const deletedPaths = delta.files
+    .filter((file) => file.changeType === "deleted")
+    .map((file) => file.path);
   const changedPaths = delta.files.map((file) => file.path);
   const pathIndex = buildPathIndex(graph);
   const changedNodes = changedPaths
     .map((path) => pathIndex.get(path))
-    .filter((value): value is { nodeId: string; nodeType: CapabilityNode["type"] } => Boolean(value));
-  const changedRoots = new Set(changedNodes.map((node) => node.nodeId.split("/").slice(0, 2).join("/")));
-  const addedNodeTypes = new Set(addedPaths.map((path) => pathIndex.get(path)?.nodeType).filter(Boolean));
+    .filter((value): value is { nodeId: string; nodeType: CapabilityNode["type"] } =>
+      Boolean(value)
+    );
+  const changedRoots = new Set(
+    changedNodes.map((node) => node.nodeId.split("/").slice(0, 2).join("/"))
+  );
+  const addedNodeTypes = new Set(
+    addedPaths.map((path) => pathIndex.get(path)?.nodeType).filter(Boolean)
+  );
 
   if (addedNodeTypes.has("api") || addedNodeTypes.has("service")) {
     opportunities.push(
@@ -421,8 +451,10 @@ export function rankOpportunities(opportunities: InnovationOpportunity[]): Innov
   const effortWeight = { low: 3, medium: 2, high: 1 };
 
   return [...opportunities].sort((left, right) => {
-    const leftScore = left.confidence * 10 + impactWeight[left.impact] * 4 + effortWeight[left.effort] * 2;
-    const rightScore = right.confidence * 10 + impactWeight[right.impact] * 4 + effortWeight[right.effort] * 2;
+    const leftScore =
+      left.confidence * 10 + impactWeight[left.impact] * 4 + effortWeight[left.effort] * 2;
+    const rightScore =
+      right.confidence * 10 + impactWeight[right.impact] * 4 + effortWeight[right.effort] * 2;
     return rightScore - leftScore || right.title.localeCompare(left.title);
   });
 }

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@innovator/core", () => ({
@@ -25,10 +24,23 @@ const NLVizRequestSchema = z.object({
   query: z.string().min(1).max(1000),
   data: z.record(z.string(), z.unknown()).optional(),
   angleResults: z
-    .array(z.object({ angleId: z.string(), angleName: z.string(), ideas: z.array(z.object({ title: z.string() })) }))
+    .array(
+      z.object({
+        angleId: z.string(),
+        angleName: z.string(),
+        ideas: z.array(z.object({ title: z.string() })),
+      })
+    )
     .optional(),
   scores: z
-    .array(z.object({ ideaTitle: z.string(), feasibility: z.number(), impact: z.number(), novelty: z.number() }))
+    .array(
+      z.object({
+        ideaTitle: z.string(),
+        feasibility: z.number(),
+        impact: z.number(),
+        novelty: z.number(),
+      })
+    )
     .optional(),
   model: z.string().optional(),
   preferredChartType: z
@@ -71,11 +83,15 @@ async function NLVizPOST(request: Request) {
       vizData = { ...vizData, ...extractInnovationData(angleResults as any, scores as any) };
     }
 
-    const result = await generateVisualization(query, vizData as any, {
-      model,
-      preferredChartType,
-      signal: request.signal,
-    } as any);
+    const result = await generateVisualization(
+      query,
+      vizData as any,
+      {
+        model,
+        preferredChartType,
+        signal: request.signal,
+      } as any
+    );
 
     return new Response(JSON.stringify(result), { status: 200, headers: API_RESPONSE_HEADERS });
   } catch {
@@ -89,13 +105,18 @@ async function NLVizPOST(request: Request) {
 // Embedding Explorer
 
 const EmbedRequestSchema = z.object({
-  ideas: z.array(z.object({
-    id: z.string().max(100),
-    title: z.string().min(1).max(500),
-    description: z.string().min(1).max(2000),
-    tags: z.array(z.string().max(100)).max(10).optional(),
-    score: z.number().min(0).max(1).optional(),
-  })).min(1).max(500),
+  ideas: z
+    .array(
+      z.object({
+        id: z.string().max(100),
+        title: z.string().min(1).max(500),
+        description: z.string().min(1).max(2000),
+        tags: z.array(z.string().max(100)).max(10).optional(),
+        score: z.number().min(0).max(1).optional(),
+      })
+    )
+    .min(1)
+    .max(500),
   model: z.string().max(100).optional(),
   clusterCount: z.number().min(2).max(20).optional(),
 });
@@ -128,17 +149,20 @@ async function EmbedPOST(request: Request) {
       );
     }
 
-    const space = await buildEmbeddingSpace(parsed.data.ideas as any, {
-      model: parsed.data.model,
-      clusterCount: parsed.data.clusterCount,
-    } as any);
+    const space = await buildEmbeddingSpace(
+      parsed.data.ideas as any,
+      {
+        model: parsed.data.model,
+        clusterCount: parsed.data.clusterCount,
+      } as any
+    );
 
     return Response.json(space, { headers: API_RESPONSE_HEADERS });
   } catch {
-    return new Response(
-      JSON.stringify({ error: "Embedding space construction failed." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Embedding space construction failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }
 
@@ -170,9 +194,11 @@ describe("POST /api/nl-visualization", () => {
       data: [{ label: "A", value: 80 }],
     } as any);
 
-    const res = await NLVizPOST(makeNLVizRequest({
-      query: "Show me a bar chart of idea scores",
-    }));
+    const res = await NLVizPOST(
+      makeNLVizRequest({
+        query: "Show me a bar chart of idea scores",
+      })
+    );
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -186,13 +212,13 @@ describe("POST /api/nl-visualization", () => {
       chartConfig: { chartType: "radar" },
     } as any);
 
-    const res = await NLVizPOST(makeNLVizRequest({
-      query: "Create a radar chart",
-      angleResults: [
-        { angleId: "bio", angleName: "Biomimicry", ideas: [{ title: "Bio idea" }] },
-      ],
-      preferredChartType: "radar",
-    }));
+    const res = await NLVizPOST(
+      makeNLVizRequest({
+        query: "Create a radar chart",
+        angleResults: [{ angleId: "bio", angleName: "Biomimicry", ideas: [{ title: "Bio idea" }] }],
+        preferredChartType: "radar",
+      })
+    );
 
     expect(res.status).toBe(200);
     expect(mockExtractInnovationData).toHaveBeenCalled();
@@ -209,10 +235,12 @@ describe("POST /api/nl-visualization", () => {
   });
 
   it("returns 400 for unsupported chart type", async () => {
-    const res = await NLVizPOST(makeNLVizRequest({
-      query: "Show chart",
-      preferredChartType: "3d-globe",
-    }));
+    const res = await NLVizPOST(
+      makeNLVizRequest({
+        query: "Show chart",
+        preferredChartType: "3d-globe",
+      })
+    );
     expect(res.status).toBe(400);
   });
 
@@ -286,10 +314,12 @@ describe("POST /api/embedding-explorer", () => {
       whiteSpaces: [],
     } as any);
 
-    const res = await EmbedPOST(makeEmbedRequest({
-      ideas: SAMPLE_IDEAS,
-      clusterCount: 5,
-    }));
+    const res = await EmbedPOST(
+      makeEmbedRequest({
+        ideas: SAMPLE_IDEAS,
+        clusterCount: 5,
+      })
+    );
 
     expect(res.status).toBe(200);
     expect(mockBuildEmbeddingSpace).toHaveBeenCalledWith(
@@ -304,16 +334,20 @@ describe("POST /api/embedding-explorer", () => {
   });
 
   it("returns 400 for idea missing title", async () => {
-    const res = await EmbedPOST(makeEmbedRequest({
-      ideas: [{ id: "i1", description: "No title" }],
-    }));
+    const res = await EmbedPOST(
+      makeEmbedRequest({
+        ideas: [{ id: "i1", description: "No title" }],
+      })
+    );
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for idea missing description", async () => {
-    const res = await EmbedPOST(makeEmbedRequest({
-      ideas: [{ id: "i1", title: "Has title" }],
-    }));
+    const res = await EmbedPOST(
+      makeEmbedRequest({
+        ideas: [{ id: "i1", title: "Has title" }],
+      })
+    );
     expect(res.status).toBe(400);
   });
 
@@ -353,15 +387,19 @@ describe("POST /api/embedding-explorer", () => {
       whiteSpaces: [],
     } as any);
 
-    const res = await EmbedPOST(makeEmbedRequest({
-      ideas: [{
-        id: "i1",
-        title: "Tagged Idea",
-        description: "A test idea",
-        tags: ["innovation", "ai"],
-        score: 0.85,
-      }],
-    }));
+    const res = await EmbedPOST(
+      makeEmbedRequest({
+        ideas: [
+          {
+            id: "i1",
+            title: "Tagged Idea",
+            description: "A test idea",
+            tags: ["innovation", "ai"],
+            score: 0.85,
+          },
+        ],
+      })
+    );
 
     expect(res.status).toBe(200);
   });

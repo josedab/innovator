@@ -16,13 +16,7 @@ import type {
   MarketAnalytics,
   MarketConfig,
 } from "./types.js";
-import {
-  MarketSchema,
-  OrderSchema,
-  TradeSchema,
-  TraderPortfolioSchema,
-  MarketAnalyticsSchema,
-} from "./types.js";
+import { MarketSchema, OrderSchema, TradeSchema, MarketAnalyticsSchema } from "./types.js";
 
 export * from "./types.js";
 

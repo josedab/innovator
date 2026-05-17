@@ -12,7 +12,6 @@ import {
   enrichAngleSelection,
   computeGenomeAnalytics,
   genomeAnalyticsToMarkdown,
-  gossipSync,
 } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -33,14 +32,17 @@ function getOrCreateDefaultNode() {
 const ContributeSchema = z.object({
   action: z.literal("contribute"),
   domain: z.string().max(200),
-  angleResults: z.array(
-    z.object({
-      angleId: z.string().max(100),
-      angleName: z.string().max(200),
-      ideasCount: z.number().int().min(0),
-      successRate: z.number().min(0).max(1).optional(),
-    })
-  ).min(1).max(20),
+  angleResults: z
+    .array(
+      z.object({
+        angleId: z.string().max(100),
+        angleName: z.string().max(200),
+        ideasCount: z.number().int().min(0),
+        successRate: z.number().min(0).max(1).optional(),
+      })
+    )
+    .min(1)
+    .max(20),
 });
 
 const EnrichSchema = z.object({
@@ -84,10 +86,10 @@ export async function GET(request: Request) {
       error: err instanceof Error ? err.message : String(err),
       route: "/api/genome",
     });
-    return new Response(
-      JSON.stringify({ error: "Failed to retrieve genome data." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Failed to retrieve genome data." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }
 
@@ -139,11 +141,7 @@ export async function POST(request: Request) {
       }
 
       case "enrich": {
-        const result = enrichAngleSelection(
-          node.id,
-          parsed.data.angles,
-          parsed.data.domainHint
-        );
+        const result = enrichAngleSelection(node.id, parsed.data.angles, parsed.data.domainHint);
         return Response.json(result, { headers: API_RESPONSE_HEADERS });
       }
     }
@@ -153,9 +151,9 @@ export async function POST(request: Request) {
       route: "/api/genome",
       requestId,
     });
-    return new Response(
-      JSON.stringify({ error: "Genome operation failed." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Genome operation failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

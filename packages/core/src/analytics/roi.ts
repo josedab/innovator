@@ -58,9 +58,12 @@ export type ROIReport = z.infer<typeof ROIReportSchema>;
 /**
  * Calculate ROI metrics for innovation activities.
  */
-export function calculateROI(config?: Partial<ROIConfig>): ROIReport {
+export function calculateROI(
+  config?: Partial<ROIConfig>,
+  events?: import("./index.js").AnalyticsEvent[]
+): ROIReport {
   const cfg = ROIConfigSchema.parse(config ?? {});
-  const events = readEvents();
+  events = events ?? readEvents();
 
   if (events.length === 0) {
     const now = new Date().toISOString();
@@ -68,7 +71,9 @@ export function calculateROI(config?: Partial<ROIConfig>): ROIReport {
   }
 
   // Count key events
-  const sessions = events.filter((e) => e.type === "pipeline_completed" || e.type === "pipeline_started");
+  const sessions = events.filter(
+    (e) => e.type === "pipeline_completed" || e.type === "pipeline_started"
+  );
   const ideaEvents = events.filter((e) => e.type === "angle_generated");
   const exportEvents = events.filter((e) => e.type === "session_exported");
 
@@ -80,7 +85,7 @@ export function calculateROI(config?: Partial<ROIConfig>): ROIReport {
   const totalExports = exportEvents.length;
 
   // Estimate time (avg 5 min per session)
-  const totalHoursEstimated = Math.round((totalSessions * 5) / 60 * 10) / 10;
+  const totalHoursEstimated = Math.round(((totalSessions * 5) / 60) * 10) / 10;
 
   // Investment
   const sessionCost = totalSessions * cfg.costPerSession;
@@ -97,11 +102,11 @@ export function calculateROI(config?: Partial<ROIConfig>): ROIReport {
   const netValue = totalValue - totalCost;
   const roiPercent = totalCost > 0 ? Math.round((netValue / totalCost) * 100) : 0;
   const costPerIdea = totalIdeas > 0 ? Math.round((totalCost / totalIdeas) * 100) / 100 : 0;
-  const valuePerSession = totalSessions > 0 ? Math.round((totalValue / totalSessions) * 100) / 100 : 0;
+  const valuePerSession =
+    totalSessions > 0 ? Math.round((totalValue / totalSessions) * 100) / 100 : 0;
   const netValuePerSession = valuePerSession - cfg.costPerSession;
-  const paybackSessions = netValuePerSession > 0
-    ? Math.ceil(cfg.costPerSession / netValuePerSession)
-    : 0;
+  const paybackSessions =
+    netValuePerSession > 0 ? Math.ceil(cfg.costPerSession / netValuePerSession) : 0;
 
   const timestamps = events.map((e) => e.timestamp).sort();
   const periodStart = timestamps[0] ?? new Date().toISOString();
@@ -187,8 +192,21 @@ export function roiToMarkdown(report: ROIReport): string {
 function createEmptyReport(start: string, end: string, currency: string): ROIReport {
   return {
     period: { start, end },
-    investment: { totalSessions: 0, totalHoursEstimated: 0, sessionCost: 0, timeCost: 0, totalCost: 0 },
-    returns: { totalIdeas: 0, estimatedImplemented: 0, totalExports: 0, ideaValue: 0, exportValue: 0, totalValue: 0 },
+    investment: {
+      totalSessions: 0,
+      totalHoursEstimated: 0,
+      sessionCost: 0,
+      timeCost: 0,
+      totalCost: 0,
+    },
+    returns: {
+      totalIdeas: 0,
+      estimatedImplemented: 0,
+      totalExports: 0,
+      ideaValue: 0,
+      exportValue: 0,
+      totalValue: 0,
+    },
     roi: { netValue: 0, roiPercent: 0, paybackSessions: 0, costPerIdea: 0, valuePerSession: 0 },
     currency,
     generatedAt: new Date().toISOString(),

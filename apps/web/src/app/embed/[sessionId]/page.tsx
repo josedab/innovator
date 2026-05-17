@@ -14,8 +14,9 @@ export default async function EmbedPage({ params }: PageProps) {
   if (!session) notFound();
 
   const ideaCount = session.angleResults.reduce((sum, ar) => sum + ar.ideas.length, 0);
-  const topIdeas = session.synthesis?.topIdeas?.slice(0, 3)
-    ?? session.angleResults.flatMap((ar) => ar.ideas).slice(0, 3);
+  const topIdeas =
+    session.synthesis?.topIdeas?.slice(0, 3) ??
+    session.angleResults.flatMap((ar) => ar.ideas).slice(0, 3);
 
   return (
     <html lang="en">
@@ -56,7 +57,10 @@ export default async function EmbedPage({ params }: PageProps) {
           </div>
         ))}
         <div className="footer">
-          Powered by <a href={`/share/${sessionId}`} target="_blank" rel="noopener">Innovator</a>
+          Powered by{" "}
+          <a href={`/share/${sessionId}`} target="_blank" rel="noopener">
+            Innovator
+          </a>
         </div>
       </body>
     </html>

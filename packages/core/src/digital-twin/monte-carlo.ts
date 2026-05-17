@@ -112,17 +112,17 @@ function computeStats(values: number[]): DistributionStats {
 /** Derive simulation parameters from ecosystem snapshot and strategy. */
 function deriveParameters(snapshot: EcosystemSnapshot, strategy: Strategy) {
   const teamSize = snapshot.team.length;
-  const avgCapacity = teamSize > 0
-    ? snapshot.team.reduce((s, m) => s + m.capacity, 0) / teamSize
-    : 0.5;
-  const budgetFraction = snapshot.budget.totalBudget > 0
-    ? snapshot.budget.remaining / snapshot.budget.totalBudget
-    : 0.5;
+  const avgCapacity =
+    teamSize > 0 ? snapshot.team.reduce((s, m) => s + m.capacity, 0) / teamSize : 0.5;
+  const budgetFraction =
+    snapshot.budget.totalBudget > 0 ? snapshot.budget.remaining / snapshot.budget.totalBudget : 0.5;
   const pipelineSize = snapshot.pipeline.length;
   const competitorCount = snapshot.marketContext.competitors.length;
-  const avgAngleSuccess = snapshot.angleEffectiveness.length > 0
-    ? snapshot.angleEffectiveness.reduce((s, a) => s + a.successRate, 0) / snapshot.angleEffectiveness.length
-    : 0.5;
+  const avgAngleSuccess =
+    snapshot.angleEffectiveness.length > 0
+      ? snapshot.angleEffectiveness.reduce((s, a) => s + a.successRate, 0) /
+        snapshot.angleEffectiveness.length
+      : 0.5;
 
   // Base rates
   const weeklyIdeaRate = teamSize * avgCapacity * avgAngleSuccess * 0.3;
@@ -144,9 +144,11 @@ function deriveParameters(snapshot: EcosystemSnapshot, strategy: Strategy) {
     competitorPressure: Math.min(competitorCount * 0.05, 0.3),
     riskMultiplier,
     pipelineSize,
-    weeklyBudgetBurn: snapshot.budget.totalBudget > 0
-      ? (snapshot.budget.totalBudget - snapshot.budget.remaining) / Math.max(pipelineSize, 1) * aggressiveness
-      : 0,
+    weeklyBudgetBurn:
+      snapshot.budget.totalBudget > 0
+        ? ((snapshot.budget.totalBudget - snapshot.budget.remaining) / Math.max(pipelineSize, 1)) *
+          aggressiveness
+        : 0,
   };
 }
 
@@ -174,7 +176,10 @@ function runIteration(
 
   for (let week = 0; week < weeks; week++) {
     // Generate new ideas (Poisson-like via normal approximation)
-    const newIdeas = Math.max(0, Math.round(normalRandom(rand, params.weeklyIdeaRate, params.weeklyIdeaRate * 0.3)));
+    const newIdeas = Math.max(
+      0,
+      Math.round(normalRandom(rand, params.weeklyIdeaRate, params.weeklyIdeaRate * 0.3))
+    );
     ideas += newIdeas;
 
     // Launch ideas
@@ -205,7 +210,8 @@ function runIteration(
   );
   const innovationVelocity = launched / Math.max(weeks / 13, 1);
   const riskScore = clamp(
-    params.riskMultiplier * (params.competitorPressure * 100 + (1 - budgetUtilization) * 20 + rand() * 20),
+    params.riskMultiplier *
+      (params.competitorPressure * 100 + (1 - budgetUtilization) * 20 + rand() * 20),
     0,
     100
   );
@@ -274,7 +280,8 @@ export function runMonteCarloSimulation(
       teamUtilization: computeStats(allTeamUtil),
       innovationVelocity: computeStats(allVelocity),
       riskScore: computeStats(allRisk),
-      breakthroughProbability: Math.round((breakthroughCount / parsedConfig.iterations) * 100) / 100,
+      breakthroughProbability:
+        Math.round((breakthroughCount / parsedConfig.iterations) * 100) / 100,
       budgetOverrunProbability: Math.round((overrunCount / parsedConfig.iterations) * 100) / 100,
     },
     quarterlyProjection: quarterlyIdeasAll.map((ideas, i) => ({
@@ -360,7 +367,9 @@ export function monteCarloToMarkdown(comparison: MonteCarloComparison): string {
     lines.push("");
     lines.push("| Metric | Mean | P5 | P25 | Median | P75 | P95 |");
     lines.push("|--------|------|----|-----|--------|-----|-----|");
-    for (const [name, stats] of Object.entries(r.metrics) as Array<[string, DistributionStats | number]>) {
+    for (const [name, stats] of Object.entries(r.metrics) as Array<
+      [string, DistributionStats | number]
+    >) {
       if (typeof stats === "object" && "mean" in stats) {
         lines.push(
           `| ${name} | ${stats.mean} | ${stats.p5} | ${stats.p25} | ${stats.median} | ${stats.p75} | ${stats.p95} |`

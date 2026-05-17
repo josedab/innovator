@@ -4,10 +4,7 @@
 vi.mock("@github/copilot-sdk", () => ({ CopilotClient: vi.fn() }));
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  generateExecutiveReport,
-  executiveReportToMarkdown,
-} from "../executive-report.js";
+import { generateExecutiveReport, executiveReportToMarkdown } from "../executive-report.js";
 import { trackEvent, clearAnalytics } from "../index.js";
 
 beforeEach(() => {
@@ -18,7 +15,7 @@ describe("executive-report", () => {
   describe("generateExecutiveReport", () => {
     it("generates report with no events", () => {
       const report = generateExecutiveReport("Test Period");
-      
+
       expect(report.id).toMatch(/^report-/);
       expect(report.title).toContain("Test Period");
       expect(report.highlights).toHaveLength(4);
@@ -34,10 +31,10 @@ describe("executive-report", () => {
       trackEvent("session_exported", {});
 
       const report = generateExecutiveReport();
-      
+
       expect(report.highlights.find((h) => h.metric === "Innovation Sessions")).toBeDefined();
       expect(report.highlights.find((h) => h.metric === "Ideas Generated")).toBeDefined();
-      
+
       const velocitySection = report.sections.find((s) => s.title === "Innovation Velocity");
       expect(velocitySection).toBeDefined();
       expect(velocitySection!.chartType).toBe("velocity");
@@ -46,7 +43,7 @@ describe("executive-report", () => {
     it("includes funnel data", () => {
       trackEvent("pipeline_started");
       trackEvent("pipeline_completed");
-      
+
       const report = generateExecutiveReport();
       const funnelSection = report.sections.find((s) => s.title === "Innovation Funnel");
       expect(funnelSection).toBeDefined();
@@ -81,10 +78,10 @@ describe("executive-report", () => {
     it("includes trend arrows", () => {
       trackEvent("pipeline_started");
       trackEvent("pipeline_completed");
-      
+
       const report = generateExecutiveReport();
       const md = executiveReportToMarkdown(report);
-      
+
       // Should contain at least one trend arrow
       expect(md).toMatch(/[↑↓→]/);
     });

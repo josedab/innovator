@@ -251,7 +251,7 @@ export function runWhatIfSimulation(
   const stdDev = Math.sqrt(variance);
 
   // Sensitivity analysis: vary each parameter ±10% and measure outcome change
-  const sensitivity = parameters.map((param, idx) => {
+  const sensitivity = parameters.map((param, _idx) => {
     const baseOutcome = mean;
 
     // Run with +10% of this parameter

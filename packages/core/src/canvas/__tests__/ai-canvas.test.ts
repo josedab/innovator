@@ -21,10 +21,7 @@ function makeNode(id: string, x: number, y: number, overrides?: Partial<CanvasNo
   };
 }
 
-function makeCanvas(
-  nodes: CanvasNode[],
-  edges: CanvasEdge[] = []
-): InnovationCanvas {
+function makeCanvas(nodes: CanvasNode[], edges: CanvasEdge[] = []): InnovationCanvas {
   return {
     id: "canvas-1",
     title: "Test Canvas",
@@ -50,11 +47,7 @@ describe("autoClusterNodes", () => {
   });
 
   it("clusters nodes in the same grid cell", () => {
-    const nodes = [
-      makeNode("a", 10, 10),
-      makeNode("b", 20, 20),
-      makeNode("c", 30, 30),
-    ];
+    const nodes = [makeNode("a", 10, 10), makeNode("b", 20, 20), makeNode("c", 30, 30)];
     const clusters = autoClusterNodes(nodes);
     expect(clusters.length).toBe(1);
     expect(clusters[0].nodeIds).toHaveLength(3);
@@ -94,10 +87,7 @@ describe("autoClusterNodes", () => {
   });
 
   it("respects custom gridSize", () => {
-    const nodes = [
-      makeNode("a", 0, 0),
-      makeNode("b", 250, 250),
-    ];
+    const nodes = [makeNode("a", 0, 0), makeNode("b", 250, 250)];
     expect(autoClusterNodes(nodes)).toHaveLength(1);
     expect(autoClusterNodes(nodes, { gridSize: 100 })).toHaveLength(0);
   });

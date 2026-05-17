@@ -172,7 +172,10 @@ export function getScenario(id: string): Scenario | undefined {
   return scenario ? cloneScenario(scenario) : undefined;
 }
 
-export function runMonteCarloSimulation(scenarioId: string, runs: number = 100): Scenario | undefined {
+export function runMonteCarloSimulation(
+  scenarioId: string,
+  runs: number = 100
+): Scenario | undefined {
   const scenario = scenarios.get(scenarioId);
   if (!scenario) return undefined;
 
@@ -181,11 +184,16 @@ export function runMonteCarloSimulation(scenarioId: string, runs: number = 100):
 
   for (let i = 0; i < iterations; i += 1) {
     const triggered = scenario.assumptions.filter(
-      (assumption) => assumption.probability === undefined || Math.random() <= assumption.probability
+      (assumption) =>
+        assumption.probability === undefined || Math.random() <= assumption.probability
     );
-    const outcomeKey = triggered.length > 0
-      ? triggered.map((assumption) => formatAssumptionKey(assumption)).sort().join(" | ")
-      : "baseline";
+    const outcomeKey =
+      triggered.length > 0
+        ? triggered
+            .map((assumption) => formatAssumptionKey(assumption))
+            .sort()
+            .join(" | ")
+        : "baseline";
     outcomeCounts[outcomeKey] = (outcomeCounts[outcomeKey] ?? 0) + 1;
   }
 
@@ -240,8 +248,9 @@ export function compareScenarios(scenarioIds: string[]): ScenarioComparison | un
       bestOutcome: Math.max(...Object.values(scenario.outcomes ?? { baseline: 0 })),
       assumptionCount: scenario.assumptions.length,
     }))
-    .sort((left, right) =>
-      right.bestOutcome - left.bestOutcome || right.assumptionCount - left.assumptionCount
+    .sort(
+      (left, right) =>
+        right.bestOutcome - left.bestOutcome || right.assumptionCount - left.assumptionCount
     )[0]?.scenario;
 
   return ScenarioComparisonSchema.parse({
@@ -258,16 +267,19 @@ export function generateExecutivePacket(scenarioId: string): string {
   const scenario = scenarios.get(scenarioId);
   if (!scenario) return `# Executive Packet\n\nScenario ${scenarioId} was not found.`;
 
-  const assumptionLines = scenario.assumptions.length > 0
-    ? scenario.assumptions.map((assumption) =>
-        `- ${formatAssumptionKey(assumption)}${assumption.probability !== undefined ? ` (p=${assumption.probability})` : ""}`
-      )
-    : ["- No explicit assumptions recorded."];
-  const outcomeLines = Object.entries(scenario.outcomes ?? {}).length > 0
-    ? Object.entries(scenario.outcomes ?? {})
-        .sort((left, right) => right[1] - left[1])
-        .map(([outcome, probability]) => `- ${outcome}: ${(probability * 100).toFixed(1)}%`)
-    : ["- No simulation outcomes available yet."];
+  const assumptionLines =
+    scenario.assumptions.length > 0
+      ? scenario.assumptions.map(
+          (assumption) =>
+            `- ${formatAssumptionKey(assumption)}${assumption.probability !== undefined ? ` (p=${assumption.probability})` : ""}`
+        )
+      : ["- No explicit assumptions recorded."];
+  const outcomeLines =
+    Object.entries(scenario.outcomes ?? {}).length > 0
+      ? Object.entries(scenario.outcomes ?? {})
+          .sort((left, right) => right[1] - left[1])
+          .map(([outcome, probability]) => `- ${outcome}: ${(probability * 100).toFixed(1)}%`)
+      : ["- No simulation outcomes available yet."];
 
   return [
     `# Executive Packet: ${scenario.name}`,
@@ -282,7 +294,9 @@ export function generateExecutivePacket(scenarioId: string): string {
     "",
     ...outcomeLines,
     "",
-    scenario.simulationRuns ? `Simulation runs: ${scenario.simulationRuns}` : "Simulation runs: not executed",
+    scenario.simulationRuns
+      ? `Simulation runs: ${scenario.simulationRuns}`
+      : "Simulation runs: not executed",
   ].join("\n");
 }
 

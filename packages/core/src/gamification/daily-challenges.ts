@@ -98,7 +98,8 @@ export const DAILY_CHALLENGE_TEMPLATES: DailyChallengeTemplate[] = [
   {
     templateId: "fast-followup",
     title: "Rapid Follow-Up",
-    description: "Start and complete a new session within fifteen minutes of capturing the problem.",
+    description:
+      "Start and complete a new session within fifteen minutes of capturing the problem.",
     category: "speed",
     difficulty: "medium",
     points: 25,
@@ -134,7 +135,8 @@ export const DAILY_CHALLENGE_TEMPLATES: DailyChallengeTemplate[] = [
   {
     templateId: "lightning-session",
     title: "Lightning Round",
-    description: "Complete a session in under five minutes and capture at least one viable next step.",
+    description:
+      "Complete a session in under five minutes and capture at least one viable next step.",
     category: "speed",
     difficulty: "hard",
     points: 35,
@@ -170,7 +172,10 @@ function normalizeDate(date?: string | Date): string {
 
 function challengeIndexForDate(date: string): number {
   const dayNumber = Math.floor(new Date(`${date}T00:00:00.000Z`).getTime() / 86_400_000);
-  return ((dayNumber % DAILY_CHALLENGE_TEMPLATES.length) + DAILY_CHALLENGE_TEMPLATES.length) % DAILY_CHALLENGE_TEMPLATES.length;
+  return (
+    ((dayNumber % DAILY_CHALLENGE_TEMPLATES.length) + DAILY_CHALLENGE_TEMPLATES.length) %
+    DAILY_CHALLENGE_TEMPLATES.length
+  );
 }
 
 export function getDailyChallenge(date?: string | Date): DailyChallenge {

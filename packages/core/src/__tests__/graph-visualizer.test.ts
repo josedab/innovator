@@ -3,17 +3,70 @@ import { GraphVisualizer } from "../knowledge-graph/graph-visualizer.js";
 import type { EntityNode, RelationshipEdge } from "../knowledge-graph/index.js";
 
 const sampleEntities: EntityNode[] = [
-  { id: "n1", label: "Machine Learning", type: "technology", sourceSessionIds: ["s1"], firstSeen: "2024-01-01", lastSeen: "2024-01-15", occurrenceCount: 5 },
-  { id: "n2", label: "Healthcare", type: "domain", sourceSessionIds: ["s1"], firstSeen: "2024-01-01", lastSeen: "2024-01-10", occurrenceCount: 3 },
-  { id: "n3", label: "Data Privacy", type: "concept", sourceSessionIds: ["s1"], firstSeen: "2024-01-05", lastSeen: "2024-01-15", occurrenceCount: 2 },
-  { id: "n4", label: "OpenAI", type: "organization", sourceSessionIds: ["s1", "s2"], firstSeen: "2024-01-01", lastSeen: "2024-01-20", occurrenceCount: 4 },
+  {
+    id: "n1",
+    label: "Machine Learning",
+    type: "technology",
+    sourceSessionIds: ["s1"],
+    firstSeen: "2024-01-01",
+    lastSeen: "2024-01-15",
+    occurrenceCount: 5,
+  },
+  {
+    id: "n2",
+    label: "Healthcare",
+    type: "domain",
+    sourceSessionIds: ["s1"],
+    firstSeen: "2024-01-01",
+    lastSeen: "2024-01-10",
+    occurrenceCount: 3,
+  },
+  {
+    id: "n3",
+    label: "Data Privacy",
+    type: "concept",
+    sourceSessionIds: ["s1"],
+    firstSeen: "2024-01-05",
+    lastSeen: "2024-01-15",
+    occurrenceCount: 2,
+  },
+  {
+    id: "n4",
+    label: "OpenAI",
+    type: "organization",
+    sourceSessionIds: ["s1", "s2"],
+    firstSeen: "2024-01-01",
+    lastSeen: "2024-01-20",
+    occurrenceCount: 4,
+  },
 ];
 
 const sampleEdges: RelationshipEdge[] = [
   { id: "e1", source: "n1", target: "n2", type: "enables", weight: 0.8, sourceSessionIds: ["s1"] },
-  { id: "e2", source: "n1", target: "n3", type: "related_to", weight: 0.6, sourceSessionIds: ["s1"] },
-  { id: "e3", source: "n2", target: "n3", type: "challenges", weight: 0.5, sourceSessionIds: ["s1"] },
-  { id: "e4", source: "n1", target: "n4", type: "related_to", weight: 0.7, sourceSessionIds: ["s1"] },
+  {
+    id: "e2",
+    source: "n1",
+    target: "n3",
+    type: "related_to",
+    weight: 0.6,
+    sourceSessionIds: ["s1"],
+  },
+  {
+    id: "e3",
+    source: "n2",
+    target: "n3",
+    type: "challenges",
+    weight: 0.5,
+    sourceSessionIds: ["s1"],
+  },
+  {
+    id: "e4",
+    source: "n1",
+    target: "n4",
+    type: "related_to",
+    weight: 0.7,
+    sourceSessionIds: ["s1"],
+  },
 ];
 
 describe("graph-visualizer", () => {
@@ -132,7 +185,9 @@ describe("graph-visualizer", () => {
         expect(insight).toHaveProperty("description");
         expect(insight).toHaveProperty("entityIds");
         expect(insight).toHaveProperty("confidence");
-        expect(["bridge-node", "isolated-cluster", "trending-entity", "gap-analysis"]).toContain(insight.type);
+        expect(["bridge-node", "isolated-cluster", "trending-entity", "gap-analysis"]).toContain(
+          insight.type
+        );
       }
     });
 

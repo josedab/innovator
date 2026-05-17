@@ -113,7 +113,10 @@ const LEVEL_COLORS: Record<string, string> = {
 
 // ---- Component ----
 
-export default function InnovationCoach({ userId = "default-user", compact = false }: InnovationCoachProps) {
+export default function InnovationCoach({
+  userId = "default-user",
+  compact = false,
+}: InnovationCoachProps) {
   const [tab, setTab] = useState<CoachTab>("profile");
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [skills, setSkills] = useState<SkillNode[]>([]);
@@ -132,7 +135,9 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
       });
       const data = await res.json();
       if (data.profile) setProfile(data.profile);
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }, [userId]);
 
   const fetchSkillTree = useCallback(async () => {
@@ -145,7 +150,9 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
       const data = await res.json();
       if (data.skillTree?.nodes) setSkills(data.skillTree.nodes);
       if (data.streak) setStreak(data.streak);
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }, [userId]);
 
   const fetchAchievements = useCallback(async () => {
@@ -157,7 +164,9 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
       });
       const data = await res.json();
       if (data.achievements) setAchievements(data.achievements);
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }, [userId]);
 
   const fetchChallenges = useCallback(async () => {
@@ -169,7 +178,9 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
       });
       const data = await res.json();
       if (data.activeChallenges) setChallenges(data.activeChallenges);
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }, [userId]);
 
   const fetchLeaderboard = useCallback(async () => {
@@ -181,16 +192,16 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
       });
       const data = await res.json();
       if (data.leaderboard) setLeaderboard(data.leaderboard);
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }, []);
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([
-      fetchProfile(),
-      fetchSkillTree(),
-      fetchAchievements(),
-    ]).finally(() => setLoading(false));
+    Promise.all([fetchProfile(), fetchSkillTree(), fetchAchievements()]).finally(() =>
+      setLoading(false)
+    );
   }, [fetchProfile, fetchSkillTree, fetchAchievements]);
 
   useEffect(() => {
@@ -217,7 +228,9 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
         )}
 
         {/* Tabs */}
-        <div className={`flex gap-1 mb-6 bg-gray-900 p-1 rounded-xl ${compact ? "overflow-x-auto" : "w-fit"}`}>
+        <div
+          className={`flex gap-1 mb-6 bg-gray-900 p-1 rounded-xl ${compact ? "overflow-x-auto" : "w-fit"}`}
+        >
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -231,9 +244,7 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
           ))}
         </div>
 
-        {loading && (
-          <div className="text-center py-12 text-gray-500">Loading coach data...</div>
-        )}
+        {loading && <div className="text-center py-12 text-gray-500">Loading coach data...</div>}
 
         {!loading && (
           <>
@@ -246,12 +257,25 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
                     <div className={`grid ${compact ? "grid-cols-2" : "grid-cols-4"} gap-4`}>
                       {[
                         { label: "Sessions", value: profile.totalSessions, color: "text-blue-400" },
-                        { label: "Avg Quality", value: profile.avgQuality.toFixed(1), color: "text-green-400" },
-                        { label: "Streak", value: `${profile.streakDays}d`, color: "text-orange-400" },
+                        {
+                          label: "Avg Quality",
+                          value: profile.avgQuality.toFixed(1),
+                          color: "text-green-400",
+                        },
+                        {
+                          label: "Streak",
+                          value: `${profile.streakDays}d`,
+                          color: "text-orange-400",
+                        },
                         { label: "XP", value: profile.xp, color: "text-purple-400" },
                       ].map((stat) => (
-                        <div key={stat.label} className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-                          <div className={`text-2xl font-bold ${stat.color}`}>{String(stat.value)}</div>
+                        <div
+                          key={stat.label}
+                          className="bg-gray-900 rounded-xl border border-gray-800 p-4"
+                        >
+                          <div className={`text-2xl font-bold ${stat.color}`}>
+                            {String(stat.value)}
+                          </div>
                           <div className="text-xs text-gray-500 mt-1">{stat.label}</div>
                         </div>
                       ))}
@@ -260,13 +284,20 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
                     {/* Creativity Style Badge */}
                     <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
                       <div className="flex items-center gap-3">
-                        <span className="text-3xl">{STYLE_BADGES[profile.creativityStyle]?.icon ?? "⚖️"}</span>
+                        <span className="text-3xl">
+                          {STYLE_BADGES[profile.creativityStyle]?.icon ?? "⚖️"}
+                        </span>
                         <div>
-                          <div className={`font-semibold ${STYLE_BADGES[profile.creativityStyle]?.color ?? ""}`}>
+                          <div
+                            className={`font-semibold ${STYLE_BADGES[profile.creativityStyle]?.color ?? ""}`}
+                          >
                             {STYLE_BADGES[profile.creativityStyle]?.label ?? "Balanced"}
                           </div>
                           <div className="text-xs text-gray-500">
-                            Level: <span className={LEVEL_COLORS[profile.level] ?? ""}>{profile.level}</span>
+                            Level:{" "}
+                            <span className={LEVEL_COLORS[profile.level] ?? ""}>
+                              {profile.level}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -345,7 +376,9 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
                 ) : (
                   <div className="text-center py-12 text-gray-500">
                     <p className="text-lg mb-2">No profile data yet</p>
-                    <p className="text-sm">Complete your first innovation session to build your profile.</p>
+                    <p className="text-sm">
+                      Complete your first innovation session to build your profile.
+                    </p>
                   </div>
                 )}
               </div>
@@ -354,51 +387,56 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
             {/* Skills Tab */}
             {tab === "skills" && (
               <div className="space-y-4">
-                {(["investigation", "generation", "synthesis", "debate", "collaboration"] as const).map(
-                  (category) => {
-                    const categorySkills = skills.filter((s) => s.category === category);
-                    if (categorySkills.length === 0) return null;
-                    const colors = CATEGORY_COLORS[category] ?? "";
-                    return (
-                      <div key={category} className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-                        <h3 className="font-semibold mb-3 text-sm capitalize">{category}</h3>
-                        <div className={`grid ${compact ? "grid-cols-1" : "grid-cols-2 lg:grid-cols-4"} gap-3`}>
-                          {categorySkills.map((skill) => (
-                            <div
-                              key={skill.id}
-                              className={`rounded-lg border p-3 transition ${
-                                skill.unlocked
-                                  ? colors
-                                  : "bg-gray-800/50 border-gray-700 opacity-60"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-medium">
-                                  {skill.unlocked ? "✅" : "🔒"} {skill.name}
-                                </span>
-                                <span className={`text-xs ${LEVEL_COLORS[skill.level] ?? "text-gray-500"}`}>
-                                  {skill.level}
-                                </span>
-                              </div>
-                              <p className="text-xs text-gray-500 mb-2 line-clamp-2">
-                                {skill.description}
-                              </p>
-                              <div className="w-full bg-gray-700 rounded-full h-1.5">
-                                <div
-                                  className={`h-1.5 rounded-full transition-all ${
-                                    skill.unlocked ? "bg-green-500" : "bg-gray-500"
-                                  }`}
-                                  style={{ width: `${skill.progress}%` }}
-                                />
-                              </div>
-                              <div className="text-xs text-gray-600 mt-1">{skill.progress}%</div>
+                {(
+                  ["investigation", "generation", "synthesis", "debate", "collaboration"] as const
+                ).map((category) => {
+                  const categorySkills = skills.filter((s) => s.category === category);
+                  if (categorySkills.length === 0) return null;
+                  const colors = CATEGORY_COLORS[category] ?? "";
+                  return (
+                    <div
+                      key={category}
+                      className="bg-gray-900 rounded-xl border border-gray-800 p-4"
+                    >
+                      <h3 className="font-semibold mb-3 text-sm capitalize">{category}</h3>
+                      <div
+                        className={`grid ${compact ? "grid-cols-1" : "grid-cols-2 lg:grid-cols-4"} gap-3`}
+                      >
+                        {categorySkills.map((skill) => (
+                          <div
+                            key={skill.id}
+                            className={`rounded-lg border p-3 transition ${
+                              skill.unlocked ? colors : "bg-gray-800/50 border-gray-700 opacity-60"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium">
+                                {skill.unlocked ? "✅" : "🔒"} {skill.name}
+                              </span>
+                              <span
+                                className={`text-xs ${LEVEL_COLORS[skill.level] ?? "text-gray-500"}`}
+                              >
+                                {skill.level}
+                              </span>
                             </div>
-                          ))}
-                        </div>
+                            <p className="text-xs text-gray-500 mb-2 line-clamp-2">
+                              {skill.description}
+                            </p>
+                            <div className="w-full bg-gray-700 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full transition-all ${
+                                  skill.unlocked ? "bg-green-500" : "bg-gray-500"
+                                }`}
+                                style={{ width: `${skill.progress}%` }}
+                              />
+                            </div>
+                            <div className="text-xs text-gray-600 mt-1">{skill.progress}%</div>
+                          </div>
+                        ))}
                       </div>
-                    );
-                  }
-                )}
+                    </div>
+                  );
+                })}
                 {skills.length === 0 && (
                   <div className="text-center py-12 text-gray-500">
                     No skill data available yet. Complete sessions to unlock skills.
@@ -412,7 +450,9 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
               <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
                 <h3 className="font-semibold mb-4">🏆 Achievements ({achievements.length})</h3>
                 {achievements.length > 0 ? (
-                  <div className={`grid ${compact ? "grid-cols-2" : "grid-cols-3 lg:grid-cols-5"} gap-3`}>
+                  <div
+                    className={`grid ${compact ? "grid-cols-2" : "grid-cols-3 lg:grid-cols-5"} gap-3`}
+                  >
                     {achievements.map((ach) => (
                       <div
                         key={ach.id}
@@ -447,9 +487,7 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
                     <div className="flex items-center gap-3">
                       <span className="text-3xl">🔥</span>
                       <div>
-                        <div className="font-semibold">
-                          {streak.currentStreak} Day Streak
-                        </div>
+                        <div className="font-semibold">{streak.currentStreak} Day Streak</div>
                         <div className="text-xs text-gray-500">
                           Longest: {streak.longestStreak} days
                         </div>
@@ -466,25 +504,17 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
                 {/* Active Challenges */}
                 {challenges.length > 0 ? (
                   challenges.map((ch) => (
-                    <div
-                      key={ch.id}
-                      className="bg-gray-900 rounded-xl border border-gray-800 p-4"
-                    >
+                    <div key={ch.id} className="bg-gray-900 rounded-xl border border-gray-800 p-4">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-semibold text-sm">⚡ {ch.title}</h4>
-                        <span className="text-xs text-gray-500">
-                          {ch.durationDays}d remaining
-                        </span>
+                        <span className="text-xs text-gray-500">{ch.durationDays}d remaining</span>
                       </div>
                       <p className="text-xs text-gray-400 mb-3">{ch.description}</p>
                       <div className="w-full bg-gray-700 rounded-full h-2 mb-1">
                         <div
                           className="bg-yellow-500 rounded-full h-2 transition-all"
                           style={{
-                            width: `${Math.min(
-                              (ch.currentProgress / ch.goalCount) * 100,
-                              100
-                            )}%`,
+                            width: `${Math.min((ch.currentProgress / ch.goalCount) * 100, 100)}%`,
                           }}
                         />
                       </div>
@@ -523,7 +553,13 @@ export default function InnovationCoach({ userId = "default-user", compact = fal
                               entry.rank <= 3 ? "text-yellow-400" : "text-gray-500"
                             }`}
                           >
-                            {entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : `#${entry.rank}`}
+                            {entry.rank === 1
+                              ? "🥇"
+                              : entry.rank === 2
+                                ? "🥈"
+                                : entry.rank === 3
+                                  ? "🥉"
+                                  : `#${entry.rank}`}
                           </span>
                           <div>
                             <span className="font-medium text-sm">{entry.userId}</span>

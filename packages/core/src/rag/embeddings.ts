@@ -1,5 +1,3 @@
-import type { DocumentChunk } from "./types.js";
-
 /**
  * Generate a simple TF-IDF-inspired embedding for a text chunk.
  * Uses term frequency vectors for lightweight local similarity search

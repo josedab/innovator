@@ -25,14 +25,8 @@ import {
   GenerateInputSchema as _GenerateInputSchema,
   AutoPipelineInputSchema as _AutoPipelineInputSchema,
 } from "./schemas.js";
-import {
-  listSessionResources,
-  readSessionResource,
-  readAnglesResource,
-  readConfigResource,
-  readPresetsResource,
-} from "./resources.js";
-import { listPrompts, getPromptMessages } from "./prompts.js";
+import { readAnglesResource, readConfigResource, readPresetsResource } from "./resources.js";
+import { getPromptMessages } from "./prompts.js";
 
 function createServer(): McpServer {
   const server = new McpServer({
@@ -185,7 +179,11 @@ function createServer(): McpServer {
     "nl-innovate",
     "Run the innovation pipeline from a natural language prompt (e.g., 'Generate SCAMPER ideas for checkout flow, debate top 2, create PRD for winner')",
     {
-      prompt: z.string().min(1).max(5000).describe("Natural language description of the innovation task"),
+      prompt: z
+        .string()
+        .min(1)
+        .max(5000)
+        .describe("Natural language description of the innovation task"),
       model: z.string().optional().describe("Optional LLM model override"),
     },
     async ({ prompt, model }) => {
@@ -204,8 +202,18 @@ function createServer(): McpServer {
     "Search the innovation memory graph for related past ideas, investigations, and insights across all sessions",
     {
       query: z.string().min(1).max(2000).describe("Search query for finding related past ideas"),
-      threshold: z.number().min(0).max(1).optional().describe("Similarity threshold (0-1, default 0.3)"),
-      limit: z.number().min(1).max(50).optional().describe("Maximum results to return (default 10)"),
+      threshold: z
+        .number()
+        .min(0)
+        .max(1)
+        .optional()
+        .describe("Similarity threshold (0-1, default 0.3)"),
+      limit: z
+        .number()
+        .min(1)
+        .max(50)
+        .optional()
+        .describe("Maximum results to return (default 10)"),
     },
     async ({ query, threshold, limit }) => {
       try {
@@ -265,7 +273,12 @@ function createServer(): McpServer {
     "Deploy a persistent autonomous innovation agent that self-directs exploration across branches, debates ideas, and delivers a curated portfolio. Runs longer than a single pipeline — ideal for deep, multi-branch exploration.",
     {
       subject: z.string().min(1).max(500).describe("The topic to explore autonomously"),
-      maxBranches: z.number().min(1).max(50).optional().describe("Maximum exploration branches (default: 10)"),
+      maxBranches: z
+        .number()
+        .min(1)
+        .max(50)
+        .optional()
+        .describe("Maximum exploration branches (default: 10)"),
       maxDepth: z.number().min(1).max(10).optional().describe("Maximum branch depth (default: 3)"),
       strategy: z
         .enum(["breadth-first", "depth-first", "adaptive"])
@@ -298,7 +311,12 @@ function createServer(): McpServer {
     {
       subject: z.string().min(1).max(500).describe("The topic to explore via swarm intelligence"),
       agentCount: z.number().min(2).max(8).optional().describe("Number of agents (default: 4)"),
-      maxIterations: z.number().min(1).max(10).optional().describe("Max debate iterations (default: 3)"),
+      maxIterations: z
+        .number()
+        .min(1)
+        .max(10)
+        .optional()
+        .describe("Max debate iterations (default: 3)"),
       model: z.string().optional().describe("Optional LLM model override"),
     },
     async ({ subject, agentCount, maxIterations, model }) => {
@@ -318,7 +336,12 @@ function createServer(): McpServer {
     "network-insights",
     "Get innovation intelligence from the federated Innovation Genome Network — trending angles, effective methodology chains, and domain-specific patterns from anonymized cross-organization data.",
     {
-      domainHint: z.string().min(1).max(200).optional().describe("Domain category hint (e.g., fintech, healthcare, saas)"),
+      domainHint: z
+        .string()
+        .min(1)
+        .max(200)
+        .optional()
+        .describe("Domain category hint (e.g., fintech, healthcare, saas)"),
       angleId: z.string().optional().describe("Filter insights for a specific angle"),
     },
     async ({ domainHint, angleId }) => {
@@ -366,21 +389,30 @@ function createServer(): McpServer {
   server.resource(
     "innovation-angles",
     "innovation://angles",
-    { description: "Catalog of all available innovation angles with descriptions", mimeType: "text/markdown" },
+    {
+      description: "Catalog of all available innovation angles with descriptions",
+      mimeType: "text/markdown",
+    },
     async () => readAnglesResource()
   );
 
   server.resource(
     "innovation-config",
     "innovation://config",
-    { description: "Current Innovator configuration including models, angles, and environment", mimeType: "application/json" },
+    {
+      description: "Current Innovator configuration including models, angles, and environment",
+      mimeType: "application/json",
+    },
     async () => readConfigResource()
   );
 
   server.resource(
     "innovation-presets",
     "innovation://presets",
-    { description: "Pre-configured innovation presets for common domains", mimeType: "text/markdown" },
+    {
+      description: "Pre-configured innovation presets for common domains",
+      mimeType: "text/markdown",
+    },
     async () => readPresetsResource()
   );
 
@@ -419,7 +451,11 @@ function createServer(): McpServer {
       context: z.string().optional().describe("Additional context or constraints"),
     },
     async ({ subject, angle, context }) => ({
-      messages: getPromptMessages("innovate-with-angle", { subject, angle, context: context ?? "" }),
+      messages: getPromptMessages("innovate-with-angle", {
+        subject,
+        angle,
+        context: context ?? "",
+      }),
     })
   );
 
@@ -428,7 +464,10 @@ function createServer(): McpServer {
     "Stress-test an idea through multi-perspective debate",
     {
       idea: z.string().describe("The idea to debate"),
-      perspectives: z.string().optional().describe("Comma-separated perspectives (e.g. cto, investor)"),
+      perspectives: z
+        .string()
+        .optional()
+        .describe("Comma-separated perspectives (e.g. cto, investor)"),
     },
     async ({ idea, perspectives }) => ({
       messages: getPromptMessages("debate-idea", { idea, perspectives: perspectives ?? "" }),
@@ -440,10 +479,16 @@ function createServer(): McpServer {
     "Analyze code/architecture and generate innovation ideas grounded in code context",
     {
       code_context: z.string().describe("Code snippet, file path, or architecture description"),
-      focus: z.string().optional().describe("Focus: performance, security, ux, scalability, general"),
+      focus: z
+        .string()
+        .optional()
+        .describe("Focus: performance, security, ux, scalability, general"),
     },
     async ({ code_context, focus }) => ({
-      messages: getPromptMessages("innovate-code-architecture", { code_context, focus: focus ?? "general" }),
+      messages: getPromptMessages("innovate-code-architecture", {
+        code_context,
+        focus: focus ?? "general",
+      }),
     })
   );
 

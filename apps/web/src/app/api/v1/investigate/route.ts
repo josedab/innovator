@@ -30,7 +30,10 @@ export async function POST(request: Request) {
   if (!rateLimit.allowed) {
     return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
       status: 429,
-      headers: addRateLimitHeaders(API_RESPONSE_HEADERS as unknown as Record<string, string>, rateLimit),
+      headers: addRateLimitHeaders(
+        API_RESPONSE_HEADERS as unknown as Record<string, string>,
+        rateLimit
+      ),
     });
   }
 
@@ -68,7 +71,10 @@ export async function POST(request: Request) {
     });
 
     return new Response(JSON.stringify({ data: investigation }), {
-      headers: addRateLimitHeaders(API_RESPONSE_HEADERS as unknown as Record<string, string>, rateLimit),
+      headers: addRateLimitHeaders(
+        API_RESPONSE_HEADERS as unknown as Record<string, string>,
+        rateLimit
+      ),
     });
   } catch (err) {
     logger.error("API v1 investigation error", {

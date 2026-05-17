@@ -262,7 +262,7 @@ export function recordSession(userId: string, record: SessionRecord): Innovation
 
 function generateRecommendations(
   profile: InnovationProfile,
-  history: SessionRecord[]
+  _history: SessionRecord[]
 ): InnovationProfile["recommendations"] {
   const recommendations: InnovationProfile["recommendations"] = [];
 

@@ -3,11 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import {
-  classifyComplexityHeuristic,
-  getModeConfig,
-  listModes,
-} from "@innovator/core";
+import { classifyComplexityHeuristic, getModeConfig, listModes } from "@innovator/core";
 import { z } from "zod";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
@@ -48,7 +44,10 @@ export async function POST(request: Request): Promise<Response> {
   if (parsed.data.action === "classify") {
     const complexity = classifyComplexityHeuristic(parsed.data.subject);
     const autoMode = getModeConfig("auto", parsed.data.subject);
-    return Response.json({ complexity, recommendedMode: autoMode }, { headers: API_RESPONSE_HEADERS });
+    return Response.json(
+      { complexity, recommendedMode: autoMode },
+      { headers: API_RESPONSE_HEADERS }
+    );
   }
 
   if (parsed.data.action === "mode") {

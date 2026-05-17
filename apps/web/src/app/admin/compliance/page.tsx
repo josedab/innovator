@@ -3,10 +3,7 @@
  * SOC 2 readiness tracker, data residency, DLP policies, and branding.
  */
 import type { Metadata } from "next";
-import {
-  getSOC2Readiness,
-  initSOC2Tracker,
-} from "@innovator/core";
+import { getSOC2Readiness, initSOC2Tracker } from "@innovator/core";
 
 export const metadata: Metadata = {
   title: "Compliance & Security — Admin — Innovator",
@@ -28,9 +25,7 @@ function SOC2StatusBadge({ status }: SOC2StatusBadgeProps) {
   };
 
   return (
-    <span
-      className={`px-2 py-0.5 rounded text-xs font-medium ${colors[status] ?? "bg-gray-100"}`}
-    >
+    <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[status] ?? "bg-gray-100"}`}>
       {status}
     </span>
   );
@@ -63,9 +58,7 @@ export default function CompliancePage() {
               className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center"
             >
               <div className="text-2xl font-bold">{String(score)}%</div>
-              <div className="text-sm text-gray-500 capitalize">
-                {category.replace(/-/g, " ")}
-              </div>
+              <div className="text-sm text-gray-500 capitalize">{category.replace(/-/g, " ")}</div>
             </div>
           ))}
         </div>
@@ -73,9 +66,7 @@ export default function CompliancePage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <span className="font-medium">Overall Readiness</span>
-            <span className="text-2xl font-bold">
-              {readiness.overallReadiness}%
-            </span>
+            <span className="text-2xl font-bold">{readiness.overallReadiness}%</span>
           </div>
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
             <div
@@ -100,21 +91,29 @@ export default function CompliancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {readiness.controls.map((control: { id: string; title: string; description: string; category: string; status: string }) => (
-                <tr key={control.id}>
-                  <td className="px-4 py-3 font-mono text-xs">{control.id}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{control.title}</div>
-                    <div className="text-xs text-gray-500">{control.description}</div>
-                  </td>
-                  <td className="px-4 py-3 capitalize text-xs">
-                    {control.category.replace(/-/g, " ")}
-                  </td>
-                  <td className="px-4 py-3">
-                    <SOC2StatusBadge status={control.status} />
-                  </td>
-                </tr>
-              ))}
+              {readiness.controls.map(
+                (control: {
+                  id: string;
+                  title: string;
+                  description: string;
+                  category: string;
+                  status: string;
+                }) => (
+                  <tr key={control.id}>
+                    <td className="px-4 py-3 font-mono text-xs">{control.id}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{control.title}</div>
+                      <div className="text-xs text-gray-500">{control.description}</div>
+                    </td>
+                    <td className="px-4 py-3 capitalize text-xs">
+                      {control.category.replace(/-/g, " ")}
+                    </td>
+                    <td className="px-4 py-3">
+                      <SOC2StatusBadge status={control.status} />
+                    </td>
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </div>
@@ -127,43 +126,43 @@ export default function CompliancePage() {
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="font-semibold mb-2">🌍 Data Residency</h3>
             <p className="text-sm text-gray-500">
-              Control where your data is stored and processed. Configure primary
-              region and cross-border transfer policies.
+              Control where your data is stored and processed. Configure primary region and
+              cross-border transfer policies.
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="font-semibold mb-2">🛡️ DLP Policies</h3>
             <p className="text-sm text-gray-500">
-              Data Loss Prevention rules to detect and block sensitive data in
-              innovation inputs and outputs.
+              Data Loss Prevention rules to detect and block sensitive data in innovation inputs and
+              outputs.
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="font-semibold mb-2">🔐 IP Restrictions</h3>
             <p className="text-sm text-gray-500">
-              Allow/deny lists for IP addresses. Restrict access to your
-              organization&apos;s network ranges.
+              Allow/deny lists for IP addresses. Restrict access to your organization&apos;s network
+              ranges.
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="font-semibold mb-2">🔑 SSO Configuration</h3>
             <p className="text-sm text-gray-500">
-              SAML 2.0 and OIDC integration with Okta, Azure AD, Google
-              Workspace, and custom providers.
+              SAML 2.0 and OIDC integration with Okta, Azure AD, Google Workspace, and custom
+              providers.
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="font-semibold mb-2">📅 Retention Policies</h3>
             <p className="text-sm text-gray-500">
-              Configure data retention periods for sessions, audit logs,
-              analytics, and deleted data purge schedules.
+              Configure data retention periods for sessions, audit logs, analytics, and deleted data
+              purge schedules.
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="font-semibold mb-2">🎨 Custom Branding</h3>
             <p className="text-sm text-gray-500">
-              White-label Innovator with your company logo, colors, and custom
-              CSS for a seamless brand experience.
+              White-label Innovator with your company logo, colors, and custom CSS for a seamless
+              brand experience.
             </p>
           </div>
         </div>

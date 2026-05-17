@@ -118,11 +118,47 @@ describe("extension", () => {
 
   describe("formatProgressForChat", () => {
     it("formats each pipeline stage", () => {
-      expect(formatProgressForChat({ stage: "investigating", completedAngles: [], totalAngles: 8, angleResults: [] })).toContain("🔍");
-      expect(formatProgressForChat({ stage: "generating", completedAngles: ["a", "b"], totalAngles: 8, angleResults: [] })).toContain("2/8");
-      expect(formatProgressForChat({ stage: "synthesizing", completedAngles: [], totalAngles: 8, angleResults: [] })).toContain("🧪");
-      expect(formatProgressForChat({ stage: "complete", completedAngles: [], totalAngles: 8, angleResults: [] })).toContain("✅");
-      expect(formatProgressForChat({ stage: "error", completedAngles: [], totalAngles: 8, angleResults: [], error: "Oops" })).toContain("Oops");
+      expect(
+        formatProgressForChat({
+          stage: "investigating",
+          completedAngles: [],
+          totalAngles: 8,
+          angleResults: [],
+        })
+      ).toContain("🔍");
+      expect(
+        formatProgressForChat({
+          stage: "generating",
+          completedAngles: ["a", "b"],
+          totalAngles: 8,
+          angleResults: [],
+        })
+      ).toContain("2/8");
+      expect(
+        formatProgressForChat({
+          stage: "synthesizing",
+          completedAngles: [],
+          totalAngles: 8,
+          angleResults: [],
+        })
+      ).toContain("🧪");
+      expect(
+        formatProgressForChat({
+          stage: "complete",
+          completedAngles: [],
+          totalAngles: 8,
+          angleResults: [],
+        })
+      ).toContain("✅");
+      expect(
+        formatProgressForChat({
+          stage: "error",
+          completedAngles: [],
+          totalAngles: 8,
+          angleResults: [],
+          error: "Oops",
+        })
+      ).toContain("Oops");
     });
   });
 

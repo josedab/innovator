@@ -10,7 +10,6 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { CollaborativeEvent, AngleId } from "../types.js";
 
 // ---- Types ----
 
@@ -276,7 +275,7 @@ export class RealtimeRoomManager {
   private handleLeave(
     message: RealtimeMessage,
     broadcastToRoom: BroadcastToRoom,
-    now: string
+    _now: string
   ): void {
     this.handleDisconnect(message.userId, broadcastToRoom);
   }

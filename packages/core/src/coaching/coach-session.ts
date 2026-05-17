@@ -11,7 +11,6 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
-import type { Investigation, AngleResult } from "../types.js";
 
 // ---- Schemas ----
 
@@ -72,11 +71,13 @@ const sessions = new Map<string, CoachSession>();
 const DOMAIN_KEYWORDS: Record<string, { angles: string[]; hints: string }> = {
   healthcare: {
     angles: ["first-principles", "constraints", "perspectives", "what-if"],
-    hints: "Consider HIPAA compliance, patient outcomes, clinical workflows, and care coordination.",
+    hints:
+      "Consider HIPAA compliance, patient outcomes, clinical workflows, and care coordination.",
   },
   fintech: {
     angles: ["first-principles", "inversion", "trend-collision", "cross-domain"],
-    hints: "Consider regulatory requirements (PCI-DSS, SOX), risk management, and financial inclusion.",
+    hints:
+      "Consider regulatory requirements (PCI-DSS, SOX), risk management, and financial inclusion.",
   },
   edtech: {
     angles: ["perspectives", "what-if", "cross-domain", "scamper"],
@@ -84,7 +85,8 @@ const DOMAIN_KEYWORDS: Record<string, { angles: string[]; hints: string }> = {
   },
   climate: {
     angles: ["first-principles", "constraints", "what-if", "trend-collision"],
-    hints: "Consider sustainability metrics, carbon reduction, circular economy, and policy impact.",
+    hints:
+      "Consider sustainability metrics, carbon reduction, circular economy, and policy impact.",
   },
   saas: {
     angles: ["scamper", "inversion", "trend-collision", "cross-domain"],
@@ -99,17 +101,18 @@ const DOMAIN_KEYWORDS: Record<string, { angles: string[]; hints: string }> = {
 function detectDomain(subject: string): CoachDomain | undefined {
   const lower = subject.toLowerCase();
   for (const [domain, config] of Object.entries(DOMAIN_KEYWORDS)) {
-    const keywords = domain === "ai"
-      ? ["artificial intelligence", " ai ", "machine learning", "deep learning", "llm", "neural"]
-      : domain === "healthcare"
-      ? ["health", "medical", "clinical", "patient", "hospital", "pharma"]
-      : domain === "fintech"
-      ? ["finance", "banking", "payment", "fintech", "trading", "insurance"]
-      : domain === "edtech"
-      ? ["education", "learning", "teaching", "student", "school", "course"]
-      : domain === "climate"
-      ? ["climate", "sustainability", "carbon", "renewable", "green", "environment"]
-      : ["saas", "subscription", "platform", "b2b", "enterprise software"];
+    const keywords =
+      domain === "ai"
+        ? ["artificial intelligence", " ai ", "machine learning", "deep learning", "llm", "neural"]
+        : domain === "healthcare"
+          ? ["health", "medical", "clinical", "patient", "hospital", "pharma"]
+          : domain === "fintech"
+            ? ["finance", "banking", "payment", "fintech", "trading", "insurance"]
+            : domain === "edtech"
+              ? ["education", "learning", "teaching", "student", "school", "course"]
+              : domain === "climate"
+                ? ["climate", "sustainability", "carbon", "renewable", "green", "environment"]
+                : ["saas", "subscription", "platform", "b2b", "enterprise software"];
 
     const matchCount = keywords.filter((k) => lower.includes(k)).length;
     if (matchCount > 0) {
@@ -158,10 +161,12 @@ Return valid JSON only:
 }`;
 
   const parsed = await runCoachLlm(prompt, config.model, signal);
-  const response = z.object({
-    message: z.string().max(5000),
-    suggestedAngles: z.array(z.string().max(100)).max(8),
-  }).parse(parsed);
+  const response = z
+    .object({
+      message: z.string().max(5000),
+      suggestedAngles: z.array(z.string().max(100)).max(8),
+    })
+    .parse(parsed);
 
   const session: CoachSession = {
     id,
@@ -182,9 +187,10 @@ Return valid JSON only:
         timestamp: now,
       },
     ],
-    suggestedAngles: response.suggestedAngles.length > 0
-      ? response.suggestedAngles
-      : domain?.suggestedAngles ?? ["first-principles", "scamper", "what-if"],
+    suggestedAngles:
+      response.suggestedAngles.length > 0
+        ? response.suggestedAngles
+        : (domain?.suggestedAngles ?? ["first-principles", "scamper", "what-if"]),
     createdAt: now,
     updatedAt: now,
   };
@@ -241,11 +247,13 @@ Return valid JSON only:
 }`;
 
   const parsed = await runCoachLlm(prompt, config.model, signal);
-  const response = z.object({
-    message: z.string().max(5000),
-    suggestedAngles: z.array(z.string().max(100)).max(8).optional(),
-    readyToInvestigate: z.boolean().optional(),
-  }).parse(parsed);
+  const response = z
+    .object({
+      message: z.string().max(5000),
+      suggestedAngles: z.array(z.string().max(100)).max(8).optional(),
+      readyToInvestigate: z.boolean().optional(),
+    })
+    .parse(parsed);
 
   session.messages.push({
     id: randomUUID(),
@@ -295,15 +303,13 @@ export function clearCoachSessions(): void {
 
 // ---- Helpers ----
 
-function buildCoachSystemPrompt(
-  personality: string,
-  domain?: CoachDomain
-): string {
+function buildCoachSystemPrompt(personality: string, domain?: CoachDomain): string {
   const personalityPrompts: Record<string, string> = {
     socratic: "You are a Socratic innovation coach. Guide with questions, not answers.",
     provocateur: "You are a provocative innovation coach. Challenge assumptions boldly.",
     supportive: "You are a supportive innovation coach. Encourage while probing blind spots.",
-    analytical: "You are an analytical innovation coach. Focus on evidence and structured reasoning.",
+    analytical:
+      "You are an analytical innovation coach. Focus on evidence and structured reasoning.",
   };
 
   let prompt = personalityPrompts[personality] ?? personalityPrompts.socratic;

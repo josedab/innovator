@@ -2,11 +2,7 @@
  * @description Innovation observatory — cross-team trend monitoring dashboard.
  */
 import { NextRequest } from "next/server";
-import {
-  getObservatoryStats,
-  getCallTimeline,
-  diffPromptCalls,
-} from "@innovator/core";
+import { getObservatoryStats, getCallTimeline, diffPromptCalls } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 export async function GET(request: NextRequest) {

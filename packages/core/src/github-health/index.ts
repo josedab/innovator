@@ -341,7 +341,7 @@ ${previousScore ? `Previous score: ${previousScore.overallScore}/100 (change: ${
 
 Dimensions:
 ${Object.entries(currentScore.dimensions)
-  .map(([k, v]) => `- ${v.name}: ${v.score}/100 (${v.grade})`)
+  .map(([_k, v]) => `- ${v.name}: ${v.score}/100 (${v.grade})`)
   .join("\n")}
 
 Top suggestions: ${currentScore.topSuggestions.join("; ")}

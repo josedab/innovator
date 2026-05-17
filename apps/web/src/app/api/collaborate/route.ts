@@ -15,7 +15,6 @@ import {
   completeSession,
   assignAngles,
   mergeIdeas,
-  getRankedIdeas,
 } from "@innovator/core";
 import { z } from "zod";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
@@ -26,7 +25,7 @@ const CreateSessionSchema = z.object({
   hostDisplayName: z.string().min(1).max(100),
 });
 
-const JoinSchema = z.object({
+const _JoinSchema = z.object({
   roomCode: z.string().min(1),
   userId: z.string().min(1),
   displayName: z.string().min(1).max(100),
@@ -106,7 +105,8 @@ export async function GET(request: Request) {
     const session = getCollaborativeSession(id);
     if (!session) {
       return new Response(JSON.stringify({ error: "Session not found" }), {
-        status: 404, headers: API_RESPONSE_HEADERS,
+        status: 404,
+        headers: API_RESPONSE_HEADERS,
       });
     }
     return new Response(JSON.stringify({ data: session }), { headers: API_RESPONSE_HEADERS });
@@ -116,14 +116,16 @@ export async function GET(request: Request) {
     const session = findSessionByCode(code);
     if (!session) {
       return new Response(JSON.stringify({ error: "Room not found" }), {
-        status: 404, headers: API_RESPONSE_HEADERS,
+        status: 404,
+        headers: API_RESPONSE_HEADERS,
       });
     }
     return new Response(JSON.stringify({ data: session }), { headers: API_RESPONSE_HEADERS });
   }
 
   return new Response(JSON.stringify({ error: "Provide 'id' or 'code' parameter" }), {
-    status: 400, headers: API_RESPONSE_HEADERS,
+    status: 400,
+    headers: API_RESPONSE_HEADERS,
   });
 }
 
@@ -150,7 +152,8 @@ export async function POST(request: Request) {
       const { subject, hostUserId, hostDisplayName } = createParsed.data;
       const session = createCollaborativeSession(subject, hostUserId, hostDisplayName);
       return new Response(JSON.stringify({ data: session }), {
-        status: 201, headers: API_RESPONSE_HEADERS,
+        status: 201,
+        headers: API_RESPONSE_HEADERS,
       });
     }
 
@@ -170,24 +173,33 @@ export async function POST(request: Request) {
         const participant = joinSession(action.sessionId, action.userId, action.displayName);
         if (!participant) {
           return new Response(JSON.stringify({ error: "Cannot join session" }), {
-            status: 400, headers: API_RESPONSE_HEADERS,
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
           });
         }
-        return new Response(JSON.stringify({ data: participant }), { headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ data: participant }), {
+          headers: API_RESPONSE_HEADERS,
+        });
       }
 
       case "submit_idea": {
         const idea = submitIdea(
-          action.sessionId, action.authorId, action.angleId,
-          action.title, action.description, action.potentialImpact
+          action.sessionId,
+          action.authorId,
+          action.angleId,
+          action.title,
+          action.description,
+          action.potentialImpact
         );
         if (!idea) {
           return new Response(JSON.stringify({ error: "Cannot submit idea" }), {
-            status: 400, headers: API_RESPONSE_HEADERS,
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
           });
         }
         return new Response(JSON.stringify({ data: idea }), {
-          status: 201, headers: API_RESPONSE_HEADERS,
+          status: 201,
+          headers: API_RESPONSE_HEADERS,
         });
       }
 
@@ -198,57 +210,80 @@ export async function POST(request: Request) {
 
       case "comment": {
         const comment = addComment(
-          action.sessionId, action.ideaId,
-          action.authorId, action.authorName, action.content
+          action.sessionId,
+          action.ideaId,
+          action.authorId,
+          action.authorName,
+          action.content
         );
         if (!comment) {
           return new Response(JSON.stringify({ error: "Cannot add comment" }), {
-            status: 400, headers: API_RESPONSE_HEADERS,
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
           });
         }
         return new Response(JSON.stringify({ data: comment }), {
-          status: 201, headers: API_RESPONSE_HEADERS,
+          status: 201,
+          headers: API_RESPONSE_HEADERS,
         });
       }
 
       case "start": {
         const started = startSession(action.sessionId, action.userId);
-        return new Response(JSON.stringify({ success: started }), { headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ success: started }), {
+          headers: API_RESPONSE_HEADERS,
+        });
       }
 
       case "complete": {
         const completed = completeSession(action.sessionId, action.userId);
-        return new Response(JSON.stringify({ success: completed }), { headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ success: completed }), {
+          headers: API_RESPONSE_HEADERS,
+        });
       }
 
       case "assign_angles": {
-        const assigned = assignAngles(action.sessionId, action.userId, action.angles as any);
-        return new Response(JSON.stringify({ success: assigned }), { headers: API_RESPONSE_HEADERS });
+        const assigned = assignAngles(
+          action.sessionId,
+          action.userId,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- API input shape matches at runtime
+          action.angles as any
+        );
+        return new Response(JSON.stringify({ success: assigned }), {
+          headers: API_RESPONSE_HEADERS,
+        });
       }
 
       case "merge": {
         const merged = mergeIdeas(
-          action.sessionId, action.ideaIds,
-          action.title, action.description, action.authorId
+          action.sessionId,
+          action.ideaIds,
+          action.title,
+          action.description,
+          action.authorId
         );
         if (!merged) {
           return new Response(JSON.stringify({ error: "Cannot merge ideas" }), {
-            status: 400, headers: API_RESPONSE_HEADERS,
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
           });
         }
         return new Response(JSON.stringify({ data: merged }), {
-          status: 201, headers: API_RESPONSE_HEADERS,
+          status: 201,
+          headers: API_RESPONSE_HEADERS,
         });
       }
 
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
-          status: 400, headers: API_RESPONSE_HEADERS,
+          status: 400,
+          headers: API_RESPONSE_HEADERS,
         });
     }
-  } catch (err) {
+  } catch {
     return new Response(JSON.stringify({ error: "Request failed" }), {
-      status: 500, headers: API_RESPONSE_HEADERS,
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
     });
   }
 }

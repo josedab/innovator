@@ -39,9 +39,4 @@ export {
   WhiteSpaceRegionSchema,
   NoveltyScoreSchema,
 } from "./atlas.js";
-export type {
-  GenomeRecord,
-  GenomeCluster,
-  WhiteSpaceRegion,
-  NoveltyScore,
-} from "./atlas.js";
+export type { GenomeRecord, GenomeCluster, WhiteSpaceRegion, NoveltyScore } from "./atlas.js";

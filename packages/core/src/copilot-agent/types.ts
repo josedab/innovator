@@ -58,12 +58,7 @@ export type DetectedChange = z.infer<typeof DetectedChangeSchema>;
 
 // ---- Proposal ----
 
-export const ProposalStatusSchema = z.enum([
-  "pending",
-  "accepted",
-  "dismissed",
-  "deferred",
-]);
+export const ProposalStatusSchema = z.enum(["pending", "accepted", "dismissed", "deferred"]);
 export type ProposalStatus = z.infer<typeof ProposalStatusSchema>;
 
 export const ProposalSchema = z.object({
@@ -93,14 +88,7 @@ export type Proposal = z.infer<typeof ProposalSchema>;
 
 // ---- Delivery Channel ----
 
-export const DeliveryChannelSchema = z.enum([
-  "web",
-  "slack",
-  "teams",
-  "vscode",
-  "email",
-  "cli",
-]);
+export const DeliveryChannelSchema = z.enum(["web", "slack", "teams", "vscode", "email", "cli"]);
 export type DeliveryChannel = z.infer<typeof DeliveryChannelSchema>;
 
 export const DeliveryConfigSchema = z.object({

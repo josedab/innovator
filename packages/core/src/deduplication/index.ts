@@ -12,7 +12,7 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
-import type { AngleResult, InnovationIdea } from "../types.js";
+import type { AngleResult } from "../types.js";
 
 // ---- Zod Schemas ----
 
@@ -448,8 +448,8 @@ You MUST respond with valid JSON only:
 async function mergeNearDuplicates(
   ideas: EmbeddedIdea[],
   duplicatePairs: DeduplicationResult["duplicatePairs"],
-  model?: string,
-  signal?: AbortSignal
+  _model?: string,
+  _signal?: AbortSignal
 ): Promise<DeduplicationResult["mergedIdeas"]> {
   if (duplicatePairs.length === 0) return [];
 

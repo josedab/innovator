@@ -10,12 +10,8 @@ vi.mock("node:os", async () => {
 });
 
 const { trackEvent, clearAnalytics } = await import("../index.js");
-const {
-  computeVelocityTrend,
-  generateAngleHeatmap,
-  analyzeTeamPatterns,
-  velocityTrendToMarkdown,
-} = await import("../velocity-heatmap.js");
+const { computeVelocityTrend, generateAngleHeatmap, analyzeTeamPatterns, velocityTrendToMarkdown } =
+  await import("../velocity-heatmap.js");
 const { computeKPIs, kpiDashboardToMarkdown } = await import("../kpi-dashboard.js");
 const {
   createReportSchedule,
@@ -31,7 +27,7 @@ import type { AnalyticsEvent } from "../index.js";
 function createEvent(
   type: AnalyticsEvent["type"],
   timestamp: string,
-  data?: Record<string, unknown>,
+  data?: Record<string, unknown>
 ): AnalyticsEvent {
   return {
     id: `${type}-${timestamp}`,
@@ -76,15 +72,27 @@ describe("analytics dashboard enhancements", () => {
 
   it("builds angle effectiveness heatmaps", () => {
     const heatmap = generateAngleHeatmap([
-      createEvent("angle_generated", "2025-01-01T09:00:00Z", { angleId: "scamper", domain: "health" }),
-      createEvent("ideas_scored", "2025-01-01T09:10:00Z", { angleId: "scamper", domain: "health", avgScore: 8 }),
+      createEvent("angle_generated", "2025-01-01T09:00:00Z", {
+        angleId: "scamper",
+        domain: "health",
+      }),
+      createEvent("ideas_scored", "2025-01-01T09:10:00Z", {
+        angleId: "scamper",
+        domain: "health",
+        avgScore: 8,
+      }),
       createEvent("angle_failed", "2025-01-02T09:00:00Z", { angleId: "scamper", domain: "health" }),
-      createEvent("angle_generated", "2025-01-03T09:00:00Z", { angleId: "inversion", domain: "finance" }),
+      createEvent("angle_generated", "2025-01-03T09:00:00Z", {
+        angleId: "inversion",
+        domain: "finance",
+      }),
     ]);
 
     expect(heatmap.angles).toContain("scamper");
     expect(heatmap.domains).toContain("health");
-    const scamper = heatmap.cells.find((cell) => cell.angleId === "scamper" && cell.domain === "health");
+    const scamper = heatmap.cells.find(
+      (cell) => cell.angleId === "scamper" && cell.domain === "health"
+    );
     expect(scamper).toBeDefined();
     expect(scamper?.sampleSize).toBe(2);
     expect(scamper?.avgIdeaQuality).toBe(8);
@@ -93,12 +101,30 @@ describe("analytics dashboard enhancements", () => {
 
   it("analyzes team patterns", () => {
     const patterns = analyzeTeamPatterns([
-      createEvent("pipeline_started", "2025-01-01T09:00:00Z", { userId: "alice", displayName: "Alice" }),
-      createEvent("angle_generated", "2025-01-01T09:15:00Z", { userId: "alice", angleId: "scamper", ideaCount: 3 }),
-      createEvent("angle_generated", "2025-01-01T10:15:00Z", { userId: "alice", angleId: "scamper", ideaCount: 1 }),
+      createEvent("pipeline_started", "2025-01-01T09:00:00Z", {
+        userId: "alice",
+        displayName: "Alice",
+      }),
+      createEvent("angle_generated", "2025-01-01T09:15:00Z", {
+        userId: "alice",
+        angleId: "scamper",
+        ideaCount: 3,
+      }),
+      createEvent("angle_generated", "2025-01-01T10:15:00Z", {
+        userId: "alice",
+        angleId: "scamper",
+        ideaCount: 1,
+      }),
       createEvent("ideas_scored", "2025-01-01T10:20:00Z", { userId: "alice", avgScore: 8.2 }),
-      createEvent("pipeline_started", "2025-01-02T14:00:00Z", { userId: "bob", displayName: "Bob" }),
-      createEvent("angle_generated", "2025-01-02T14:15:00Z", { userId: "bob", angleId: "inversion", ideaCount: 1 }),
+      createEvent("pipeline_started", "2025-01-02T14:00:00Z", {
+        userId: "bob",
+        displayName: "Bob",
+      }),
+      createEvent("angle_generated", "2025-01-02T14:15:00Z", {
+        userId: "bob",
+        angleId: "inversion",
+        ideaCount: 1,
+      }),
     ]);
 
     expect(patterns).toHaveLength(2);
@@ -110,10 +136,13 @@ describe("analytics dashboard enhancements", () => {
 
   it("exports velocity trends as markdown", () => {
     const markdown = velocityTrendToMarkdown(
-      computeVelocityTrend([
-        createEvent("pipeline_started", "2025-01-01T09:00:00Z", { userId: "alice" }),
-        createEvent("angle_generated", "2025-01-01T09:15:00Z", { userId: "alice", ideaCount: 2 }),
-      ], "daily"),
+      computeVelocityTrend(
+        [
+          createEvent("pipeline_started", "2025-01-01T09:00:00Z", { userId: "alice" }),
+          createEvent("angle_generated", "2025-01-01T09:15:00Z", { userId: "alice", ideaCount: 2 }),
+        ],
+        "daily"
+      )
     );
 
     expect(markdown).toContain("Innovation Velocity Trend");
@@ -151,8 +180,18 @@ describe("analytics dashboard enhancements", () => {
   it("manages report schedules and generates reports", () => {
     trackEvent("pipeline_started", { userId: "alice", displayName: "Alice", subject: "AI ops" });
     trackEvent("pipeline_completed", { userId: "alice", durationMs: 1200 });
-    trackEvent("angle_generated", { userId: "alice", angleId: "scamper", domain: "ops", ideaCount: 3 });
-    trackEvent("ideas_scored", { userId: "alice", angleId: "scamper", domain: "ops", avgScore: 8.1 });
+    trackEvent("angle_generated", {
+      userId: "alice",
+      angleId: "scamper",
+      domain: "ops",
+      ideaCount: 3,
+    });
+    trackEvent("ideas_scored", {
+      userId: "alice",
+      angleId: "scamper",
+      domain: "ops",
+      avgScore: 8.1,
+    });
     trackEvent("session_exported", { userId: "alice" });
 
     const schedule = createReportSchedule({

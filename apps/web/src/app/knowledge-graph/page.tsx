@@ -232,9 +232,7 @@ export default function KnowledgeGraphPage() {
   // Node neighbors for selected node detail
   const selectedNodeEdges = useMemo(() => {
     if (!selectedNode || !layout) return [];
-    return layout.edges.filter(
-      (e) => e.source === selectedNode.id || e.target === selectedNode.id
-    );
+    return layout.edges.filter((e) => e.source === selectedNode.id || e.target === selectedNode.id);
   }, [selectedNode, layout]);
 
   const selectedNodeNeighbors = useMemo(() => {
@@ -598,9 +596,7 @@ export default function KnowledgeGraphPage() {
                 <h4 className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                   💡 {insight.title}
                 </h4>
-                <p className="text-xs text-neutral-500 mt-1 line-clamp-2">
-                  {insight.description}
-                </p>
+                <p className="text-xs text-neutral-500 mt-1 line-clamp-2">{insight.description}</p>
               </div>
             ))}
           </div>

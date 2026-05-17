@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  VerticalPackRegistry,
-  type ExtendedVerticalPack,
-} from "../verticals/pack-schema.js";
+import { VerticalPackRegistry, type ExtendedVerticalPack } from "../verticals/pack-schema.js";
 import { HEALTHCARE_PACK } from "../verticals/healthcare-pack.js";
 
 function makeMinimalPack(overrides?: Partial<ExtendedVerticalPack>): ExtendedVerticalPack {
@@ -25,8 +22,20 @@ function makeMinimalPack(overrides?: Partial<ExtendedVerticalPack>): ExtendedVer
         id: "rubric-1",
         name: "Test Rubric",
         criteria: [
-          { name: "Criterion A", description: "test criterion alpha", weight: 0.6, scaleMin: 0, scaleMax: 10 },
-          { name: "Criterion B", description: "test criterion bravo", weight: 0.4, scaleMin: 0, scaleMax: 10 },
+          {
+            name: "Criterion A",
+            description: "test criterion alpha",
+            weight: 0.6,
+            scaleMin: 0,
+            scaleMax: 10,
+          },
+          {
+            name: "Criterion B",
+            description: "test criterion bravo",
+            weight: 0.4,
+            scaleMin: 0,
+            scaleMax: 10,
+          },
         ],
         passingScore: 5,
       },
@@ -83,8 +92,12 @@ describe("VerticalPackRegistry", () => {
   });
 
   it("list filters by tag", () => {
-    registry.register(makeMinimalPack({ metadata: { tags: ["healthcare"], icon: "🏥", color: "#fff" } }));
-    registry.register(makeMinimalPack({ id: "other", metadata: { tags: ["fintech"], icon: "💰", color: "#0f0" } }));
+    registry.register(
+      makeMinimalPack({ metadata: { tags: ["healthcare"], icon: "🏥", color: "#fff" } })
+    );
+    registry.register(
+      makeMinimalPack({ id: "other", metadata: { tags: ["fintech"], icon: "💰", color: "#0f0" } })
+    );
     expect(registry.list({ tag: "healthcare" }).length).toBe(1);
     expect(registry.list({ tag: "fintech" }).length).toBe(1);
   });
@@ -108,8 +121,20 @@ describe("VerticalPackRegistry", () => {
           id: "bad-rubric",
           name: "Bad Rubric",
           criteria: [
-            { name: "C1", description: "desc one for testing", weight: 0.3, scaleMin: 0, scaleMax: 10 },
-            { name: "C2", description: "desc two for testing", weight: 0.3, scaleMin: 0, scaleMax: 10 },
+            {
+              name: "C1",
+              description: "desc one for testing",
+              weight: 0.3,
+              scaleMin: 0,
+              scaleMax: 10,
+            },
+            {
+              name: "C2",
+              description: "desc two for testing",
+              weight: 0.3,
+              scaleMin: 0,
+              scaleMax: 10,
+            },
           ],
           passingScore: 5,
         },

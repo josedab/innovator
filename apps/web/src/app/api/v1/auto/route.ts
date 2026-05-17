@@ -32,7 +32,10 @@ export async function POST(request: Request) {
   if (!rateLimit.allowed) {
     return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
       status: 429,
-      headers: addRateLimitHeaders(API_RESPONSE_HEADERS as unknown as Record<string, string>, rateLimit),
+      headers: addRateLimitHeaders(
+        API_RESPONSE_HEADERS as unknown as Record<string, string>,
+        rateLimit
+      ),
     });
   }
 
@@ -65,19 +68,16 @@ export async function POST(request: Request) {
 
     // Non-streaming mode: run pipeline and return final result
     if (!stream) {
-      const result = await runAutoPipeline(
-        subject,
-        () => {},
-        model,
-        undefined,
-        request.signal
-      );
+      const result = await runAutoPipeline(subject, () => {}, model, undefined, request.signal);
       logger.info("API v1 auto completed (non-streaming)", {
         route: "/api/v1/auto",
         durationMs: Date.now() - startTime,
       });
       return new Response(JSON.stringify({ data: result }), {
-        headers: addRateLimitHeaders(API_RESPONSE_HEADERS as unknown as Record<string, string>, rateLimit),
+        headers: addRateLimitHeaders(
+          API_RESPONSE_HEADERS as unknown as Record<string, string>,
+          rateLimit
+        ),
       });
     }
 
@@ -91,7 +91,11 @@ export async function POST(request: Request) {
       async start(controller) {
         const heartbeat = setInterval(() => {
           if (streamClosed) return;
-          try { controller.enqueue(encoder.encode(": keepalive\n\n")); } catch { streamClosed = true; }
+          try {
+            controller.enqueue(encoder.encode(": keepalive\n\n"));
+          } catch {
+            streamClosed = true;
+          }
         }, 15_000);
 
         try {
@@ -101,27 +105,42 @@ export async function POST(request: Request) {
               if (streamClosed) return;
               try {
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(progress)}\n\n`));
-              } catch { streamClosed = true; }
+              } catch {
+                streamClosed = true;
+              }
             },
             model,
             undefined,
             abortController.signal
           );
-        } catch (err) {
+        } catch {
           if (!streamClosed) {
             try {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ stage: "error", error: "Pipeline failed" })}\n\n`));
-            } catch { /* stream closed */ }
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ stage: "error", error: "Pipeline failed" })}\n\n`
+                )
+              );
+            } catch {
+              /* stream closed */
+            }
           }
         } finally {
           clearInterval(heartbeat);
           if (!streamClosed) {
-            try { controller.close(); } catch { /* already closed */ }
+            try {
+              controller.close();
+            } catch {
+              /* already closed */
+            }
           }
           streamClosed = true;
         }
       },
-      cancel() { streamClosed = true; abortController.abort(); },
+      cancel() {
+        streamClosed = true;
+        abortController.abort();
+      },
     });
 
     return new Response(readableStream, {

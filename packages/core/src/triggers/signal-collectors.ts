@@ -99,13 +99,13 @@ export interface SignalCollector {
 
 // ---- GitHub Signal Collectors ----
 
-function createGitHubCollector(source: SignalSource, itemType: string): SignalCollector {
+function createGitHubCollector(source: SignalSource, _itemType: string): SignalCollector {
   return {
     source,
-    async collect(config, signal) {
-      const repo = (config["repo"] as string) ?? "owner/repo";
-      const labels = (config["labels"] as string[]) ?? [];
-      const since =
+    async collect(config, _signal) {
+      const _repo = (config["repo"] as string) ?? "owner/repo";
+      const _labels = (config["labels"] as string[]) ?? [];
+      const _since =
         (config["since"] as string) ?? new Date(Date.now() - 7 * 86400_000).toISOString();
 
       // In production, this would call the GitHub API

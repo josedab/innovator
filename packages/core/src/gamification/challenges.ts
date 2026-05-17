@@ -12,13 +12,7 @@ import { z } from "zod";
 
 // ---- Schemas ----
 
-export const ChallengeStatusSchema = z.enum([
-  "draft",
-  "open",
-  "judging",
-  "closed",
-  "archived",
-]);
+export const ChallengeStatusSchema = z.enum(["draft", "open", "judging", "closed", "archived"]);
 
 export const CommunitySubmissionSchema = z.object({
   id: z.string(),
@@ -28,11 +22,16 @@ export const CommunitySubmissionSchema = z.object({
   title: z.string().max(500),
   description: z.string().max(10000),
   angleIds: z.array(z.string().max(100)).max(8),
-  attachments: z.array(z.object({
-    name: z.string().max(500),
-    url: z.string().max(2000),
-    type: z.string().max(100),
-  })).max(10).optional(),
+  attachments: z
+    .array(
+      z.object({
+        name: z.string().max(500),
+        url: z.string().max(2000),
+        type: z.string().max(100),
+      })
+    )
+    .max(10)
+    .optional(),
   votes: z.number().default(0),
   voterIds: z.array(z.string()).max(1000),
   score: z.number().min(0).max(100).optional(),
@@ -51,11 +50,15 @@ export const CommunityChallengeSchema = z.object({
   isPublic: z.boolean().default(true),
   category: z.string().max(200).optional(),
   prize: z.string().max(1000).optional(),
-  judgingCriteria: z.array(z.object({
-    name: z.string().max(200),
-    weight: z.number().min(0).max(1),
-    description: z.string().max(500),
-  })).max(10),
+  judgingCriteria: z
+    .array(
+      z.object({
+        name: z.string().max(200),
+        weight: z.number().min(0).max(1),
+        description: z.string().max(500),
+      })
+    )
+    .max(10),
   submissions: z.array(CommunitySubmissionSchema).max(500),
   maxSubmissions: z.number().default(100),
   deadline: z.string().optional(),
@@ -226,11 +229,7 @@ export function submitEntry(
 }
 
 /** Vote for a submission. */
-export function voteForEntry(
-  challengeId: string,
-  submissionId: string,
-  voterId: string
-): boolean {
+export function voteForEntry(challengeId: string, submissionId: string, voterId: string): boolean {
   const challenge = challenges.get(challengeId);
   if (!challenge || (challenge.status !== "open" && challenge.status !== "judging")) return false;
 
@@ -307,12 +306,15 @@ export function getUserBadges(userId: string): Badge[] {
 
 /** Get the community leaderboard. */
 export function getCommunityLeaderboard(limit: number = 20): CommunityLeaderboardEntry[] {
-  const userStats = new Map<string, {
-    userName: string;
-    submissionsCount: number;
-    winsCount: number;
-    votesReceived: number;
-  }>();
+  const userStats = new Map<
+    string,
+    {
+      userName: string;
+      submissionsCount: number;
+      winsCount: number;
+      votesReceived: number;
+    }
+  >();
 
   // Aggregate stats from all challenges
   for (const challenge of challenges.values()) {

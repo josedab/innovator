@@ -27,11 +27,11 @@ export default defineConfig({
       reporter: ["text", "lcov"],
       include: ["packages/*/src/**/*.ts", "apps/*/src/**/*.{ts,tsx}"],
       exclude: ["**/__tests__/**", "**/*.test.ts", "**/*.d.ts", "**/node_modules/**"],
-      // Baseline thresholds — raise as coverage improves
+      // Coverage thresholds — ratcheted to current levels to prevent regression
       thresholds: {
-        lines: 50,
-        functions: 50,
-        branches: 50,
+        lines: 70,
+        functions: 70,
+        branches: 55,
       },
     },
   },

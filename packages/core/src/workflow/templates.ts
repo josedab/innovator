@@ -21,7 +21,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: "quick-ideation",
     name: "Quick Ideation Sprint",
-    description: "Fast 3-angle ideation session with top-N filtering. Ideal for brainstorming sessions.",
+    description:
+      "Fast 3-angle ideation session with top-N filtering. Ideal for brainstorming sessions.",
     category: "ideation",
     tags: ["quick", "brainstorming", "beginner"],
     config: {
@@ -52,7 +53,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: "deep-research",
     name: "Deep Research Pipeline",
-    description: "Comprehensive 8-angle analysis with multi-round scoring and clustering synthesis. For serious innovation projects.",
+    description:
+      "Comprehensive 8-angle analysis with multi-round scoring and clustering synthesis. For serious innovation projects.",
     category: "research",
     tags: ["comprehensive", "research", "advanced"],
     config: {
@@ -66,8 +68,14 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           name: "All-Angle Generation",
           type: "generate",
           angles: [
-            "scamper", "first-principles", "cross-domain", "constraints",
-            "inversion", "perspectives", "what-if", "trend-collision",
+            "scamper",
+            "first-principles",
+            "cross-domain",
+            "constraints",
+            "inversion",
+            "perspectives",
+            "what-if",
+            "trend-collision",
           ],
         },
         { id: "score-round-1", name: "Initial Scoring", type: "score" },
@@ -94,7 +102,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: "competitive-analysis",
     name: "Competitive Analysis Workflow",
-    description: "Innovation through competitive lens — analyze gaps, find differentiators, build moats.",
+    description:
+      "Innovation through competitive lens — analyze gaps, find differentiators, build moats.",
     category: "strategy",
     tags: ["competitive", "strategy", "business"],
     config: {
@@ -169,7 +178,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: "moonshot-workshop",
     name: "Moonshot Workshop",
-    description: "High-risk, high-reward ideation with constraint injection and paradigm-breaking focus.",
+    description:
+      "High-risk, high-reward ideation with constraint injection and paradigm-breaking focus.",
     category: "moonshot",
     tags: ["moonshot", "bold", "visionary"],
     config: {

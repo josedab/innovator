@@ -41,10 +41,7 @@ export type ConfidenceScore = z.infer<typeof ConfidenceScoreSchema>;
 
 // ---- Prompt ----
 
-function buildConfidencePrompt(
-  subject: string,
-  investigation: Investigation
-): string {
+function buildConfidencePrompt(subject: string, investigation: Investigation): string {
   return `You are an expert at evaluating research quality and knowledge completeness.
 
 ${wrapUserInput("SUBJECT", subject)}
@@ -138,18 +135,12 @@ export async function scoreInvestigationQuality(
 export function formatGapSuggestions(score: ConfidenceScore): string[] {
   return score.gaps
     .filter((g) => g.importance === "high" || g.importance === "critical")
-    .map(
-      (g) =>
-        `[${g.importance.toUpperCase()}] ${g.topic}: ${g.suggestion}`
-    );
+    .map((g) => `[${g.importance.toUpperCase()}] ${g.topic}: ${g.suggestion}`);
 }
 
 /**
  * Check if an investigation meets a minimum confidence threshold.
  */
-export function meetsConfidenceThreshold(
-  score: ConfidenceScore,
-  minScore: number = 60
-): boolean {
+export function meetsConfidenceThreshold(score: ConfidenceScore, minScore: number = 60): boolean {
   return score.overallScore >= minScore;
 }

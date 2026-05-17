@@ -35,17 +35,35 @@ const MOCK_ANALYSIS_RESPONSE = JSON.stringify({
   meetingTitle: "Product Strategy Meeting",
   summary: "Team discussed Q2 product roadmap",
   topics: [
-    { title: "AI Feature Roadmap", description: "Discussion about AI features", innovationPotential: "high", keywords: ["AI", "roadmap"] },
-    { title: "Performance Improvements", description: "Backend optimization plans", innovationPotential: "medium", keywords: ["performance", "optimization"] },
+    {
+      title: "AI Feature Roadmap",
+      description: "Discussion about AI features",
+      innovationPotential: "high",
+      keywords: ["AI", "roadmap"],
+    },
+    {
+      title: "Performance Improvements",
+      description: "Backend optimization plans",
+      innovationPotential: "medium",
+      keywords: ["performance", "optimization"],
+    },
   ],
   actionItems: [
     { description: "Draft AI feature PRD", assignee: "Alice", priority: "high" },
     { description: "Set up performance benchmarks", priority: "medium" },
   ],
   innovationOpportunities: [
-    { title: "AI-Powered Search", description: "Use embeddings for semantic search", suggestedAngle: "cross-domain", confidence: 0.85 },
+    {
+      title: "AI-Powered Search",
+      description: "Use embeddings for semantic search",
+      suggestedAngle: "cross-domain",
+      confidence: 0.85,
+    },
   ],
-  suggestedSubjects: ["AI-powered semantic search for enterprise", "Performance optimization through caching"],
+  suggestedSubjects: [
+    "AI-powered semantic search for enterprise",
+    "Performance optimization through caching",
+  ],
   participants: ["Alice", "Bob", "Charlie"],
 });
 
@@ -130,7 +148,13 @@ describe("meeting-workflow", () => {
       mocks.generateText.mockResolvedValue(MOCK_ANALYSIS_RESPONSE);
 
       const inputs: MeetingInput[] = [
-        { id: "i1", type: "transcript", filename: "m.txt", content: "hello", uploadedAt: new Date().toISOString() },
+        {
+          id: "i1",
+          type: "transcript",
+          filename: "m.txt",
+          content: "hello",
+          uploadedAt: new Date().toISOString(),
+        },
       ];
 
       const analysis = await analyzeMeeting(inputs);

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@innovator/core", () => ({
@@ -74,16 +73,21 @@ async function POST(request: Request) {
 
     if (!events || events.length === 0) {
       return new Response(
-        JSON.stringify({ error: "No events provided. Pass events array or set useAnalytics: true." }),
+        JSON.stringify({
+          error: "No events provided. Pass events array or set useAnalytics: true.",
+        }),
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
 
-    const result = mineProcess(events as any, {
-      algorithm: parsed.data.algorithm,
-      minFrequency: parsed.data.minFrequency,
-      bottleneckThresholdMs: parsed.data.bottleneckThresholdMs,
-    } as any);
+    const result = mineProcess(
+      events as any,
+      {
+        algorithm: parsed.data.algorithm,
+        minFrequency: parsed.data.minFrequency,
+        bottleneckThresholdMs: parsed.data.bottleneckThresholdMs,
+      } as any
+    );
 
     return new Response(JSON.stringify(result), { status: 200, headers: API_RESPONSE_HEADERS });
   } catch {
@@ -147,7 +151,10 @@ describe("POST /api/process-mining", () => {
   });
 
   it("applies algorithm parameter", async () => {
-    mockMineProcess.mockReturnValue({ model: {}, statistics: { totalCases: 1, totalEvents: 1 } } as any);
+    mockMineProcess.mockReturnValue({
+      model: {},
+      statistics: { totalCases: 1, totalEvents: 1 },
+    } as any);
 
     const res = await POST(makeRequest({ events: SAMPLE_EVENTS, algorithm: "inductive" }));
     expect(res.status).toBe(200);
@@ -170,9 +177,7 @@ describe("POST /api/process-mining", () => {
   });
 
   it("returns 400 for invalid event format", async () => {
-    const res = await POST(
-      makeRequest({ events: [{ invalid: true }] })
-    );
+    const res = await POST(makeRequest({ events: [{ invalid: true }] }));
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toContain("Invalid request");

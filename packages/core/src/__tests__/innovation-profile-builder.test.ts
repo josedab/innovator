@@ -41,10 +41,7 @@ describe("innovation-profile-builder", () => {
     });
 
     it("calculates average quality", () => {
-      const history = [
-        makeSession({ avgQuality: 6 }),
-        makeSession({ avgQuality: 8 }),
-      ];
+      const history = [makeSession({ avgQuality: 6 }), makeSession({ avgQuality: 8 })];
       const profile = builder.buildProfile("user-1", history);
       expect(profile.avgQuality).toBe(7);
     });
@@ -139,9 +136,7 @@ describe("innovation-profile-builder", () => {
     });
 
     it("does not flag frequently used angles", () => {
-      const history = Array.from({ length: 5 }, () =>
-        makeSession({ anglesUsed: ["scamper"] })
-      );
+      const history = Array.from({ length: 5 }, () => makeSession({ anglesUsed: ["scamper"] }));
       const profile = builder.buildProfile("user-1", history);
       expect(profile.blindSpots).not.toContain("angle:scamper");
     });

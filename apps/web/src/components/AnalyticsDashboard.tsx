@@ -44,10 +44,18 @@ export default function AnalyticsDashboard() {
     setLoading(true);
     try {
       const [summaryRes, tsRes, heatmapRes, lbRes] = await Promise.all([
-        fetch("/api/analytics").then((r) => r.json()).catch(() => null),
-        fetch("/api/analytics?view=timeseries&metric=sessions&granularity=day").then((r) => r.json()).catch(() => null),
-        fetch("/api/analytics?view=heatmap&type=hour-day").then((r) => r.json()).catch(() => null),
-        fetch("/api/analytics?view=leaderboard&metric=ideas&limit=10").then((r) => r.json()).catch(() => null),
+        fetch("/api/analytics")
+          .then((r) => r.json())
+          .catch(() => null),
+        fetch("/api/analytics?view=timeseries&metric=sessions&granularity=day")
+          .then((r) => r.json())
+          .catch(() => null),
+        fetch("/api/analytics?view=heatmap&type=hour-day")
+          .then((r) => r.json())
+          .catch(() => null),
+        fetch("/api/analytics?view=leaderboard&metric=ideas&limit=10")
+          .then((r) => r.json())
+          .catch(() => null),
       ]);
 
       if (summaryRes?.summary) setSummary(summaryRes.summary);
@@ -56,7 +64,9 @@ export default function AnalyticsDashboard() {
       if (lbRes?.leaderboard) setLeaderboard(lbRes.leaderboard);
 
       // Fetch ROI
-      const roiRes = await fetch("/api/analytics?view=roi").then((r) => r.json()).catch(() => null);
+      const roiRes = await fetch("/api/analytics?view=roi")
+        .then((r) => r.json())
+        .catch(() => null);
       if (roiRes?.roi) setROI(roiRes.roi);
     } catch {
       // Data fetch failures are non-critical
@@ -65,7 +75,9 @@ export default function AnalyticsDashboard() {
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const TABS: { id: ViewTab; label: string; icon: string }[] = [
     { id: "overview", label: "Overview", icon: "📊" },
@@ -96,9 +108,7 @@ export default function AnalyticsDashboard() {
           ))}
         </div>
 
-        {loading && (
-          <div className="text-center py-20 text-gray-500">Loading analytics...</div>
-        )}
+        {loading && <div className="text-center py-20 text-gray-500">Loading analytics...</div>}
 
         {!loading && (
           <>
@@ -107,12 +117,31 @@ export default function AnalyticsDashboard() {
               <div className="space-y-6">
                 <div className="grid grid-cols-4 gap-4">
                   {[
-                    { label: "Total Sessions", value: summary.totalSessions ?? 0, color: "text-blue-400" },
-                    { label: "Ideas Generated", value: summary.totalIdeas ?? 0, color: "text-green-400" },
-                    { label: "Avg Quality", value: summary.averageScore ?? "N/A", color: "text-purple-400" },
-                    { label: "Active Angles", value: summary.anglesUsed ?? 0, color: "text-orange-400" },
+                    {
+                      label: "Total Sessions",
+                      value: summary.totalSessions ?? 0,
+                      color: "text-blue-400",
+                    },
+                    {
+                      label: "Ideas Generated",
+                      value: summary.totalIdeas ?? 0,
+                      color: "text-green-400",
+                    },
+                    {
+                      label: "Avg Quality",
+                      value: summary.averageScore ?? "N/A",
+                      color: "text-purple-400",
+                    },
+                    {
+                      label: "Active Angles",
+                      value: summary.anglesUsed ?? 0,
+                      color: "text-orange-400",
+                    },
                   ].map((stat) => (
-                    <div key={stat.label} className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+                    <div
+                      key={stat.label}
+                      className="bg-gray-900 rounded-xl border border-gray-800 p-6"
+                    >
                       <div className={`text-3xl font-bold ${stat.color}`}>{String(stat.value)}</div>
                       <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
                     </div>
@@ -144,7 +173,9 @@ export default function AnalyticsDashboard() {
                     })}
                   </div>
                 ) : (
-                  <p className="text-gray-600 text-center py-12">No velocity data yet. Run some innovation sessions!</p>
+                  <p className="text-gray-600 text-center py-12">
+                    No velocity data yet. Run some innovation sessions!
+                  </p>
                 )}
               </div>
             )}
@@ -163,9 +194,10 @@ export default function AnalyticsDashboard() {
                           key={i}
                           className="aspect-square rounded-sm"
                           style={{
-                            backgroundColor: intensity > 0
-                              ? `rgba(59, 130, 246, ${0.2 + intensity * 0.8})`
-                              : "rgba(255, 255, 255, 0.05)",
+                            backgroundColor:
+                              intensity > 0
+                                ? `rgba(59, 130, 246, ${0.2 + intensity * 0.8})`
+                                : "rgba(255, 255, 255, 0.05)",
                           }}
                           title={`${cell.row} × ${cell.col}: ${cell.value}`}
                         />
@@ -190,7 +222,9 @@ export default function AnalyticsDashboard() {
                         className="flex items-center justify-between px-4 py-3 bg-gray-800/50 rounded-lg"
                       >
                         <div className="flex items-center gap-3">
-                          <span className={`text-lg font-bold ${i < 3 ? "text-yellow-400" : "text-gray-500"}`}>
+                          <span
+                            className={`text-lg font-bold ${i < 3 ? "text-yellow-400" : "text-gray-500"}`}
+                          >
                             #{entry.rank}
                           </span>
                           <span className="font-medium">{entry.name}</span>
@@ -229,7 +263,9 @@ export default function AnalyticsDashboard() {
                   </div>
                   <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
                     <div className="text-sm text-gray-500 mb-1">ROI</div>
-                    <div className={`text-2xl font-bold ${(roi?.roi.roiPercent ?? 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
+                    <div
+                      className={`text-2xl font-bold ${(roi?.roi.roiPercent ?? 0) >= 0 ? "text-green-400" : "text-red-400"}`}
+                    >
                       {roi ? `${roi.roi.roiPercent}%` : "—"}
                     </div>
                     <div className="text-xs text-gray-600 mt-1">

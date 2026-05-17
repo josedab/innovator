@@ -63,7 +63,11 @@ export function InnovatorWidget({
   const [error, setError] = useState<string | null>(null);
   const [expandedAngle, setExpandedAngle] = useState<string | null>(null);
 
-  const isDark = theme === "dark" || (theme === "auto" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const isDark =
+    theme === "dark" ||
+    (theme === "auto" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -231,7 +235,9 @@ export function InnovatorWidget({
                   fontWeight: 600,
                 }}
               >
-                <span>{ar.angleName} ({ar.ideas.length} ideas)</span>
+                <span>
+                  {ar.angleName} ({ar.ideas.length} ideas)
+                </span>
                 <span>{expandedAngle === ar.angleId ? "▼" : "▶"}</span>
               </button>
 
@@ -248,7 +254,14 @@ export function InnovatorWidget({
                       }}
                     >
                       <strong style={{ fontSize: "13px" }}>{idea.title}</strong>
-                      <p style={{ margin: "4px 0 0", fontSize: "12px", lineHeight: 1.4, opacity: 0.8 }}>
+                      <p
+                        style={{
+                          margin: "4px 0 0",
+                          fontSize: "12px",
+                          lineHeight: 1.4,
+                          opacity: 0.8,
+                        }}
+                      >
                         {idea.description}
                       </p>
                     </div>

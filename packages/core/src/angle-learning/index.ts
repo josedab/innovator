@@ -90,9 +90,7 @@ export function getAngleEvents(angleId?: string): AngleEvent[] {
  * Compute effectiveness scores for all angles, optionally scoped to a domain.
  */
 export function computeAngleEffectiveness(domain?: string): EffectivenessReport {
-  const filtered = domain
-    ? events.filter((e) => e.domain === domain)
-    : events;
+  const filtered = domain ? events.filter((e) => e.domain === domain) : events;
 
   // Group events by angleId
   const angleGroups = new Map<string, AngleEvent[]>();
@@ -109,37 +107,50 @@ export function computeAngleEffectiveness(domain?: string): EffectivenessReport 
     const ratings = angleEvents.filter((e) => e.eventType === "rating" && e.value !== undefined);
     const selections = angleEvents.filter((e) => e.eventType === "selection").length;
     const dismissals = angleEvents.filter((e) => e.eventType === "dismiss").length;
-    const dwellTimes = angleEvents.filter((e) => e.eventType === "dwell-time" && e.value !== undefined);
+    const dwellTimes = angleEvents.filter(
+      (e) => e.eventType === "dwell-time" && e.value !== undefined
+    );
     const total = angleEvents.length;
 
-    const avgRating = ratings.length > 0
-      ? ratings.reduce((s, r) => s + (r.value ?? 0), 0) / ratings.length
-      : 0;
+    const avgRating =
+      ratings.length > 0 ? ratings.reduce((s, r) => s + (r.value ?? 0), 0) / ratings.length : 0;
     const exportRate = total > 0 ? exports / total : 0;
-    const selectionRate = (selections + dismissals) > 0 ? selections / (selections + dismissals) : 0;
-    const avgDwell = dwellTimes.length > 0
-      ? dwellTimes.reduce((s, d) => s + (d.value ?? 0), 0) / dwellTimes.length
-      : 0;
+    const selectionRate = selections + dismissals > 0 ? selections / (selections + dismissals) : 0;
+    const avgDwell =
+      dwellTimes.length > 0
+        ? dwellTimes.reduce((s, d) => s + (d.value ?? 0), 0) / dwellTimes.length
+        : 0;
 
     // Compute composite score (0-100)
     const overallScore = Math.round(
       (avgRating / 5) * 30 +
-      exportRate * 25 +
-      selectionRate * 25 +
-      Math.min(avgDwell / 30000, 1) * 20
+        exportRate * 25 +
+        selectionRate * 25 +
+        Math.min(avgDwell / 30000, 1) * 20
     );
 
     // Compute trend from recent vs. older events
     const midpoint = Math.floor(angleEvents.length / 2);
-    const recentRatings = angleEvents.slice(midpoint).filter((e) => e.eventType === "rating" && e.value);
-    const olderRatings = angleEvents.slice(0, midpoint).filter((e) => e.eventType === "rating" && e.value);
-    const recentAvg = recentRatings.length > 0
-      ? recentRatings.reduce((s, r) => s + (r.value ?? 0), 0) / recentRatings.length
-      : avgRating;
-    const olderAvg = olderRatings.length > 0
-      ? olderRatings.reduce((s, r) => s + (r.value ?? 0), 0) / olderRatings.length
-      : avgRating;
-    const trend = recentAvg > olderAvg + 0.3 ? "improving" : recentAvg < olderAvg - 0.3 ? "declining" : "stable";
+    const recentRatings = angleEvents
+      .slice(midpoint)
+      .filter((e) => e.eventType === "rating" && e.value);
+    const olderRatings = angleEvents
+      .slice(0, midpoint)
+      .filter((e) => e.eventType === "rating" && e.value);
+    const recentAvg =
+      recentRatings.length > 0
+        ? recentRatings.reduce((s, r) => s + (r.value ?? 0), 0) / recentRatings.length
+        : avgRating;
+    const olderAvg =
+      olderRatings.length > 0
+        ? olderRatings.reduce((s, r) => s + (r.value ?? 0), 0) / olderRatings.length
+        : avgRating;
+    const trend =
+      recentAvg > olderAvg + 0.3
+        ? "improving"
+        : recentAvg < olderAvg - 0.3
+          ? "declining"
+          : "stable";
 
     angleScores.push({
       angleId,
@@ -168,9 +179,12 @@ export function computeAngleEffectiveness(domain?: string): EffectivenessReport 
 
   for (const [dmn, angleMap] of domainAngleMap) {
     for (const [angleId, evts] of angleMap) {
-      const positiveEvents = evts.filter((e) =>
-        e.eventType === "export" || e.eventType === "selection" || e.eventType === "bookmark" ||
-        (e.eventType === "rating" && (e.value ?? 0) >= 4)
+      const positiveEvents = evts.filter(
+        (e) =>
+          e.eventType === "export" ||
+          e.eventType === "selection" ||
+          e.eventType === "bookmark" ||
+          (e.eventType === "rating" && (e.value ?? 0) >= 4)
       ).length;
       const affinity = evts.length > 0 ? positiveEvents / evts.length : 0;
       domainAffinityMatrix.push({
@@ -206,9 +220,7 @@ export function computeAngleEffectiveness(domain?: string): EffectivenessReport 
  * Get recommended angle weights for a specific domain, using
  * historical effectiveness to weight angle selection.
  */
-export function getWeightedAngles(
-  domain?: string
-): Record<string, number> {
+export function getWeightedAngles(domain?: string): Record<string, number> {
   const report = computeAngleEffectiveness(domain);
   return report.recommendedWeights;
 }
@@ -222,9 +234,11 @@ export function buildAvoidanceHints(angleId: string): string | null {
 
   if (!score || score.overallScore >= 50) return null;
 
-  return `IMPORTANT: This angle ("${angleId}") has historically underperformed (score: ${score.overallScore}/100, trend: ${score.trend}). ` +
+  return (
+    `IMPORTANT: This angle ("${angleId}") has historically underperformed (score: ${score.overallScore}/100, trend: ${score.trend}). ` +
     `Avoid generic or surface-level ideas. Focus on specific, actionable, and novel insights. ` +
-    `Previous ideas from this angle had low export rates (${(score.exportRate * 100).toFixed(0)}%) and low user ratings.`;
+    `Previous ideas from this angle had low export rates (${(score.exportRate * 100).toFixed(0)}%) and low user ratings.`
+  );
 }
 
 // ---- A/B Testing ----
@@ -243,15 +257,30 @@ export function assignABVariant(sessionId: string): "tuned" | "default" {
 /**
  * Get A/B test results comparing tuned vs default angle selection.
  */
-export function getABTestResults(): { tuned: number; default: number; tunedCount: number; defaultCount: number } {
-  let tunedTotal = 0, tunedCount = 0, defaultTotal = 0, defaultCount = 0;
+export function getABTestResults(): {
+  tuned: number;
+  default: number;
+  tunedCount: number;
+  defaultCount: number;
+} {
+  let tunedTotal = 0,
+    tunedCount = 0,
+    defaultTotal = 0,
+    defaultCount = 0;
 
   for (const [sessionId, variant] of abTestAssignments) {
-    const sessionEvents = events.filter((e) => e.sessionId === sessionId && e.eventType === "rating" && e.value);
+    const sessionEvents = events.filter(
+      (e) => e.sessionId === sessionId && e.eventType === "rating" && e.value
+    );
     if (sessionEvents.length === 0) continue;
     const avg = sessionEvents.reduce((s, e) => s + (e.value ?? 0), 0) / sessionEvents.length;
-    if (variant === "tuned") { tunedTotal += avg; tunedCount++; }
-    else { defaultTotal += avg; defaultCount++; }
+    if (variant === "tuned") {
+      tunedTotal += avg;
+      tunedCount++;
+    } else {
+      defaultTotal += avg;
+      defaultCount++;
+    }
   }
 
   return {

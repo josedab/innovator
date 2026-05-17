@@ -25,29 +25,58 @@ export async function POST(request: Request) {
     if (contentTypeError) return contentTypeError;
 
     let body: unknown;
-    try { body = await request.json(); } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers: API_RESPONSE_HEADERS });
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const parsed = RequestSchema.safeParse(body);
     if (!parsed.success) {
-      logger.warn("Invalid request", { route: "/api/wargaming", requestId, details: parsed.error.flatten() });
-      return new Response(JSON.stringify({ error: "Invalid request." }), { status: 400, headers: API_RESPONSE_HEADERS });
+      logger.warn("Invalid request", {
+        route: "/api/wargaming",
+        requestId,
+        details: parsed.error.flatten(),
+      });
+      return new Response(JSON.stringify({ error: "Invalid request." }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const modelError = validateModel(parsed.data.model);
     if (modelError) return modelError;
 
-    const result = await runWargaming(parsed.data.ideaTitle, parsed.data.ideaDescription, parsed.data.subject, {
-      model: parsed.data.model,
-      rounds: parsed.data.rounds,
-      signal: request.signal,
-    });
+    const result = await runWargaming(
+      parsed.data.ideaTitle,
+      parsed.data.ideaDescription,
+      parsed.data.subject,
+      {
+        model: parsed.data.model,
+        rounds: parsed.data.rounds,
+        signal: request.signal,
+      }
+    );
 
-    logger.info("Wargaming completed", { route: "/api/wargaming", requestId, durationMs: Date.now() - startTime });
+    logger.info("Wargaming completed", {
+      route: "/api/wargaming",
+      requestId,
+      durationMs: Date.now() - startTime,
+    });
     return Response.json(result, { headers: API_RESPONSE_HEADERS });
   } catch (err) {
-    logger.error("Wargaming error", { error: err instanceof Error ? err.message : String(err), route: "/api/wargaming", requestId, durationMs: Date.now() - startTime });
-    return new Response(JSON.stringify({ error: "Wargaming failed. Please try again." }), { status: 500, headers: API_RESPONSE_HEADERS });
+    logger.error("Wargaming error", {
+      error: err instanceof Error ? err.message : String(err),
+      route: "/api/wargaming",
+      requestId,
+      durationMs: Date.now() - startTime,
+    });
+    return new Response(JSON.stringify({ error: "Wargaming failed. Please try again." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

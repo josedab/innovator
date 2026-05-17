@@ -91,9 +91,7 @@ Respond in JSON:
         model: config.model,
         signal: config.signal,
       });
-      return PRDResponseSchema.parse(
-        JSON.parse(extractJson(sanitizeLlmOutput(raw)))
-      );
+      return PRDResponseSchema.parse(JSON.parse(extractJson(sanitizeLlmOutput(raw))));
     },
     { signal: config.signal }
   );
@@ -140,10 +138,7 @@ const TechSpecResponseSchema = z.object({
   scalabilityNotes: z.string().max(2000).optional(),
 });
 
-export async function generateTechSpec(
-  prd: PRD,
-  config: BridgeConfig = {}
-): Promise<TechSpec> {
+export async function generateTechSpec(prd: PRD, config: BridgeConfig = {}): Promise<TechSpec> {
   const storiesText = prd.userStories
     .map((s) => `- ${s.title} (${s.priority}): ${s.description}`)
     .join("\n");
@@ -179,9 +174,7 @@ Respond in JSON:
         model: config.model,
         signal: config.signal,
       });
-      return TechSpecResponseSchema.parse(
-        JSON.parse(extractJson(sanitizeLlmOutput(raw)))
-      );
+      return TechSpecResponseSchema.parse(JSON.parse(extractJson(sanitizeLlmOutput(raw))));
     },
     { signal: config.signal }
   );
@@ -253,9 +246,7 @@ Respond in JSON:
         model: config.model,
         signal: config.signal,
       });
-      return ImplPlanResponseSchema.parse(
-        JSON.parse(extractJson(sanitizeLlmOutput(raw)))
-      );
+      return ImplPlanResponseSchema.parse(JSON.parse(extractJson(sanitizeLlmOutput(raw))));
     },
     { signal: config.signal }
   );
@@ -266,20 +257,19 @@ Respond in JSON:
   }));
 
   const taskTitleToId = new Map(tasks.map((t) => [t.title, t.id]));
-  const dependencyGraph = tasks.flatMap((t) =>
-    t.dependencies
-      .map((dep) => {
-        const depId = taskTitleToId.get(dep);
-        return depId ? { from: depId, to: t.id } : null;
-      })
-      .filter(Boolean) as Array<{ from: string; to: string }>
+  const dependencyGraph = tasks.flatMap(
+    (t) =>
+      t.dependencies
+        .map((dep) => {
+          const depId = taskTitleToId.get(dep);
+          return depId ? { from: depId, to: t.id } : null;
+        })
+        .filter(Boolean) as Array<{ from: string; to: string }>
   );
 
   const phases = result.phases.map((p) => ({
     name: p.name,
-    taskIds: p.taskTitles
-      .map((title) => taskTitleToId.get(title))
-      .filter(Boolean) as string[],
+    taskIds: p.taskTitles.map((title) => taskTitleToId.get(title)).filter(Boolean) as string[],
     description: p.description,
   }));
 
@@ -340,7 +330,11 @@ export async function runBridgePipeline(
     pipeline.updatedAt = new Date().toISOString();
 
     // Stage 3: Generate Implementation Plan
-    onProgress?.({ pipelineId, stage: "implementation-plan", message: "Creating implementation plan..." });
+    onProgress?.({
+      pipelineId,
+      stage: "implementation-plan",
+      message: "Creating implementation plan...",
+    });
     pipeline.stage = "implementation-plan";
     pipeline.implementationPlan = await generateImplementationPlan(
       pipeline.techSpec,
@@ -353,10 +347,7 @@ export async function runBridgePipeline(
     if (config.issueProvider && config.repoOwner && config.repoName) {
       onProgress?.({ pipelineId, stage: "issues-created", message: "Creating issues..." });
       pipeline.stage = "issues-created";
-      pipeline.createdIssues = createLocalIssues(
-        pipeline.implementationPlan,
-        config
-      );
+      pipeline.createdIssues = createLocalIssues(pipeline.implementationPlan, config);
       pipeline.updatedAt = new Date().toISOString();
     }
 
@@ -378,10 +369,7 @@ export async function runBridgePipeline(
   }
 }
 
-function createLocalIssues(
-  plan: ImplementationPlan,
-  config: BridgeConfig
-): CreatedIssue[] {
+function createLocalIssues(plan: ImplementationPlan, config: BridgeConfig): CreatedIssue[] {
   return plan.tasks.map((task) => ({
     id: `issue-${randomUUID().slice(0, 8)}`,
     taskId: task.id,

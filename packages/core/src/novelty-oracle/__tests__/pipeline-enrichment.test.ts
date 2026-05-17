@@ -35,8 +35,18 @@ function makeAngleResults(): AngleResult[] {
       angleId: "scamper",
       angleName: "SCAMPER",
       ideas: [
-        { title: "Solar ML", description: "Machine learning for solar optimization", potentialImpact: "High", implementationHint: "Use TensorFlow" },
-        { title: "Wind AI", description: "AI for wind turbine placement", potentialImpact: "Medium", implementationHint: "Use PyTorch" },
+        {
+          title: "Solar ML",
+          description: "Machine learning for solar optimization",
+          potentialImpact: "High",
+          implementationHint: "Use TensorFlow",
+        },
+        {
+          title: "Wind AI",
+          description: "AI for wind turbine placement",
+          potentialImpact: "Medium",
+          implementationHint: "Use PyTorch",
+        },
       ],
       reasoning: "Applied SCAMPER framework",
     },
@@ -44,7 +54,12 @@ function makeAngleResults(): AngleResult[] {
       angleId: "first-principles",
       angleName: "First Principles",
       ideas: [
-        { title: "Quantum Grid", description: "Quantum computing for grid optimization", potentialImpact: "Very High", implementationHint: "Partner with IBM" },
+        {
+          title: "Quantum Grid",
+          description: "Quantum computing for grid optimization",
+          potentialImpact: "Very High",
+          implementationHint: "Partner with IBM",
+        },
       ],
       reasoning: "Decomposed from fundamentals",
     },
@@ -81,7 +96,8 @@ describe("enrichSynthesisWithNovelty", () => {
         id: "pa-1",
         source: "patent",
         title: "AI-powered solar panel optimization system",
-        description: "Machine learning algorithm that adjusts solar panel angles based on weather data",
+        description:
+          "Machine learning algorithm that adjusts solar panel angles based on weather data",
         similarity: 0,
         patentNumber: "US10234567",
       },

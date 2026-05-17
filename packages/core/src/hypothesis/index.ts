@@ -10,7 +10,7 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { wrapUserInput } from "../prompts/sanitize.js";
 import type { Investigation } from "../types.js";
 
 // ---- Schemas ----
@@ -206,7 +206,7 @@ export function parseHypothesis(text: string): {
   }
 
   const suggestions: string[] = [];
-  const lower = trimmed.toLowerCase();
+  const _lower = trimmed.toLowerCase();
 
   // Check for hypothesis structure indicators
   const hasIfThen = /\bif\b.*\bthen\b/i.test(trimmed);

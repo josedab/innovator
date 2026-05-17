@@ -9,7 +9,6 @@ import {
   scoreAssessment,
   getAssessmentResult,
   getMaturityRoadmap as getRoadmap,
-  benchmarkAssessment,
 } from "@innovator/core";
 import {
   generateCoachingPrompts,

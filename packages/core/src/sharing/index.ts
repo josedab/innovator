@@ -13,7 +13,11 @@ import type { AngleResult, Investigation, Synthesis } from "../types.js";
 
 /** Schema for a shared investigation snapshot. */
 export const SharedInvestigationSchema = z.object({
-  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
   title: z.string().max(500),
   subject: z.string().max(500),
   investigation: z.unknown().optional(),

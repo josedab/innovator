@@ -69,10 +69,7 @@ function MermaidRenderer({ content, title }: { content: string; title: string })
           securityLevel: "loose",
         });
 
-        const { svg } = await mermaid.render(
-          `mermaid-${Date.now()}`,
-          content
-        );
+        const { svg } = await mermaid.render(`mermaid-${Date.now()}`, content);
 
         if (!cancelled && containerRef.current) {
           containerRef.current.innerHTML = svg;
@@ -86,7 +83,9 @@ function MermaidRenderer({ content, title }: { content: string; title: string })
     }
 
     renderMermaid();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [content]);
 
   return (
@@ -157,13 +156,7 @@ function IdeaMapRenderer({ data, title }: { data: IdeaMapData; title: string }) 
   );
 }
 
-function ComparisonChartRenderer({
-  data,
-  title,
-}: {
-  data: ChartDataPoint[];
-  title: string;
-}) {
+function ComparisonChartRenderer({ data, title }: { data: ChartDataPoint[]; title: string }) {
   const maxValue = Math.max(...data.map((d) => d.value), 0.01);
 
   return (
@@ -215,9 +208,7 @@ export function VisualOutput({ artifacts, className = "" }: VisualOutputProps) {
   const ideaMaps = artifacts.filter(
     (a) => a.format === "json" && (a.type === "mindmap" || a.metadata?.nodeCount)
   );
-  const charts = artifacts.filter(
-    (a) => a.format === "json" && a.type === "chart"
-  );
+  const charts = artifacts.filter((a) => a.format === "json" && a.type === "chart");
 
   // ---- Export handlers ----
 
@@ -270,7 +261,9 @@ export function VisualOutput({ artifacts, className = "" }: VisualOutputProps) {
 
   if (artifacts.length === 0) {
     return (
-      <div className={`p-8 text-center rounded-xl border border-neutral-200 dark:border-neutral-700 ${className}`}>
+      <div
+        className={`p-8 text-center rounded-xl border border-neutral-200 dark:border-neutral-700 ${className}`}
+      >
         <div className="text-4xl mb-2">📊</div>
         <p className="text-sm text-neutral-500 dark:text-neutral-400">
           No visualizations generated yet. Run an investigation to see results.
@@ -344,13 +337,7 @@ export function VisualOutput({ artifacts, className = "" }: VisualOutputProps) {
               ideaMaps.map((artifact) => {
                 try {
                   const data = JSON.parse(artifact.content) as IdeaMapData;
-                  return (
-                    <IdeaMapRenderer
-                      key={artifact.id}
-                      data={data}
-                      title={artifact.title}
-                    />
-                  );
+                  return <IdeaMapRenderer key={artifact.id} data={data} title={artifact.title} />;
                 } catch {
                   return null;
                 }
@@ -369,11 +356,7 @@ export function VisualOutput({ artifacts, className = "" }: VisualOutputProps) {
                   const data = JSON.parse(artifact.content) as ChartDataPoint[];
                   if (!Array.isArray(data)) return null;
                   return (
-                    <ComparisonChartRenderer
-                      key={artifact.id}
-                      data={data}
-                      title={artifact.title}
-                    />
+                    <ComparisonChartRenderer key={artifact.id} data={data} title={artifact.title} />
                   );
                 } catch {
                   return null;

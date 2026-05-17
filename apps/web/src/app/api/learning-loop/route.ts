@@ -71,12 +71,18 @@ export async function POST(request: Request) {
           ideaCount: parsed.ideaCount,
           selectedIdeas: parsed.selectedIdeas,
         });
-        logger.info("Learning signal recorded", { sessionId: parsed.sessionId, angleId: parsed.angleId });
+        logger.info("Learning signal recorded", {
+          sessionId: parsed.sessionId,
+          angleId: parsed.angleId,
+        });
         return Response.json({ signal }, { headers: API_RESPONSE_HEADERS });
       }
       case "batch-record": {
         const signals = recordBatchOutcomes(parsed.sessionId, parsed.subject, parsed.outcomes);
-        logger.info("Batch learning signals recorded", { sessionId: parsed.sessionId, count: signals.length });
+        logger.info("Batch learning signals recorded", {
+          sessionId: parsed.sessionId,
+          count: signals.length,
+        });
         return Response.json({ signals }, { headers: API_RESPONSE_HEADERS });
       }
       case "recommend": {
@@ -91,7 +97,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/learning-loop" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/learning-loop",
+    });
     return Response.json(
       { error: "Internal server error" },
       { status: 500, headers: API_RESPONSE_HEADERS }
@@ -112,7 +120,10 @@ export async function GET(request: Request) {
     if (view === "angle") {
       const angleId = searchParams.get("angleId");
       if (!angleId) {
-        return Response.json({ error: "angleId parameter required" }, { status: 400, headers: API_RESPONSE_HEADERS });
+        return Response.json(
+          { error: "angleId parameter required" },
+          { status: 400, headers: API_RESPONSE_HEADERS }
+        );
       }
       const performance = getAnglePerformance(angleId);
       return Response.json({ performance }, { headers: API_RESPONSE_HEADERS });
@@ -121,7 +132,10 @@ export async function GET(request: Request) {
     if (view === "insights") {
       const subject = searchParams.get("subject");
       if (!subject) {
-        return Response.json({ error: "subject parameter required" }, { status: 400, headers: API_RESPONSE_HEADERS });
+        return Response.json(
+          { error: "subject parameter required" },
+          { status: 400, headers: API_RESPONSE_HEADERS }
+        );
       }
       const format = searchParams.get("format");
       if (format === "markdown") {
@@ -139,6 +153,9 @@ export async function GET(request: Request) {
     return Response.json({ profiles }, { headers: API_RESPONSE_HEADERS });
   } catch (err) {
     logger.error("Learning loop GET error", { error: String(err) });
-    return Response.json({ error: "Internal server error" }, { status: 500, headers: API_RESPONSE_HEADERS });
+    return Response.json(
+      { error: "Internal server error" },
+      { status: 500, headers: API_RESPONSE_HEADERS }
+    );
   }
 }

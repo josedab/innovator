@@ -48,7 +48,11 @@ describe("realtime-presence", () => {
     it("prevents duplicate user entries", () => {
       const room = createPresenceRoom("s1");
       joinRoom(room.roomId, { userId: "u1", displayName: "Alice", color: "#f00" });
-      const updated = joinRoom(room.roomId, { userId: "u1", displayName: "Alice Updated", color: "#0f0" });
+      const updated = joinRoom(room.roomId, {
+        userId: "u1",
+        displayName: "Alice Updated",
+        color: "#0f0",
+      });
 
       expect(updated!.users).toHaveLength(1);
       expect(updated!.users[0].color).toBe("#0f0");
@@ -104,7 +108,13 @@ describe("realtime-presence", () => {
     it("clusters nodes by shared keywords", () => {
       const nodes = [
         { id: "1", title: "Machine Learning Model", description: "Build ML model", x: 0, y: 0 },
-        { id: "2", title: "Machine Learning Pipeline", description: "Data pipeline for ML", x: 100, y: 0 },
+        {
+          id: "2",
+          title: "Machine Learning Pipeline",
+          description: "Data pipeline for ML",
+          x: 100,
+          y: 0,
+        },
         { id: "3", title: "User Interface Design", description: "Design the UI", x: 200, y: 200 },
         { id: "4", title: "User Interface Testing", description: "Test the UI", x: 300, y: 200 },
       ];
@@ -113,8 +123,8 @@ describe("realtime-presence", () => {
       expect(result.clusters.length).toBeGreaterThan(0);
 
       // "machine" should cluster nodes 1 and 2
-      const mlCluster = result.clusters.find((c) =>
-        c.nodeIds.includes("1") && c.nodeIds.includes("2")
+      const mlCluster = result.clusters.find(
+        (c) => c.nodeIds.includes("1") && c.nodeIds.includes("2")
       );
       expect(mlCluster).toBeDefined();
     });
@@ -147,10 +157,7 @@ describe("realtime-presence", () => {
     });
 
     it("exports to SVG", () => {
-      const svg = exportCanvasToSVG(
-        [{ id: "1", title: "Node A", x: 50, y: 100 }],
-        []
-      );
+      const svg = exportCanvasToSVG([{ id: "1", title: "Node A", x: 50, y: 100 }], []);
 
       expect(svg).toContain("<svg");
       expect(svg).toContain("Node A");
@@ -158,10 +165,7 @@ describe("realtime-presence", () => {
     });
 
     it("SVG escapes special characters", () => {
-      const svg = exportCanvasToSVG(
-        [{ id: "1", title: "A & B <test>", x: 0, y: 0 }],
-        []
-      );
+      const svg = exportCanvasToSVG([{ id: "1", title: "A & B <test>", x: 0, y: 0 }], []);
 
       expect(svg).toContain("&amp;");
       expect(svg).toContain("&lt;");

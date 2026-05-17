@@ -30,7 +30,9 @@ export async function POST(request: Request) {
     const modelError = validateModel(parsed.model);
     if (modelError) return modelError;
 
-    logger.info(`Starting parallel investigation for ${parsed.subjects.length} subjects`, { route: "/api/compare" });
+    logger.info(`Starting parallel investigation for ${parsed.subjects.length} subjects`, {
+      route: "/api/compare",
+    });
 
     const result = await runParallelInvestigation(parsed.subjects, {
       model: parsed.model,
@@ -38,7 +40,9 @@ export async function POST(request: Request) {
       includeCompetitiveMap: parsed.includeCompetitiveMap,
     });
 
-    logger.info(`Comparative analysis ${result.stage}: ${parsed.subjects.length} subjects`, { route: "/api/compare" });
+    logger.info(`Comparative analysis ${result.stage}: ${parsed.subjects.length} subjects`, {
+      route: "/api/compare",
+    });
 
     return Response.json(result, { headers: API_RESPONSE_HEADERS });
   } catch (error) {
@@ -48,7 +52,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/compare" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/compare",
+    });
     return Response.json(
       { error: "Comparative analysis failed" },
       { status: 500, headers: API_RESPONSE_HEADERS }

@@ -7,16 +7,11 @@
  * can be swapped without touching business logic.
  */
 
-import type {
-  SessionRecord,
-  HistoryQuery,
-  CollaborativeSession,
-  CollaborativeEvent,
-} from "../types.js";
-import type { Workspace, ActivityEvent, MemberRole } from "../workspaces/index.js";
-import type { ApiKey, BillingTier, UsageRecord, UsageSummary } from "../api-gateway/index.js";
-import type { AnalyticsEvent, AnalyticsEventType } from "../analytics/index.js";
-import type { EntityNode, RelationshipEdge, KnowledgeGraph } from "../knowledge-graph/index.js";
+import type { SessionRecord, HistoryQuery, CollaborativeSession } from "../types.js";
+import type { Workspace } from "../workspaces/index.js";
+import type { ApiKey, UsageRecord } from "../api-gateway/index.js";
+import type { AnalyticsEvent } from "../analytics/index.js";
+import type { KnowledgeGraph } from "../knowledge-graph/index.js";
 
 // ---- Session / History ----
 

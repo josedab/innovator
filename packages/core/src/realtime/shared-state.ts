@@ -154,10 +154,7 @@ export class SharedStateManager {
    * - `lww`: Already resolved by apply logic; clears pending list.
    * - `manual`: Returns conflicts for external resolution, then clears.
    */
-  resolveConflicts(
-    docId: string,
-    strategy: ConflictResolutionStrategy
-  ): Conflict[] {
+  resolveConflicts(docId: string, strategy: ConflictResolutionStrategy): Conflict[] {
     const conflicts = this.pendingConflicts.get(docId) ?? [];
     if (conflicts.length === 0) return [];
 

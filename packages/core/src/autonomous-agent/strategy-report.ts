@@ -73,7 +73,11 @@ function collectCandidateIdeas(run: AutonomousRun): CandidateIdea[] {
       title: idea.title,
       description: idea.description,
       score: idea.score ?? 60,
-      feasibility: ((idea.score ?? 60) >= 80 ? "high" : (idea.score ?? 60) >= 60 ? "medium" : "low") as CandidateIdea["feasibility"],
+      feasibility: ((idea.score ?? 60) >= 80
+        ? "high"
+        : (idea.score ?? 60) >= 60
+          ? "medium"
+          : "low") as CandidateIdea["feasibility"],
       source: branch.subject,
     }))
   );
@@ -91,23 +95,39 @@ function buildRecommendations(run: AutonomousRun): StrategyRecommendation[] {
       title: idea.title,
       description: `${idea.description} Source: ${idea.source}.`.slice(0, 2000),
       impact: idea.score >= 80 ? "high" : idea.score >= 60 ? "medium" : "low",
-      effort: idea.feasibility === "high" ? "low" : idea.feasibility === "medium" ? "medium" : "high",
+      effort:
+        idea.feasibility === "high" ? "low" : idea.feasibility === "medium" ? "medium" : "high",
       priority: clamp(10 - index, 1, 10),
     }));
 }
 
 export function assessConfidence(run: AutonomousRun): ConfidenceAssessment {
   const completedBranches = run.branches.filter((branch) => branch.status === "completed");
-  const branchCompletionRatio = run.branches.length > 0 ? completedBranches.length / run.branches.length : 0;
+  const branchCompletionRatio =
+    run.branches.length > 0 ? completedBranches.length / run.branches.length : 0;
   const scoredIdeas = collectCandidateIdeas(run).map((idea) => idea.score / 100);
   const highFeasibilityRatio = average(
-    collectCandidateIdeas(run).map((idea) => (idea.feasibility === "high" ? 1 : idea.feasibility === "medium" ? 0.65 : 0.35))
+    collectCandidateIdeas(run).map((idea) =>
+      idea.feasibility === "high" ? 1 : idea.feasibility === "medium" ? 0.65 : 0.35
+    )
   );
   const decisionDensity = run.branches.length > 0 ? run.decisions.length / run.branches.length : 0;
 
-  const dataQuality = clamp(branchCompletionRatio * 0.6 + Math.min(0.4, decisionDensity * 0.1), 0, 1);
-  const marketFit = clamp(average(scoredIdeas) * 0.7 + Math.min(0.3, (run.portfolio?.themes.length ?? 0) * 0.06), 0, 1);
-  const feasibility = clamp(highFeasibilityRatio * 0.8 + (run.status === "completed" ? 0.2 : 0), 0, 1);
+  const dataQuality = clamp(
+    branchCompletionRatio * 0.6 + Math.min(0.4, decisionDensity * 0.1),
+    0,
+    1
+  );
+  const marketFit = clamp(
+    average(scoredIdeas) * 0.7 + Math.min(0.3, (run.portfolio?.themes.length ?? 0) * 0.06),
+    0,
+    1
+  );
+  const feasibility = clamp(
+    highFeasibilityRatio * 0.8 + (run.status === "completed" ? 0.2 : 0),
+    0,
+    1
+  );
   const overall = clamp(dataQuality * 0.35 + marketFit * 0.35 + feasibility * 0.3, 0, 1);
 
   const reasoning = [
@@ -146,9 +166,13 @@ export function generateStrategyDocument(run: AutonomousRun): StrategyDocument {
     },
     {
       title: "Execution Guidance",
-      content: topRecommendations.length > 0
-        ? `Recommended next steps: ${topRecommendations.slice(0, 3).map((recommendation) => recommendation.title).join(", ")}. Focus first on ideas with strong scores and lower effort profiles.`
-        : "No recommendations could be produced because the run did not yield durable ideas.",
+      content:
+        topRecommendations.length > 0
+          ? `Recommended next steps: ${topRecommendations
+              .slice(0, 3)
+              .map((recommendation) => recommendation.title)
+              .join(", ")}. Focus first on ideas with strong scores and lower effort profiles.`
+          : "No recommendations could be produced because the run did not yield durable ideas.",
       confidence: confidenceAssessment.feasibility,
     },
   ].map((section) => ({

@@ -3,10 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import {
-  generateNLExecutionPlan,
-  executeWithStreaming,
-} from "@innovator/core";
+import { generateNLExecutionPlan, executeWithStreaming } from "@innovator/core";
 import type { StreamEvent } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -43,10 +40,13 @@ export async function POST(request: Request) {
 
     const parsed = RequestSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid request", details: parsed.error.issues }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
+      return new Response(
+        JSON.stringify({ error: "Invalid request", details: parsed.error.issues }),
+        {
+          status: 400,
+          headers: API_RESPONSE_HEADERS,
+        }
+      );
     }
 
     const modelError = validateModel(parsed.data.model);

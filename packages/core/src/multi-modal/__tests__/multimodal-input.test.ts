@@ -33,7 +33,10 @@ Conclusion
 A modular battery platform creates new service and partnership opportunities.`;
 
   it("chunks documents with overlap and section metadata", () => {
-    const chunks = chunkDocument(`${researchText}\n\n${researchText}`, { chunkSize: 180, overlap: 40 });
+    const chunks = chunkDocument(`${researchText}\n\n${researchText}`, {
+      chunkSize: 180,
+      overlap: 40,
+    });
 
     expect(chunks.length).toBeGreaterThan(1);
     expect(chunks[0].chunkIndex).toBe(0);

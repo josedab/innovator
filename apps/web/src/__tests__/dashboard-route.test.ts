@@ -54,9 +54,7 @@ describe("API /api/dashboard", () => {
 
   it("returns velocity chart data", async () => {
     mockService.getVelocityChart.mockReturnValue({ points: [1, 2, 3] });
-    const res = await POST(
-      makePost({ action: "velocity", granularity: "week" })
-    );
+    const res = await POST(makePost({ action: "velocity", granularity: "week" }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.points).toEqual([1, 2, 3]);
@@ -88,9 +86,7 @@ describe("API /api/dashboard", () => {
 
   it("returns executive summary", async () => {
     mockService.generateExecutiveSummary.mockReturnValue({ summary: "All good" });
-    const res = await POST(
-      makePost({ action: "executive_summary", period: "last_7_days" })
-    );
+    const res = await POST(makePost({ action: "executive_summary", period: "last_7_days" }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.summary).toBe("All good");
@@ -98,9 +94,7 @@ describe("API /api/dashboard", () => {
 
   it("returns report markdown", async () => {
     mockService.generateReport.mockReturnValue("# Report");
-    const res = await POST(
-      makePost({ action: "report", title: "Q4 Report" })
-    );
+    const res = await POST(makePost({ action: "report", title: "Q4 Report" }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.markdown).toBe("# Report");

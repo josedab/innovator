@@ -81,35 +81,40 @@ const INTERVENTION_LIBRARY: Intervention[] = [
   {
     type: "perspective-shift",
     title: "Reverse the Problem",
-    description: "Instead of solving the problem, think about how you would create it. What would make this challenge worse? Now flip those answers.",
+    description:
+      "Instead of solving the problem, think about how you would create it. What would make this challenge worse? Now flip those answers.",
     urgency: "medium",
     estimatedDurationMinutes: 5,
   },
   {
     type: "perspective-shift",
     title: "10-Year-Old Explanation",
-    description: "Explain your current idea to an imaginary 10-year-old. What questions would they ask? Use their naivety to find hidden assumptions.",
+    description:
+      "Explain your current idea to an imaginary 10-year-old. What questions would they ask? Use their naivety to find hidden assumptions.",
     urgency: "low",
     estimatedDurationMinutes: 3,
   },
   {
     type: "break-suggestion",
     title: "Creative Micro-Break",
-    description: "Take a 5-minute break. Look at something green, stretch, or doodle. Your subconscious will continue working on the problem.",
+    description:
+      "Take a 5-minute break. Look at something green, stretch, or doodle. Your subconscious will continue working on the problem.",
     urgency: "high",
     estimatedDurationMinutes: 5,
   },
   {
     type: "break-suggestion",
     title: "Walk & Think",
-    description: "Take a short walk. Research shows movement significantly boosts creative thinking. Don't try to solve the problem — just observe your surroundings.",
+    description:
+      "Take a short walk. Research shows movement significantly boosts creative thinking. Don't try to solve the problem — just observe your surroundings.",
     urgency: "high",
     estimatedDurationMinutes: 10,
   },
   {
     type: "palate-cleanser",
     title: "Random Word Association",
-    description: "Pick a random word: 'Jellyfish'. Connect it to your innovation subject in 3 different ways. This activates lateral thinking pathways.",
+    description:
+      "Pick a random word: 'Jellyfish'. Connect it to your innovation subject in 3 different ways. This activates lateral thinking pathways.",
     prompt: "Connect the word 'Jellyfish' to your subject in 3 creative ways",
     urgency: "medium",
     estimatedDurationMinutes: 3,
@@ -117,7 +122,8 @@ const INTERVENTION_LIBRARY: Intervention[] = [
   {
     type: "palate-cleanser",
     title: "Worst Idea Competition",
-    description: "Spend 2 minutes generating the worst possible ideas. The more ridiculous, the better. Often the inverse of a terrible idea is brilliant.",
+    description:
+      "Spend 2 minutes generating the worst possible ideas. The more ridiculous, the better. Often the inverse of a terrible idea is brilliant.",
     prompt: "Generate 5 intentionally terrible ideas for your subject",
     urgency: "medium",
     estimatedDurationMinutes: 3,
@@ -125,14 +131,16 @@ const INTERVENTION_LIBRARY: Intervention[] = [
   {
     type: "angle-switch",
     title: "Industry Transplant",
-    description: "How would a completely different industry solve this? Think restaurants, space exploration, or fashion. Cross-pollinate!",
+    description:
+      "How would a completely different industry solve this? Think restaurants, space exploration, or fashion. Cross-pollinate!",
     urgency: "medium",
     estimatedDurationMinutes: 5,
   },
   {
     type: "constraint-challenge",
     title: "Zero Budget Challenge",
-    description: "How would you solve this with absolutely zero budget? Constraints breed creativity — some of the best ideas cost nothing.",
+    description:
+      "How would you solve this with absolutely zero budget? Constraints breed creativity — some of the best ideas cost nothing.",
     prompt: "Reimagine your idea with zero budget",
     urgency: "low",
     estimatedDurationMinutes: 5,
@@ -140,14 +148,16 @@ const INTERVENTION_LIBRARY: Intervention[] = [
   {
     type: "encouragement",
     title: "Progress Check",
-    description: "You've generated some great ideas! Take a moment to appreciate the thinking you've done. Innovation is iterative — every angle explored is progress.",
+    description:
+      "You've generated some great ideas! Take a moment to appreciate the thinking you've done. Innovation is iterative — every angle explored is progress.",
     urgency: "low",
     estimatedDurationMinutes: 1,
   },
   {
     type: "synthesis-prompt",
     title: "Combine Two Ideas",
-    description: "Look at your top 2 ideas. What if you combined them? Sometimes the best innovation is a mashup of existing ideas.",
+    description:
+      "Look at your top 2 ideas. What if you combined them? Sometimes the best innovation is a mashup of existing ideas.",
     prompt: "Combine your best two ideas into one super-idea",
     urgency: "medium",
     estimatedDurationMinutes: 5,
@@ -155,14 +165,16 @@ const INTERVENTION_LIBRARY: Intervention[] = [
   {
     type: "wild-card",
     title: "Time Travel",
-    description: "How would this problem be solved in 2050? In 1900? Removing time constraints often reveals fundamental truths about the problem.",
+    description:
+      "How would this problem be solved in 2050? In 1900? Removing time constraints often reveals fundamental truths about the problem.",
     urgency: "low",
     estimatedDurationMinutes: 5,
   },
   {
     type: "wild-card",
     title: "Alien Perspective",
-    description: "An intelligent alien visits Earth and encounters your problem. They have no cultural baggage. What solution would they propose?",
+    description:
+      "An intelligent alien visits Earth and encounters your problem. They have no cultural baggage. What solution would they propose?",
     urgency: "low",
     estimatedDurationMinutes: 3,
   },
@@ -191,12 +203,23 @@ export function assessFlowState(indicators: CognitiveLoadIndicators): FlowState 
   const cognitiveLoad = durationLoad * 0.3 + stallLoad * 0.4 + repetitionLoad * 0.3;
 
   // Compute creative energy
-  const qualityBoost = ideaQualityTrend === "improving" ? 0.3 : ideaQualityTrend === "stable" ? 0 : -0.3;
+  const qualityBoost =
+    ideaQualityTrend === "improving" ? 0.3 : ideaQualityTrend === "stable" ? 0 : -0.3;
   const productivityBoost = ideasGenerated > 0 ? Math.min(0.3, ideasGenerated / 30) : -0.1;
-  const creativeEnergy = Math.max(0, Math.min(1, 0.5 + qualityBoost + productivityBoost - cognitiveLoad * 0.5));
+  const creativeEnergy = Math.max(
+    0,
+    Math.min(1, 0.5 + qualityBoost + productivityBoost - cognitiveLoad * 0.5)
+  );
 
   // Compute focus level
-  const interactionBoost = userInteractionFrequency === "high" ? 0.3 : userInteractionFrequency === "normal" ? 0.1 : userInteractionFrequency === "low" ? -0.1 : -0.4;
+  const interactionBoost =
+    userInteractionFrequency === "high"
+      ? 0.3
+      : userInteractionFrequency === "normal"
+        ? 0.1
+        : userInteractionFrequency === "low"
+          ? -0.1
+          : -0.4;
   const focusLevel = Math.max(0, Math.min(1, 0.5 + interactionBoost - stallLoad * 0.3));
 
   // Determine state
@@ -216,7 +239,8 @@ export function assessFlowState(indicators: CognitiveLoadIndicators): FlowState 
   }
 
   const recommendations: Record<FlowState["state"], string> = {
-    "warm-up": "Getting started — explore freely without judgment. The best ideas come after initial warm-up.",
+    "warm-up":
+      "Getting started — explore freely without judgment. The best ideas come after initial warm-up.",
     flow: "You're in the zone! Keep going. Avoid interruptions.",
     productive: "Good pace. Consider trying a different angle for fresh perspectives.",
     fatigued: "You've been working hard. A short break would refresh your creative thinking.",

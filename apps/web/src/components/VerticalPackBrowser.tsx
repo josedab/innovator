@@ -132,9 +132,7 @@ export function VerticalPackBrowser() {
         body: JSON.stringify({ action: "install", packId }),
       });
       if (res.ok) {
-        setPacks((prev) =>
-          prev.map((p) => (p.id === packId ? { ...p, installed: true } : p))
-        );
+        setPacks((prev) => prev.map((p) => (p.id === packId ? { ...p, installed: true } : p)));
         if (expandedPack?.id === packId) {
           setExpandedInstalled(true);
         }
@@ -162,9 +160,7 @@ export function VerticalPackBrowser() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-neutral-100">
-          Industry Vertical Packs
-        </h2>
+        <h2 className="text-2xl font-bold text-neutral-100">Industry Vertical Packs</h2>
         <div className="flex gap-2">
           {(["browse", "community"] as TabView[]).map((t) => (
             <button
@@ -189,8 +185,8 @@ export function VerticalPackBrowser() {
             Community Packs — Coming Soon
           </h3>
           <p className="text-neutral-400 text-sm max-w-md mx-auto">
-            Share your industry-specific vertical packs with the community.
-            Submit domain angles, rubrics, and compliance rules for peer review.
+            Share your industry-specific vertical packs with the community. Submit domain angles,
+            rubrics, and compliance rules for peer review.
           </p>
         </div>
       ) : (
@@ -223,9 +219,7 @@ export function VerticalPackBrowser() {
 
           {/* Pack Grid */}
           {loading ? (
-            <div className="text-center py-12 text-neutral-500">
-              Loading packs...
-            </div>
+            <div className="text-center py-12 text-neutral-500">Loading packs...</div>
           ) : packs.length === 0 ? (
             <div className="text-center py-12 text-neutral-500">
               No packs found matching your criteria.
@@ -251,12 +245,8 @@ export function VerticalPackBrowser() {
                       </span>
                     )}
                   </div>
-                  <h3 className="text-lg font-semibold text-neutral-100 mb-1">
-                    {pack.name}
-                  </h3>
-                  <p className="text-sm text-neutral-400 mb-3 line-clamp-2">
-                    {pack.description}
-                  </p>
+                  <h3 className="text-lg font-semibold text-neutral-100 mb-1">{pack.name}</h3>
+                  <p className="text-sm text-neutral-400 mb-3 line-clamp-2">{pack.description}</p>
                   <div className="flex gap-3 text-xs text-neutral-500">
                     <span>{pack.angleCount} angles</span>
                     <span>•</span>
@@ -281,9 +271,7 @@ export function VerticalPackBrowser() {
                       v{expandedPack.version}
                     </span>
                   </h3>
-                  <p className="text-sm text-neutral-400 mt-1">
-                    {expandedPack.description}
-                  </p>
+                  <p className="text-sm text-neutral-400 mt-1">{expandedPack.description}</p>
                 </div>
                 <button
                   onClick={() => handleInstall(expandedPack.id)}
@@ -297,8 +285,8 @@ export function VerticalPackBrowser() {
                   {expandedInstalled
                     ? "✓ Installed"
                     : installing === expandedPack.id
-                    ? "Installing..."
-                    : "Install Pack"}
+                      ? "Installing..."
+                      : "Install Pack"}
                 </button>
               </div>
 
@@ -367,9 +355,7 @@ export function VerticalPackBrowser() {
                         className="p-3 rounded-lg bg-neutral-800 border border-neutral-700"
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-neutral-200">
-                            {rule.name}
-                          </span>
+                          <span className="text-sm font-medium text-neutral-200">{rule.name}</span>
                           <span
                             className={`text-xs font-mono uppercase ${
                               severityColor[rule.severity] ?? "text-neutral-500"
@@ -378,9 +364,7 @@ export function VerticalPackBrowser() {
                             {rule.severity}
                           </span>
                         </div>
-                        <p className="text-xs text-neutral-500">
-                          {rule.regulation}
-                        </p>
+                        <p className="text-xs text-neutral-500">{rule.regulation}</p>
                       </div>
                     ))}
                   </div>
@@ -401,9 +385,7 @@ export function VerticalPackBrowser() {
                           key={term}
                           className="p-2 rounded bg-neutral-800 border border-neutral-700"
                         >
-                          <span className="text-xs font-semibold text-blue-400">
-                            {term}
-                          </span>
+                          <span className="text-xs font-semibold text-blue-400">{term}</span>
                           <p className="text-xs text-neutral-500 mt-0.5 line-clamp-2">
                             {definition}
                           </p>

@@ -122,7 +122,14 @@ export async function transformForAllAudiences(
   for (const mode of OUTPUT_MODES) {
     if (signal?.aborted) break;
     try {
-      const output = await transformForAudience(synthesis, mode, subject, investigation, model, signal);
+      const output = await transformForAudience(
+        synthesis,
+        mode,
+        subject,
+        investigation,
+        model,
+        signal
+      );
       results.push(output);
     } catch {
       // Skip failed modes, continue with others

@@ -465,16 +465,21 @@ export function getModelPerformanceStats(model: string): ModelPerformance {
   return {
     model,
     totalRuns: records.length,
-    averageScore: scored.length > 0
-      ? Math.round(scored.reduce((s, r) => s + (r.averageScore ?? 0), 0) / scored.length)
-      : 0,
-    averageRating: rated.length > 0
-      ? Math.round((rated.reduce((s, r) => s + (r.userRating ?? 0), 0) / rated.length) * 100) / 100
-      : 0,
-    averageDurationMs: timed.length > 0
-      ? Math.round(timed.reduce((s, r) => s + (r.pipelineDurationMs ?? 0), 0) / timed.length)
-      : 0,
-    successRate: records.length > 0 ? Math.round((successful.length / records.length) * 100) / 100 : 0,
+    averageScore:
+      scored.length > 0
+        ? Math.round(scored.reduce((s, r) => s + (r.averageScore ?? 0), 0) / scored.length)
+        : 0,
+    averageRating:
+      rated.length > 0
+        ? Math.round((rated.reduce((s, r) => s + (r.userRating ?? 0), 0) / rated.length) * 100) /
+          100
+        : 0,
+    averageDurationMs:
+      timed.length > 0
+        ? Math.round(timed.reduce((s, r) => s + (r.pipelineDurationMs ?? 0), 0) / timed.length)
+        : 0,
+    successRate:
+      records.length > 0 ? Math.round((successful.length / records.length) * 100) / 100 : 0,
     topDomains: Array.from(domainCounts.entries())
       .sort(([, a], [, b]) => b - a)
       .slice(0, 10)
@@ -487,7 +492,9 @@ export function getModelPerformanceStats(model: string): ModelPerformance {
  */
 export function compareModelPerformance(): ModelPerformance[] {
   const models = Array.from(modelPerformance.keys());
-  return models.map((m) => getModelPerformanceStats(m)).sort((a, b) => b.averageScore - a.averageScore);
+  return models
+    .map((m) => getModelPerformanceStats(m))
+    .sort((a, b) => b.averageScore - a.averageScore);
 }
 
 /**
@@ -496,9 +503,7 @@ export function compareModelPerformance(): ModelPerformance[] {
  * derived from historical performance.
  */
 export function autoTuneParameters(domain?: string): TunedParameters {
-  const records = domain
-    ? outcomeRecords.filter((r) => r.domain === domain)
-    : outcomeRecords;
+  const records = domain ? outcomeRecords.filter((r) => r.domain === domain) : outcomeRecords;
 
   if (records.length < 3) {
     return {

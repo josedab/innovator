@@ -45,7 +45,12 @@ const MOCK_ANGLE_RESULTS: AngleResult[] = [
     angleId: "scamper",
     angleName: "SCAMPER",
     ideas: [
-      { title: "Idea1", description: "Substitute manual review", potentialImpact: "High", implementationHint: "Use LLMs" },
+      {
+        title: "Idea1",
+        description: "Substitute manual review",
+        potentialImpact: "High",
+        implementationHint: "Use LLMs",
+      },
     ],
     reasoning: "Applied SCAMPER methodology",
   },

@@ -51,21 +51,25 @@ export const MeetingAnalysisSchema = z.object({
   meetingTitle: z.string().max(500),
   summary: z.string().max(5000),
   topics: z.array(ExtractedTopicSchema).max(20),
-  actionItems: z.array(
-    z.object({
-      description: z.string().max(500),
-      assignee: z.string().max(200).optional(),
-      priority: z.enum(["low", "medium", "high"]),
-    })
-  ).max(20),
-  innovationOpportunities: z.array(
-    z.object({
-      title: z.string().max(500),
-      description: z.string().max(2000),
-      suggestedAngle: z.string().max(100).optional(),
-      confidence: z.number().min(0).max(1),
-    })
-  ).max(10),
+  actionItems: z
+    .array(
+      z.object({
+        description: z.string().max(500),
+        assignee: z.string().max(200).optional(),
+        priority: z.enum(["low", "medium", "high"]),
+      })
+    )
+    .max(20),
+  innovationOpportunities: z
+    .array(
+      z.object({
+        title: z.string().max(500),
+        description: z.string().max(2000),
+        suggestedAngle: z.string().max(100).optional(),
+        confidence: z.number().min(0).max(1),
+      })
+    )
+    .max(10),
   suggestedSubjects: z.array(z.string().max(500)).max(5),
   participants: z.array(z.string().max(200)).max(50),
   durationMinutes: z.number().int().min(0).optional(),
@@ -89,9 +93,7 @@ export function extractKeyFrameTimestamps(
 ): number[] {
   if (durationSeconds <= 0 || maxFrames <= 0) return [];
   const interval = durationSeconds / (maxFrames + 1);
-  return Array.from({ length: maxFrames }, (_, i) =>
-    Math.round((i + 1) * interval)
-  );
+  return Array.from({ length: maxFrames }, (_, i) => Math.round((i + 1) * interval));
 }
 
 // ---- Meeting Analysis ----
@@ -99,29 +101,35 @@ export function extractKeyFrameTimestamps(
 const MeetingAnalysisResponseSchema = z.object({
   meetingTitle: z.string().max(500),
   summary: z.string().max(5000),
-  topics: z.array(
-    z.object({
-      title: z.string().max(500),
-      description: z.string().max(2000),
-      innovationPotential: z.enum(["low", "medium", "high"]),
-      keywords: z.array(z.string().max(100)).max(20),
-    })
-  ).max(20),
-  actionItems: z.array(
-    z.object({
-      description: z.string().max(500),
-      assignee: z.string().max(200).optional(),
-      priority: z.enum(["low", "medium", "high"]),
-    })
-  ).max(20),
-  innovationOpportunities: z.array(
-    z.object({
-      title: z.string().max(500),
-      description: z.string().max(2000),
-      suggestedAngle: z.string().max(100).optional(),
-      confidence: z.number().min(0).max(1),
-    })
-  ).max(10),
+  topics: z
+    .array(
+      z.object({
+        title: z.string().max(500),
+        description: z.string().max(2000),
+        innovationPotential: z.enum(["low", "medium", "high"]),
+        keywords: z.array(z.string().max(100)).max(20),
+      })
+    )
+    .max(20),
+  actionItems: z
+    .array(
+      z.object({
+        description: z.string().max(500),
+        assignee: z.string().max(200).optional(),
+        priority: z.enum(["low", "medium", "high"]),
+      })
+    )
+    .max(20),
+  innovationOpportunities: z
+    .array(
+      z.object({
+        title: z.string().max(500),
+        description: z.string().max(2000),
+        suggestedAngle: z.string().max(100).optional(),
+        confidence: z.number().min(0).max(1),
+      })
+    )
+    .max(10),
   suggestedSubjects: z.array(z.string().max(500)).max(5),
   participants: z.array(z.string().max(200)).max(50),
 });
@@ -143,10 +151,7 @@ export async function analyzeMeeting(
     })
     .join("\n\n---\n\n");
 
-  const totalDuration = inputs.reduce(
-    (sum, i) => sum + (i.durationSeconds ?? 0),
-    0
-  );
+  const totalDuration = inputs.reduce((sum, i) => sum + (i.durationSeconds ?? 0), 0);
 
   const prompt = `Analyze this meeting content and extract innovation opportunities.
 
@@ -179,9 +184,7 @@ Respond in JSON:
         model: config.model,
         signal: config.signal,
       });
-      return MeetingAnalysisResponseSchema.parse(
-        JSON.parse(extractJson(sanitizeLlmOutput(raw)))
-      );
+      return MeetingAnalysisResponseSchema.parse(JSON.parse(extractJson(sanitizeLlmOutput(raw))));
     },
     { signal: config.signal }
   );
@@ -215,9 +218,7 @@ export function meetingAnalysisToMarkdown(analysis: MeetingAnalysis): string {
     lines.push("## 💡 Innovation Opportunities");
     lines.push("");
     for (const opp of analysis.innovationOpportunities) {
-      lines.push(
-        `### ${opp.title} (confidence: ${Math.round(opp.confidence * 100)}%)`
-      );
+      lines.push(`### ${opp.title} (confidence: ${Math.round(opp.confidence * 100)}%)`);
       lines.push(opp.description);
       if (opp.suggestedAngle) {
         lines.push(`*Suggested angle: ${opp.suggestedAngle}*`);

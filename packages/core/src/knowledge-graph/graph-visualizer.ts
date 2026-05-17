@@ -100,7 +100,12 @@ export class GraphVisualizer {
     const { width, height, iterations, repulsionStrength, attractionStrength, damping } = opts;
 
     if (entities.length === 0) {
-      return { nodes: [], edges: [], clusters: [], bounds: { minX: 0, minY: 0, maxX: width, maxY: height } };
+      return {
+        nodes: [],
+        edges: [],
+        clusters: [],
+        bounds: { minX: 0, minY: 0, maxX: width, maxY: height },
+      };
     }
 
     // Initialize node positions in a circle
@@ -308,11 +313,7 @@ export class GraphVisualizer {
   /**
    * Get nodes within N hops of a given node.
    */
-  getNodeNeighborhood(
-    layout: GraphLayout,
-    nodeId: string,
-    depth: number = 1
-  ): GraphLayout {
+  getNodeNeighborhood(layout: GraphLayout, nodeId: string, depth: number = 1): GraphLayout {
     const visited = new Set<string>([nodeId]);
     let frontier = [nodeId];
 
@@ -449,9 +450,7 @@ export class GraphVisualizer {
         }
       }
 
-      const gaps = clusterPairs
-        .filter((p) => p.connections === 0)
-        .slice(0, 3);
+      const gaps = clusterPairs.filter((p) => p.connections === 0).slice(0, 3);
 
       if (gaps.length > 0) {
         insights.push({
@@ -460,10 +459,7 @@ export class GraphVisualizer {
           description: `No connections between: ${gaps
             .map((g) => `${g.a.label} ↔ ${g.b.label}`)
             .join("; ")}. Bridging these domains could unlock new innovation angles.`,
-          entityIds: gaps.flatMap((g) => [
-            ...(g.a.nodeIds.slice(0, 1)),
-            ...(g.b.nodeIds.slice(0, 1)),
-          ]),
+          entityIds: gaps.flatMap((g) => [...g.a.nodeIds.slice(0, 1), ...g.b.nodeIds.slice(0, 1)]),
           confidence: 0.65,
         });
       }

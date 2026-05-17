@@ -8,13 +8,7 @@ export const SerendipitousConnectionSchema = z.object({
   targetConceptId: z.string().max(200),
   sourceSessionId: z.string().max(200),
   targetSessionId: z.string().max(200),
-  connectionType: z.enum([
-    "analogy",
-    "complementary",
-    "contrarian",
-    "emergent",
-    "cross-domain",
-  ]),
+  connectionType: z.enum(["analogy", "complementary", "contrarian", "emergent", "cross-domain"]),
   explanation: z.string().max(1000),
   confidenceScore: z.number().min(0).max(1),
   discoveredAt: z.string(),
@@ -46,9 +40,7 @@ export const InnovationProfileSchema = z.object({
   userId: z.string().max(200),
   totalSessions: z.number().int().min(0),
   totalIdeas: z.number().int().min(0),
-  topDomains: z
-    .array(z.object({ domain: z.string().max(200), count: z.number().int() }))
-    .max(10),
+  topDomains: z.array(z.object({ domain: z.string().max(200), count: z.number().int() })).max(10),
   preferredAngles: z
     .array(
       z.object({
@@ -187,7 +179,9 @@ function buildExplanation(
   const reasons: string[] = [];
   if (edge?.evidence) reasons.push(edge.evidence);
   if (sharedNeighborCount > 0) {
-    reasons.push(`they share ${sharedNeighborCount} neighboring concept${sharedNeighborCount === 1 ? "" : "s"}`);
+    reasons.push(
+      `they share ${sharedNeighborCount} neighboring concept${sharedNeighborCount === 1 ? "" : "s"}`
+    );
   }
   if (overlap > 0) {
     reasons.push(`their language overlaps by ${Math.round(overlap * 100)}%`);
@@ -196,8 +190,14 @@ function buildExplanation(
     reasons.push(`they span ${source.type} and ${target.type} memory nodes`);
   }
 
-  const reasonText = reasons.length > 0 ? reasons.join("; ") : "they repeatedly appear in adjacent parts of the memory graph";
-  return `${source.label} and ${target.label} form a ${type.replace(/-/g, " ")} connection because ${reasonText}.`.slice(0, 1000);
+  const reasonText =
+    reasons.length > 0
+      ? reasons.join("; ")
+      : "they repeatedly appear in adjacent parts of the memory graph";
+  return `${source.label} and ${target.label} form a ${type.replace(/-/g, " ")} connection because ${reasonText}.`.slice(
+    0,
+    1000
+  );
 }
 
 function createConnection(
@@ -216,9 +216,16 @@ function createConnection(
   const sharedNeighborCount = getSharedNeighborCount(source.id, target.id, adjacency);
   const connectionType = inferConnectionType(source, target, edge, overlap, sharedNeighborCount);
   const baseWeight = edge?.weight ?? 0.35;
-  const crossSessionBoost = Math.min(0.2, (source.sessionIds.length + target.sessionIds.length) * 0.03);
+  const crossSessionBoost = Math.min(
+    0.2,
+    (source.sessionIds.length + target.sessionIds.length) * 0.03
+  );
   const confidenceScore = clamp(
-    0.2 + baseWeight * 0.45 + overlap * 0.2 + Math.min(sharedNeighborCount, 3) * 0.08 + crossSessionBoost,
+    0.2 +
+      baseWeight * 0.45 +
+      overlap * 0.2 +
+      Math.min(sharedNeighborCount, 3) * 0.08 +
+      crossSessionBoost,
     0,
     1
   );
@@ -232,7 +239,14 @@ function createConnection(
     sourceSessionId: sessions[0],
     targetSessionId: sessions[1],
     connectionType,
-    explanation: buildExplanation(source, target, connectionType, sharedNeighborCount, overlap, edge),
+    explanation: buildExplanation(
+      source,
+      target,
+      connectionType,
+      sharedNeighborCount,
+      overlap,
+      edge
+    ),
     confidenceScore,
     discoveredAt: now,
   });
@@ -289,13 +303,19 @@ function pickInnovationStyle(
 ): InnovationProfile["innovationStyle"] {
   const dominantDomainShare =
     topDomains.length > 0
-      ? topDomains[0].count / Math.max(1, topDomains.reduce((sum, item) => sum + item.count, 0))
+      ? topDomains[0].count /
+        Math.max(
+          1,
+          topDomains.reduce((sum, item) => sum + item.count, 0)
+        )
       : 0;
   const challengerSignals =
     preferredAngles
       .filter((angle) => angle.angleId === "inversion")
       .reduce((sum, angle) => sum + angle.usage, 0) +
-    events.filter((event) => event.type === "redteam.completed" || event.type === "debate.completed").length;
+    events.filter(
+      (event) => event.type === "redteam.completed" || event.type === "debate.completed"
+    ).length;
   const builderSignals = events.filter(
     (event) =>
       event.type === "idea.accepted" ||
@@ -353,7 +373,9 @@ export function generateWeeklyDigest(events: InnovationEvent[], graph: MemoryGra
     events.length > 0
       ? events.reduce(
           (latest, event) =>
-            new Date(event.timestamp).getTime() > latest.getTime() ? new Date(event.timestamp) : latest,
+            new Date(event.timestamp).getTime() > latest.getTime()
+              ? new Date(event.timestamp)
+              : latest,
           new Date(events[0].timestamp)
         )
       : new Date();
@@ -361,8 +383,12 @@ export function generateWeeklyDigest(events: InnovationEvent[], graph: MemoryGra
   const weekEnd = endOfWeek(weekStart);
   const previousWeekStart = new Date(weekStart.getTime() - 7 * DAY_MS);
   const previousWeekEnd = new Date(weekStart.getTime() - 1);
-  const currentEvents = events.filter((event) => isWithinRange(event.timestamp, weekStart, weekEnd));
-  const previousEvents = events.filter((event) => isWithinRange(event.timestamp, previousWeekStart, previousWeekEnd));
+  const currentEvents = events.filter((event) =>
+    isWithinRange(event.timestamp, weekStart, weekEnd)
+  );
+  const previousEvents = events.filter((event) =>
+    isWithinRange(event.timestamp, previousWeekStart, previousWeekEnd)
+  );
   const currentTopics = extractTopics(currentEvents);
   const previousTopics = extractTopics(previousEvents);
   const topConnections = findSerendipitousConnections(graph, 10);
@@ -370,7 +396,8 @@ export function generateWeeklyDigest(events: InnovationEvent[], graph: MemoryGra
   const trendingTopics = Array.from(currentTopics.entries())
     .map(([topic, frequency]) => {
       const previousFrequency = previousTopics.get(topic) ?? 0;
-      const growth = previousFrequency === 0 ? frequency : (frequency - previousFrequency) / previousFrequency;
+      const growth =
+        previousFrequency === 0 ? frequency : (frequency - previousFrequency) / previousFrequency;
       return {
         topic,
         frequency,
@@ -431,7 +458,8 @@ export function buildInnovationProfile(
   userId: string
 ): InnovationProfile {
   const matchingEvents = events.filter((event) => event.userId === userId);
-  const userEvents = matchingEvents.length > 0 ? matchingEvents : events.filter((event) => !event.userId);
+  const userEvents =
+    matchingEvents.length > 0 ? matchingEvents : events.filter((event) => !event.userId);
 
   const totalSessions = new Set(userEvents.map((event) => event.sessionId).filter(Boolean)).size;
   const totalIdeas = userEvents.reduce((sum, event) => {
@@ -478,19 +506,27 @@ export function buildInnovationProfile(
 
   const innovationStyle = pickInnovationStyle(topDomains, preferredAngles, userEvents);
   const strengths = uniqueStrings([
-    topDomains[0] ? `Strong domain memory in ${topDomains[0].domain}` : "Consistent session logging",
+    topDomains[0]
+      ? `Strong domain memory in ${topDomains[0].domain}`
+      : "Consistent session logging",
     preferredAngles[0]
       ? `High leverage with ${formatAngle(preferredAngles[0].angleId)} thinking`
       : "Willingness to explore multiple idea pathways",
-    graph.totalSessions >= 5 ? "Builds on prior insights across sessions" : "Keeps a lightweight but growing innovation memory",
-    innovationStyle === "synthesizer" ? "Connects patterns across adjacent domains" : "Maintains forward momentum in ideation",
+    graph.totalSessions >= 5
+      ? "Builds on prior insights across sessions"
+      : "Keeps a lightweight but growing innovation memory",
+    innovationStyle === "synthesizer"
+      ? "Connects patterns across adjacent domains"
+      : "Maintains forward momentum in ideation",
     userEvents.filter((event) => event.type === "idea.accepted").length > 0
       ? "Moves promising ideas toward commitment"
       : "Captures ideas before they fade",
   ]).slice(0, 5);
 
   const growthAreas = uniqueStrings([
-    topDomains.length <= 1 ? "Expand into one adjacent domain to improve cross-pollination" : "Keep balancing breadth with depth across domains",
+    topDomains.length <= 1
+      ? "Expand into one adjacent domain to improve cross-pollination"
+      : "Keep balancing breadth with depth across domains",
     preferredAngles.some((angle) => angle.angleId === "cross-domain")
       ? "Increase validation after cross-domain exploration"
       : "Use Cross-Domain prompts more often to unlock novel combinations",
@@ -500,12 +536,18 @@ export function buildInnovationProfile(
     userEvents.filter((event) => event.type === "idea.accepted").length === 0
       ? "Promote more generated ideas into explicit accept or reject decisions"
       : "Record more quality scores to sharpen weighting decisions",
-    graph.edges.length < graph.nodes.length ? "Capture more explicit concept connections between sessions" : "Review older graph edges and prune weak links",
+    graph.edges.length < graph.nodes.length
+      ? "Capture more explicit concept connections between sessions"
+      : "Review older graph edges and prune weak links",
   ]).slice(0, 5);
 
-  const lastUpdated = userEvents.length > 0
-    ? userEvents.reduce((latest, event) => (event.timestamp > latest ? event.timestamp : latest), userEvents[0].timestamp)
-    : new Date().toISOString();
+  const lastUpdated =
+    userEvents.length > 0
+      ? userEvents.reduce(
+          (latest, event) => (event.timestamp > latest ? event.timestamp : latest),
+          userEvents[0].timestamp
+        )
+      : new Date().toISOString();
 
   return InnovationProfileSchema.parse({
     userId,
@@ -548,7 +590,9 @@ export function digestToMarkdown(digest: WeeklyDigest): string {
     lines.push("- No trending topics available.", "");
   } else {
     for (const topic of digest.trendingTopics) {
-      lines.push(`- ${topic.topic} — ${topic.frequency} mentions (${topic.growth >= 0 ? "+" : ""}${(topic.growth * 100).toFixed(0)}% growth)`);
+      lines.push(
+        `- ${topic.topic} — ${topic.frequency} mentions (${topic.growth >= 0 ? "+" : ""}${(topic.growth * 100).toFixed(0)}% growth)`
+      );
     }
     lines.push("");
   }
@@ -588,7 +632,9 @@ export function profileToMarkdown(profile: InnovationProfile): string {
     lines.push("- No angle usage recorded yet.", "");
   } else {
     for (const angle of profile.preferredAngles) {
-      lines.push(`- ${formatAngle(angle.angleId)} — usage ${angle.usage}, effectiveness ${(angle.effectiveness * 100).toFixed(0)}%`);
+      lines.push(
+        `- ${formatAngle(angle.angleId)} — usage ${angle.usage}, effectiveness ${(angle.effectiveness * 100).toFixed(0)}%`
+      );
     }
     lines.push("");
   }

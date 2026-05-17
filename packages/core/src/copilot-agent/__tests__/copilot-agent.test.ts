@@ -54,11 +54,7 @@ import {
   loadRun,
   listRuns,
 } from "../copilot-agent.js";
-import type {
-  CopilotAgentRun,
-  CopilotAgentConfig,
-  Proposal,
-} from "../types.js";
+import type { CopilotAgentRun, CopilotAgentConfig, Proposal } from "../types.js";
 import { CopilotAgentRunSchema } from "../types.js";
 
 // ---- Helpers ----
@@ -237,7 +233,14 @@ describe("copilot-agent", () => {
       const run = createMockRun({
         state: "waiting-for-feedback",
         proposals: [proposal],
-        stats: { totalCycles: 3, totalChangesDetected: 10, totalProposals: 1, acceptedProposals: 0, dismissedProposals: 0, deferredProposals: 0 },
+        stats: {
+          totalCycles: 3,
+          totalChangesDetected: 10,
+          totalProposals: 1,
+          acceptedProposals: 0,
+          dismissedProposals: 0,
+          deferredProposals: 0,
+        },
       });
 
       const md = agentRunToMarkdown(run);
@@ -256,23 +259,21 @@ describe("copilot-agent", () => {
 
   describe("runCopilotAgentCycle", () => {
     const baseConfig: CopilotAgentConfig = {
-      sources: [
-        { id: "src-1", type: "market-signal", name: "Test Source", enabled: true },
-      ],
+      sources: [{ id: "src-1", type: "market-signal", name: "Test Source", enabled: true }],
       topics: ["AI", "innovation"],
       model: "gpt-4o-mini",
     };
 
     it("throws when no sources provided", async () => {
-      await expect(
-        runCopilotAgentCycle({ ...baseConfig, sources: [] })
-      ).rejects.toThrow("At least one monitoring source is required");
+      await expect(runCopilotAgentCycle({ ...baseConfig, sources: [] })).rejects.toThrow(
+        "At least one monitoring source is required"
+      );
     });
 
     it("throws when no topics provided", async () => {
-      await expect(
-        runCopilotAgentCycle({ ...baseConfig, topics: [] })
-      ).rejects.toThrow("At least one topic is required");
+      await expect(runCopilotAgentCycle({ ...baseConfig, topics: [] })).rejects.toThrow(
+        "At least one topic is required"
+      );
     });
 
     it("completes a full cycle with no relevant changes (returns to idle)", async () => {
@@ -293,7 +294,12 @@ describe("copilot-agent", () => {
         .mockResolvedValueOnce(
           JSON.stringify({
             relevantChanges: [
-              { changeId: expect.any(String), relevanceScore: 0.9, reasoning: "Relevant", innovationPotential: "high" },
+              {
+                changeId: expect.any(String),
+                relevanceScore: 0.9,
+                reasoning: "Relevant",
+                innovationPotential: "high",
+              },
             ],
             emergingThemes: ["AI trends"],
           })
@@ -304,7 +310,12 @@ describe("copilot-agent", () => {
             summary: "We should explore AI",
             rationale: "Because AI is transformative",
             opportunities: [
-              { title: "Build ML pipeline", description: "Create an ML pipeline", impact: "high", effort: "medium" },
+              {
+                title: "Build ML pipeline",
+                description: "Create an ML pipeline",
+                impact: "high",
+                effort: "medium",
+              },
             ],
           })
         );

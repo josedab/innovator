@@ -26,7 +26,12 @@ interface ComparisonResult {
   uniqueThemes: Record<string, string[]>;
   ideaOverlaps: IdeaOverlap[];
   angleComparison: Record<string, string[]>;
-  scoreDelta: Array<{ sessionId: string; subject: string; avgFeasibility: string; ideaCount: number }>;
+  scoreDelta: Array<{
+    sessionId: string;
+    subject: string;
+    avgFeasibility: string;
+    ideaCount: number;
+  }>;
   timeline: Array<{ sessionId: string; subject: string; createdAt: string }>;
 }
 
@@ -79,7 +84,12 @@ export function SessionComparison({ sessionIds, onClose }: SessionComparisonProp
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-900/20">
         <p className="text-sm text-red-700 dark:text-red-300 mb-3">{error}</p>
-        <button onClick={runComparison} className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 transition">Retry</button>
+        <button
+          onClick={runComparison}
+          className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 transition"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -88,8 +98,15 @@ export function SessionComparison({ sessionIds, onClose }: SessionComparisonProp
     return (
       <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-8 text-center dark:border-neutral-700 dark:bg-neutral-900">
         <h3 className="text-lg font-semibold mb-2">Session Comparison Matrix</h3>
-        <p className="text-sm text-neutral-500 mb-4">Compare {sessionIds.length} sessions side-by-side</p>
-        <button onClick={runComparison} className="rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-700 transition">Compare Sessions</button>
+        <p className="text-sm text-neutral-500 mb-4">
+          Compare {sessionIds.length} sessions side-by-side
+        </p>
+        <button
+          onClick={runComparison}
+          className="rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-700 transition"
+        >
+          Compare Sessions
+        </button>
       </div>
     );
   }
@@ -105,7 +122,11 @@ export function SessionComparison({ sessionIds, onClose }: SessionComparisonProp
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Session Comparison</h3>
-        {onClose && <button onClick={onClose} className="text-neutral-500 hover:text-neutral-700 transition">✕</button>}
+        {onClose && (
+          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-700 transition">
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -130,20 +151,32 @@ export function SessionComparison({ sessionIds, onClose }: SessionComparisonProp
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {result.sessions.map((s) => (
-              <div key={s.id} className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
-                <h4 className="font-medium text-neutral-800 dark:text-neutral-200 truncate">{s.subject}</h4>
+              <div
+                key={s.id}
+                className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700"
+              >
+                <h4 className="font-medium text-neutral-800 dark:text-neutral-200 truncate">
+                  {s.subject}
+                </h4>
                 <div className="mt-2 space-y-1 text-xs text-neutral-500">
-                  <p>{s.angleCount} angles · {s.ideaCount} ideas</p>
+                  <p>
+                    {s.angleCount} angles · {s.ideaCount} ideas
+                  </p>
                   <p>{new Date(s.createdAt).toLocaleDateString()}</p>
                 </div>
                 {s.themes.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {s.themes.slice(0, 4).map((t) => (
-                      <span key={t} className={`rounded px-1.5 py-0.5 text-xs ${
-                        result.sharedThemes.includes(t)
-                          ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
-                          : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
-                      }`}>{t}</span>
+                      <span
+                        key={t}
+                        className={`rounded px-1.5 py-0.5 text-xs ${
+                          result.sharedThemes.includes(t)
+                            ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+                            : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+                        }`}
+                      >
+                        {t}
+                      </span>
                     ))}
                   </div>
                 )}
@@ -153,10 +186,17 @@ export function SessionComparison({ sessionIds, onClose }: SessionComparisonProp
 
           {result.sharedThemes.length > 0 && (
             <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-              <h4 className="text-xs font-semibold uppercase text-green-700 dark:text-green-400 mb-2">Shared Themes</h4>
+              <h4 className="text-xs font-semibold uppercase text-green-700 dark:text-green-400 mb-2">
+                Shared Themes
+              </h4>
               <div className="flex flex-wrap gap-2">
                 {result.sharedThemes.map((t) => (
-                  <span key={t} className="rounded-full bg-green-100 px-3 py-1 text-xs text-green-700 dark:bg-green-900/30 dark:text-green-300">{t}</span>
+                  <span
+                    key={t}
+                    className="rounded-full bg-green-100 px-3 py-1 text-xs text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                  >
+                    {t}
+                  </span>
                 ))}
               </div>
             </div>
@@ -175,10 +215,19 @@ export function SessionComparison({ sessionIds, onClose }: SessionComparisonProp
               </thead>
               <tbody>
                 {result.scoreDelta.map((s) => (
-                  <tr key={s.sessionId} className="border-t border-neutral-100 dark:border-neutral-800">
-                    <td className="py-1.5 text-neutral-800 dark:text-neutral-200 truncate max-w-[200px]">{s.subject}</td>
+                  <tr
+                    key={s.sessionId}
+                    className="border-t border-neutral-100 dark:border-neutral-800"
+                  >
+                    <td className="py-1.5 text-neutral-800 dark:text-neutral-200 truncate max-w-[200px]">
+                      {s.subject}
+                    </td>
                     <td className="py-1.5 text-center">{s.ideaCount}</td>
-                    <td className={`py-1.5 text-center font-medium ${FEAS_COLORS[s.avgFeasibility] ?? ""}`}>{s.avgFeasibility}</td>
+                    <td
+                      className={`py-1.5 text-center font-medium ${FEAS_COLORS[s.avgFeasibility] ?? ""}`}
+                    >
+                      {s.avgFeasibility}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -191,21 +240,36 @@ export function SessionComparison({ sessionIds, onClose }: SessionComparisonProp
       {tab === "overlaps" && (
         <div className="space-y-3">
           {result.ideaOverlaps.length === 0 ? (
-            <p className="text-sm text-neutral-500 text-center py-8">No significant idea overlaps found.</p>
+            <p className="text-sm text-neutral-500 text-center py-8">
+              No significant idea overlaps found.
+            </p>
           ) : (
             result.ideaOverlaps.map((o, i) => (
-              <div key={i} className="rounded-lg border border-indigo-200 p-4 dark:border-indigo-800">
+              <div
+                key={i}
+                className="rounded-lg border border-indigo-200 p-4 dark:border-indigo-800"
+              >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{Math.round(o.similarity * 100)}% similar</span>
+                  <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                    {Math.round(o.similarity * 100)}% similar
+                  </span>
                 </div>
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
-                    <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{o.idea1.title}</p>
-                    <p className="text-xs text-neutral-500 mt-1 line-clamp-2">{o.idea1.description}</p>
+                    <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                      {o.idea1.title}
+                    </p>
+                    <p className="text-xs text-neutral-500 mt-1 line-clamp-2">
+                      {o.idea1.description}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{o.idea2.title}</p>
-                    <p className="text-xs text-neutral-500 mt-1 line-clamp-2">{o.idea2.description}</p>
+                    <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                      {o.idea2.title}
+                    </p>
+                    <p className="text-xs text-neutral-500 mt-1 line-clamp-2">
+                      {o.idea2.description}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -222,14 +286,18 @@ export function SessionComparison({ sessionIds, onClose }: SessionComparisonProp
               <tr className="text-xs text-neutral-500">
                 <th className="text-left py-1">Angle</th>
                 {result.sessions.map((s) => (
-                  <th key={s.id} className="text-center py-1 truncate max-w-[120px]">{s.subject}</th>
+                  <th key={s.id} className="text-center py-1 truncate max-w-[120px]">
+                    {s.subject}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {Object.entries(result.angleComparison).map(([angle, sids]) => (
                 <tr key={angle} className="border-t border-neutral-100 dark:border-neutral-800">
-                  <td className="py-1.5 font-medium text-neutral-700 dark:text-neutral-300">{angle}</td>
+                  <td className="py-1.5 font-medium text-neutral-700 dark:text-neutral-300">
+                    {angle}
+                  </td>
                   {result.sessions.map((s) => (
                     <td key={s.id} className="py-1.5 text-center">
                       {sids.includes(s.id) ? "✅" : "—"}
@@ -249,10 +317,14 @@ export function SessionComparison({ sessionIds, onClose }: SessionComparisonProp
             <div key={t.sessionId} className="flex items-center gap-4">
               <div className="flex flex-col items-center">
                 <div className="h-3 w-3 rounded-full bg-indigo-600" />
-                {i < result.timeline.length - 1 && <div className="h-8 w-0.5 bg-neutral-200 dark:bg-neutral-700" />}
+                {i < result.timeline.length - 1 && (
+                  <div className="h-8 w-0.5 bg-neutral-200 dark:bg-neutral-700" />
+                )}
               </div>
               <div>
-                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{t.subject}</p>
+                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                  {t.subject}
+                </p>
                 <p className="text-xs text-neutral-500">{new Date(t.createdAt).toLocaleString()}</p>
               </div>
             </div>

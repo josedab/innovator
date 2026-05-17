@@ -26,7 +26,10 @@ export const SemanticDiffItemSchema = DiffItemSchema.extend({
 export type SemanticDiffItem = z.infer<typeof SemanticDiffItemSchema>;
 
 export const SemanticDiffReportSchema = z.object({
-  overlaps: z.array(SemanticDiffItemSchema).max(50).describe("Conceptual overlaps between sessions"),
+  overlaps: z
+    .array(SemanticDiffItemSchema)
+    .max(50)
+    .describe("Conceptual overlaps between sessions"),
   gaps: z.array(SemanticDiffItemSchema).max(50).describe("Complementary gaps"),
   contradictions: z.array(SemanticDiffItemSchema).max(50).describe("Contradictory ideas"),
   uniqueToA: z.array(SemanticDiffItemSchema).max(50).describe("Ideas unique to session A"),
@@ -57,7 +60,9 @@ export const MergeResultSchema = z.object({
   resolvedConflicts: z.array(MergeConflictSchema).max(50),
   autoMerged: z.number().describe("Count of automatically merged ideas"),
   manualRequired: z.number().describe("Count of conflicts requiring manual resolution"),
-  provenance: z.record(z.array(z.string().max(200))).describe("Mapping from idea title to source sessions"),
+  provenance: z
+    .record(z.array(z.string().max(200)))
+    .describe("Mapping from idea title to source sessions"),
 });
 
 export type MergeResult = z.infer<typeof MergeResultSchema>;
@@ -234,7 +239,12 @@ export async function runSemanticDiff(
   const overallSimilarity =
     totalIdeas > 0 ? (overlappingA.size + overlappingB.size) / totalIdeas : 0;
 
-  const mergeRecommendations = buildMergeRecommendations(overlaps, uniqueToA, uniqueToB, contradictions);
+  const mergeRecommendations = buildMergeRecommendations(
+    overlaps,
+    uniqueToA,
+    uniqueToB,
+    contradictions
+  );
 
   return SemanticDiffReportSchema.parse({
     overlaps,
@@ -251,10 +261,7 @@ function buildContradictionPrompt(
   pairs: { a: IndexedIdea; b: IndexedIdea; score: number }[]
 ): string {
   const pairDescriptions = pairs
-    .map(
-      (p, i) =>
-        `[${i}] Idea A: "${ideaToText(p.a.idea)}" vs Idea B: "${ideaToText(p.b.idea)}"`
-    )
+    .map((p, i) => `[${i}] Idea A: "${ideaToText(p.a.idea)}" vs Idea B: "${ideaToText(p.b.idea)}"`)
     .join("\n");
 
   return `You are an expert at analyzing innovation ideas for contradictions.
@@ -512,7 +519,9 @@ export function diffReportToMarkdown(report: SemanticDiffReport): string {
     lines.push("## Overlaps");
     lines.push("");
     for (const item of report.overlaps) {
-      lines.push(`- **${item.title}** (similarity: ${(item.similarityScore * 100).toFixed(0)}%, significance: ${item.significance})`);
+      lines.push(
+        `- **${item.title}** (similarity: ${(item.similarityScore * 100).toFixed(0)}%, significance: ${item.significance})`
+      );
       lines.push(`  ${item.description}`);
     }
     lines.push("");
@@ -598,7 +607,9 @@ export function mergeResultToMarkdown(result: MergeResult): string {
     lines.push("## Resolved Conflicts");
     lines.push("");
     for (const conflict of result.resolvedConflicts) {
-      lines.push(`- **${conflict.conflictType}**: "${conflict.itemA.title}" ↔ "${conflict.itemB.title}"`);
+      lines.push(
+        `- **${conflict.conflictType}**: "${conflict.itemA.title}" ↔ "${conflict.itemB.title}"`
+      );
       lines.push(`  Resolution: ${conflict.suggestedResolution}`);
     }
     lines.push("");

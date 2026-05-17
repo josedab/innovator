@@ -101,7 +101,6 @@ describe("runAutonomousAgent", () => {
         })
       );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const progress: any[] = [];
     const run = await runAutonomousAgent("Test subject", (p) => progress.push({ ...p }), {
       maxBranches: 2,
@@ -229,7 +228,6 @@ describe("runAutonomousAgent", () => {
       })
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const progressUpdates: any[] = [];
     await runAutonomousAgent("Test", (p) => progressUpdates.push({ ...p }), {
       maxBranches: 1,
@@ -357,7 +355,6 @@ describe("autonomousRunToMarkdown", () => {
       },
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const md = autonomousRunToMarkdown(run as any);
 
     expect(md).toContain("# Autonomous Innovation: AI Innovation");
@@ -395,7 +392,6 @@ describe("autonomousRunToMarkdown", () => {
       updatedAt: "2024-01-01T00:00:00Z",
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const md = autonomousRunToMarkdown(run as any);
     expect(md).toContain("# Autonomous Innovation: Test");
     expect(md).not.toContain("## Portfolio");

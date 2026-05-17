@@ -3,7 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import { validateIdea, validateIdeas } from "@innovator/core";
+import { validateIdeas } from "@innovator/core";
 import type { InnovationIdea } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -82,12 +82,7 @@ export async function POST(request: Request) {
       return modelError;
     }
 
-    const scorecard = await validateIdeas(
-      ideas as InnovationIdea[],
-      domain,
-      model,
-      request.signal
-    );
+    const scorecard = await validateIdeas(ideas as InnovationIdea[], domain, model, request.signal);
 
     logger.info("Validation completed", {
       route: "/api/validate",

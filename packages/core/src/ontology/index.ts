@@ -15,8 +15,14 @@ import type { Investigation } from "../types.js";
 // ---- Schemas ----
 
 export const EntityTypeSchema = z.enum([
-  "concept", "technology", "organization", "person",
-  "market", "regulation", "trend", "product",
+  "concept",
+  "technology",
+  "organization",
+  "person",
+  "market",
+  "regulation",
+  "trend",
+  "product",
 ]);
 
 export const OntologyEntitySchema = z.object({
@@ -135,7 +141,10 @@ export async function extractOntology(
       const jsonStr = extractJson(raw);
       return ExtractionResponseSchema.parse(JSON.parse(jsonStr));
     },
-    { signal: config.signal, isRetryable: (err: unknown) => err instanceof Error && err.message.includes("parse") }
+    {
+      signal: config.signal,
+      isRetryable: (err: unknown) => err instanceof Error && err.message.includes("parse"),
+    }
   );
 
   const normalizedSubject = subject.toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -146,13 +155,15 @@ export async function extractOntology(
     : {
         subject,
         ...result,
-        versions: [{
-          version: 1,
-          timestamp: new Date().toISOString(),
-          source: subject,
-          entityCount: result.entities.length,
-          relationshipCount: result.relationships.length,
-        }],
+        versions: [
+          {
+            version: 1,
+            timestamp: new Date().toISOString(),
+            source: subject,
+            entityCount: result.entities.length,
+            relationshipCount: result.relationships.length,
+          },
+        ],
       };
 
   ontologyStore.set(normalizedSubject, graph);
@@ -162,7 +173,11 @@ export async function extractOntology(
 /** Merge new extraction into existing ontology, deduplicating entities. */
 function mergeOntology(
   existing: OntologyGraph,
-  newData: { entities: OntologyEntity[]; relationships: OntologyRelationship[]; taxonomies: TaxonomyNode[] },
+  newData: {
+    entities: OntologyEntity[];
+    relationships: OntologyRelationship[];
+    taxonomies: TaxonomyNode[];
+  },
   source: string
 ): OntologyGraph {
   const entityMap = new Map(existing.entities.map((e) => [e.id, e]));
@@ -172,7 +187,9 @@ function mergeOntology(
     }
   }
 
-  const relSet = new Set(existing.relationships.map((r) => `${r.sourceId}-${r.type}-${r.targetId}`));
+  const relSet = new Set(
+    existing.relationships.map((r) => `${r.sourceId}-${r.type}-${r.targetId}`)
+  );
   const mergedRels = [...existing.relationships];
   for (const rel of newData.relationships) {
     const key = `${rel.sourceId}-${rel.type}-${rel.targetId}`;
@@ -182,7 +199,9 @@ function mergeOntology(
     }
   }
 
-  const nextVersion = (existing.versions.length > 0 ? existing.versions[existing.versions.length - 1].version : 0) + 1;
+  const nextVersion =
+    (existing.versions.length > 0 ? existing.versions[existing.versions.length - 1].version : 0) +
+    1;
 
   return {
     subject: existing.subject,
@@ -234,10 +253,7 @@ export function queryEntities(type?: EntityType): OntologyEntity[] {
 /**
  * Build an investigation prompt enriched with prior ontology context.
  */
-export function buildInvestigationPrompt(
-  subject: string,
-  priorOntology: OntologyGraph
-): string {
+export function buildInvestigationPrompt(subject: string, priorOntology: OntologyGraph): string {
   const entitySummary = priorOntology.entities
     .slice(0, 20)
     .map((e) => `- ${e.name} (${e.type}): ${e.description}`)

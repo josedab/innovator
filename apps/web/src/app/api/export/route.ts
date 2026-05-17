@@ -124,7 +124,7 @@ export async function POST(request: Request) {
           headers: API_RESPONSE_HEADERS,
         });
     }
-  } catch (err) {
+  } catch {
     return new Response(JSON.stringify({ error: "Export failed" }), {
       status: 500,
       headers: API_RESPONSE_HEADERS,

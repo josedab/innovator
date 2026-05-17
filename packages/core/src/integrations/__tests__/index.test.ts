@@ -88,10 +88,7 @@ describe("integrations", () => {
     });
 
     it("should map priority correctly", () => {
-      const payload = formatJiraIssue(
-        { ...sampleIdea, priority: "critical" },
-        { projectKey: "X" }
-      );
+      const payload = formatJiraIssue({ ...sampleIdea, priority: "critical" }, { projectKey: "X" });
       const fields = payload.fields as Record<string, unknown>;
       expect(fields.priority).toEqual({ name: "Highest" });
     });
@@ -104,14 +101,11 @@ describe("integrations", () => {
       expect(payload.teamId).toBe("team-1");
       expect(payload.title).toContain("AI-Powered Code Review");
       expect(typeof payload.description).toBe("string");
-      expect((payload.description as string)).toContain("Potential Impact");
+      expect(payload.description as string).toContain("Potential Impact");
     });
 
     it("should map priority to Linear scale", () => {
-      const payload = formatLinearIssue(
-        { ...sampleIdea, priority: "critical" },
-        { teamId: "t1" }
-      );
+      const payload = formatLinearIssue({ ...sampleIdea, priority: "critical" }, { teamId: "t1" });
       expect(payload.priority).toBe(1);
     });
   });

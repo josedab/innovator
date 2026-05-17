@@ -3,11 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import {
-  compilePipelineDAG,
-  executePipelineDAG,
-  dagToText,
-} from "@innovator/core";
+import { compilePipelineDAG, executePipelineDAG, dagToText } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType, validateModel } from "@/lib/validate-request";
@@ -45,24 +41,34 @@ export async function POST(request: Request) {
 
     switch (parsed.action) {
       case "compile": {
-        logger.info(`Compiling DAG from: "${parsed.description.slice(0, 100)}..."`, { route: "/api/pipeline-dag" });
+        logger.info(`Compiling DAG from: "${parsed.description.slice(0, 100)}..."`, {
+          route: "/api/pipeline-dag",
+        });
         const dag = await compilePipelineDAG(parsed.description, parsed.model, request.signal);
-        return Response.json({
-          dag,
-          visualization: dagToText(dag),
-        }, { headers: API_RESPONSE_HEADERS });
+        return Response.json(
+          {
+            dag,
+            visualization: dagToText(dag),
+          },
+          { headers: API_RESPONSE_HEADERS }
+        );
       }
       case "execute": {
-        logger.info(`Executing pipeline from: "${parsed.description.slice(0, 100)}..."`, { route: "/api/pipeline-dag" });
+        logger.info(`Executing pipeline from: "${parsed.description.slice(0, 100)}..."`, {
+          route: "/api/pipeline-dag",
+        });
         const dag = await compilePipelineDAG(parsed.description, parsed.model, request.signal);
         const result = await executePipelineDAG(dag, {
           signal: request.signal,
           dryRun: parsed.dryRun,
         });
-        return Response.json({
-          dag: result,
-          visualization: dagToText(result),
-        }, { headers: API_RESPONSE_HEADERS });
+        return Response.json(
+          {
+            dag: result,
+            visualization: dagToText(result),
+          },
+          { headers: API_RESPONSE_HEADERS }
+        );
       }
     }
   } catch (error) {
@@ -72,7 +78,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/pipeline-dag" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/pipeline-dag",
+    });
     return Response.json(
       { error: "Pipeline compilation failed" },
       { status: 500, headers: API_RESPONSE_HEADERS }

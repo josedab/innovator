@@ -148,13 +148,15 @@ export type InnovationEvent = z.infer<typeof InnovationEventSchema>;
 export const DomainProfileSchema = z.object({
   domain: z.string().max(200),
   sessionCount: z.number().int().min(0),
-  topAngles: z.array(
-    z.object({
-      angleId: z.string().max(100),
-      effectivenessScore: z.number().min(0).max(1),
-      usageCount: z.number().int().min(0),
-    })
-  ).max(10),
+  topAngles: z
+    .array(
+      z.object({
+        angleId: z.string().max(100),
+        effectivenessScore: z.number().min(0).max(1),
+        usageCount: z.number().int().min(0),
+      })
+    )
+    .max(10),
   commonPatterns: z.array(z.string().max(500)).max(20),
   averageQuality: z.number().min(0).max(100),
   lastActiveAt: z.string(),

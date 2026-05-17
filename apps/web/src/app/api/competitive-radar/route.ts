@@ -6,7 +6,6 @@ export const runtime = "nodejs";
 import {
   addCompetitor,
   listCompetitors,
-  getCompetitor,
   runGapAnalysis,
   runMultiCompetitorGapAnalysis,
   gapReportToMarkdown,
@@ -22,16 +21,18 @@ import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const ActionSchema = z.object({
   action: z.enum(["add-competitor", "gap-analysis", "multi-gap", "radar", "alerts", "context"]),
-  competitor: z.object({
-    id: z.string().max(100),
-    name: z.string().max(200),
-    website: z.string().max(500).optional(),
-    description: z.string().max(2000),
-    capabilities: z.array(z.string().max(200)).max(50),
-    strengths: z.array(z.string().max(200)).max(20),
-    weaknesses: z.array(z.string().max(200)).max(20),
-    threatLevel: z.enum(["low", "medium", "high", "critical"]).optional(),
-  }).optional(),
+  competitor: z
+    .object({
+      id: z.string().max(100),
+      name: z.string().max(200),
+      website: z.string().max(500).optional(),
+      description: z.string().max(2000),
+      capabilities: z.array(z.string().max(200)).max(50),
+      strengths: z.array(z.string().max(200)).max(20),
+      weaknesses: z.array(z.string().max(200)).max(20),
+      threatLevel: z.enum(["low", "medium", "high", "critical"]).optional(),
+    })
+    .optional(),
   competitorId: z.string().max(100).optional(),
   competitorIds: z.array(z.string().max(100)).max(20).optional(),
   ourCapabilities: z.array(z.string().max(200)).max(50).optional(),
@@ -49,19 +50,38 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => null);
     if (!body) {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers: API_RESPONSE_HEADERS });
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const parsed = ActionSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid request", details: parsed.error.issues }), { status: 400, headers: API_RESPONSE_HEADERS });
+      return new Response(
+        JSON.stringify({ error: "Invalid request", details: parsed.error.issues }),
+        { status: 400, headers: API_RESPONSE_HEADERS }
+      );
     }
 
-    const { action, competitor, competitorId, competitorIds, ourCapabilities, subject, model, format } = parsed.data;
+    const {
+      action,
+      competitor,
+      competitorId,
+      competitorIds,
+      ourCapabilities,
+      subject,
+      model,
+      format,
+    } = parsed.data;
 
     switch (action) {
       case "add-competitor": {
-        if (!competitor) return new Response(JSON.stringify({ error: "competitor required" }), { status: 400, headers: API_RESPONSE_HEADERS });
+        if (!competitor)
+          return new Response(JSON.stringify({ error: "competitor required" }), {
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
+          });
         const added = addCompetitor({
           ...competitor,
           recentMoves: [],
@@ -72,7 +92,10 @@ export async function POST(request: Request) {
       }
       case "gap-analysis": {
         if (!competitorId || !ourCapabilities?.length) {
-          return new Response(JSON.stringify({ error: "competitorId and ourCapabilities required" }), { status: 400, headers: API_RESPONSE_HEADERS });
+          return new Response(
+            JSON.stringify({ error: "competitorId and ourCapabilities required" }),
+            { status: 400, headers: API_RESPONSE_HEADERS }
+          );
         }
         const report = await runGapAnalysis(competitorId, ourCapabilities, model);
         if (format === "markdown") {
@@ -85,10 +108,16 @@ export async function POST(request: Request) {
       }
       case "multi-gap": {
         if (!competitorIds?.length || !ourCapabilities?.length) {
-          return new Response(JSON.stringify({ error: "competitorIds and ourCapabilities required" }), { status: 400, headers: API_RESPONSE_HEADERS });
+          return new Response(
+            JSON.stringify({ error: "competitorIds and ourCapabilities required" }),
+            { status: 400, headers: API_RESPONSE_HEADERS }
+          );
         }
         const reports = await runMultiCompetitorGapAnalysis(competitorIds, ourCapabilities, model);
-        return new Response(JSON.stringify({ reports }), { status: 200, headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ reports }), {
+          status: 200,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
       case "radar": {
         const dashboard = await generateRadarDashboard({ model });
@@ -98,21 +127,37 @@ export async function POST(request: Request) {
             headers: { ...API_RESPONSE_HEADERS, "content-type": "text/markdown; charset=utf-8" },
           });
         }
-        return new Response(JSON.stringify(dashboard), { status: 200, headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify(dashboard), {
+          status: 200,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
       case "alerts": {
         const alerts = await checkForAlerts({ model });
-        return new Response(JSON.stringify({ alerts }), { status: 200, headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ alerts }), {
+          status: 200,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
       case "context": {
-        if (!subject) return new Response(JSON.stringify({ error: "subject required" }), { status: 400, headers: API_RESPONSE_HEADERS });
+        if (!subject)
+          return new Response(JSON.stringify({ error: "subject required" }), {
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
+          });
         const context = await getCompetitiveContext(subject, { model });
-        return new Response(JSON.stringify({ context }), { status: 200, headers: API_RESPONSE_HEADERS });
+        return new Response(JSON.stringify({ context }), {
+          status: 200,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
     }
   } catch (err) {
     logger.error("Competitive radar failed", { requestId, error: String(err) });
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: API_RESPONSE_HEADERS });
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }
 
@@ -120,8 +165,14 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const competitors = listCompetitors();
-    return new Response(JSON.stringify({ competitors }), { status: 200, headers: API_RESPONSE_HEADERS });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: API_RESPONSE_HEADERS });
+    return new Response(JSON.stringify({ competitors }), {
+      status: 200,
+      headers: API_RESPONSE_HEADERS,
+    });
+  } catch {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

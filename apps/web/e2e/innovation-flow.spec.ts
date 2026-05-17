@@ -65,9 +65,7 @@ test.describe("Innovation Pipeline E2E", () => {
         await innovateButton.click();
 
         // Step 6: Wait for results
-        const results = page.locator(
-          '[data-testid="results"], [data-testid="angle-results"]'
-        );
+        const results = page.locator('[data-testid="results"], [data-testid="angle-results"]');
         await expect(results).toBeVisible({ timeout: 90_000 });
       }
     }

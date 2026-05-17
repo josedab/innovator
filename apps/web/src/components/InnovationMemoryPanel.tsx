@@ -43,17 +43,23 @@ export default function InnovationMemoryPanel() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "effectiveness", domain }),
-        }).then((r) => r.json()).catch(() => null),
+        })
+          .then((r) => r.json())
+          .catch(() => null),
         fetch("/api/innovation-memory", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "bias", userId }),
-        }).then((r) => r.json()).catch(() => null),
+        })
+          .then((r) => r.json())
+          .catch(() => null),
         fetch("/api/innovation-memory", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "recommendations", domain, userId }),
-        }).then((r) => r.json()).catch(() => null),
+        })
+          .then((r) => r.json())
+          .catch(() => null),
       ]);
 
       if (effectivenessRes?.effectiveness) setEffectiveness(effectivenessRes.effectiveness);
@@ -66,7 +72,9 @@ export default function InnovationMemoryPanel() {
     }
   }, [domain, userId]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const TABS: { id: ViewTab; label: string; icon: string }[] = [
     { id: "recommendations", label: "Recommendations", icon: "💡" },
@@ -86,7 +94,9 @@ export default function InnovationMemoryPanel() {
     <div className="bg-gray-950 text-white min-h-screen">
       <div className="max-w-7xl mx-auto px-6 py-8">
         <h1 className="text-3xl font-bold mb-2">🧠 Innovation Memory</h1>
-        <p className="text-gray-400 mb-6">Track angle effectiveness, detect bias, and get smart recommendations</p>
+        <p className="text-gray-400 mb-6">
+          Track angle effectiveness, detect bias, and get smart recommendations
+        </p>
 
         {/* Domain filter */}
         <div className="mb-6">
@@ -116,9 +126,7 @@ export default function InnovationMemoryPanel() {
           ))}
         </div>
 
-        {loading && (
-          <div className="text-center py-20 text-gray-500">Loading memory data...</div>
-        )}
+        {loading && <div className="text-center py-20 text-gray-500">Loading memory data...</div>}
 
         {!loading && (
           <>
@@ -128,10 +136,14 @@ export default function InnovationMemoryPanel() {
                 {/* Suggested Angles */}
                 <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
                   <h3 className="font-semibold mb-4">✨ Suggested Angles</h3>
-                  {recommendations?.suggestedAngles && recommendations.suggestedAngles.length > 0 ? (
+                  {recommendations?.suggestedAngles &&
+                  recommendations.suggestedAngles.length > 0 ? (
                     <div className="space-y-2">
                       {recommendations.suggestedAngles.map((angle, i) => (
-                        <div key={i} className="flex items-center justify-between px-4 py-3 bg-gray-800/50 rounded-lg">
+                        <div
+                          key={i}
+                          className="flex items-center justify-between px-4 py-3 bg-gray-800/50 rounded-lg"
+                        >
                           <div>
                             <span className="font-medium text-green-400">{angle.angleId}</span>
                             <p className="text-sm text-gray-500 mt-0.5">{angle.reason}</p>
@@ -143,7 +155,9 @@ export default function InnovationMemoryPanel() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-600 text-center py-8">No angle recommendations yet. Run more sessions to build data.</p>
+                    <p className="text-gray-600 text-center py-8">
+                      No angle recommendations yet. Run more sessions to build data.
+                    </p>
                   )}
                 </div>
 
@@ -153,7 +167,10 @@ export default function InnovationMemoryPanel() {
                     <h3 className="font-semibold mb-4">⚠️ Angles to Avoid</h3>
                     <div className="space-y-2">
                       {recommendations.avoidAngles.map((angle, i) => (
-                        <div key={i} className="flex items-center gap-3 px-4 py-3 bg-red-900/20 rounded-lg border border-red-900/30">
+                        <div
+                          key={i}
+                          className="flex items-center gap-3 px-4 py-3 bg-red-900/20 rounded-lg border border-red-900/30"
+                        >
                           <span className="font-medium text-red-400">{angle.angleId}</span>
                           <span className="text-sm text-gray-500">{angle.reason}</span>
                         </div>
@@ -195,15 +212,24 @@ export default function InnovationMemoryPanel() {
                     {/* Legend */}
                     <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
-                        <span className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(239, 68, 68, 0.7)" }} />
+                        <span
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: "rgba(239, 68, 68, 0.7)" }}
+                        />
                         Low (&lt;4)
                       </span>
                       <span className="flex items-center gap-1">
-                        <span className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(234, 179, 8, 0.7)" }} />
+                        <span
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: "rgba(234, 179, 8, 0.7)" }}
+                        />
                         Medium (4-7)
                       </span>
                       <span className="flex items-center gap-1">
-                        <span className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(34, 197, 94, 0.7)" }} />
+                        <span
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: "rgba(34, 197, 94, 0.7)" }}
+                        />
                         High (&gt;7)
                       </span>
                     </div>
@@ -218,14 +244,20 @@ export default function InnovationMemoryPanel() {
                         >
                           <div className="font-medium text-sm">{e.angleId}</div>
                           <div className="text-xs text-gray-300 mt-1">{e.domain}</div>
-                          <div className="text-lg font-bold mt-2">{e.averageQuality.toFixed(1)}</div>
-                          <div className="text-xs text-gray-400">{e.sampleCount} sample{e.sampleCount !== 1 ? "s" : ""}</div>
+                          <div className="text-lg font-bold mt-2">
+                            {e.averageQuality.toFixed(1)}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {e.sampleCount} sample{e.sampleCount !== 1 ? "s" : ""}
+                          </div>
                         </div>
                       ))}
                     </div>
                   </>
                 ) : (
-                  <p className="text-gray-600 text-center py-12">No effectiveness data yet. Generate ideas to build the heatmap.</p>
+                  <p className="text-gray-600 text-center py-12">
+                    No effectiveness data yet. Generate ideas to build the heatmap.
+                  </p>
                 )}
               </div>
             )}
@@ -241,7 +273,9 @@ export default function InnovationMemoryPanel() {
                       return (
                         <div key={i} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
-                            <span className={`font-medium ${isOverused ? "text-yellow-400" : "text-gray-300"}`}>
+                            <span
+                              className={`font-medium ${isOverused ? "text-yellow-400" : "text-gray-300"}`}
+                            >
                               {entry.angleId}
                               {isOverused && " ⚠️"}
                             </span>
@@ -262,12 +296,15 @@ export default function InnovationMemoryPanel() {
                     })}
                     {bias.some((b) => b.percentage > 40) && (
                       <div className="mt-4 px-4 py-3 bg-yellow-900/20 border border-yellow-800/30 rounded-lg text-sm text-yellow-300">
-                        ⚠️ You may be over-relying on certain angles. Try exploring underused angles to discover fresh perspectives.
+                        ⚠️ You may be over-relying on certain angles. Try exploring underused angles
+                        to discover fresh perspectives.
                       </div>
                     )}
                   </div>
                 ) : (
-                  <p className="text-gray-600 text-center py-12">No usage data yet. Run sessions to build your bias profile.</p>
+                  <p className="text-gray-600 text-center py-12">
+                    No usage data yet. Run sessions to build your bias profile.
+                  </p>
                 )}
               </div>
             )}

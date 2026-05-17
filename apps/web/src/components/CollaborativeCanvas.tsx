@@ -3,13 +3,8 @@
  */
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import type {
-  CollaborativeCanvasState,
-  CanvasNode,
-  CanvasVote,
-  CursorState,
-} from "@innovator/core/types";
+import { useState, useCallback, useRef } from "react";
+import type { CanvasNode, CursorState } from "@innovator/core/types";
 
 // ---- Types ----
 
@@ -61,7 +56,7 @@ function getUserColor(userId: string): string {
 // ---- Component ----
 
 export default function CollaborativeCanvas({
-  sessionId,
+  sessionId: _sessionId,
   userId,
   displayName,
   initialNodes = [],
@@ -84,8 +79,15 @@ export default function CollaborativeCanvas({
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
   const [showHeatMap, setShowHeatMap] = useState(false);
   const [showAIOverlay, setShowAIOverlay] = useState(false);
-  const [aiClusters, setAiClusters] = useState<
-    Array<{ id: string; label: string; centroid: { x: number; y: number }; nodeIds: string[]; color: string; confidence: number }>
+  const [aiClusters, _setAiClusters] = useState<
+    Array<{
+      id: string;
+      label: string;
+      centroid: { x: number; y: number };
+      nodeIds: string[];
+      color: string;
+      confidence: number;
+    }>
   >([]);
   const dragOffset = useRef({ x: 0, y: 0 });
 
@@ -349,10 +351,7 @@ export default function CollaborativeCanvas({
               })
               .map((node) => {
                 const v = state.votes[node.id]!;
-                const maxVotes = Math.max(
-                  1,
-                  ...Object.values(state.votes).map((vt) => vt.up)
-                );
+                const maxVotes = Math.max(1, ...Object.values(state.votes).map((vt) => vt.up));
                 const intensity = v.up / maxVotes;
                 return (
                   <circle
@@ -389,7 +388,13 @@ export default function CollaborativeCanvas({
                     strokeDasharray="6 3"
                     pointerEvents="none"
                   />
-                  <text x={minX + 8} y={minY + 16} fontSize={11} fontWeight="600" fill={cluster.color}>
+                  <text
+                    x={minX + 8}
+                    y={minY + 16}
+                    fontSize={11}
+                    fontWeight="600"
+                    fill={cluster.color}
+                  >
                     🏷️ {cluster.label} ({Math.round(cluster.confidence * 100)}%)
                   </text>
                 </g>

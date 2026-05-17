@@ -72,7 +72,9 @@ export default function MemoryGraphPanel({ onInsightSelect }: MemoryGraphPanelPr
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-5 dark:border-neutral-700 dark:bg-neutral-900">
-        <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-3">🧠 Memory Graph</h3>
+        <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-3">
+          🧠 Memory Graph
+        </h3>
         <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
           Search past ideas, investigations, and themes from your innovation memory.
         </p>
@@ -126,7 +128,12 @@ export default function MemoryGraphPanel({ onInsightSelect }: MemoryGraphPanelPr
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-900/20">
           <p className="text-sm text-red-700 dark:text-red-300 mb-3">{error}</p>
-          <button onClick={search} className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 transition">Retry</button>
+          <button
+            onClick={search}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 transition"
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -134,7 +141,9 @@ export default function MemoryGraphPanel({ onInsightSelect }: MemoryGraphPanelPr
       {!loading && !error && searched && (
         <div className="space-y-3">
           {results.length === 0 ? (
-            <p className="text-sm text-neutral-500 text-center py-8">No matching nodes found. Try lowering the threshold or adjusting your query.</p>
+            <p className="text-sm text-neutral-500 text-center py-8">
+              No matching nodes found. Try lowering the threshold or adjusting your query.
+            </p>
           ) : (
             results.map((r) => (
               <button
@@ -146,18 +155,25 @@ export default function MemoryGraphPanel({ onInsightSelect }: MemoryGraphPanelPr
                 <div className={`rounded-xl border ${TYPE_BORDER[r.node.type]} p-4 space-y-2`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[r.node.type]}`}>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[r.node.type]}`}
+                      >
                         {r.node.type}
                       </span>
-                      <h4 className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{r.node.title}</h4>
+                      <h4 className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                        {r.node.title}
+                      </h4>
                     </div>
                     <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
                       {Math.round(r.score * 100)}% match
                     </span>
                   </div>
-                  <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">{r.node.content}</p>
+                  <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">
+                    {r.node.content}
+                  </p>
                   <p className="text-xs text-neutral-400 dark:text-neutral-500">
-                    Session: {r.node.sessionId.slice(0, 8)}… · {new Date(r.node.createdAt).toLocaleDateString()}
+                    Session: {r.node.sessionId.slice(0, 8)}… ·{" "}
+                    {new Date(r.node.createdAt).toLocaleDateString()}
                   </p>
                 </div>
               </button>

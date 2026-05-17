@@ -52,17 +52,10 @@ const RequestSchema = z.object({
     baseBranch: z.string().max(200).default("main"),
     branchPrefix: z.string().max(100).default("innovation/"),
     reviewers: z.array(z.string().max(200)).max(20).optional(),
-    labels: z
-      .array(z.string().max(100))
-      .max(20)
-      .default(["innovation", "auto-generated"]),
+    labels: z.array(z.string().max(100)).max(20).default(["innovation", "auto-generated"]),
     draft: z.boolean().default(true),
-    stack: z
-      .enum(["typescript", "python", "go", "rust"])
-      .default("typescript"),
-    license: z
-      .enum(["MIT", "Apache-2.0", "GPL-3.0", "BSD-3-Clause", "ISC"])
-      .default("MIT"),
+    stack: z.enum(["typescript", "python", "go", "rust"]).default("typescript"),
+    license: z.enum(["MIT", "Apache-2.0", "GPL-3.0", "BSD-3-Clause", "ISC"]).default("MIT"),
   }),
   ideaIndex: z.number().int().min(0).max(49).optional(),
   generatePlan: z.boolean().default(true),
@@ -125,9 +118,7 @@ async function POST(request: Request) {
     const prResult = innovationToPR(synthesis as Synthesis, config as PRConfig);
 
     const script =
-      prResult.status !== "failed"
-        ? workflowToScript(prResult.workflowPlan)
-        : undefined;
+      prResult.status !== "failed" ? workflowToScript(prResult.workflowPlan) : undefined;
 
     return Response.json({
       ...prResult,
@@ -137,10 +128,7 @@ async function POST(request: Request) {
   } catch (err) {
     return new Response(
       JSON.stringify({
-        error:
-          err instanceof Error
-            ? err.message
-            : "PR pipeline failed. Please try again.",
+        error: err instanceof Error ? err.message : "PR pipeline failed. Please try again.",
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );

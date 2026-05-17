@@ -39,8 +39,18 @@ function makeChain() {
         angleName: "Contrarian",
         reasoning: "Applied contrarian thinking to challenge conventional approaches",
         ideas: [
-          { title: "Anti-AI diagnostics", description: "Focus on human-first diagnosis", potentialImpact: "High", implementationHint: "Start with pilot" },
-          { title: "Hybrid approach", description: "AI-assisted, human-led", potentialImpact: "Medium", implementationHint: "Integrate with existing" },
+          {
+            title: "Anti-AI diagnostics",
+            description: "Focus on human-first diagnosis",
+            potentialImpact: "High",
+            implementationHint: "Start with pilot",
+          },
+          {
+            title: "Hybrid approach",
+            description: "AI-assisted, human-led",
+            potentialImpact: "Medium",
+            implementationHint: "Integrate with existing",
+          },
         ],
       },
       {
@@ -48,10 +58,15 @@ function makeChain() {
         angleName: "First Principles",
         reasoning: "Broke down the problem to fundamental data requirements",
         ideas: [
-          { title: "Data-first platform", description: "Build from fundamental data needs", potentialImpact: "High", implementationHint: "Start with data" },
+          {
+            title: "Data-first platform",
+            description: "Build from fundamental data needs",
+            potentialImpact: "High",
+            implementationHint: "Start with data",
+          },
         ],
       },
-    ],
+    ]
   );
 }
 

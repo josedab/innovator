@@ -237,7 +237,11 @@ export async function runABTest(
 export function recordTestResult(
   testId: string,
   variantId: string,
-  result: { metrics: Record<string, number>; ideas?: Array<{ title: string; description: string; score?: number }>; duration?: number }
+  result: {
+    metrics: Record<string, number>;
+    ideas?: Array<{ title: string; description: string; score?: number }>;
+    duration?: number;
+  }
 ): TestResult {
   const test = abTests.get(testId);
   if (!test) throw new Error(`A/B test not found: ${testId}`);
@@ -346,13 +350,13 @@ export function analyzeResults(testId: string): StatisticalAnalysis {
   const isWinner =
     significantComparisons.length > 0 &&
     significantComparisons.some(
-      (c) =>
-        (c.variantA === topVariant.id || c.variantB === topVariant.id) && c.significant
+      (c) => (c.variantA === topVariant.id || c.variantB === topVariant.id) && c.significant
     );
 
   const overallEffect =
     pairwiseComparisons.length > 0
-      ? pairwiseComparisons.reduce((s, c) => s + Math.abs(c.effectSize), 0) / pairwiseComparisons.length
+      ? pairwiseComparisons.reduce((s, c) => s + Math.abs(c.effectSize), 0) /
+        pairwiseComparisons.length
       : 0;
 
   const power = computePowerAnalysis(test);
@@ -418,14 +422,23 @@ export function computeConfidenceInterval(
 /** Estimate required sample size and current power for a test. */
 export function computePowerAnalysis(test: ABTest): PowerAnalysis {
   const metricName = test.metrics.find((m) => m.primary)?.name ?? test.metrics[0]?.name;
-  if (!metricName) return { requiredSampleSize: test.config.minimumSampleSize, currentPower: 0, sufficientData: false };
+  if (!metricName)
+    return {
+      requiredSampleSize: test.config.minimumSampleSize,
+      currentPower: 0,
+      sufficientData: false,
+    };
 
   const allSamples = test.variants.map((v) => v.results.map((r) => r.metrics[metricName] ?? 0));
   const sampleSizes = allSamples.map((s) => s.length);
   const minN = Math.min(...sampleSizes);
 
   if (minN < 2) {
-    return { requiredSampleSize: test.config.minimumSampleSize, currentPower: 0, sufficientData: false };
+    return {
+      requiredSampleSize: test.config.minimumSampleSize,
+      currentPower: 0,
+      sufficientData: false,
+    };
   }
 
   // Estimate effect size from current data
@@ -548,15 +561,19 @@ export function getTestSummary(testId: string): string {
     if (variant.description) lines.push(variant.description);
     lines.push(`- **Runs completed:** ${runs}/${test.sampleSize}`);
     if (variant.config.model) lines.push(`- **Model:** ${variant.config.model}`);
-    if (variant.config.temperature != null) lines.push(`- **Temperature:** ${variant.config.temperature}`);
-    if (variant.config.angles?.length) lines.push(`- **Angles:** ${variant.config.angles.join(", ")}`);
+    if (variant.config.temperature != null)
+      lines.push(`- **Temperature:** ${variant.config.temperature}`);
+    if (variant.config.angles?.length)
+      lines.push(`- **Angles:** ${variant.config.angles.join(", ")}`);
     lines.push("");
   }
 
   lines.push("## Metrics");
   for (const metric of test.metrics) {
     const tag = metric.primary ? " ⭐" : "";
-    lines.push(`- **${metric.name}**${tag} (${metric.type}, ${metric.higherIsBetter ? "higher is better" : "lower is better"})`);
+    lines.push(
+      `- **${metric.name}**${tag} (${metric.type}, ${metric.higherIsBetter ? "higher is better" : "lower is better"})`
+    );
   }
   lines.push("");
 
@@ -589,7 +606,9 @@ export function getTestSummary(testId: string): string {
     lines.push(`- **Confidence:** ${(analysis.confidence * 100).toFixed(0)}%`);
     lines.push(`- **Average effect size:** ${analysis.effectSize}`);
     lines.push(`- **Power:** ${(analysis.sampleSizeAdequacy.currentPower * 100).toFixed(1)}%`);
-    lines.push(`- **Sufficient data:** ${analysis.sampleSizeAdequacy.sufficientData ? "✅ Yes" : "❌ No"}`);
+    lines.push(
+      `- **Sufficient data:** ${analysis.sampleSizeAdequacy.sufficientData ? "✅ Yes" : "❌ No"}`
+    );
     lines.push("");
 
     if (analysis.pairwiseComparisons.length > 0) {
@@ -661,8 +680,16 @@ export async function compareAngleStrategies(
     `Angle strategy comparison`,
     `Angles [${anglesA.join(", ")}] produce better results than [${anglesB.join(", ")}] for "${subject}"`,
     [
-      { name: "Strategy A", description: `Angles: ${anglesA.join(", ")}`, config: { angles: anglesA } },
-      { name: "Strategy B", description: `Angles: ${anglesB.join(", ")}`, config: { angles: anglesB } },
+      {
+        name: "Strategy A",
+        description: `Angles: ${anglesA.join(", ")}`,
+        config: { angles: anglesA },
+      },
+      {
+        name: "Strategy B",
+        description: `Angles: ${anglesB.join(", ")}`,
+        config: { angles: anglesB },
+      },
     ],
     [{ name: "quality", type: "continuous", primary: true, higherIsBetter: true }],
     { minimumSampleSize: iterations }
@@ -718,7 +745,11 @@ function welchTTest(
 
   const pValue = 2 * (1 - tDistributionCDF(Math.abs(t), safeDf));
 
-  return { tStatistic: round(t, 4), degreesOfFreedom: round(safeDf, 1), pValue: Math.min(1, Math.max(0, pValue)) };
+  return {
+    tStatistic: round(t, 4),
+    degreesOfFreedom: round(safeDf, 1),
+    pValue: Math.min(1, Math.max(0, pValue)),
+  };
 }
 
 /** Approximation of Student's t CDF using the regularized incomplete beta function. */
@@ -766,21 +797,18 @@ function normalQuantile(p: number): number {
 
   // Rational approximation (Beasley-Springer-Moro)
   const a = [
-    -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2,
-    1.383577518672690e2, -3.066479806614716e1, 2.506628277459239e0,
+    -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.38357751867269e2,
+    -3.066479806614716e1, 2.506628277459239,
   ];
   const b = [
-    -5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2,
-    6.680131188771972e1, -1.328068155288572e1,
+    -5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1,
+    -1.328068155288572e1,
   ];
   const c = [
-    -7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838e0,
-    -2.549732539343734e0, 4.374664141464968e0, 2.938163982698783e0,
+    -7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734,
+    4.374664141464968, 2.938163982698783,
   ];
-  const d = [
-    7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996e0,
-    3.754408661907416e0,
-  ];
+  const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
 
   const pLow = 0.02425;
   const pHigh = 1 - pLow;
@@ -788,17 +816,23 @@ function normalQuantile(p: number): number {
   let q: number;
   if (p < pLow) {
     q = Math.sqrt(-2 * Math.log(p));
-    return (((((c[0]! * q + c[1]!) * q + c[2]!) * q + c[3]!) * q + c[4]!) * q + c[5]!) /
-      ((((d[0]! * q + d[1]!) * q + d[2]!) * q + d[3]!) * q + 1);
+    return (
+      (((((c[0]! * q + c[1]!) * q + c[2]!) * q + c[3]!) * q + c[4]!) * q + c[5]!) /
+      ((((d[0]! * q + d[1]!) * q + d[2]!) * q + d[3]!) * q + 1)
+    );
   } else if (p <= pHigh) {
     q = p - 0.5;
     const r = q * q;
-    return (((((a[0]! * r + a[1]!) * r + a[2]!) * r + a[3]!) * r + a[4]!) * r + a[5]!) * q /
-      (((((b[0]! * r + b[1]!) * r + b[2]!) * r + b[3]!) * r + b[4]!) * r + 1);
+    return (
+      ((((((a[0]! * r + a[1]!) * r + a[2]!) * r + a[3]!) * r + a[4]!) * r + a[5]!) * q) /
+      (((((b[0]! * r + b[1]!) * r + b[2]!) * r + b[3]!) * r + b[4]!) * r + 1)
+    );
   } else {
     q = Math.sqrt(-2 * Math.log(1 - p));
-    return -(((((c[0]! * q + c[1]!) * q + c[2]!) * q + c[3]!) * q + c[4]!) * q + c[5]!) /
-      ((((d[0]! * q + d[1]!) * q + d[2]!) * q + d[3]!) * q + 1);
+    return (
+      -(((((c[0]! * q + c[1]!) * q + c[2]!) * q + c[3]!) * q + c[4]!) * q + c[5]!) /
+      ((((d[0]! * q + d[1]!) * q + d[2]!) * q + d[3]!) * q + 1)
+    );
   }
 }
 
@@ -821,18 +855,18 @@ function regularizedIncompleteBeta(x: number, a: number, b: number): number {
   const epsilon = 1e-10;
 
   let c = 1;
-  let d = 1 / (1 - (a + b) * x / (a + 1));
+  let d = 1 / (1 - ((a + b) * x) / (a + 1));
   let result = d;
 
   for (let m = 1; m <= maxIter; m++) {
     // Even step
-    let numerator = m * (b - m) * x / ((a + 2 * m - 1) * (a + 2 * m));
+    let numerator = (m * (b - m) * x) / ((a + 2 * m - 1) * (a + 2 * m));
     d = 1 / (1 + numerator * d);
     c = 1 + numerator / c;
     result *= d * c;
 
     // Odd step
-    numerator = -(a + m) * (a + b + m) * x / ((a + 2 * m) * (a + 2 * m + 1));
+    numerator = (-(a + m) * (a + b + m) * x) / ((a + 2 * m) * (a + 2 * m + 1));
     d = 1 / (1 + numerator * d);
     c = 1 + numerator / c;
     result *= d * c;
@@ -909,7 +943,9 @@ function buildABTestRecommendation(
       parts.push(`Consider running at least ${power.requiredSampleSize} iterations per variant.`);
     } else {
       parts.push("No statistically significant difference found between variants.");
-      parts.push("The variants appear to perform similarly — consider testing more distinct configurations.");
+      parts.push(
+        "The variants appear to perform similarly — consider testing more distinct configurations."
+      );
     }
     return parts.join(" ");
   }
@@ -926,17 +962,24 @@ function buildABTestRecommendation(
 
   if (bestComp) {
     const effectLabel =
-      Math.abs(bestComp.effectSize) > 0.8 ? "large" :
-      Math.abs(bestComp.effectSize) > 0.5 ? "medium" : "small";
+      Math.abs(bestComp.effectSize) > 0.8
+        ? "large"
+        : Math.abs(bestComp.effectSize) > 0.5
+          ? "medium"
+          : "small";
     parts.push(
       `Statistically significant improvement (p=${bestComp.pValue.toFixed(4)}, Cohen's d=${bestComp.effectSize.toFixed(2)}, ${effectLabel} effect).`
     );
   }
 
   if (power.sufficientData) {
-    parts.push(`Analysis has adequate statistical power (${(power.currentPower * 100).toFixed(1)}%).`);
+    parts.push(
+      `Analysis has adequate statistical power (${(power.currentPower * 100).toFixed(1)}%).`
+    );
   } else {
-    parts.push(`Note: statistical power is ${(power.currentPower * 100).toFixed(1)}% — consider additional runs for higher confidence.`);
+    parts.push(
+      `Note: statistical power is ${(power.currentPower * 100).toFixed(1)}% — consider additional runs for higher confidence.`
+    );
   }
 
   return parts.join(" ");

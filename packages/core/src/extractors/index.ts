@@ -8,7 +8,6 @@
 
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, extname, basename } from "node:path";
-import { z } from "zod";
 
 // ---- Types ----
 
@@ -112,7 +111,9 @@ export class UrlExtractor implements ContentExtractor {
 
 function extractHtmlTitle(html: string): string {
   const match = html.match(/<title[^>]*>(.*?)<\/title>/i);
-  return match ? match[1].trim().replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">") : "";
+  return match
+    ? match[1].trim().replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    : "";
 }
 
 function extractTextFromHtml(html: string): string {
@@ -217,7 +218,10 @@ function extractPdfText(filePath: string): string {
         textFragments.push(fragment);
       }
     }
-    return textFragments.join(" ") || "[PDF content could not be extracted. Consider converting to text first.]";
+    return (
+      textFragments.join(" ") ||
+      "[PDF content could not be extracted. Consider converting to text first.]"
+    );
   } catch {
     return "[Failed to read PDF file]";
   }
@@ -229,14 +233,38 @@ export class CodeRepoExtractor implements ContentExtractor {
   readonly type = "code-repo" as const;
 
   private codeExtensions = new Set([
-    ".ts", ".tsx", ".js", ".jsx", ".py", ".rs", ".go", ".java", ".rb",
-    ".c", ".cpp", ".h", ".hpp", ".cs", ".swift", ".kt", ".scala",
-    ".vue", ".svelte", ".astro",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".py",
+    ".rs",
+    ".go",
+    ".java",
+    ".rb",
+    ".c",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".swift",
+    ".kt",
+    ".scala",
+    ".vue",
+    ".svelte",
+    ".astro",
   ]);
 
   private docFiles = new Set([
-    "README.md", "README", "readme.md", "ARCHITECTURE.md", "CONTRIBUTING.md",
-    "package.json", "Cargo.toml", "pyproject.toml", "go.mod",
+    "README.md",
+    "README",
+    "readme.md",
+    "ARCHITECTURE.md",
+    "CONTRIBUTING.md",
+    "package.json",
+    "Cargo.toml",
+    "pyproject.toml",
+    "go.mod",
   ]);
 
   canHandle(source: string): boolean {
@@ -280,9 +308,18 @@ export class CodeRepoExtractor implements ContentExtractor {
     if (langCounts.size > 0) {
       const [topExt] = [...langCounts.entries()].sort((a, b) => b[1] - a[1])[0];
       const langMap: Record<string, string> = {
-        ".ts": "TypeScript", ".tsx": "TypeScript", ".js": "JavaScript", ".jsx": "JavaScript",
-        ".py": "Python", ".rs": "Rust", ".go": "Go", ".java": "Java", ".rb": "Ruby",
-        ".cs": "C#", ".swift": "Swift", ".kt": "Kotlin",
+        ".ts": "TypeScript",
+        ".tsx": "TypeScript",
+        ".js": "JavaScript",
+        ".jsx": "JavaScript",
+        ".py": "Python",
+        ".rs": "Rust",
+        ".go": "Go",
+        ".java": "Java",
+        ".rb": "Ruby",
+        ".cs": "C#",
+        ".swift": "Swift",
+        ".kt": "Kotlin",
       };
       language = langMap[topExt] ?? topExt;
     }
@@ -317,7 +354,8 @@ export class CodeRepoExtractor implements ContentExtractor {
     try {
       const entries = readdirSync(dir, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.name.startsWith(".") || entry.name === "node_modules" || entry.name === "dist") continue;
+        if (entry.name.startsWith(".") || entry.name === "node_modules" || entry.name === "dist")
+          continue;
         const fullPath = join(dir, entry.name);
         if (entry.isFile()) {
           callback(fullPath, entry.name);
@@ -368,11 +406,12 @@ export async function extractContent(
  * Summarizes the content to a concise subject line.
  */
 export function buildSubjectFromContent(extracted: ExtractedContent): string {
-  const prefix = extracted.sourceType === "url"
-    ? `Analysis of "${extracted.title}"`
-    : extracted.sourceType === "code-repo"
-      ? `Code repository: ${extracted.title}`
-      : `Document: ${extracted.title}`;
+  const prefix =
+    extracted.sourceType === "url"
+      ? `Analysis of "${extracted.title}"`
+      : extracted.sourceType === "code-repo"
+        ? `Code repository: ${extracted.title}`
+        : `Document: ${extracted.title}`;
 
   const summary = extracted.content.slice(0, 200).replace(/\n/g, " ").trim();
   return `${prefix} — ${summary}`.slice(0, 500);

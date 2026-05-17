@@ -16,7 +16,6 @@ import type {
   PatentScanProgress,
   PatentScanResult,
   PriorArtAssessment,
-  PatentReference,
   PatentDatabase,
 } from "./types.js";
 

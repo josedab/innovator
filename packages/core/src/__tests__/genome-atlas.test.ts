@@ -22,7 +22,10 @@ describe("genome-sequencer/atlas", () => {
       "workflow",
       "automation",
     ]);
-    addGenomeRecord("patent", "Workflow Patent", "Protect process automation", ["automation", "claims"]);
+    addGenomeRecord("patent", "Workflow Patent", "Protect process automation", [
+      "automation",
+      "claims",
+    ]);
 
     expect(getGenomeRecord(idea.id)?.title).toBe("Workflow Copilot");
     expect(listGenomeRecords()).toHaveLength(2);
@@ -40,7 +43,11 @@ describe("genome-sequencer/atlas", () => {
       "workflow",
       "assistant",
     ]);
-    addGenomeRecord("patent", "Bio Patent", "Protect biotech process", ["biology", "lab", "genomics"]);
+    addGenomeRecord("patent", "Bio Patent", "Protect biotech process", [
+      "biology",
+      "lab",
+      "genomics",
+    ]);
 
     const clusters = clusterGenomeRecords(2);
     expect(clusters).toHaveLength(2);
@@ -54,7 +61,11 @@ describe("genome-sequencer/atlas", () => {
       "workflow",
       "automation",
     ]);
-    addGenomeRecord("patent", "Bio Patent", "Protect biotech process", ["biology", "lab", "genomics"]);
+    addGenomeRecord("patent", "Bio Patent", "Protect biotech process", [
+      "biology",
+      "lab",
+      "genomics",
+    ]);
 
     const clusters = clusterGenomeRecords(2);
     const whiteSpaces = identifyWhiteSpaces(clusters);
@@ -75,7 +86,11 @@ describe("genome-sequencer/atlas", () => {
       "workflow",
       "automation",
     ]);
-    addGenomeRecord("patent", "Bio Patent", "Protect biotech process", ["biology", "lab", "genomics"]);
+    addGenomeRecord("patent", "Bio Patent", "Protect biotech process", [
+      "biology",
+      "lab",
+      "genomics",
+    ]);
 
     const novelty = scoreNovelty(original.id);
     expect(novelty?.nearestNeighbors[0]).toEqual(
@@ -91,7 +106,11 @@ describe("genome-sequencer/atlas", () => {
       "workflow",
       "automation",
     ]);
-    addGenomeRecord("patent", "Bio Patent", "Protect biotech process", ["biology", "lab", "genomics"]);
+    addGenomeRecord("patent", "Bio Patent", "Protect biotech process", [
+      "biology",
+      "lab",
+      "genomics",
+    ]);
     const clusters = clusterGenomeRecords(2);
 
     const recombinant = generateRecombinantConcepts(clusters[0].id, clusters[1].id, 2);

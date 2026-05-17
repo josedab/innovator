@@ -45,13 +45,15 @@ export const PRDSchema = z.object({
   nonGoals: z.array(z.string().max(500)).max(10),
   userStories: z.array(UserStorySchema).max(20),
   successMetrics: z.array(z.string().max(500)).max(10),
-  risks: z.array(
-    z.object({
-      description: z.string().max(500),
-      severity: z.enum(["low", "medium", "high", "critical"]),
-      mitigation: z.string().max(500),
-    })
-  ).max(10),
+  risks: z
+    .array(
+      z.object({
+        description: z.string().max(500),
+        severity: z.enum(["low", "medium", "high", "critical"]),
+        mitigation: z.string().max(500),
+      })
+    )
+    .max(10),
   timeline: z.string().max(2000).optional(),
   createdAt: z.string(),
 });
@@ -64,22 +66,26 @@ export const TechSpecSchema = z.object({
   prdId: z.string().max(100),
   title: z.string().max(500),
   architecture: z.string().max(10000),
-  apiDesign: z.array(
-    z.object({
-      method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
-      path: z.string().max(500),
-      description: z.string().max(1000),
-      requestSchema: z.string().max(2000).optional(),
-      responseSchema: z.string().max(2000).optional(),
-    })
-  ).max(30),
-  dataModels: z.array(
-    z.object({
-      name: z.string().max(200),
-      fields: z.array(z.string().max(500)).max(30),
-      description: z.string().max(1000),
-    })
-  ).max(20),
+  apiDesign: z
+    .array(
+      z.object({
+        method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
+        path: z.string().max(500),
+        description: z.string().max(1000),
+        requestSchema: z.string().max(2000).optional(),
+        responseSchema: z.string().max(2000).optional(),
+      })
+    )
+    .max(30),
+  dataModels: z
+    .array(
+      z.object({
+        name: z.string().max(200),
+        fields: z.array(z.string().max(500)).max(30),
+        description: z.string().max(1000),
+      })
+    )
+    .max(20),
   techStack: z.array(z.string().max(200)).max(20),
   dependencies: z.array(z.string().max(200)).max(30),
   securityConsiderations: z.array(z.string().max(500)).max(10),
@@ -111,19 +117,23 @@ export const ImplementationPlanSchema = z.object({
   title: z.string().max(500),
   tasks: z.array(ImplementationTaskSchema).max(50),
   totalEstimatedHours: z.number().min(0),
-  phases: z.array(
-    z.object({
-      name: z.string().max(200),
-      taskIds: z.array(z.string().max(100)).max(20),
-      description: z.string().max(1000),
-    })
-  ).max(10),
-  dependencyGraph: z.array(
-    z.object({
-      from: z.string().max(100),
-      to: z.string().max(100),
-    })
-  ).max(100),
+  phases: z
+    .array(
+      z.object({
+        name: z.string().max(200),
+        taskIds: z.array(z.string().max(100)).max(20),
+        description: z.string().max(1000),
+      })
+    )
+    .max(10),
+  dependencyGraph: z
+    .array(
+      z.object({
+        from: z.string().max(100),
+        to: z.string().max(100),
+      })
+    )
+    .max(100),
   createdAt: z.string(),
 });
 export type ImplementationPlan = z.infer<typeof ImplementationPlanSchema>;

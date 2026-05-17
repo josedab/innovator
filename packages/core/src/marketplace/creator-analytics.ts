@@ -52,7 +52,13 @@ function getOrCreateCreatorStats(creatorId: string): CreatorStats {
 }
 
 function getCreatorPackIds(creatorId: string): string[] {
-  return [...new Set(Array.from(submissions.values()).filter((entry) => entry.creatorId === creatorId).map((entry) => entry.packId))];
+  return [
+    ...new Set(
+      Array.from(submissions.values())
+        .filter((entry) => entry.creatorId === creatorId)
+        .map((entry) => entry.packId)
+    ),
+  ];
 }
 
 function resolveTopPack(creatorId: string): string | undefined {
@@ -62,10 +68,14 @@ function resolveTopPack(creatorId: string): string | undefined {
   return creatorPackIds
     .map((packId) => ({
       packId,
-      downloads: (packVersions.get(packId) ?? []).reduce((sum, version) => sum + version.downloadCount, 0),
+      downloads: (packVersions.get(packId) ?? []).reduce(
+        (sum, version) => sum + version.downloadCount,
+        0
+      ),
       versions: (packVersions.get(packId) ?? []).length,
     }))
-    .sort((left, right) => right.downloads - left.downloads || right.versions - left.versions)[0]?.packId;
+    .sort((left, right) => right.downloads - left.downloads || right.versions - left.versions)[0]
+    ?.packId;
 }
 
 function saveCreatorStats(stats: CreatorStats): CreatorStats {
@@ -154,7 +164,9 @@ export function addPackVersion(packId: string, version: string, changelog: strin
 }
 
 export function getPackVersions(packId: string): PackVersion[] {
-  return [...(packVersions.get(packId) ?? [])].sort((left, right) => right.publishedAt.localeCompare(left.publishedAt));
+  return [...(packVersions.get(packId) ?? [])].sort((left, right) =>
+    right.publishedAt.localeCompare(left.publishedAt)
+  );
 }
 
 export function listSubmissions(filter?: {

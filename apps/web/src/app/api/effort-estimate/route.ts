@@ -64,7 +64,6 @@ export async function POST(request: Request) {
     if (modelError) return modelError;
 
     let estimates;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ideaInputs = ideas.map((i) => ({ ...i, potentialImpact: "", implementationHint: "" }));
     if (ideaInputs.length === 1) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

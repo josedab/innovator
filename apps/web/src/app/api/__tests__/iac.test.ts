@@ -28,7 +28,13 @@ const MOCK_SESSION = {
   tags: [],
   synthesis: {
     topIdeas: [
-      { title: "Idea 1", description: "Desc 1", sourceAngle: "SCAMPER", potentialImpact: "High", feasibility: "high" },
+      {
+        title: "Idea 1",
+        description: "Desc 1",
+        sourceAngle: "SCAMPER",
+        potentialImpact: "High",
+        feasibility: "high",
+      },
     ],
     themes: ["Theme 1"],
     recommendation: "Rec 1",
@@ -59,17 +65,25 @@ async function POST(request: Request) {
       const errA = mockValidateIaCSession(body.sessionA);
       const errB = mockValidateIaCSession(body.sessionB);
       if (errA || errB) {
-        return new Response(JSON.stringify({ error: "Invalid session data" }), { status: 400, headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Invalid session data" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
       }
       const diff = mockDiffSessions(body.sessionA, body.sessionB);
       if (body.format === "text") {
-        return new Response(mockFormatSessionDiff(diff), { headers: { "Content-Type": "text/plain" } });
+        return new Response(mockFormatSessionDiff(diff), {
+          headers: { "Content-Type": "text/plain" },
+        });
       }
       return Response.json(diff);
     }
 
     if (body.action === "validate") {
-      const err = body.type === "session" ? mockValidateIaCSession(body.data) : mockValidateIaCConfig(body.data);
+      const err =
+        body.type === "session"
+          ? mockValidateIaCSession(body.data)
+          : mockValidateIaCConfig(body.data);
       return Response.json({ valid: err === null, error: err });
     }
 
@@ -91,12 +105,20 @@ async function POST(request: Request) {
 }
 
 describe("POST /api/iac", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("diffs two sessions", async () => {
     mockValidateIaCSession.mockReturnValue(null);
     mockDiffSessions.mockReturnValue(MOCK_DIFF);
-    const res = await POST(makeRequest({ action: "diff", sessionA: MOCK_SESSION, sessionB: { ...MOCK_SESSION, subject: "other" } }));
+    const res = await POST(
+      makeRequest({
+        action: "diff",
+        sessionA: MOCK_SESSION,
+        sessionB: { ...MOCK_SESSION, subject: "other" },
+      })
+    );
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.entries).toHaveLength(1);
@@ -106,7 +128,14 @@ describe("POST /api/iac", () => {
     mockValidateIaCSession.mockReturnValue(null);
     mockDiffSessions.mockReturnValue(MOCK_DIFF);
     mockFormatSessionDiff.mockReturnValue("Formatted diff");
-    const res = await POST(makeRequest({ action: "diff", sessionA: MOCK_SESSION, sessionB: MOCK_SESSION, format: "text" }));
+    const res = await POST(
+      makeRequest({
+        action: "diff",
+        sessionA: MOCK_SESSION,
+        sessionB: MOCK_SESSION,
+        format: "text",
+      })
+    );
     expect(res.headers.get("content-type")).toContain("text/plain");
   });
 
@@ -118,14 +147,18 @@ describe("POST /api/iac", () => {
 
   it("validates sessions", async () => {
     mockValidateIaCSession.mockReturnValue(null);
-    const res = await POST(makeRequest({ action: "validate", type: "session", data: MOCK_SESSION }));
+    const res = await POST(
+      makeRequest({ action: "validate", type: "session", data: MOCK_SESSION })
+    );
     const data = await res.json();
     expect(data.valid).toBe(true);
   });
 
   it("validates configs", async () => {
     mockValidateIaCConfig.mockReturnValue(null);
-    const res = await POST(makeRequest({ action: "validate", type: "config", data: { version: "1.0" } }));
+    const res = await POST(
+      makeRequest({ action: "validate", type: "config", data: { version: "1.0" } })
+    );
     const data = await res.json();
     expect(data.valid).toBe(true);
   });
@@ -140,7 +173,11 @@ describe("POST /api/iac", () => {
 
   it("generates GitHub Issues from session", async () => {
     mockValidateIaCSession.mockReturnValue(null);
-    mockIdeaToGitHubIssue.mockReturnValue({ title: "💡 Idea 1", body: "body", labels: ["innovation"] });
+    mockIdeaToGitHubIssue.mockReturnValue({
+      title: "💡 Idea 1",
+      body: "body",
+      labels: ["innovation"],
+    });
     const res = await POST(makeRequest({ action: "issues", session: MOCK_SESSION, topN: 1 }));
     const data = await res.json();
     expect(data.issues).toHaveLength(1);

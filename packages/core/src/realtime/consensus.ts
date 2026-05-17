@@ -32,7 +32,13 @@ export interface IdeaCard {
 
 /** A recorded event for session replay. */
 export interface ConsensusEvent {
-  type: "idea_added" | "vote_cast" | "comment_added" | "voting_opened" | "voting_closed" | "synthesized";
+  type:
+    | "idea_added"
+    | "vote_cast"
+    | "comment_added"
+    | "voting_opened"
+    | "voting_closed"
+    | "synthesized";
   timestamp: string;
   userId?: string;
   payload: Record<string, unknown>;
@@ -111,12 +117,7 @@ export class ConsensusManager {
   }
 
   /** Cast a vote on an idea (+1 or -1). Each user can vote once per idea. */
-  vote(
-    sessionId: string,
-    ideaId: string,
-    userId: string,
-    value: 1 | -1
-  ): boolean {
+  vote(sessionId: string, ideaId: string, userId: string, value: 1 | -1): boolean {
     const session = this.sessions.get(sessionId);
     if (!session || !session.votingOpen) return false;
 

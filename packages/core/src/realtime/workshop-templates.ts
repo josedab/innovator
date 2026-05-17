@@ -90,7 +90,8 @@ export const WORKSHOP_TEMPLATES: WorkshopTemplate[] = WorkshopTemplateSchema.arr
       },
       {
         name: "Share and Reflect",
-        description: "Participants present their strongest sketches and identify recurring patterns.",
+        description:
+          "Participants present their strongest sketches and identify recurring patterns.",
         durationMinutes: 20,
         activities: ["Rapid share-outs", "Cluster themes", "Flag novel directions"],
       },
@@ -119,13 +120,15 @@ export const WORKSHOP_TEMPLATES: WorkshopTemplate[] = WorkshopTemplateSchema.arr
       },
       {
         name: "SCAMPER Exploration",
-        description: "Work through substitute, combine, adapt, modify, put to another use, eliminate, and reverse prompts.",
+        description:
+          "Work through substitute, combine, adapt, modify, put to another use, eliminate, and reverse prompts.",
         durationMinutes: 45,
         activities: ["Prompt rotation", "Collect idea cards", "Tag promising combinations"],
       },
       {
         name: "Synthesize Themes",
-        description: "Group related concepts and convert prompts into actionable innovation directions.",
+        description:
+          "Group related concepts and convert prompts into actionable innovation directions.",
         durationMinutes: 20,
         activities: ["Cluster ideas", "Name themes", "Select high-potential concepts"],
       },
@@ -166,7 +169,8 @@ export const WORKSHOP_TEMPLATES: WorkshopTemplate[] = WorkshopTemplateSchema.arr
       },
       {
         name: "Costs and Risks",
-        description: "Review the cost structure, execution risks, and highest-priority assumptions to test.",
+        description:
+          "Review the cost structure, execution risks, and highest-priority assumptions to test.",
         durationMinutes: 20,
         activities: ["Map costs", "Highlight risks", "Prioritize validation steps"],
       },
@@ -222,8 +226,6 @@ export function listTemplates(): WorkshopTemplate[] {
 }
 
 /** Return templates in a specific workshop category. */
-export function getTemplatesByCategory(
-  category: WorkshopTemplate["category"]
-): WorkshopTemplate[] {
+export function getTemplatesByCategory(category: WorkshopTemplate["category"]): WorkshopTemplate[] {
   return WORKSHOP_TEMPLATES.filter((template) => template.category === category);
 }

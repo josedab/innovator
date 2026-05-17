@@ -13,12 +13,7 @@ import type { SessionRecord, AngleResult, InnovationIdea } from "../types.js";
 
 // ---- Schemas ----
 
-export const IdeaStatusSchema = z.enum([
-  "net-new",
-  "evolved",
-  "converged",
-  "extinct",
-]);
+export const IdeaStatusSchema = z.enum(["net-new", "evolved", "converged", "extinct"]);
 
 export type IdeaStatus = z.infer<typeof IdeaStatusSchema>;
 
@@ -27,7 +22,11 @@ export const IdeaEvolutionSchema = z.object({
   status: IdeaStatusSchema,
   description: z.string().max(2000),
   similarity: z.number().min(0).max(1).optional(),
-  previousTitle: z.string().max(500).optional().describe("Title from previous run if evolved/converged"),
+  previousTitle: z
+    .string()
+    .max(500)
+    .optional()
+    .describe("Title from previous run if evolved/converged"),
   previousAngle: z.string().max(200).optional(),
   currentAngle: z.string().max(200),
   diff: z.string().max(2000).optional().describe("What changed for evolved ideas"),
@@ -127,10 +126,7 @@ export function compareInvestigationRuns(
     let bestSimilarity = 0;
 
     for (let j = 0; j < previousIdeas.length; j++) {
-      const similarity = cosineSimilarity(
-        current.embedding,
-        previousIdeas[j].embedding
-      );
+      const similarity = cosineSimilarity(current.embedding, previousIdeas[j].embedding);
       if (similarity > bestSimilarity) {
         bestSimilarity = similarity;
         bestMatch = j;
@@ -144,9 +140,7 @@ export function compareInvestigationRuns(
 
       // Check if multiple current angles produced similar ideas = converged
       const similarCurrentCount = currentIdeas.filter(
-        (c) =>
-          c !== current &&
-          cosineSimilarity(c.embedding, current.embedding) >= 0.7
+        (c) => c !== current && cosineSimilarity(c.embedding, current.embedding) >= 0.7
       ).length;
 
       if (similarCurrentCount > 0) {

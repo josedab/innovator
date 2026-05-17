@@ -13,6 +13,7 @@ const eslintConfig = defineConfig([
     "**/out/**",
     "website/**",
     "coverage/**",
+    "apps/web/public/sw.js",
   ]),
   {
     files: ["**/*.ts", "**/*.tsx"],
@@ -33,6 +34,17 @@ const eslintConfig = defineConfig([
         "warn",
         { argsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+    },
+  },
+  // Relax rules in test files — mocks and fixtures frequently use any/require
+  {
+    files: ["**/*.test.ts", "**/*.test.tsx", "**/__tests__/**/*.ts", "**/__tests__/**/*.tsx"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/ban-ts-comment": "off",
+      "@typescript-eslint/no-unsafe-function-type": "off",
+      "@typescript-eslint/no-unused-vars": "off",
     },
   },
   // Disables rules that conflict with Prettier formatting

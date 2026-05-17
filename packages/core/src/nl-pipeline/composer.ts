@@ -10,7 +10,6 @@ import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 import { ANGLE_IDS } from "../types.js";
-import type { PipelineConfig, DAGNode, PipelineDAG } from "../pipeline-builder/index.js";
 
 // ---- Multi-Step DAG Schemas ----
 
@@ -360,7 +359,7 @@ export async function* executeComposerDAG(
 
   // Topological sort respecting dependencies
   const executed = new Set<string>();
-  const stepMap = new Map(dag.steps.map((s) => [s.id, s]));
+  const _stepMap = new Map(dag.steps.map((s) => [s.id, s]));
 
   while (executed.size < dag.steps.length) {
     if (options?.signal?.aborted) {

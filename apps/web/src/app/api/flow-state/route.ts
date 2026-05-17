@@ -66,10 +66,10 @@ export async function POST(request: Request) {
       route: "/api/flow-state",
       requestId,
     });
-    return new Response(
-      JSON.stringify({ error: "Flow state assessment failed." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Flow state assessment failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }
 
@@ -85,9 +85,9 @@ export async function GET() {
       error: err instanceof Error ? err.message : String(err),
       route: "/api/flow-state",
     });
-    return new Response(
-      JSON.stringify({ error: "Failed to get intervention library." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Failed to get intervention library." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

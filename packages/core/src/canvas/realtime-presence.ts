@@ -103,10 +103,7 @@ export type AutoClusterResult = z.infer<typeof AutoClusterResultSchema>;
 
 const rooms = new Map<string, PresenceRoom>();
 
-export function createPresenceRoom(
-  sessionId: string,
-  maxUsers: number = 20
-): PresenceRoom {
+export function createPresenceRoom(sessionId: string, maxUsers: number = 20): PresenceRoom {
   const room: PresenceRoom = {
     roomId: `room-${randomUUID().slice(0, 12)}`,
     sessionId,
@@ -147,12 +144,7 @@ export function leaveRoom(roomId: string, userId: string): boolean {
   return true;
 }
 
-export function updateCursor(
-  roomId: string,
-  userId: string,
-  x: number,
-  y: number
-): void {
+export function updateCursor(roomId: string, userId: string, x: number, y: number): void {
   const room = rooms.get(roomId);
   if (!room) return;
   const user = room.users.find((u) => u.userId === userId);
@@ -201,19 +193,60 @@ export function autoClusterNodes(
 
   // Extract keywords (simple TF approach)
   const stopWords = new Set([
-    "the", "a", "an", "is", "are", "was", "were", "be", "been",
-    "being", "have", "has", "had", "do", "does", "did", "will",
-    "would", "could", "should", "may", "might", "can", "shall",
-    "and", "or", "but", "if", "then", "else", "when", "at", "by",
-    "for", "with", "about", "against", "between", "to", "from",
-    "in", "on", "of", "it", "its", "this", "that", "these", "those",
+    "the",
+    "a",
+    "an",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "can",
+    "shall",
+    "and",
+    "or",
+    "but",
+    "if",
+    "then",
+    "else",
+    "when",
+    "at",
+    "by",
+    "for",
+    "with",
+    "about",
+    "against",
+    "between",
+    "to",
+    "from",
+    "in",
+    "on",
+    "of",
+    "it",
+    "its",
+    "this",
+    "that",
+    "these",
+    "those",
   ]);
 
   const nodeKeywords = nodeTexts.map((nt) => ({
     ...nt,
-    keywords: nt.text
-      .split(/\W+/)
-      .filter((w) => w.length > 3 && !stopWords.has(w)),
+    keywords: nt.text.split(/\W+/).filter((w) => w.length > 3 && !stopWords.has(w)),
   }));
 
   // Build keyword frequency
@@ -228,8 +261,14 @@ export function autoClusterNodes(
 
   // Find clusters: groups of nodes sharing keywords
   const clusterColors = [
-    "#3b82f6", "#ef4444", "#22c55e", "#f59e0b",
-    "#8b5cf6", "#ec4899", "#06b6d4", "#f97316",
+    "#3b82f6",
+    "#ef4444",
+    "#22c55e",
+    "#f59e0b",
+    "#8b5cf6",
+    "#ec4899",
+    "#06b6d4",
+    "#f97316",
   ];
   const assigned = new Set<string>();
   const clusters: Cluster[] = [];
@@ -249,14 +288,10 @@ export function autoClusterNodes(
       return node;
     });
 
-    const centerX =
-      clusterNodes.reduce((s, n) => s + n.x, 0) / clusterNodes.length;
-    const centerY =
-      clusterNodes.reduce((s, n) => s + n.y, 0) / clusterNodes.length;
+    const centerX = clusterNodes.reduce((s, n) => s + n.x, 0) / clusterNodes.length;
+    const centerY = clusterNodes.reduce((s, n) => s + n.y, 0) / clusterNodes.length;
     const maxDist = Math.max(
-      ...clusterNodes.map((n) =>
-        Math.sqrt((n.x - centerX) ** 2 + (n.y - centerY) ** 2)
-      ),
+      ...clusterNodes.map((n) => Math.sqrt((n.x - centerX) ** 2 + (n.y - centerY) ** 2)),
       50
     );
 
@@ -279,14 +314,10 @@ export function autoClusterNodes(
       const nodesI = clusters[i].nodeIds;
       const nodesJ = clusters[j].nodeIds;
       const kwI = new Set(
-        nodesI.flatMap(
-          (id) => nodeKeywords.find((nk) => nk.id === id)?.keywords ?? []
-        )
+        nodesI.flatMap((id) => nodeKeywords.find((nk) => nk.id === id)?.keywords ?? [])
       );
       const kwJ = new Set(
-        nodesJ.flatMap(
-          (id) => nodeKeywords.find((nk) => nk.id === id)?.keywords ?? []
-        )
+        nodesJ.flatMap((id) => nodeKeywords.find((nk) => nk.id === id)?.keywords ?? [])
       );
       const shared = [...kwI].filter((kw) => kwJ.has(kw));
 
@@ -303,9 +334,7 @@ export function autoClusterNodes(
 
   return {
     clusters,
-    unclustered: nodes
-      .filter((n) => !assigned.has(n.id))
-      .map((n) => n.id),
+    unclustered: nodes.filter((n) => !assigned.has(n.id)).map((n) => n.id),
     suggestedConnections: suggestedConnections.slice(0, 20),
     timestamp: new Date().toISOString(),
   };

@@ -71,10 +71,7 @@ export async function POST(request: Request) {
       });
     }
 
-    return Response.json(
-      { result, conflicts },
-      { headers: API_RESPONSE_HEADERS }
-    );
+    return Response.json({ result, conflicts }, { headers: API_RESPONSE_HEADERS });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return Response.json(

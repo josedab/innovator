@@ -42,8 +42,14 @@ describe("presets", () => {
 
   it("all presets have valid angle selections", () => {
     const validAngles = [
-      "scamper", "first-principles", "cross-domain", "constraints",
-      "inversion", "perspectives", "what-if", "trend-collision",
+      "scamper",
+      "first-principles",
+      "cross-domain",
+      "constraints",
+      "inversion",
+      "perspectives",
+      "what-if",
+      "trend-collision",
     ];
     for (const preset of BUILT_IN_PRESETS) {
       for (const angleId of preset.selectedAngles) {

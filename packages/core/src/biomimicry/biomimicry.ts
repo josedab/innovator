@@ -1,11 +1,9 @@
-import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import type { Investigation } from "../types.js";
 import { BIOMIMICRY_TAXONOMY } from "./taxonomy.js";
 import {
   BiomimicryTransferSchema,
-  type BiologicalFunction,
   type BiomimicryEntry,
   type BiomimicryTransfer,
   type BiomimicryResult,

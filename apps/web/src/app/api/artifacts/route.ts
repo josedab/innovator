@@ -61,10 +61,10 @@ export async function POST(request: Request) {
         requestId,
         details: parsed.error.flatten(),
       });
-      return new Response(
-        JSON.stringify({ error: "Invalid request. Please check your input." }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
+      return new Response(JSON.stringify({ error: "Invalid request. Please check your input." }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const { idea, artifactType, subject, investigation, model } = parsed.data;

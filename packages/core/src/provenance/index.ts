@@ -21,22 +21,10 @@ export const ProvenanceRecordSchema = z.object({
   angleName: z.string().max(200),
   promptHash: z.string().max(128).describe("SHA-256 hash of the prompt used"),
   modelUsed: z.string().max(100).describe("Model that generated this idea"),
-  inputTokensEstimate: z
-    .number()
-    .int()
-    .min(0)
-    .optional()
-    .describe("Estimated input token count"),
-  investigationSnippet: z
-    .string()
-    .max(1000)
-    .optional()
-    .describe("Key investigation context used"),
+  inputTokensEstimate: z.number().int().min(0).optional().describe("Estimated input token count"),
+  investigationSnippet: z.string().max(1000).optional().describe("Key investigation context used"),
   timestamp: z.string().describe("ISO timestamp of generation"),
-  parentId: z
-    .string()
-    .optional()
-    .describe("Parent idea ID for evolved/refined ideas"),
+  parentId: z.string().optional().describe("Parent idea ID for evolved/refined ideas"),
   metadata: z.record(z.string().max(500)).optional(),
 });
 
@@ -137,9 +125,7 @@ export function createProvenanceChain(params: {
  * Build a provenance tree from a flat list of records.
  * Records with parentId are nested under their parent.
  */
-export function buildProvenanceTree(
-  records: ProvenanceRecord[]
-): ProvenanceTreeNode[] {
+export function buildProvenanceTree(records: ProvenanceRecord[]): ProvenanceTreeNode[] {
   const byId = new Map<string, ProvenanceTreeNode>();
   const roots: ProvenanceTreeNode[] = [];
 
@@ -162,13 +148,8 @@ export function buildProvenanceTree(
 /**
  * Look up provenance records for a specific idea title.
  */
-export function getIdeaProvenance(
-  chain: ProvenanceChain,
-  ideaTitle: string
-): ProvenanceRecord[] {
-  return chain.records.filter(
-    (r) => r.ideaTitle.toLowerCase() === ideaTitle.toLowerCase()
-  );
+export function getIdeaProvenance(chain: ProvenanceChain, ideaTitle: string): ProvenanceRecord[] {
+  return chain.records.filter((r) => r.ideaTitle.toLowerCase() === ideaTitle.toLowerCase());
 }
 
 /**
@@ -224,10 +205,7 @@ export function computeChainHash(chain: ProvenanceChain): string {
  * Verify the integrity of a provenance chain.
  * Returns true if the chain has not been tampered with.
  */
-export function verifyChainIntegrity(
-  chain: ProvenanceChain,
-  expectedHash: string
-): boolean {
+export function verifyChainIntegrity(chain: ProvenanceChain, expectedHash: string): boolean {
   return computeChainHash(chain) === expectedHash;
 }
 
@@ -380,7 +358,9 @@ export function provenanceToMarkdown(chain: ProvenanceChain): string {
     lines.push(`### ${records[0].angleName} (${angleId})`);
     for (const r of records) {
       lines.push(`- **${r.ideaTitle}**`);
-      lines.push(`  - Model: ${r.modelUsed} | Prompt: \`${r.promptHash}\` | Tokens: ~${r.inputTokensEstimate ?? "?"}`);
+      lines.push(
+        `  - Model: ${r.modelUsed} | Prompt: \`${r.promptHash}\` | Tokens: ~${r.inputTokensEstimate ?? "?"}`
+      );
       lines.push(`  - Generated: ${r.timestamp}`);
       if (r.parentId) lines.push(`  - Evolved from: ${r.parentId}`);
     }

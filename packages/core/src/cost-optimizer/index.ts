@@ -147,8 +147,10 @@ export function recordMeasurement(measurement: QualityMeasurement): void {
 
   existing.samples += 1;
   existing.totalCost += measurement.costUsd;
-  existing.avgQuality = existing.avgQuality + (measurement.qualityScore - existing.avgQuality) / existing.samples;
-  existing.avgLatencyMs = existing.avgLatencyMs + (measurement.latencyMs - existing.avgLatencyMs) / existing.samples;
+  existing.avgQuality =
+    existing.avgQuality + (measurement.qualityScore - existing.avgQuality) / existing.samples;
+  existing.avgLatencyMs =
+    existing.avgLatencyMs + (measurement.latencyMs - existing.avgLatencyMs) / existing.samples;
 
   // Update Beta distribution parameters based on quality threshold (0.7)
   if (measurement.qualityScore >= 0.7) {
@@ -216,10 +218,7 @@ export function selectModel(
   return {
     stage,
     recommendedModel: bestModel,
-    confidence: Math.min(
-      (armStatsMap.get(armKey(bestModel, stage))?.samples ?? 0) / 20,
-      1.0
-    ),
+    confidence: Math.min((armStatsMap.get(armKey(bestModel, stage))?.samples ?? 0) / 20, 1.0),
     expectedQuality: bestQuality,
     expectedCostUsd: bestCost,
     reason: armStatsMap.has(armKey(bestModel, stage))
@@ -267,10 +266,7 @@ export function generateCostReport(): CostReport {
   const optimalCost = totalCost * 0.6; // Conservative 40% estimate
   const savingsEstimate = Math.max(totalCost - optimalCost, 0);
 
-  const recommendations = getRoutingRecommendations(
-    Object.keys(costByModel),
-    undefined
-  );
+  const recommendations = getRoutingRecommendations(Object.keys(costByModel), undefined);
 
   return {
     totalCostUsd: totalCost,
@@ -322,7 +318,9 @@ export function costReportToMarkdown(report: CostReport): string {
   if (report.recommendations.length > 0) {
     lines.push("", "## Routing Recommendations", "");
     for (const r of report.recommendations) {
-      lines.push(`- **${r.stage}**: Use \`${r.recommendedModel}\` (expected quality: ${r.expectedQuality.toFixed(2)}, confidence: ${(r.confidence * 100).toFixed(0)}%)`);
+      lines.push(
+        `- **${r.stage}**: Use \`${r.recommendedModel}\` (expected quality: ${r.expectedQuality.toFixed(2)}, confidence: ${(r.confidence * 100).toFixed(0)}%)`
+      );
     }
   }
 

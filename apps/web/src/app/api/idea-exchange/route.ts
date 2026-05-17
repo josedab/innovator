@@ -16,14 +16,22 @@ const PublishSchema = z.object({
     tags: z.array(z.string().max(100)).max(20).optional(),
   }),
   orgName: z.string().min(1).max(200),
-  config: z.object({
-    anonymizationLevel: z.enum(["none", "light", "moderate", "heavy", "full"]).default("moderate"),
-    licenseType: z.enum(["view-only", "single-use", "multi-use", "exclusive", "open"]).default("single-use"),
-    priceUsd: z.number().min(0).default(0),
-    industry: z.string().max(200).optional(),
-    stage: z.enum(["concept", "validated", "prototyped", "tested", "ready-to-build"]).default("concept"),
-    category: z.string().max(200).optional(),
-  }).default({}),
+  config: z
+    .object({
+      anonymizationLevel: z
+        .enum(["none", "light", "moderate", "heavy", "full"])
+        .default("moderate"),
+      licenseType: z
+        .enum(["view-only", "single-use", "multi-use", "exclusive", "open"])
+        .default("single-use"),
+      priceUsd: z.number().min(0).default(0),
+      industry: z.string().max(200).optional(),
+      stage: z
+        .enum(["concept", "validated", "prototyped", "tested", "ready-to-build"])
+        .default("concept"),
+      category: z.string().max(200).optional(),
+    })
+    .default({}),
   model: z.string().max(100).optional(),
 });
 
@@ -89,10 +97,10 @@ export async function POST(request: Request) {
       requestId,
       durationMs: Date.now() - startTime,
     });
-    return new Response(
-      JSON.stringify({ error: "Publishing failed." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Publishing failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }
 
@@ -132,9 +140,9 @@ export async function GET(request: Request) {
       error: err instanceof Error ? err.message : String(err),
       route: "/api/idea-exchange",
     });
-    return new Response(
-      JSON.stringify({ error: "Search failed." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Search failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

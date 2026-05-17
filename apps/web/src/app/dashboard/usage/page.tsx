@@ -15,7 +15,7 @@ interface UsageSummary {
   usageByDay: Array<{ date: string; count: number }>;
 }
 
-interface AlertConfig {
+interface _AlertConfig {
   keyId: string;
   thresholdPercent: number;
   enabled: boolean;

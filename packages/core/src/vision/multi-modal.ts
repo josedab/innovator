@@ -10,13 +10,7 @@ import { z } from "zod";
 
 // ---- Schemas ----
 
-export const MultiModalInputTypeSchema = z.enum([
-  "image",
-  "pdf",
-  "voice",
-  "text",
-  "url",
-]);
+export const MultiModalInputTypeSchema = z.enum(["image", "pdf", "voice", "text", "url"]);
 
 export const MultiModalInputSchema = z.object({
   id: z.string(),
@@ -86,9 +80,10 @@ function processImage(input: MultiModalInput): ProcessedInput {
 function processPdf(input: MultiModalInput): ProcessedInput {
   const start = Date.now();
   const textContent = input.content ?? "";
-  const extractedText = textContent.length > 0
-    ? textContent.slice(0, 50000)
-    : `PDF "${input.name}" provided. Text extraction required for processing.`;
+  const extractedText =
+    textContent.length > 0
+      ? textContent.slice(0, 50000)
+      : `PDF "${input.name}" provided. Text extraction required for processing.`;
 
   return {
     inputId: input.id,
@@ -108,9 +103,10 @@ function processPdf(input: MultiModalInput): ProcessedInput {
 function processVoice(input: MultiModalInput): ProcessedInput {
   const start = Date.now();
   const transcript = input.content ?? "";
-  const extractedText = transcript.length > 0
-    ? transcript.slice(0, 50000)
-    : `Voice recording "${input.name}" provided. Whisper transcription required.`;
+  const extractedText =
+    transcript.length > 0
+      ? transcript.slice(0, 50000)
+      : `Voice recording "${input.name}" provided. Whisper transcription required.`;
 
   return {
     inputId: input.id,
@@ -120,7 +116,10 @@ function processVoice(input: MultiModalInput): ProcessedInput {
     confidence: transcript.length > 0 ? 0.85 : 0.1,
     sourceAttribution: `[Voice: ${input.name}]`,
     processingTimeMs: Date.now() - start,
-    warnings: transcript.length === 0 ? ["Voice content requires Whisper API transcription before processing"] : undefined,
+    warnings:
+      transcript.length === 0
+        ? ["Voice content requires Whisper API transcription before processing"]
+        : undefined,
   };
 }
 
@@ -144,12 +143,16 @@ function processUrl(input: MultiModalInput): ProcessedInput {
   return {
     inputId: input.id,
     inputType: "url",
-    extractedText: content.length > 0 ? content.slice(0, 50000) : `URL "${input.url}" provided. Content fetch required.`,
+    extractedText:
+      content.length > 0
+        ? content.slice(0, 50000)
+        : `URL "${input.url}" provided. Content fetch required.`,
     summary: `URL: ${input.url ?? input.name}`,
     confidence: content.length > 0 ? 0.8 : 0.2,
     sourceAttribution: `[URL: ${input.url ?? input.name}]`,
     processingTimeMs: Date.now() - start,
-    warnings: content.length === 0 ? ["URL content requires fetching before processing"] : undefined,
+    warnings:
+      content.length === 0 ? ["URL content requires fetching before processing"] : undefined,
   };
 }
 

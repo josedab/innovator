@@ -12,7 +12,6 @@ import {
 } from "@innovator/core";
 import {
   getPrivacyBudgetSummary,
-  buildComparisonUIData,
   privatizeMetrics,
   collectOrgMetrics,
   getMetricsHistory,
@@ -180,7 +179,7 @@ export async function POST(request: Request) {
         submittedAt: now.toISOString(),
       };
 
-      const { orgId, submittedAt, ...benchmarkMetrics } = metrics;
+      const { orgId, submittedAt: _submittedAt, ...benchmarkMetrics } = metrics;
 
       if (parsed.usePrivacy) {
         const result = submitMetricsWithPrivacy(orgId, benchmarkMetrics);

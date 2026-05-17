@@ -8,8 +8,6 @@ import {
   createROIOutcome as createOutcome,
   listROIOutcomes as listOutcomes,
   transitionOutcome,
-  addExternalLink,
-  addRevenueMetric,
   buildROIDashboard,
 } from "@innovator/core";
 import {

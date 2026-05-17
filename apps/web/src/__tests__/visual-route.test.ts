@@ -96,9 +96,7 @@ describe("API /api/visual", () => {
     const res = await POST(
       makePost({
         action: "export_figma",
-        artifacts: [
-          { id: "a1", type: "chart", format: "svg", content: "<svg/>", title: "Chart" },
-        ],
+        artifacts: [{ id: "a1", type: "chart", format: "svg", content: "<svg/>", title: "Chart" }],
       })
     );
     expect(res.status).toBe(200);
@@ -111,9 +109,7 @@ describe("API /api/visual", () => {
     const res = await POST(
       makePost({
         action: "export_miro",
-        artifacts: [
-          { id: "a1", type: "diagram", format: "json", content: "{}", title: "Diagram" },
-        ],
+        artifacts: [{ id: "a1", type: "diagram", format: "json", content: "{}", title: "Diagram" }],
       })
     );
     expect(res.status).toBe(200);
@@ -129,16 +125,12 @@ describe("API /api/visual", () => {
   });
 
   it("returns 400 for diagram with empty ideas array", async () => {
-    const res = await POST(
-      makePost({ action: "diagram", ideas: [], diagramType: "mindmap" })
-    );
+    const res = await POST(makePost({ action: "diagram", ideas: [], diagramType: "mindmap" }));
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for missing diagramType", async () => {
-    const res = await POST(
-      makePost({ action: "diagram", ideas: [{ title: "A" }] })
-    );
+    const res = await POST(makePost({ action: "diagram", ideas: [{ title: "A" }] }));
     expect(res.status).toBe(400);
   });
 

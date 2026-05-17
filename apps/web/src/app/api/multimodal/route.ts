@@ -6,13 +6,10 @@ export const runtime = "nodejs";
 import {
   validateAttachment,
   parseAttachment,
-  buildMultiModalContext as buildExtendedMultiModalContext,
   processExtendedMultiModalInput,
 } from "@innovator/core";
 import {
   runQualityPipeline,
-  analyzeDiagram,
-  processVideoInput,
   assessSourceQualityExtended,
 } from "@innovator/core/dist/multi-modal/source-quality.js";
 import type { Attachment } from "@innovator/core";

@@ -17,11 +17,7 @@ import {
   isPrivacyBudgetExceeded,
   resetPrivacyBudgets,
 } from "../genome.js";
-import {
-  createFederationNode,
-  extractPatterns,
-  clearFederation,
-} from "../index.js";
+import { createFederationNode, extractPatterns, clearFederation } from "../index.js";
 
 function setupTestNetwork() {
   clearFederation();
@@ -33,7 +29,12 @@ function setupTestNetwork() {
     domain: "fintech",
     angleResults: [
       { angleId: "scamper", angleName: "SCAMPER", ideasCount: 5, successRate: 0.8 },
-      { angleId: "first-principles", angleName: "First Principles", ideasCount: 3, successRate: 0.9 },
+      {
+        angleId: "first-principles",
+        angleName: "First Principles",
+        ideasCount: 3,
+        successRate: 0.9,
+      },
       { angleId: "cross-domain", angleName: "Cross-Domain", ideasCount: 4, successRate: 0.7 },
     ],
   });
@@ -42,7 +43,12 @@ function setupTestNetwork() {
     nodeId: nodeB.id,
     domain: "healthcare",
     angleResults: [
-      { angleId: "constraints", angleName: "Constraint Injection", ideasCount: 6, successRate: 0.85 },
+      {
+        angleId: "constraints",
+        angleName: "Constraint Injection",
+        ideasCount: 6,
+        successRate: 0.85,
+      },
       { angleId: "inversion", angleName: "Problem Inversion", ideasCount: 2, successRate: 0.6 },
     ],
   });
@@ -72,7 +78,9 @@ describe("differential privacy", () => {
     const patterns = extractPatterns({
       nodeId: nodeA.id,
       domain: "test",
-      angleResults: [{ angleId: "scamper", angleName: "SCAMPER", ideasCount: 10, successRate: 0.75 }],
+      angleResults: [
+        { angleId: "scamper", angleName: "SCAMPER", ideasCount: 10, successRate: 0.75 },
+      ],
     });
     expect(patterns.length).toBeGreaterThan(0);
     const privatized = privatizePattern(patterns[0]);
@@ -197,7 +205,9 @@ describe("published patterns with signatures", () => {
     const patterns = extractPatterns({
       nodeId: nodeA.id,
       domain: "test",
-      angleResults: [{ angleId: "scamper", angleName: "SCAMPER", ideasCount: 10, successRate: 0.8 }],
+      angleResults: [
+        { angleId: "scamper", angleName: "SCAMPER", ideasCount: 10, successRate: 0.8 },
+      ],
     });
     expect(patterns.length).toBeGreaterThan(0);
 

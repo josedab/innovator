@@ -3,7 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import { getKnowledgeGraph, getGraphStats, queryRelatedSubjects } from "@innovator/core";
+import { getGraphStats, queryRelatedSubjects } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-request";

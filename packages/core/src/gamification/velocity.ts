@@ -51,15 +51,22 @@ function buildVelocityMetrics(
   period: string,
   activities: VelocityActivity[]
 ): VelocityMetrics {
-  const ideasGenerated = activities.reduce((sum, activity) => sum + (activity.ideasGenerated ?? 0), 0);
+  const ideasGenerated = activities.reduce(
+    (sum, activity) => sum + (activity.ideasGenerated ?? 0),
+    0
+  );
   const sessionsCompleted = activities.reduce(
     (sum, activity) => sum + (activity.sessionsCompleted ?? 0),
     0
   );
-  const anglesExplored = activities.reduce((sum, activity) => sum + (activity.anglesExplored ?? 0), 0);
+  const anglesExplored = activities.reduce(
+    (sum, activity) => sum + (activity.anglesExplored ?? 0),
+    0
+  );
 
   const qualityWeight = activities.reduce(
-    (sum, activity) => sum + Math.max(activity.ideasGenerated ?? activity.sessionsCompleted ?? 1, 1),
+    (sum, activity) =>
+      sum + Math.max(activity.ideasGenerated ?? activity.sessionsCompleted ?? 1, 1),
     0
   );
   const weightedQuality = activities.reduce((sum, activity) => {
@@ -95,13 +102,12 @@ export function computeVelocityScore(input: {
   const qualityComponent = (clamp(input.quality, 0, 10) / 10) * 25;
   const angleComponent = (clamp(input.angles, 0, 8) / 8) * 15;
 
-  return roundToTenth(clamp(ideaComponent + sessionComponent + qualityComponent + angleComponent, 0, 100));
+  return roundToTenth(
+    clamp(ideaComponent + sessionComponent + qualityComponent + angleComponent, 0, 100)
+  );
 }
 
-export function getWeeklyVelocity(
-  userId: string,
-  activities: VelocityActivity[]
-): VelocityMetrics {
+export function getWeeklyVelocity(userId: string, activities: VelocityActivity[]): VelocityMetrics {
   return buildVelocityMetrics(userId, "weekly", filterActivitiesByDays(userId, activities, 7));
 }
 

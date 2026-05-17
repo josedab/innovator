@@ -32,7 +32,12 @@ function makePackDetail(overrides: Record<string, unknown> = {}) {
     description: "Domain-specific angles for healthcare innovation",
     author: "innovator-team",
     domainAngles: [
-      { id: "ang-1", name: "Patient Safety", description: "Evaluate patient safety impact", icon: "🏥" },
+      {
+        id: "ang-1",
+        name: "Patient Safety",
+        description: "Evaluate patient safety impact",
+        icon: "🏥",
+      },
     ],
     evaluationRubrics: [
       {
@@ -43,7 +48,13 @@ function makePackDetail(overrides: Record<string, unknown> = {}) {
       },
     ],
     complianceRules: [
-      { id: "rule-1", name: "HIPAA Compliance", regulation: "HIPAA", severity: "critical", description: "Ensure PHI protection" },
+      {
+        id: "rule-1",
+        name: "HIPAA Compliance",
+        regulation: "HIPAA",
+        severity: "critical",
+        description: "Ensure PHI protection",
+      },
     ],
     glossary: { PHI: "Protected Health Information", EHR: "Electronic Health Record" },
     metadata: { tags: ["healthcare"], icon: "🏥", color: "#22c55e" },

@@ -67,7 +67,10 @@ export async function POST(request: Request) {
       case "index": {
         const { action: _, ...docData } = parsed;
         const doc = indexDocument(docData);
-        return Response.json({ document: doc, indexSize: getIndexSize() }, { headers: API_RESPONSE_HEADERS });
+        return Response.json(
+          { document: doc, indexSize: getIndexSize() },
+          { headers: API_RESPONSE_HEADERS }
+        );
       }
       case "search": {
         const results = semanticSearch(parsed.query, parsed.limit);
@@ -93,7 +96,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/search" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/search",
+    });
     return Response.json(
       { error: "Internal server error" },
       { status: 500, headers: API_RESPONSE_HEADERS }

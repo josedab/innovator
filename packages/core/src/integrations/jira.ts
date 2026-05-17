@@ -5,7 +5,7 @@
  * using the Jira REST API v3 (Atlassian Document Format).
  */
 
-import type { IdeaExportPayload, IntegrationConfig, ExportResult } from "./index.js";
+import type { IdeaExportPayload, ExportResult } from "./index.js";
 
 export interface JiraConfig {
   apiUrl: string;
@@ -54,18 +54,12 @@ export class JiraIntegration {
   }
 
   /** Create multiple Jira issues in batch. */
-  async createBulkIssues(
-    ideas: IdeaExportPayload[],
-    config: JiraConfig
-  ): Promise<ExportResult[]> {
+  async createBulkIssues(ideas: IdeaExportPayload[], config: JiraConfig): Promise<ExportResult[]> {
     return Promise.all(ideas.map((idea) => this.createIssue(idea, config)));
   }
 
   /** Build a Jira REST API issue payload (Atlassian Document Format). */
-  buildIssuePayload(
-    idea: IdeaExportPayload,
-    config: JiraConfig
-  ): Record<string, unknown> {
+  buildIssuePayload(idea: IdeaExportPayload, config: JiraConfig): Record<string, unknown> {
     const priorityMap: Record<string, string> = {
       critical: "Highest",
       high: "High",
@@ -118,9 +112,7 @@ export class JiraIntegration {
         ],
         ...(config.assignee ? { assignee: { id: config.assignee } } : {}),
         ...(config.epicKey ? { parent: { key: config.epicKey } } : {}),
-        ...(idea.priority
-          ? { priority: { name: priorityMap[idea.priority] ?? "Medium" } }
-          : {}),
+        ...(idea.priority ? { priority: { name: priorityMap[idea.priority] ?? "Medium" } } : {}),
       },
     };
   }

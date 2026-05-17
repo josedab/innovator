@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import type { DetectedSignal, Opportunity } from "./types.js";
+import type { DetectedSignal } from "./types.js";
 
 // ---- Automation Rule Schemas ----
 

@@ -124,7 +124,10 @@ function splitIntoUtterances(text: string): Array<{ speaker?: string; text: stri
   for (const line of lines) {
     const speakerMatch = line.match(/^([A-Z][\w .'-]{0,98}):\s+(.+)$/);
     if (speakerMatch) {
-      utterances.push({ speaker: speakerMatch[1].trim().slice(0, 100), text: speakerMatch[2].trim() });
+      utterances.push({
+        speaker: speakerMatch[1].trim().slice(0, 100),
+        text: speakerMatch[2].trim(),
+      });
       continue;
     }
 
@@ -147,12 +150,16 @@ function buildSegments(
 ): TranscriptionSegment[] {
   if (utterances.length === 0) return [];
 
-  const totalWords = Math.max(utterances.reduce((sum, utterance) => sum + countWords(utterance.text), 0), 1);
+  const totalWords = Math.max(
+    utterances.reduce((sum, utterance) => sum + countWords(utterance.text), 0),
+    1
+  );
   let currentTime = 0;
 
   return utterances.map((utterance) => {
     const utteranceWords = Math.max(countWords(utterance.text), 1);
-    const segmentDuration = durationSeconds > 0 ? (utteranceWords / totalWords) * durationSeconds : 0;
+    const segmentDuration =
+      durationSeconds > 0 ? (utteranceWords / totalWords) * durationSeconds : 0;
     const start = Number(currentTime.toFixed(2));
     currentTime += segmentDuration;
     const end = Number(Math.max(start, currentTime).toFixed(2));
@@ -200,7 +207,11 @@ export async function transcribeAudio(
   const durationSeconds = estimateDurationSeconds(normalizedText, input.base64Data);
   const segments = buildSegments(splitIntoUtterances(normalizedText), durationSeconds);
   const speakers = Array.from(
-    new Set(segments.map((segment) => segment.speaker).filter((speaker): speaker is string => Boolean(speaker)))
+    new Set(
+      segments
+        .map((segment) => segment.speaker)
+        .filter((speaker): speaker is string => Boolean(speaker))
+    )
   ).slice(0, 20);
   const topics = buildTopics(segments);
 
@@ -246,16 +257,21 @@ export function segmentByTopics(transcript: TranscriptionResult): Array<{
       startTime: topic.startTime,
       endTime: topic.endTime,
       segments,
-      text: segments.map((segment) => segment.text).join(" ").trim(),
+      text: segments
+        .map((segment) => segment.text)
+        .join(" ")
+        .trim(),
     };
   });
 }
 
 export function transcriptionToSubject(transcript: TranscriptionResult): string {
-  const speakerLine = transcript.speakers.length > 0 ? `Speakers: ${transcript.speakers.join(", ")}` : undefined;
-  const topicLine = transcript.topics.length > 0
-    ? `Topics: ${transcript.topics.map((topic) => topic.topic).join(", ")}`
-    : undefined;
+  const speakerLine =
+    transcript.speakers.length > 0 ? `Speakers: ${transcript.speakers.join(", ")}` : undefined;
+  const topicLine =
+    transcript.topics.length > 0
+      ? `Topics: ${transcript.topics.map((topic) => topic.topic).join(", ")}`
+      : undefined;
   const excerpt = transcript.segments
     .slice(0, 4)
     .map((segment) => {
@@ -297,7 +313,9 @@ export function transcriptionToMarkdown(transcript: TranscriptionResult): string
   lines.push("## Transcript", "");
   for (const segment of transcript.segments) {
     const speaker = segment.speaker ? `**${segment.speaker}:** ` : "";
-    lines.push(`- \`${segment.start.toFixed(0)}s–${segment.end.toFixed(0)}s\` ${speaker}${segment.text}`);
+    lines.push(
+      `- \`${segment.start.toFixed(0)}s–${segment.end.toFixed(0)}s\` ${speaker}${segment.text}`
+    );
   }
 
   return lines.join("\n");

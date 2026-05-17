@@ -12,13 +12,52 @@ function makeSnapshot(): EcosystemSnapshot {
     organizationName: "Test Corp",
     capturedAt: new Date().toISOString(),
     team: [
-      { id: "m1", name: "Alice", role: "Engineer", capacity: 0.8, strengths: ["ai"], activeProjects: 2 },
-      { id: "m2", name: "Bob", role: "Designer", capacity: 0.6, strengths: ["ux"], activeProjects: 1 },
-      { id: "m3", name: "Carol", role: "PM", capacity: 0.9, strengths: ["strategy"], activeProjects: 3 },
+      {
+        id: "m1",
+        name: "Alice",
+        role: "Engineer",
+        capacity: 0.8,
+        strengths: ["ai"],
+        activeProjects: 2,
+      },
+      {
+        id: "m2",
+        name: "Bob",
+        role: "Designer",
+        capacity: 0.6,
+        strengths: ["ux"],
+        activeProjects: 1,
+      },
+      {
+        id: "m3",
+        name: "Carol",
+        role: "PM",
+        capacity: 0.9,
+        strengths: ["strategy"],
+        activeProjects: 3,
+      },
     ],
     pipeline: [
-      { id: "i1", title: "AI Assistant", stage: "validation", score: 75, assignedTeam: ["m1"], estimatedEffortWeeks: 8, budgetAllocated: 50000, budgetSpent: 20000 },
-      { id: "i2", title: "Mobile App", stage: "prototyping", score: 60, assignedTeam: ["m2"], estimatedEffortWeeks: 12, budgetAllocated: 30000, budgetSpent: 10000 },
+      {
+        id: "i1",
+        title: "AI Assistant",
+        stage: "validation",
+        score: 75,
+        assignedTeam: ["m1"],
+        estimatedEffortWeeks: 8,
+        budgetAllocated: 50000,
+        budgetSpent: 20000,
+      },
+      {
+        id: "i2",
+        title: "Mobile App",
+        stage: "prototyping",
+        score: 60,
+        assignedTeam: ["m2"],
+        estimatedEffortWeeks: 12,
+        budgetAllocated: 30000,
+        budgetSpent: 10000,
+      },
     ],
     marketContext: {
       industry: "SaaS",
@@ -36,8 +75,20 @@ function makeSnapshot(): EcosystemSnapshot {
       currency: "USD",
     },
     angleEffectiveness: [
-      { angleId: "scamper", successRate: 0.7, avgIdeaQuality: 72, usageCount: 15, bestForStages: ["discovery"] },
-      { angleId: "first-principles", successRate: 0.85, avgIdeaQuality: 80, usageCount: 10, bestForStages: ["validation"] },
+      {
+        angleId: "scamper",
+        successRate: 0.7,
+        avgIdeaQuality: 72,
+        usageCount: 15,
+        bestForStages: ["discovery"],
+      },
+      {
+        angleId: "first-principles",
+        successRate: 0.85,
+        avgIdeaQuality: 80,
+        usageCount: 10,
+        bestForStages: ["validation"],
+      },
     ],
   };
 }
@@ -111,7 +162,12 @@ describe("runMonteCarloComparison", () => {
       makeSnapshot(),
       [
         makeStrategy(),
-        makeStrategy({ id: "aggressive", name: "Aggressive", description: "Push hard", newInitiatives: ["New product"] }),
+        makeStrategy({
+          id: "aggressive",
+          name: "Aggressive",
+          description: "Push hard",
+          newInitiatives: ["New product"],
+        }),
         makeStrategy({ id: "balanced", name: "Balanced", description: "Balanced approach" }),
       ],
       { iterations: 200, timeHorizonWeeks: 52, randomSeed: 42 }
@@ -128,7 +184,10 @@ describe("monteCarloToMarkdown", () => {
   it("generates readable markdown report", () => {
     const comparison = runMonteCarloComparison(
       makeSnapshot(),
-      [makeStrategy(), makeStrategy({ id: "bold", name: "Bold", description: "Go big", newInitiatives: ["X"] })],
+      [
+        makeStrategy(),
+        makeStrategy({ id: "bold", name: "Bold", description: "Go big", newInitiatives: ["X"] }),
+      ],
       { iterations: 100, timeHorizonWeeks: 26, randomSeed: 42 }
     );
     const md = monteCarloToMarkdown(comparison);

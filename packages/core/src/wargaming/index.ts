@@ -131,7 +131,10 @@ Return valid JSON only:
         throw new Error(`Failed to parse competitors: ${jsonStr.slice(0, 200)}`);
       }
     },
-    { signal, isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse") }
+    {
+      signal,
+      isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse"),
+    }
   );
 
   const result = z.object({ competitors: z.array(CompetitorPersonaSchema).max(10) }).parse(parsed);
@@ -151,13 +154,17 @@ async function simulateRound(
   model?: string,
   signal?: AbortSignal
 ): Promise<WargamingRound> {
-  const historyContext = previousRounds.length > 0
-    ? `\nPREVIOUS ROUNDS:\n${previousRounds.map((r) =>
-        `Round ${r.roundNumber}: Your move: ${r.yourMove.description}. ` +
-        `Competitor responses: ${r.competitorMoves.map((m) => `${m.actor}: ${m.description}`).join("; ")}. ` +
-        `Resilience: ${r.resilienceAfterRound}/100`
-      ).join("\n")}`
-    : "";
+  const historyContext =
+    previousRounds.length > 0
+      ? `\nPREVIOUS ROUNDS:\n${previousRounds
+          .map(
+            (r) =>
+              `Round ${r.roundNumber}: Your move: ${r.yourMove.description}. ` +
+              `Competitor responses: ${r.competitorMoves.map((m) => `${m.actor}: ${m.description}`).join("; ")}. ` +
+              `Resilience: ${r.resilienceAfterRound}/100`
+          )
+          .join("\n")}`
+      : "";
 
   const prompt = `You are simulating a competitive wargaming exercise. This is Round ${roundNumber} of a strategic scenario.
 
@@ -167,9 +174,12 @@ YOUR IDEA: ${sanitizeLlmOutput(ideaTitle)}
 DESCRIPTION: ${sanitizeLlmOutput(ideaDescription)}
 
 COMPETITORS:
-${competitors.map((c) =>
-  `- ${sanitizeLlmOutput(c.name)} (${c.type}): Strengths: ${c.strengths.join(", ")}. Strategy: ${c.likelyStrategy}`
-).join("\n")}
+${competitors
+  .map(
+    (c) =>
+      `- ${sanitizeLlmOutput(c.name)} (${c.type}): Strengths: ${c.strengths.join(", ")}. Strategy: ${c.likelyStrategy}`
+  )
+  .join("\n")}
 ${historyContext}
 
 Simulate Round ${roundNumber}:
@@ -211,7 +221,10 @@ Return valid JSON only:
         throw new Error(`Failed to parse round: ${jsonStr.slice(0, 200)}`);
       }
     },
-    { signal, isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse") }
+    {
+      signal,
+      isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse"),
+    }
   );
 
   return WargamingRoundSchema.parse(parsed);
@@ -227,7 +240,12 @@ async function generateStrategicBrief(
   rounds: WargamingRound[],
   model?: string,
   signal?: AbortSignal
-): Promise<{ vulnerabilities: string[]; counterStrategies: CounterStrategy[]; strategicBrief: string; overallResilienceScore: number }> {
+): Promise<{
+  vulnerabilities: string[];
+  counterStrategies: CounterStrategy[];
+  strategicBrief: string;
+  overallResilienceScore: number;
+}> {
   const prompt = `You are a chief strategy officer writing a final assessment after a competitive wargaming exercise.
 
 ${wrapUserInput("SUBJECT", subject)}
@@ -236,12 +254,15 @@ IDEA: ${sanitizeLlmOutput(ideaTitle)}
 COMPETITORS: ${competitors.map((c) => c.name).join(", ")}
 
 WARGAMING ROUNDS:
-${rounds.map((r) =>
-  `Round ${r.roundNumber} (resilience: ${r.resilienceAfterRound}/100):
+${rounds
+  .map(
+    (r) =>
+      `Round ${r.roundNumber} (resilience: ${r.resilienceAfterRound}/100):
   Your move: ${r.yourMove.description}
   Competitor responses: ${r.competitorMoves.map((m) => `${m.actor}: ${m.description}`).join("; ")}
   Market shift: ${r.marketShiftDescription}`
-).join("\n\n")}
+  )
+  .join("\n\n")}
 
 Produce a final strategic assessment including:
 1. Overall resilience score (0-100)
@@ -277,15 +298,20 @@ Return valid JSON only:
         throw new Error(`Failed to parse brief: ${jsonStr.slice(0, 200)}`);
       }
     },
-    { signal, isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse") }
+    {
+      signal,
+      isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse"),
+    }
   );
 
-  return z.object({
-    overallResilienceScore: z.number().min(0).max(100),
-    vulnerabilities: z.array(z.string().max(500)).max(10),
-    counterStrategies: z.array(CounterStrategySchema).max(10),
-    strategicBrief: z.string().max(5000),
-  }).parse(parsed);
+  return z
+    .object({
+      overallResilienceScore: z.number().min(0).max(100),
+      vulnerabilities: z.array(z.string().max(500)).max(10),
+      counterStrategies: z.array(CounterStrategySchema).max(10),
+      strategicBrief: z.string().max(5000),
+    })
+    .parse(parsed);
 }
 
 /**
@@ -314,13 +340,25 @@ export async function runWargaming(
   const rounds: WargamingRound[] = [];
   for (let i = 1; i <= numRounds; i++) {
     const round = await simulateRound(
-      ideaTitle, ideaDescription, subject, competitors, i, rounds, model, signal
+      ideaTitle,
+      ideaDescription,
+      subject,
+      competitors,
+      i,
+      rounds,
+      model,
+      signal
     );
     rounds.push(round);
   }
 
   const assessment = await generateStrategicBrief(
-    ideaTitle, subject, competitors, rounds, model, signal
+    ideaTitle,
+    subject,
+    competitors,
+    rounds,
+    model,
+    signal
   );
 
   const result: WargamingResult = {
@@ -340,7 +378,10 @@ export async function runWargaming(
 /**
  * Get a stored wargaming session.
  */
-export function getWargamingSession(subject: string, ideaTitle: string): WargamingResult | undefined {
+export function getWargamingSession(
+  subject: string,
+  ideaTitle: string
+): WargamingResult | undefined {
   return wargamingSessions.get(`${subject}::${ideaTitle}`);
 }
 

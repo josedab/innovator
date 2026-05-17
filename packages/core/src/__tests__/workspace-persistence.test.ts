@@ -103,12 +103,26 @@ describe("InMemoryProjectStore CRUD", () => {
 
   it("lists projects with optional filter", async () => {
     await store.createProject({
-      id: "p1", name: "P1", description: "", ownerId: "u1", teamMembers: [],
-      status: "active", settings: {}, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      id: "p1",
+      name: "P1",
+      description: "",
+      ownerId: "u1",
+      teamMembers: [],
+      status: "active",
+      settings: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
     await store.createProject({
-      id: "p2", name: "P2", description: "", ownerId: "u2", teamMembers: [],
-      status: "active", settings: {}, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      id: "p2",
+      name: "P2",
+      description: "",
+      ownerId: "u2",
+      teamMembers: [],
+      status: "active",
+      settings: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
     const all = await store.listProjects();
     expect(all).toHaveLength(2);

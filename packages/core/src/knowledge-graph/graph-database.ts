@@ -6,7 +6,6 @@
  * for cross-session entity and relationship traversal.
  */
 
-import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./index.js";
 
@@ -267,7 +266,7 @@ export class Neo4jDriver implements GraphDatabaseDriver {
         params.minWeight = filters.minWeight;
       }
 
-      const result = await session.run(
+      const _result = await session.run(
         `MATCH (start:Entity {id: $nodeId})
          CALL {
            WITH start

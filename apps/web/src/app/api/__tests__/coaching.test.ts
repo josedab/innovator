@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@innovator/core", () => ({
@@ -91,7 +90,10 @@ async function GET(request: Request) {
     if (teamId) {
       const profile = getTeamProfile(teamId);
       if (!profile) {
-        return Response.json({ error: "Team profile not found" }, { status: 404, headers: API_RESPONSE_HEADERS });
+        return Response.json(
+          { error: "Team profile not found" },
+          { status: 404, headers: API_RESPONSE_HEADERS }
+        );
       }
       return Response.json({ teamProfile: profile }, { headers: API_RESPONSE_HEADERS });
     }
@@ -106,9 +108,15 @@ async function GET(request: Request) {
       );
     }
 
-    return Response.json({ error: "Provide userId or teamId" }, { status: 400, headers: API_RESPONSE_HEADERS });
+    return Response.json(
+      { error: "Provide userId or teamId" },
+      { status: 400, headers: API_RESPONSE_HEADERS }
+    );
   } catch {
-    return Response.json({ error: "Invalid request" }, { status: 400, headers: API_RESPONSE_HEADERS });
+    return Response.json(
+      { error: "Invalid request" },
+      { status: 400, headers: API_RESPONSE_HEADERS }
+    );
   }
 }
 
@@ -134,7 +142,10 @@ async function POST(request: Request) {
           completedAt: new Date().toISOString(),
           exported: parsed.exported,
         } as any);
-        return Response.json({ profile, message: "Session recorded" }, { headers: API_RESPONSE_HEADERS });
+        return Response.json(
+          { profile, message: "Session recorded" },
+          { headers: API_RESPONSE_HEADERS }
+        );
       }
 
       case "coaching": {
@@ -210,10 +221,13 @@ describe("POST /api/coaching", () => {
       expect(res.status).toBe(200);
       expect(data.message).toBe("Session recorded");
       expect(data.profile.sessionsCompleted).toBe(6);
-      expect(mockRecordCoachingSession).toHaveBeenCalledWith("user-1", expect.objectContaining({
-        sessionId: "sess-1",
-        subject: "AI in healthcare",
-      }));
+      expect(mockRecordCoachingSession).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({
+          sessionId: "sess-1",
+          subject: "AI in healthcare",
+        })
+      );
     });
   });
 
@@ -230,7 +244,11 @@ describe("POST /api/coaching", () => {
 
       expect(res.status).toBe(200);
       expect(data.suggestions).toHaveLength(1);
-      expect(mockGetPreSessionCoaching).toHaveBeenCalledWith("user-1", "renewable energy", undefined);
+      expect(mockGetPreSessionCoaching).toHaveBeenCalledWith(
+        "user-1",
+        "renewable energy",
+        undefined
+      );
     });
 
     it("returns proactive coaching without subject", async () => {

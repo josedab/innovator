@@ -41,8 +41,14 @@ describe("repo-futures", () => {
     expect(CodeDeltaSchema.parse(delta)).toEqual(delta);
     expect(delta.files).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ path: "packages/core/src/portfolio/index.ts", changeType: "modified" }),
-        expect.objectContaining({ path: "packages/core/src/repo-futures/index.ts", changeType: "added" }),
+        expect.objectContaining({
+          path: "packages/core/src/portfolio/index.ts",
+          changeType: "modified",
+        }),
+        expect.objectContaining({
+          path: "packages/core/src/repo-futures/index.ts",
+          changeType: "added",
+        }),
         expect.objectContaining({ path: "infra/terraform/main.tf", changeType: "deleted" }),
       ])
     );
@@ -64,7 +70,11 @@ describe("repo-futures", () => {
 
     expect(opportunities.length).toBeGreaterThan(0);
     expect(InnovationOpportunitySchema.parse(opportunities[0])).toEqual(opportunities[0]);
-    expect(opportunities.some((opportunity) => ["integration", "new-product"].includes(opportunity.category))).toBe(true);
+    expect(
+      opportunities.some((opportunity) =>
+        ["integration", "new-product"].includes(opportunity.category)
+      )
+    ).toBe(true);
 
     const ranked = rankOpportunities([
       {

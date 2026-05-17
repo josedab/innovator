@@ -8,7 +8,7 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { readEvents } from "./index.js";
-import { calculateROI, type ROIReport } from "./roi.js";
+import { calculateROI } from "./roi.js";
 
 // ---- Executive Report Schema ----
 
@@ -20,32 +20,38 @@ export const ExecutiveReportSchema = z.object({
     end: z.string(),
     label: z.string().max(100),
   }),
-  highlights: z.array(
-    z.object({
-      icon: z.string().max(10),
-      metric: z.string().max(200),
-      value: z.string().max(200),
-      trend: z.enum(["up", "down", "stable"]),
-      changePercent: z.number().optional(),
-    })
-  ).max(10),
-  sections: z.array(
-    z.object({
-      title: z.string().max(200),
-      content: z.string().max(5000),
-      chartType: z.enum([
-        "velocity",
-        "quality-distribution",
-        "angle-effectiveness",
-        "team-heatmap",
-        "bias-tracker",
-        "funnel",
-        "roi",
-        "none",
-      ]).optional(),
-      chartData: z.unknown().optional(),
-    })
-  ).max(10),
+  highlights: z
+    .array(
+      z.object({
+        icon: z.string().max(10),
+        metric: z.string().max(200),
+        value: z.string().max(200),
+        trend: z.enum(["up", "down", "stable"]),
+        changePercent: z.number().optional(),
+      })
+    )
+    .max(10),
+  sections: z
+    .array(
+      z.object({
+        title: z.string().max(200),
+        content: z.string().max(5000),
+        chartType: z
+          .enum([
+            "velocity",
+            "quality-distribution",
+            "angle-effectiveness",
+            "team-heatmap",
+            "bias-tracker",
+            "funnel",
+            "roi",
+            "none",
+          ])
+          .optional(),
+        chartData: z.unknown().optional(),
+      })
+    )
+    .max(10),
   roi: z.unknown().optional(),
   summary: z.string().max(5000),
   recommendations: z.array(z.string().max(500)).max(10),
@@ -64,36 +70,25 @@ export type FunnelStage = z.infer<typeof FunnelStageSchema>;
 
 // ---- Report Generation ----
 
-export function generateExecutiveReport(
-  periodLabel: string = "Last 30 Days"
-): ExecutiveReport {
+export function generateExecutiveReport(periodLabel: string = "Last 30 Days"): ExecutiveReport {
   const events = readEvents();
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
 
-  const periodEvents = events.filter(
-    (e) => new Date(e.timestamp) >= thirtyDaysAgo
-  );
+  const periodEvents = events.filter((e) => new Date(e.timestamp) >= thirtyDaysAgo);
 
   // Calculate metrics
-  const totalSessions = periodEvents.filter(
-    (e) => e.type === "pipeline_started"
-  ).length;
-  const completedSessions = periodEvents.filter(
-    (e) => e.type === "pipeline_completed"
-  ).length;
+  const totalSessions = periodEvents.filter((e) => e.type === "pipeline_started").length;
+  const completedSessions = periodEvents.filter((e) => e.type === "pipeline_completed").length;
   const totalIdeas = periodEvents
     .filter((e) => e.type === "angle_generated")
     .reduce((sum, e) => {
       const count = typeof e.data?.ideaCount === "number" ? e.data.ideaCount : 3;
       return sum + count;
     }, 0);
-  const totalExports = periodEvents.filter(
-    (e) => e.type === "session_exported"
-  ).length;
+  const totalExports = periodEvents.filter((e) => e.type === "session_exported").length;
 
-  const successRate =
-    totalSessions > 0 ? completedSessions / totalSessions : 0;
+  const successRate = totalSessions > 0 ? completedSessions / totalSessions : 0;
 
   // Angle usage distribution
   const angleUsage = new Map<string, number>();
@@ -108,8 +103,16 @@ export function generateExecutiveReport(
   const funnel: FunnelStage[] = [
     { name: "Sessions Started", count: totalSessions },
     { name: "Sessions Completed", count: completedSessions, conversionRate: successRate },
-    { name: "Ideas Generated", count: totalIdeas, conversionRate: totalIdeas > 0 && completedSessions > 0 ? 1 : 0 },
-    { name: "Reports Exported", count: totalExports, conversionRate: completedSessions > 0 ? totalExports / completedSessions : 0 },
+    {
+      name: "Ideas Generated",
+      count: totalIdeas,
+      conversionRate: totalIdeas > 0 && completedSessions > 0 ? 1 : 0,
+    },
+    {
+      name: "Reports Exported",
+      count: totalExports,
+      conversionRate: completedSessions > 0 ? totalExports / completedSessions : 0,
+    },
   ];
 
   // ROI
@@ -164,7 +167,13 @@ export function generateExecutiveReport(
       },
       {
         title: "Angle Effectiveness",
-        content: `Top angles: ${Array.from(angleUsage.entries()).sort(([, a], [, b]) => b - a).slice(0, 5).map(([k, v]) => `${k} (${v})`).join(", ") || "No angle data yet."}`,
+        content: `Top angles: ${
+          Array.from(angleUsage.entries())
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5)
+            .map(([k, v]) => `${k} (${v})`)
+            .join(", ") || "No angle data yet."
+        }`,
         chartType: "angle-effectiveness",
         chartData: Object.fromEntries(angleUsage),
       },
@@ -183,12 +192,7 @@ export function generateExecutiveReport(
     ],
     roi,
     summary: `During this period, ${totalSessions} innovation sessions were conducted, generating ${totalIdeas} ideas across ${angleUsage.size} angles with a ${Math.round(successRate * 100)}% completion rate. ${totalExports} reports were exported for stakeholder review.`,
-    recommendations: generateRecommendations(
-      totalSessions,
-      successRate,
-      angleUsage,
-      totalExports
-    ),
+    recommendations: generateRecommendations(totalSessions, successRate, angleUsage, totalExports),
     generatedAt: now.toISOString(),
   });
 }

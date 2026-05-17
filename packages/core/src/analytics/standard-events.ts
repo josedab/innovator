@@ -157,7 +157,7 @@ export class EventAggregator {
     eventType: StandardEventType,
     granularity: Granularity = "day",
     from?: string,
-    to?: string,
+    to?: string
   ): TimeSeriesBucket[] {
     const buckets = new Map<string, number>();
 
@@ -183,14 +183,11 @@ export class EventAggregator {
     const sessions = filtered.filter((e) => e.type === "session_started");
     const ideas = filtered.filter((e) => e.type === "angle_generated");
     const scored = filtered.filter(
-      (e) => e.type === "idea_scored" && e.quality?.overallScore != null,
+      (e) => e.type === "idea_scored" && e.quality?.overallScore != null
     );
 
     const totalSessions = sessions.length;
-    const totalIdeas = ideas.reduce(
-      (sum, e) => sum + ((e.metadata.ideaCount as number) ?? 1),
-      0,
-    );
+    const totalIdeas = ideas.reduce((sum, e) => sum + ((e.metadata.ideaCount as number) ?? 1), 0);
 
     // Weeks spanned
     const timestamps = filtered.map((e) => new Date(e.timestamp).getTime());
@@ -267,7 +264,13 @@ export class EventAggregator {
   getTeamLeaderboard(limit: number = 10): TeamLeaderboardEntry[] {
     const teams = new Map<
       string,
-      { sessions: number; ideas: number; implementations: number; qualitySum: number; qualityCount: number }
+      {
+        sessions: number;
+        ideas: number;
+        implementations: number;
+        qualitySum: number;
+        qualityCount: number;
+      }
     >();
 
     for (const e of this.events) {
@@ -328,19 +331,16 @@ export class EventAggregator {
     const sessions = this.events.filter((e) => e.type === "session_started");
     const ideas = this.events.filter((e) => e.type === "angle_generated");
     const implementations = this.events.filter((e) => e.type === "idea_implemented");
-    const scored = this.events.filter(
-      (e) => e.quality?.overallScore != null,
-    );
+    const scored = this.events.filter((e) => e.quality?.overallScore != null);
 
     const totalSessions = sessions.length;
-    const totalIdeas = ideas.reduce(
-      (sum, e) => sum + ((e.metadata.ideaCount as number) ?? 1),
-      0,
-    );
+    const totalIdeas = ideas.reduce((sum, e) => sum + ((e.metadata.ideaCount as number) ?? 1), 0);
     const totalImplementations = implementations.length;
     const avgQuality =
       scored.length > 0
-        ? +(scored.reduce((s, e) => s + (e.quality!.overallScore ?? 0), 0) / scored.length).toFixed(2)
+        ? +(scored.reduce((s, e) => s + (e.quality!.overallScore ?? 0), 0) / scored.length).toFixed(
+            2
+          )
         : 0;
 
     // Velocity trend: compare first vs second half of events
@@ -369,7 +369,9 @@ export class EventAggregator {
     const lines: string[] = [];
     lines.push(`Innovation Portfolio Summary (as of ${now.split("T")[0]})`);
     lines.push("");
-    lines.push(`Total sessions: ${totalSessions}, Ideas generated: ${totalIdeas}, Implementations: ${totalImplementations}`);
+    lines.push(
+      `Total sessions: ${totalSessions}, Ideas generated: ${totalIdeas}, Implementations: ${totalImplementations}`
+    );
     lines.push(`Average quality score: ${avgQuality}, Velocity trend: ${velocityTrend}`);
     if (topAngle) lines.push(`Top performing angle: ${topAngle}`);
     if (topTeam && topTeam !== "unassigned") lines.push(`Leading team: ${topTeam}`);

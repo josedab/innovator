@@ -20,7 +20,12 @@ interface GraphNode {
 interface GraphEdge {
   source: string;
   target: string;
-  relationship: "builds-on" | "conflicts-with" | "prerequisite-of" | "alternative-to" | "complements";
+  relationship:
+    | "builds-on"
+    | "conflicts-with"
+    | "prerequisite-of"
+    | "alternative-to"
+    | "complements";
   confidence: number;
 }
 
@@ -40,7 +45,7 @@ const EDGE_COLORS: Record<string, string> = {
   "conflicts-with": "#ef4444",
   "prerequisite-of": "#3b82f6",
   "alternative-to": "#f59e0b",
-  "complements": "#8b5cf6",
+  complements: "#8b5cf6",
 };
 
 const ANGLE_COLORS: Record<string, string> = {
@@ -160,7 +165,7 @@ export function IdeaDependencyGraph({ sessionId, onClose }: IdeaDependencyGraphP
       }
 
       nodesRef.current = [...nodes];
-      setGraph((prev) => prev ? { ...prev, nodes: [...nodes] } : null);
+      setGraph((prev) => (prev ? { ...prev, nodes: [...nodes] } : null));
 
       if (tick < maxTicks) {
         animRef.current = requestAnimationFrame(step);
@@ -187,7 +192,12 @@ export function IdeaDependencyGraph({ sessionId, onClose }: IdeaDependencyGraphP
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-900/20">
         <p className="text-sm text-red-700 dark:text-red-300 mb-3">{error}</p>
-        <button onClick={loadGraph} className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 transition">Retry</button>
+        <button
+          onClick={loadGraph}
+          className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 transition"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -196,8 +206,15 @@ export function IdeaDependencyGraph({ sessionId, onClose }: IdeaDependencyGraphP
     return (
       <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-8 text-center dark:border-neutral-700 dark:bg-neutral-900">
         <h3 className="text-lg font-semibold mb-2">Idea Dependency Graph</h3>
-        <p className="text-sm text-neutral-500 mb-4">Visualize relationships between ideas using AI classification</p>
-        <button onClick={loadGraph} className="rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-700 transition">Generate Graph</button>
+        <p className="text-sm text-neutral-500 mb-4">
+          Visualize relationships between ideas using AI classification
+        </p>
+        <button
+          onClick={loadGraph}
+          className="rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-700 transition"
+        >
+          Generate Graph
+        </button>
       </div>
     );
   }
@@ -208,7 +225,11 @@ export function IdeaDependencyGraph({ sessionId, onClose }: IdeaDependencyGraphP
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Idea Dependency Graph</h3>
-        {onClose && <button onClick={onClose} className="text-neutral-500 hover:text-neutral-700 transition">✕</button>}
+        {onClose && (
+          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-700 transition">
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Legend */}
@@ -223,7 +244,12 @@ export function IdeaDependencyGraph({ sessionId, onClose }: IdeaDependencyGraphP
 
       {/* SVG Graph */}
       <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900 overflow-hidden">
-        <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="w-full" style={{ maxHeight: "500px" }}>
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          className="w-full"
+          style={{ maxHeight: "500px" }}
+        >
           {/* Edges */}
           {graph.edges.map((edge, i) => {
             const src = graph.nodes.find((n) => n.id === edge.source);
@@ -289,26 +315,33 @@ export function IdeaDependencyGraph({ sessionId, onClose }: IdeaDependencyGraphP
       {selected && (
         <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-900/20">
           <h4 className="font-medium text-neutral-800 dark:text-neutral-200">{selected.title}</h4>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">{selected.description}</p>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+            {selected.description}
+          </p>
           <div className="flex gap-3 mt-2 text-xs text-neutral-500">
             <span>Angle: {selected.angleId}</span>
             <span>Feasibility: {selected.feasibility}</span>
-            {critSet.has(selected.id) && <span className="text-indigo-600 font-medium">On critical path</span>}
+            {critSet.has(selected.id) && (
+              <span className="text-indigo-600 font-medium">On critical path</span>
+            )}
           </div>
           <div className="mt-2 text-xs">
             <strong>Connections:</strong>{" "}
-            {graph.edges.filter((e) => e.source === selected.id || e.target === selected.id).map((e, i) => {
-              const otherId = e.source === selected.id ? e.target : e.source;
-              const other = graph.nodes.find((n) => n.id === otherId);
-              return (
-                <span key={i} className="mr-2">
-                  <span style={{ color: EDGE_COLORS[e.relationship] }}>{e.relationship}</span>
-                  {" → "}
-                  {other?.title ?? otherId}
-                </span>
-              );
-            })}
-            {graph.edges.filter((e) => e.source === selected.id || e.target === selected.id).length === 0 && "None"}
+            {graph.edges
+              .filter((e) => e.source === selected.id || e.target === selected.id)
+              .map((e, i) => {
+                const otherId = e.source === selected.id ? e.target : e.source;
+                const other = graph.nodes.find((n) => n.id === otherId);
+                return (
+                  <span key={i} className="mr-2">
+                    <span style={{ color: EDGE_COLORS[e.relationship] }}>{e.relationship}</span>
+                    {" → "}
+                    {other?.title ?? otherId}
+                  </span>
+                );
+              })}
+            {graph.edges.filter((e) => e.source === selected.id || e.target === selected.id)
+              .length === 0 && "None"}
           </div>
         </div>
       )}
@@ -323,7 +356,9 @@ export function IdeaDependencyGraph({ sessionId, onClose }: IdeaDependencyGraphP
               return (
                 <span key={id} className="flex items-center gap-1">
                   {i > 0 && <span className="text-neutral-400">→</span>}
-                  <span className="text-neutral-700 dark:text-neutral-300">{node?.title ?? id}</span>
+                  <span className="text-neutral-700 dark:text-neutral-300">
+                    {node?.title ?? id}
+                  </span>
                 </span>
               );
             })}

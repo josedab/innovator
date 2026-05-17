@@ -4,7 +4,6 @@
 export const runtime = "nodejs";
 
 import {
-  createIaCSession,
   diffSessions,
   formatSessionDiff,
   validateIaCSession,
@@ -108,10 +107,10 @@ export async function POST(request: Request) {
       case "issues": {
         const sessionErr = validateIaCSession(parsed.data.session);
         if (sessionErr) {
-          return new Response(
-            JSON.stringify({ error: "Invalid session", details: sessionErr }),
-            { status: 400, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "Invalid session", details: sessionErr }), {
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
         const session = parsed.data.session as unknown as IaCSession;
         const topN = parsed.data.topN ?? 3;
@@ -126,9 +125,9 @@ export async function POST(request: Request) {
       route: "/api/iac",
       requestId,
     });
-    return new Response(
-      JSON.stringify({ error: "IaC operation failed." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "IaC operation failed." }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

@@ -56,7 +56,8 @@ function buildSearchText(pack: DomainPack): string {
       .map((dimension) => `${dimension.name} ${dimension.description}`)
       .join(" ") ?? "";
   const templateText =
-    pack.promptTemplates?.map((template) => `${template.name} ${template.template}`).join(" ") ?? "";
+    pack.promptTemplates?.map((template) => `${template.name} ${template.template}`).join(" ") ??
+    "";
 
   return [
     pack.name,
@@ -64,7 +65,10 @@ function buildSearchText(pack: DomainPack): string {
     pack.description,
     pack.tags.join(" "),
     pack.angles
-      .map((angle) => `${angle.name} ${angle.description} ${angle.tags.join(" ")} ${angle.promptTemplate}`)
+      .map(
+        (angle) =>
+          `${angle.name} ${angle.description} ${angle.tags.join(" ")} ${angle.promptTemplate}`
+      )
       .join(" "),
     rubricText,
     templateText,
@@ -114,7 +118,9 @@ export function submitReview(input: SubmitPackReviewInput): PackReview {
 
   const validatedInput = SubmitPackReviewInputSchema.parse(input);
   const existingReviews = reviewsByPack.get(validatedInput.packId) ?? [];
-  const filteredReviews = existingReviews.filter((review) => review.userId !== validatedInput.userId);
+  const filteredReviews = existingReviews.filter(
+    (review) => review.userId !== validatedInput.userId
+  );
 
   const review = PackReviewSchema.parse({
     id: `pack-review-${randomUUID().slice(0, 12)}`,
@@ -129,7 +135,9 @@ export function submitReview(input: SubmitPackReviewInput): PackReview {
 }
 
 export function getPackReviews(packId: string): PackReview[] {
-  return [...(reviewsByPack.get(packId) ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return [...(reviewsByPack.get(packId) ?? [])].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt)
+  );
 }
 
 export function getPackAverageRating(packId: string): number {
@@ -157,7 +165,8 @@ export function searchPacks(query: string): PackSearchResult[] {
       const scoreDifference = b.score - a.score;
       if (scoreDifference !== 0) return scoreDifference;
 
-      const installDifference = getDomainPackInstallCount(b.pack.id) - getDomainPackInstallCount(a.pack.id);
+      const installDifference =
+        getDomainPackInstallCount(b.pack.id) - getDomainPackInstallCount(a.pack.id);
       if (installDifference !== 0) return installDifference;
 
       const ratingDifference = getPackAverageRating(b.pack.id) - getPackAverageRating(a.pack.id);

@@ -12,7 +12,11 @@ import { z, type ZodType, type ZodObject, type ZodRawShape } from "zod";
 
 /** Schema for an output contract definition. */
 export const OutputContractSchema = z.object({
-  id: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "ID must be lowercase alphanumeric with hyphens"),
+  id: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, "ID must be lowercase alphanumeric with hyphens"),
   name: z.string().min(1).max(200),
   description: z.string().max(1000).optional(),
   version: z.string().max(50).optional(),
@@ -26,12 +30,14 @@ export const OutputContractSchema = z.object({
 export const ContractValidationResultSchema = z.object({
   valid: z.boolean(),
   contractId: z.string().max(100),
-  errors: z.array(
-    z.object({
-      path: z.string().max(500),
-      message: z.string().max(500),
-    })
-  ).max(100),
+  errors: z
+    .array(
+      z.object({
+        path: z.string().max(500),
+        message: z.string().max(500),
+      })
+    )
+    .max(100),
   transformedData: z.unknown().optional(),
 });
 
@@ -39,7 +45,9 @@ export const ContractValidationResultSchema = z.object({
 export const FieldMappingSchema = z.object({
   sourcePath: z.string().max(500),
   targetPath: z.string().max(500),
-  transform: z.enum(["direct", "join", "first", "count", "truncate", "uppercase", "lowercase"]).optional(),
+  transform: z
+    .enum(["direct", "join", "first", "count", "truncate", "uppercase", "lowercase"])
+    .optional(),
   defaultValue: z.unknown().optional(),
 });
 
@@ -346,9 +354,7 @@ export function registerBuiltInContracts(): void {
     description: "Slack message format",
     transformConfig: {
       contractId: "slack-message",
-      mappings: [
-        { sourcePath: "title", targetPath: "text", transform: "direct" },
-      ],
+      mappings: [{ sourcePath: "title", targetPath: "text", transform: "direct" }],
     },
   });
 }

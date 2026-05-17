@@ -7,7 +7,7 @@
  */
 
 import type { Investigation, AngleResult, InnovationIdea } from "../types.js";
-import type { LLMProvider, LLMGenerateOptions } from "../providers/index.js";
+import type { LLMProvider } from "../providers/index.js";
 import { extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
@@ -93,7 +93,7 @@ export async function runConsensus(options: ConsensusOptions): Promise<Consensus
     timeoutMs = 60000,
     generateFn,
   } = options;
-  const startTime = Date.now();
+  const _startTime = Date.now();
 
   // Run all providers concurrently with timeout
   const promises = providers.map(async ({ provider, model }): Promise<ModelResult> => {

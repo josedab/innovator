@@ -92,15 +92,15 @@ describe("market-testing-arena", () => {
 
   describe("runMarketTest", () => {
     it("throws for empty idea title", async () => {
-      await expect(
-        runMarketTest({ ...mockIdea, title: "" })
-      ).rejects.toThrow("Idea title is required");
+      await expect(runMarketTest({ ...mockIdea, title: "" })).rejects.toThrow(
+        "Idea title is required"
+      );
     });
 
     it("throws for whitespace-only title", async () => {
-      await expect(
-        runMarketTest({ ...mockIdea, title: "   " })
-      ).rejects.toThrow("Idea title is required");
+      await expect(runMarketTest({ ...mockIdea, title: "   " })).rejects.toThrow(
+        "Idea title is required"
+      );
     });
 
     it("runs full pipeline with mocked LLM", async () => {
@@ -130,9 +130,7 @@ describe("market-testing-arena", () => {
     it("classifies viability based on adoption thresholds", async () => {
       // High appeal should lead to higher adoption
       mockGenerateText.mockResolvedValue("json");
-      mockExtractJson.mockReturnValue(
-        JSON.stringify({ ...mockAssessment, appealScore: 0.95 })
-      );
+      mockExtractJson.mockReturnValue(JSON.stringify({ ...mockAssessment, appealScore: 0.95 }));
 
       const result = await runMarketTest(mockIdea, { personaCount: 1000 });
       expect(["high", "moderate", "low", "not-viable"]).toContain(result.marketViability);
@@ -176,7 +174,15 @@ describe("market-testing-arena", () => {
       const result = await runMarketTest(
         mockIdea,
         { personaCount: 10 },
-        { investigation: { summary: "Strong market signals", keyAspects: [], currentState: "", challenges: [], opportunities: [] } }
+        {
+          investigation: {
+            summary: "Strong market signals",
+            keyAspects: [],
+            currentState: "",
+            challenges: [],
+            opportunities: [],
+          },
+        }
       );
       expect(result.ideaTitle).toBe("AI-Powered Code Review");
       expect(mockGenerateText).toHaveBeenCalled();

@@ -178,9 +178,7 @@ export default function AdminPage() {
                       <td className="px-4 py-3 font-medium truncate max-w-[200px]">
                         {session.subject}
                       </td>
-                      <td className="px-4 py-3 text-gray-400">
-                        {session.userId ?? "anonymous"}
-                      </td>
+                      <td className="px-4 py-3 text-gray-400">{session.userId ?? "anonymous"}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`text-xs px-2 py-1 rounded-full ${STATUS_BADGE[session.status] ?? STATUS_BADGE.expired}`}

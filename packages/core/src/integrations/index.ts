@@ -49,7 +49,9 @@ export interface IdeaExportPayload {
 const integrations = new Map<string, IntegrationConfig>();
 
 /** Register an integration connection. */
-export function registerIntegration(config: Omit<IntegrationConfig, "createdAt">): IntegrationConfig {
+export function registerIntegration(
+  config: Omit<IntegrationConfig, "createdAt">
+): IntegrationConfig {
   const integration: IntegrationConfig = {
     ...config,
     createdAt: new Date().toISOString(),
@@ -161,7 +163,12 @@ export async function exportToJira(
     : Array.from(integrations.values()).find((i) => i.type === "jira");
 
   if (!integration || !integration.apiUrl || !integration.apiToken) {
-    return { success: false, error: "Jira integration not configured. Set apiUrl and apiToken (base64-encoded email:api-token).", integration: "jira" };
+    return {
+      success: false,
+      error:
+        "Jira integration not configured. Set apiUrl and apiToken (base64-encoded email:api-token).",
+      integration: "jira",
+    };
   }
 
   const body = formatJiraIssue(idea, options);
@@ -232,7 +239,9 @@ export function formatLinearIssue(
       "",
       "---",
       "_Created by Innovator AI_",
-    ].filter(Boolean).join("\n"),
+    ]
+      .filter(Boolean)
+      .join("\n"),
     ...(options.projectId ? { projectId: options.projectId } : {}),
     ...(options.assigneeId ? { assigneeId: options.assigneeId } : {}),
     ...(options.labelIds?.length ? { labelIds: options.labelIds } : {}),
@@ -275,7 +284,9 @@ export async function exportToLinear(
       return { success: false, error: `Linear API error: ${res.status}`, integration: "linear" };
     }
 
-    const data = (await res.json()) as { data?: { issueCreate?: { issue?: { identifier: string; url: string } } } };
+    const data = (await res.json()) as {
+      data?: { issueCreate?: { issue?: { identifier: string; url: string } } };
+    };
     const issue = data.data?.issueCreate?.issue;
 
     return {
@@ -311,15 +322,9 @@ export function formatNotionPage(
     parent: { database_id: options.databaseId },
     properties: {
       Name: { title: [{ text: { content: `💡 ${idea.title}` } }] },
-      ...(idea.sourceAngle
-        ? { "Source Angle": { select: { name: idea.sourceAngle } } }
-        : {}),
-      ...(idea.priority
-        ? { Priority: { select: { name: idea.priority } } }
-        : {}),
-      ...(options.statusProperty
-        ? { [options.statusProperty]: { select: { name: "New" } } }
-        : {}),
+      ...(idea.sourceAngle ? { "Source Angle": { select: { name: idea.sourceAngle } } } : {}),
+      ...(idea.priority ? { Priority: { select: { name: idea.priority } } } : {}),
+      ...(options.statusProperty ? { [options.statusProperty]: { select: { name: "New" } } } : {}),
     },
     children: [
       {
@@ -454,11 +459,7 @@ export {
   backlogToInnovationSubjects,
   clearImportedBacklog,
 } from "./backlog-import.js";
-export type {
-  BacklogItem,
-  BacklogAnalysis,
-  BacklogImportInput,
-} from "./backlog-import.js";
+export type { BacklogItem, BacklogAnalysis, BacklogImportInput } from "./backlog-import.js";
 export {
   SyncRecordSchema,
   SyncEventSchema,
@@ -471,8 +472,4 @@ export {
   getSyncEvents,
   clearSyncData,
 } from "./sync-tracker.js";
-export type {
-  SyncRecord,
-  SyncEvent,
-  CreateSyncRecordInput,
-} from "./sync-tracker.js";
+export type { SyncRecord, SyncEvent, CreateSyncRecordInput } from "./sync-tracker.js";

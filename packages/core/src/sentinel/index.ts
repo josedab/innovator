@@ -1,10 +1,4 @@
-export {
-  runSentinel,
-  collectSignals,
-  loadState,
-  briefToMarkdown,
-  loadBriefs,
-} from "./sentinel.js";
+export { runSentinel, collectSignals, loadState, briefToMarkdown, loadBriefs } from "./sentinel.js";
 export {
   SignalSourceTypeSchema,
   SignalSourceSchema,

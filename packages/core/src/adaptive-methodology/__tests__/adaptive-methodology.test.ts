@@ -929,9 +929,7 @@ describe("adaptive-methodology", () => {
     });
 
     it("recordEffectiveness rejects overly long runId", () => {
-      expect(() =>
-        recordEffectiveness(makeRecord({ runId: "x".repeat(101) }))
-      ).toThrow();
+      expect(() => recordEffectiveness(makeRecord({ runId: "x".repeat(101) }))).toThrow();
     });
 
     it("recordEffectiveness rejects negative userRating", () => {
@@ -939,15 +937,11 @@ describe("adaptive-methodology", () => {
     });
 
     it("recordEffectiveness rejects overly long domain", () => {
-      expect(() =>
-        recordEffectiveness(makeRecord({ domain: "x".repeat(201) }))
-      ).toThrow();
+      expect(() => recordEffectiveness(makeRecord({ domain: "x".repeat(201) }))).toThrow();
     });
 
     it("recordEffectiveness rejects overly long inputSubject", () => {
-      expect(() =>
-        recordEffectiveness(makeRecord({ inputSubject: "x".repeat(501) }))
-      ).toThrow();
+      expect(() => recordEffectiveness(makeRecord({ inputSubject: "x".repeat(501) }))).toThrow();
     });
 
     it("createMethodologyExperiment with empty angles array still creates experiment", () => {

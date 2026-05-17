@@ -13,7 +13,10 @@ const presence = new PresenceManager();
 const consensus = new ConsensusManager();
 
 /** In-memory room registry: roomId → { name, code, consensusSessionId } */
-const rooms = new Map<string, { id: string; name: string; code: string; consensusSessionId: string; createdAt: string }>();
+const rooms = new Map<
+  string,
+  { id: string; name: string; code: string; consensusSessionId: string; createdAt: string }
+>();
 
 function generateRoomCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -142,10 +145,10 @@ export async function POST(request: Request) {
       case "join_room": {
         const room = findRoomByCode(data.code);
         if (!room) {
-          return new Response(
-            JSON.stringify({ error: "Room not found" }),
-            { status: 404, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "Room not found" }), {
+            status: 404,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
 
         presence.joinRoom(room.id, {
@@ -164,11 +167,13 @@ export async function POST(request: Request) {
               roomId: room.id,
               name: room.name,
               code: room.code,
-              participants: activeUsers.map((u: { userId: string; displayName: string; status: string }) => ({
-                userId: u.userId,
-                displayName: u.displayName,
-                status: u.status,
-              })),
+              participants: activeUsers.map(
+                (u: { userId: string; displayName: string; status: string }) => ({
+                  userId: u.userId,
+                  displayName: u.displayName,
+                  status: u.status,
+                })
+              ),
               ideas,
               consensus: consensusStatus,
             },
@@ -180,10 +185,10 @@ export async function POST(request: Request) {
       case "presence": {
         const room = rooms.get(data.roomId);
         if (!room) {
-          return new Response(
-            JSON.stringify({ error: "Room not found" }),
-            { status: 404, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "Room not found" }), {
+            status: 404,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
 
         if (data.cursor) {
@@ -196,7 +201,20 @@ export async function POST(request: Request) {
           presence.heartbeat(data.roomId, data.userId);
         }
 
-        const state = presence.getPresence(data.roomId) as { users: Map<string, { userId: string; displayName: string; cursorPosition?: { x: number; y: number }; activeSection?: string; status: string }> } | undefined;
+        const state = presence.getPresence(data.roomId) as
+          | {
+              users: Map<
+                string,
+                {
+                  userId: string;
+                  displayName: string;
+                  cursorPosition?: { x: number; y: number };
+                  activeSection?: string;
+                  status: string;
+                }
+              >;
+            }
+          | undefined;
         const users = state
           ? Array.from(state.users.values()).map((u) => ({
               userId: u.userId,
@@ -207,19 +225,16 @@ export async function POST(request: Request) {
             }))
           : [];
 
-        return new Response(
-          JSON.stringify({ data: { users } }),
-          { headers: API_RESPONSE_HEADERS }
-        );
+        return new Response(JSON.stringify({ data: { users } }), { headers: API_RESPONSE_HEADERS });
       }
 
       case "add_idea": {
         const room = rooms.get(data.roomId);
         if (!room) {
-          return new Response(
-            JSON.stringify({ error: "Room not found" }),
-            { status: 404, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "Room not found" }), {
+            status: 404,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
 
         const idea = consensus.addIdea(room.consensusSessionId, {
@@ -229,25 +244,25 @@ export async function POST(request: Request) {
         });
 
         if (!idea) {
-          return new Response(
-            JSON.stringify({ error: "Cannot add idea" }),
-            { status: 400, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "Cannot add idea" }), {
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
 
-        return new Response(
-          JSON.stringify({ data: idea }),
-          { status: 201, headers: API_RESPONSE_HEADERS }
-        );
+        return new Response(JSON.stringify({ data: idea }), {
+          status: 201,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
 
       case "vote": {
         const room = rooms.get(data.roomId);
         if (!room) {
-          return new Response(
-            JSON.stringify({ error: "Room not found" }),
-            { status: 404, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "Room not found" }), {
+            status: 404,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
 
         const success = consensus.vote(
@@ -257,19 +272,16 @@ export async function POST(request: Request) {
           data.value
         );
 
-        return new Response(
-          JSON.stringify({ success }),
-          { headers: API_RESPONSE_HEADERS }
-        );
+        return new Response(JSON.stringify({ success }), { headers: API_RESPONSE_HEADERS });
       }
 
       case "comment": {
         const room = rooms.get(data.roomId);
         if (!room) {
-          return new Response(
-            JSON.stringify({ error: "Room not found" }),
-            { status: 404, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "Room not found" }), {
+            status: 404,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
 
         const comment = consensus.comment(
@@ -280,25 +292,25 @@ export async function POST(request: Request) {
         );
 
         if (!comment) {
-          return new Response(
-            JSON.stringify({ error: "Cannot add comment" }),
-            { status: 400, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "Cannot add comment" }), {
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
 
-        return new Response(
-          JSON.stringify({ data: comment }),
-          { status: 201, headers: API_RESPONSE_HEADERS }
-        );
+        return new Response(JSON.stringify({ data: comment }), {
+          status: 201,
+          headers: API_RESPONSE_HEADERS,
+        });
       }
 
       case "consensus": {
         const room = rooms.get(data.roomId);
         if (!room) {
-          return new Response(
-            JSON.stringify({ error: "Room not found" }),
-            { status: 404, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "Room not found" }), {
+            status: 404,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
 
         const status = consensus.checkConsensus(room.consensusSessionId);
@@ -318,36 +330,35 @@ export async function POST(request: Request) {
       case "synthesize": {
         const room = rooms.get(data.roomId);
         if (!room) {
-          return new Response(
-            JSON.stringify({ error: "Room not found" }),
-            { status: 404, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "Room not found" }), {
+            status: 404,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
 
         const result = consensus.synthesize(room.consensusSessionId);
         if (!result) {
-          return new Response(
-            JSON.stringify({ error: "No ideas to synthesize" }),
-            { status: 400, headers: API_RESPONSE_HEADERS }
-          );
+          return new Response(JSON.stringify({ error: "No ideas to synthesize" }), {
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
+          });
         }
 
-        return new Response(
-          JSON.stringify({ data: { synthesis: result } }),
-          { headers: API_RESPONSE_HEADERS }
-        );
+        return new Response(JSON.stringify({ data: { synthesis: result } }), {
+          headers: API_RESPONSE_HEADERS,
+        });
       }
 
       default:
-        return new Response(
-          JSON.stringify({ error: "Unknown action" }),
-          { status: 400, headers: API_RESPONSE_HEADERS }
-        );
+        return new Response(JSON.stringify({ error: "Unknown action" }), {
+          status: 400,
+          headers: API_RESPONSE_HEADERS,
+        });
     }
   } catch {
-    return new Response(
-      JSON.stringify({ error: "Request failed" }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
+    return new Response(JSON.stringify({ error: "Request failed" }), {
+      status: 500,
+      headers: API_RESPONSE_HEADERS,
+    });
   }
 }

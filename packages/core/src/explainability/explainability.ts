@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import type { Investigation, AngleResult, InnovationIdea } from "../types.js";
@@ -7,8 +6,6 @@ import {
   ConfidenceDecompositionSchema,
   CounterfactualSchema,
   type XaiDecisionPoint,
-  type ReasoningChain,
-  type ConfidenceDecomposition,
   type Counterfactual,
   type ExplainabilityReport,
   type ExplainabilityConfig,

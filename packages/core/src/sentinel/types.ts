@@ -48,12 +48,16 @@ export const OpportunitySchema = z.object({
   signalId: z.string().max(200),
   title: z.string().max(500),
   description: z.string().max(5000),
-  ideas: z.array(z.object({
-    title: z.string().max(500),
-    description: z.string().max(5000),
-    angleId: z.string().max(100),
-    survivabilityIndex: z.number().min(0).max(100).optional(),
-  })).max(10),
+  ideas: z
+    .array(
+      z.object({
+        title: z.string().max(500),
+        description: z.string().max(5000),
+        angleId: z.string().max(100),
+        survivabilityIndex: z.number().min(0).max(100).optional(),
+      })
+    )
+    .max(10),
   investigationSummary: z.string().max(5000).optional(),
   overallRelevance: z.number().min(0).max(1),
   createdAt: z.string(),

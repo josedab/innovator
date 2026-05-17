@@ -74,7 +74,11 @@ describe("saas/multi-tenancy", () => {
     expect(limits).toEqual({ maxSessions: 25, maxMembers: 1, maxTokens: 100000 });
 
     recordUsage(workspace.id, 10, 50_000);
-    expect(getUsage(workspace.id)).toMatchObject({ sessionsUsed: 10, tokensUsed: 50_000, tier: "free" });
+    expect(getUsage(workspace.id)).toMatchObject({
+      sessionsUsed: 10,
+      tokensUsed: 50_000,
+      tier: "free",
+    });
     expect(isWithinLimits(workspace.id)).toBe(true);
 
     recordUsage(workspace.id, 20, 60_000);

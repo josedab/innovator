@@ -114,7 +114,10 @@ const TOPIC_STOP_WORDS = new Set([
 ]);
 
 function normalizeText(text: string): string {
-  return text.replace(/\r\n?/g, "\n").replace(/\u0000/g, "").trim();
+  return text
+    .replace(/\r\n?/g, "\n")
+    .replace(/\u0000/g, "")
+    .trim();
 }
 
 function basenameWithoutExtension(fileName: string): string {
@@ -164,7 +167,11 @@ function inferDocumentType(fileName: string, text: string): DocumentMetadata["do
   if (/\bslide\b|\bagenda\b|\bpresentation\b|\bthank you\b/.test(sample)) {
     return "presentation";
   }
-  if (/\bexecutive summary\b|\bquarterly report\b|\bannual report\b|\bfindings\b|\brecommendations\b/.test(sample)) {
+  if (
+    /\bexecutive summary\b|\bquarterly report\b|\bannual report\b|\bfindings\b|\brecommendations\b/.test(
+      sample
+    )
+  ) {
     return "report";
   }
   return "other";
@@ -180,10 +187,7 @@ function isHeadingLine(line: string): boolean {
   if (/^[A-Z0-9][A-Z0-9\s:/&-]{2,}$/.test(trimmed) && trimmed.split(/\s+/).length <= 12) {
     return true;
   }
-  if (
-    /^[A-Z][\w'’/-]+(?:\s+[A-Z][\w'’/-]+){0,7}$/.test(trimmed) &&
-    !/[.!?]$/.test(trimmed)
-  ) {
+  if (/^[A-Z][\w'’/-]+(?:\s+[A-Z][\w'’/-]+){0,7}$/.test(trimmed) && !/[.!?]$/.test(trimmed)) {
     return true;
   }
   return false;
@@ -197,7 +201,10 @@ function collectHeadings(text: string): Heading[] {
     if (isHeadingLine(line)) {
       headings.push({
         offset,
-        title: line.trim().replace(/^#{1,6}\s+/, "").slice(0, 500),
+        title: line
+          .trim()
+          .replace(/^#{1,6}\s+/, "")
+          .slice(0, 500),
       });
     }
     offset += line.length + 1;
@@ -267,7 +274,12 @@ function extractKeyTopics(text: string, limit: number = 8): string[] {
   return Array.from(counts.entries())
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, limit)
-    .map(([topic]) => topic.replace(/(^|-)([a-z])/g, (_, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`));
+    .map(([topic]) =>
+      topic.replace(
+        /(^|-)([a-z])/g,
+        (_, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`
+      )
+    );
 }
 
 function findSectionTitle(headings: Heading[], offset: number): string | undefined {
@@ -313,7 +325,10 @@ export function chunkDocument(
   if (!normalized) return [];
 
   const chunkSize = Math.max(250, Math.floor(options.chunkSize ?? DEFAULT_CHUNK_SIZE));
-  const overlap = Math.max(0, Math.min(Math.floor(options.overlap ?? DEFAULT_OVERLAP), chunkSize - 1));
+  const overlap = Math.max(
+    0,
+    Math.min(Math.floor(options.overlap ?? DEFAULT_OVERLAP), chunkSize - 1)
+  );
   const headings = collectHeadings(normalized);
   const preliminaryChunks: Array<{
     start: number;
@@ -403,7 +418,10 @@ export function documentToInnovationSubject(doc: ExtractedDocument): string {
   const highlights = doc.chunks
     .slice(0, 3)
     .map((chunk) => {
-      const labelParts = [chunk.sectionTitle, chunk.pageNumber ? `page ${chunk.pageNumber}` : undefined].filter(Boolean);
+      const labelParts = [
+        chunk.sectionTitle,
+        chunk.pageNumber ? `page ${chunk.pageNumber}` : undefined,
+      ].filter(Boolean);
       const label = labelParts.length > 0 ? `${labelParts.join(" • ")}: ` : "";
       return `- ${label}${chunk.content.slice(0, 280).trim()}`;
     })

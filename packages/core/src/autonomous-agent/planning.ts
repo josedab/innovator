@@ -35,12 +35,30 @@ const ANGLE_HINTS: Array<{
   match: RegExp;
   angles: string[];
 }> = [
-  { match: /market|customer|user|segment|buyer|persona|competition/i, angles: ["perspectives", "trend-collision", "cross-domain"] },
-  { match: /technical|feasib|constraint|cost|risk|implementation|operat/i, angles: ["constraints", "first-principles", "inversion"] },
-  { match: /generate|idea|concept|prototype|feature|solution/i, angles: ["scamper", "what-if", "cross-domain"] },
-  { match: /validate|test|assumption|experiment|evidence/i, angles: ["inversion", "first-principles", "constraints"] },
-  { match: /strategy|prioriti|roadmap|portfolio|recommend/i, angles: ["perspectives", "trend-collision", "first-principles"] },
-  { match: /adjacent|partnership|ecosystem|platform|integration/i, angles: ["cross-domain", "what-if", "perspectives"] },
+  {
+    match: /market|customer|user|segment|buyer|persona|competition/i,
+    angles: ["perspectives", "trend-collision", "cross-domain"],
+  },
+  {
+    match: /technical|feasib|constraint|cost|risk|implementation|operat/i,
+    angles: ["constraints", "first-principles", "inversion"],
+  },
+  {
+    match: /generate|idea|concept|prototype|feature|solution/i,
+    angles: ["scamper", "what-if", "cross-domain"],
+  },
+  {
+    match: /validate|test|assumption|experiment|evidence/i,
+    angles: ["inversion", "first-principles", "constraints"],
+  },
+  {
+    match: /strategy|prioriti|roadmap|portfolio|recommend/i,
+    angles: ["perspectives", "trend-collision", "first-principles"],
+  },
+  {
+    match: /adjacent|partnership|ecosystem|platform|integration/i,
+    angles: ["cross-domain", "what-if", "perspectives"],
+  },
 ];
 
 function normalizeClauses(objective: string): string[] {
@@ -128,14 +146,16 @@ export function decomposeObjective(objective: string): InvestigationStep[] {
   if (/market|customer|user|segment|compet/i.test(objective)) {
     baseDefinitions.push({
       title: "Map demand and stakeholder signals",
-      description: "Assess customer needs, adoption friction, and external forces that shape opportunity size.",
+      description:
+        "Assess customer needs, adoption friction, and external forces that shape opportunity size.",
     });
   }
 
   if (/technical|build|launch|implement|prototype|product|system|platform/i.test(objective)) {
     baseDefinitions.push({
       title: "Assess feasibility and delivery constraints",
-      description: "Identify enabling capabilities, operational blockers, and the minimum viable path to execution.",
+      description:
+        "Identify enabling capabilities, operational blockers, and the minimum viable path to execution.",
     });
   }
 
@@ -149,21 +169,29 @@ export function decomposeObjective(objective: string): InvestigationStep[] {
   baseDefinitions.push(
     {
       title: "Generate strategic options",
-      description: "Translate evidence into a focused set of experiments, bets, or product directions.",
+      description:
+        "Translate evidence into a focused set of experiments, bets, or product directions.",
     },
     {
       title: "Prioritize the next moves",
-      description: "Rank opportunities by impact, effort, and learning value so execution can start immediately.",
+      description:
+        "Rank opportunities by impact, effort, and learning value so execution can start immediately.",
     }
   );
 
   const uniqueDefinitions = baseDefinitions.filter(
-    (definition, index, all) => all.findIndex((candidate) => candidate.title === definition.title) === index
+    (definition, index, all) =>
+      all.findIndex((candidate) => candidate.title === definition.title) === index
   );
 
   uniqueDefinitions.slice(0, 20).forEach((definition, index) => {
     const priority = inferPriority(definition.title, definition.description);
-    const dependencies = index === 0 ? [] : index === uniqueDefinitions.length - 1 ? [buildStepId(index - 1, uniqueDefinitions[index - 1].title)] : [buildStepId(0, uniqueDefinitions[0].title)];
+    const dependencies =
+      index === 0
+        ? []
+        : index === uniqueDefinitions.length - 1
+          ? [buildStepId(index - 1, uniqueDefinitions[index - 1].title)]
+          : [buildStepId(0, uniqueDefinitions[0].title)];
     const provisionalStep: InvestigationStep = {
       id: buildStepId(index, definition.title),
       title: definition.title,
@@ -189,7 +217,10 @@ export function decomposeObjective(objective: string): InvestigationStep[] {
     if (index === all.length - 1) {
       return {
         ...step,
-        dependencies: all.slice(1, all.length - 1).map((candidate) => candidate.id).slice(0, 10),
+        dependencies: all
+          .slice(1, all.length - 1)
+          .map((candidate) => candidate.id)
+          .slice(0, 10),
       };
     }
     return {
@@ -213,7 +244,9 @@ export function createInvestigationPlan(objective: string): InvestigationPlan {
 
 export function getNextStep(plan: InvestigationPlan): InvestigationStep | undefined {
   const completedIds = new Set(
-    plan.steps.filter((step) => step.status === "completed" || step.status === "skipped").map((step) => step.id)
+    plan.steps
+      .filter((step) => step.status === "completed" || step.status === "skipped")
+      .map((step) => step.id)
   );
 
   return [...plan.steps]

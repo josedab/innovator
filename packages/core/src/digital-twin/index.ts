@@ -287,7 +287,10 @@ Respond in JSON: { "winner": "strategy_id or null", "summary": "string", "tradeo
   try {
     parsed = JSON.parse(extractJson(raw));
   } catch {
-    parsed = { summary: "Strategy comparison generated but response parsing failed.", tradeoffs: [] };
+    parsed = {
+      summary: "Strategy comparison generated but response parsing failed.",
+      tradeoffs: [],
+    };
   }
 
   const comparison: StrategyComparison = {
@@ -348,9 +351,4 @@ export {
   deleteScenario,
   clearTwinData,
 } from "./twin-entity.js";
-export type {
-  TwinEntityType,
-  TwinEntity,
-  Scenario,
-  ScenarioComparison,
-} from "./twin-entity.js";
+export type { TwinEntityType, TwinEntity, Scenario, ScenarioComparison } from "./twin-entity.js";

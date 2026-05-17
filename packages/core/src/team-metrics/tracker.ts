@@ -1,12 +1,7 @@
 /**
  * Team innovation velocity tracking and metrics computation.
  */
-import type {
-  InnovationEvent,
-  InnovationEventType,
-  TeamMetrics,
-  LeaderboardEntry,
-} from "./types.js";
+import type { InnovationEvent, TeamMetrics, LeaderboardEntry } from "./types.js";
 
 const events: InnovationEvent[] = [];
 const MAX_EVENTS = 100_000;

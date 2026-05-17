@@ -3,7 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import { listPlugins, registerPlugin, unregisterPlugin } from "@innovator/core";
+import { listPlugins } from "@innovator/core";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 import { validateApiKey } from "@/lib/api-auth";
 

@@ -56,7 +56,7 @@ describe("workspaces", () => {
         slug: "engineering",
         ownerId: "user-2",
       })
-    ).toThrow('already exists');
+    ).toThrow("already exists");
   });
 
   it("retrieves a workspace by ID", () => {
@@ -179,7 +179,12 @@ describe("shareable results", () => {
   });
 
   it("lists results by creator", () => {
-    createSharedResult({ createdBy: "u1", title: "A", resultType: "investigation", resultData: {} });
+    createSharedResult({
+      createdBy: "u1",
+      title: "A",
+      resultType: "investigation",
+      resultData: {},
+    });
     createSharedResult({ createdBy: "u1", title: "B", resultType: "session", resultData: {} });
     createSharedResult({ createdBy: "u2", title: "C", resultType: "pipeline", resultData: {} });
 

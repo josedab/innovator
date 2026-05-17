@@ -1,4 +1,3 @@
-// @ts-nocheck — test mocks use simplified types
 /**
  * Tests for the /api/auth routes (callback, logout, me).
  */
@@ -61,10 +60,9 @@ describe("/api/auth", () => {
     });
 
     it("returns 400 when state does not match cookie", async () => {
-      const req = createRequest(
-        "http://localhost:3000/api/auth/callback?code=abc&state=xyz",
-        { headers: { cookie: "oauth_state=different" } }
-      );
+      const req = createRequest("http://localhost:3000/api/auth/callback?code=abc&state=xyz", {
+        headers: { cookie: "oauth_state=different" },
+      });
       const res = await callbackGET(req);
       expect(res.status).toBe(400);
       const body = await res.json();

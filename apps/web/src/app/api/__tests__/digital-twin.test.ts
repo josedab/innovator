@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { z } from "zod";
 
 vi.mock("@innovator/core", () => ({
   registerEcosystem: vi.fn(),
@@ -8,33 +8,24 @@ vi.mock("@innovator/core", () => ({
   computeEcosystemHealth: vi.fn(),
   simulateStrategy: vi.fn(),
   compareStrategies: vi.fn(),
-  EcosystemSnapshotSchema: (() => {
-    const { z } = require("zod");
-    return z.object({
-      id: z.string(),
-      name: z.string(),
-      actors: z.array(z.object({ id: z.string(), type: z.string(), influence: z.number() })),
-      resources: z.array(z.object({ id: z.string(), type: z.string(), level: z.number() })),
-    });
-  })(),
-  StrategySchema: (() => {
-    const { z } = require("zod");
-    return z.object({
-      id: z.string(),
-      name: z.string(),
-      actions: z.array(z.object({ type: z.string(), targetId: z.string(), intensity: z.number() })),
-    });
-  })(),
+  EcosystemSnapshotSchema: z.object({
+    id: z.string(),
+    name: z.string(),
+    actors: z.array(z.object({ id: z.string(), type: z.string(), influence: z.number() })),
+    resources: z.array(z.object({ id: z.string(), type: z.string(), level: z.number() })),
+  }),
+  StrategySchema: z.object({
+    id: z.string(),
+    name: z.string(),
+    actions: z.array(z.object({ type: z.string(), targetId: z.string(), intensity: z.number() })),
+  }),
   runMonteCarloComparison: vi.fn(),
   twinMonteCarloToMarkdown: vi.fn(),
-  TwinMonteCarloConfigSchema: (() => {
-    const { z } = require("zod");
-    return z.object({
-      iterations: z.number().optional(),
-      timeHorizonWeeks: z.number().optional(),
-      randomSeed: z.number().optional(),
-    });
-  })(),
+  TwinMonteCarloConfigSchema: z.object({
+    iterations: z.number().optional(),
+    timeHorizonWeeks: z.number().optional(),
+    randomSeed: z.number().optional(),
+  }),
 }));
 
 import {
@@ -55,13 +46,14 @@ const mockRunMonteCarloComparison = vi.mocked(runMonteCarloComparison as any);
 
 // ---- Inline schemas and handler ----
 
-import { z } from "zod";
-
 const { EcosystemSnapshotSchema, StrategySchema } = await import("@innovator/core");
 
 const SimulateRequestSchema = z.object({
   ecosystem: EcosystemSnapshotSchema as any,
-  strategies: z.array(StrategySchema as any).min(1).max(10),
+  strategies: z
+    .array(StrategySchema as any)
+    .min(1)
+    .max(10),
   model: z.string().optional(),
   mode: z.enum(["llm", "monte-carlo"]).optional(),
   monteCarloConfig: z
@@ -116,7 +108,12 @@ async function POST(request: Request) {
       return Response.json(comparison, { headers: API_RESPONSE_HEADERS });
     }
 
-    const comparison = await compareStrategies(ecosystem as any, strategies as any, model, request.signal);
+    const comparison = await compareStrategies(
+      ecosystem as any,
+      strategies as any,
+      model,
+      request.signal
+    );
     return Response.json(comparison, { headers: API_RESPONSE_HEADERS });
   } catch {
     return new Response(JSON.stringify({ error: "Simulation failed. Please try again." }), {
@@ -219,7 +216,11 @@ describe("POST /api/digital-twin", () => {
   });
 
   it("compares multiple strategies", async () => {
-    const strat2 = { id: "s2", name: "Conservative", actions: [{ type: "hold", targetId: "a1", intensity: 0.3 }] };
+    const strat2 = {
+      id: "s2",
+      name: "Conservative",
+      actions: [{ type: "hold", targetId: "a1", intensity: 0.3 }],
+    };
     mockCompareStrategies.mockResolvedValue({
       rankings: [
         { strategyId: "s1", score: 85 },

@@ -67,11 +67,7 @@ export async function POST(request: Request) {
       case "start": {
         const modelError = validateModel(parsed.model);
         if (modelError) return modelError;
-        const session = await startNegotiation(
-          parsed.idea,
-          parsed.model,
-          request.signal
-        );
+        const session = await startNegotiation(parsed.idea, parsed.model, request.signal);
         logger.info("Negotiation started", { sessionId: session.id });
         return Response.json({ session }, { headers: API_RESPONSE_HEADERS });
       }
@@ -124,7 +120,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/negotiate" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/negotiate",
+    });
     return Response.json(
       { error: "Internal server error" },
       { status: 500, headers: API_RESPONSE_HEADERS }

@@ -4,12 +4,7 @@ export {
   CodeDeltaSchema,
   InnovationOpportunitySchema,
 } from "./types.js";
-export type {
-  CapabilityNode,
-  CapabilityGraph,
-  CodeDelta,
-  InnovationOpportunity,
-} from "./types.js";
+export type { CapabilityNode, CapabilityGraph, CodeDelta, InnovationOpportunity } from "./types.js";
 
 export {
   buildCapabilityGraph,

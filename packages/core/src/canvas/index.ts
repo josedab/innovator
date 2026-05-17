@@ -8,7 +8,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { AngleResult, InnovationIdea } from "../types.js";
+import type { AngleResult } from "../types.js";
 
 // ---- Types ----
 

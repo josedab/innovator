@@ -18,32 +18,46 @@ import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const DiffRequestSchema = z.object({
   action: z.enum(["diff", "merge", "resolve"]),
-  sessionA: z.object({
-    sessionId: z.string().max(100),
-    subject: z.string().max(500),
-    ideas: z.array(z.object({
-      title: z.string().max(500),
-      description: z.string().max(5000),
-    })).max(50),
-    investigationSummary: z.string().max(5000).optional(),
-    synthesisText: z.string().max(10000).optional(),
-  }).optional(),
-  sessionB: z.object({
-    sessionId: z.string().max(100),
-    subject: z.string().max(500),
-    ideas: z.array(z.object({
-      title: z.string().max(500),
-      description: z.string().max(5000),
-    })).max(50),
-    investigationSummary: z.string().max(5000).optional(),
-    synthesisText: z.string().max(10000).optional(),
-  }).optional(),
-  conflict: z.object({
-    itemA: z.string().max(2000),
-    itemB: z.string().max(2000),
-    conflictType: z.enum(["contradiction", "overlap", "redundancy"]),
-    suggestedResolution: z.string().max(2000).optional(),
-  }).optional(),
+  sessionA: z
+    .object({
+      sessionId: z.string().max(100),
+      subject: z.string().max(500),
+      ideas: z
+        .array(
+          z.object({
+            title: z.string().max(500),
+            description: z.string().max(5000),
+          })
+        )
+        .max(50),
+      investigationSummary: z.string().max(5000).optional(),
+      synthesisText: z.string().max(10000).optional(),
+    })
+    .optional(),
+  sessionB: z
+    .object({
+      sessionId: z.string().max(100),
+      subject: z.string().max(500),
+      ideas: z
+        .array(
+          z.object({
+            title: z.string().max(500),
+            description: z.string().max(5000),
+          })
+        )
+        .max(50),
+      investigationSummary: z.string().max(5000).optional(),
+      synthesisText: z.string().max(10000).optional(),
+    })
+    .optional(),
+  conflict: z
+    .object({
+      itemA: z.string().max(2000),
+      itemB: z.string().max(2000),
+      conflictType: z.enum(["contradiction", "overlap", "redundancy"]),
+      suggestedResolution: z.string().max(2000).optional(),
+    })
+    .optional(),
   resolution: z.enum(["keep-a", "keep-b", "synthesize"]).optional(),
   model: z.string().optional(),
   format: z.enum(["json", "markdown"]).optional(),
@@ -73,22 +87,32 @@ export async function POST(request: Request) {
 
     const parsed = DiffRequestSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid request", details: parsed.error.issues }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
+      return new Response(
+        JSON.stringify({ error: "Invalid request", details: parsed.error.issues }),
+        {
+          status: 400,
+          headers: API_RESPONSE_HEADERS,
+        }
+      );
     }
 
     const { action, sessionA, sessionB, conflict, resolution, model, format } = parsed.data;
 
     if (action === "diff") {
       if (!sessionA || !sessionB) {
-        return new Response(JSON.stringify({ error: "Both sessionA and sessionB required for diff" }), {
-          status: 400,
-          headers: API_RESPONSE_HEADERS,
-        });
+        return new Response(
+          JSON.stringify({ error: "Both sessionA and sessionB required for diff" }),
+          {
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
+          }
+        );
       }
-      const report = await runSemanticDiff(sessionA as SessionSnapshot, sessionB as SessionSnapshot, { model });
+      const report = await runSemanticDiff(
+        sessionA as SessionSnapshot,
+        sessionB as SessionSnapshot,
+        { model }
+      );
       if (format === "markdown") {
         return new Response(diffReportToMarkdown(report), {
           status: 200,
@@ -100,12 +124,17 @@ export async function POST(request: Request) {
 
     if (action === "merge") {
       if (!sessionA || !sessionB) {
-        return new Response(JSON.stringify({ error: "Both sessionA and sessionB required for merge" }), {
-          status: 400,
-          headers: API_RESPONSE_HEADERS,
-        });
+        return new Response(
+          JSON.stringify({ error: "Both sessionA and sessionB required for merge" }),
+          {
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
+          }
+        );
       }
-      const result = await autoMerge(sessionA as SessionSnapshot, sessionB as SessionSnapshot, { model });
+      const result = await autoMerge(sessionA as SessionSnapshot, sessionB as SessionSnapshot, {
+        model,
+      });
       if (format === "markdown") {
         return new Response(mergeResultToMarkdown(result), {
           status: 200,
@@ -117,12 +146,19 @@ export async function POST(request: Request) {
 
     if (action === "resolve") {
       if (!conflict || !resolution) {
-        return new Response(JSON.stringify({ error: "conflict and resolution required for resolve" }), {
-          status: 400,
-          headers: API_RESPONSE_HEADERS,
-        });
+        return new Response(
+          JSON.stringify({ error: "conflict and resolution required for resolve" }),
+          {
+            status: 400,
+            headers: API_RESPONSE_HEADERS,
+          }
+        );
       }
-      const resolved = await resolveConflict(conflict as unknown as MergeConflict, resolution, model);
+      const resolved = await resolveConflict(
+        conflict as unknown as MergeConflict,
+        resolution,
+        model
+      );
       return new Response(JSON.stringify(resolved), { status: 200, headers: API_RESPONSE_HEADERS });
     }
 

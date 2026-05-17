@@ -119,9 +119,7 @@ export function getPipeline(id: string): AnglePipeline | undefined {
  * List all pipelines.
  */
 export function listPipelines(): AnglePipeline[] {
-  return Array.from(pipelines.values()).sort(
-    (a, b) => b.updatedAt.localeCompare(a.updatedAt)
-  );
+  return Array.from(pipelines.values()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 /**
@@ -143,10 +141,7 @@ export function clearPipelines(): void {
 /**
  * Add a node to a pipeline.
  */
-export function addNode(
-  pipelineId: string,
-  node: StudioNode
-): AnglePipeline | undefined {
+export function addNode(pipelineId: string, node: StudioNode): AnglePipeline | undefined {
   const pipeline = pipelines.get(pipelineId);
   if (!pipeline) return undefined;
 
@@ -163,10 +158,7 @@ export function addNode(
 /**
  * Remove a node and its connections from a pipeline.
  */
-export function removeNode(
-  pipelineId: string,
-  nodeId: string
-): AnglePipeline | undefined {
+export function removeNode(pipelineId: string, nodeId: string): AnglePipeline | undefined {
   const pipeline = pipelines.get(pipelineId);
   if (!pipeline) return undefined;
 
@@ -219,10 +211,7 @@ export function updateNodeConfig(
 /**
  * Reorder nodes in the pipeline (for sequential execution).
  */
-export function reorderNodes(
-  pipelineId: string,
-  nodeIds: string[]
-): AnglePipeline | undefined {
+export function reorderNodes(pipelineId: string, nodeIds: string[]): AnglePipeline | undefined {
   const pipeline = pipelines.get(pipelineId);
   if (!pipeline) return undefined;
 
@@ -272,9 +261,11 @@ export function addConnection(
   }
 
   // Prevent duplicate connections
-  if (pipeline.connections.some(
-    (c) => c.sourceNodeId === sourceNodeId && c.targetNodeId === targetNodeId
-  )) {
+  if (
+    pipeline.connections.some(
+      (c) => c.sourceNodeId === sourceNodeId && c.targetNodeId === targetNodeId
+    )
+  ) {
     throw new Error("Connection already exists");
   }
 
@@ -387,9 +378,7 @@ function topologicalSort(pipeline: AnglePipeline): string[] {
     adjacency.get(conn.sourceNodeId)?.push(conn.targetNodeId);
   }
 
-  const queue = pipeline.nodes
-    .filter((n) => (inDegree.get(n.id) ?? 0) === 0)
-    .map((n) => n.id);
+  const queue = pipeline.nodes.filter((n) => (inDegree.get(n.id) ?? 0) === 0).map((n) => n.id);
   const order: string[] = [];
 
   while (queue.length > 0) {
@@ -420,7 +409,16 @@ export function createFromTemplate(
       description: "Basic 3-angle pipeline for quick innovation",
     },
     comprehensive: {
-      angles: ["scamper", "first-principles", "cross-domain", "constraints", "inversion", "perspectives", "what-if", "trend-collision"],
+      angles: [
+        "scamper",
+        "first-principles",
+        "cross-domain",
+        "constraints",
+        "inversion",
+        "perspectives",
+        "what-if",
+        "trend-collision",
+      ],
       description: "Full 8-angle pipeline for comprehensive exploration",
     },
     speed: {
@@ -456,7 +454,7 @@ export function createFromTemplate(
     id: "output",
     type: "merge",
     label: "Synthesize",
-    position: { x: 500, y: 100 + (config.angles.length * 60) },
+    position: { x: 500, y: 100 + config.angles.length * 60 },
     enabled: true,
   });
 

@@ -17,7 +17,11 @@ const CreateSchema = z.object({
   action: z.literal("create"),
   tenantId: z.string().min(1).max(200),
   name: z.string().min(1).max(200),
-  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
   ownerId: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
 });

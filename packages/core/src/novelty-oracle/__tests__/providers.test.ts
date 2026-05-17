@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { USPTOProvider, SemanticScholarProvider, CompositeProvider, createDefaultProviders } from "../providers.js";
+import {
+  USPTOProvider,
+  SemanticScholarProvider,
+  CompositeProvider,
+  createDefaultProviders,
+} from "../providers.js";
 
 // Mock global fetch
 const mockFetch = vi.fn();
@@ -139,15 +144,17 @@ describe("SemanticScholarProvider", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [{
-          paperId: "xyz",
-          title: "Some Paper",
-          abstract: null,
-          year: null,
-          authors: [],
-          url: "https://example.com",
-          citationCount: 0,
-        }],
+        data: [
+          {
+            paperId: "xyz",
+            title: "Some Paper",
+            abstract: null,
+            year: null,
+            authors: [],
+            url: "https://example.com",
+            citationCount: 0,
+          },
+        ],
       }),
     });
     const results = await provider.search("test");
@@ -162,14 +169,31 @@ describe("CompositeProvider", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        patents: [{ patent_number: "111", patent_title: "Patent A", patent_abstract: "Desc A", patent_date: "2024-01-01" }],
+        patents: [
+          {
+            patent_number: "111",
+            patent_title: "Patent A",
+            patent_abstract: "Desc A",
+            patent_date: "2024-01-01",
+          },
+        ],
       }),
     });
     // Second call for Semantic Scholar
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [{ paperId: "p1", title: "Paper B", abstract: "Desc B", year: 2024, authors: [], url: "https://example.com", citationCount: 5 }],
+        data: [
+          {
+            paperId: "p1",
+            title: "Paper B",
+            abstract: "Desc B",
+            year: 2024,
+            authors: [],
+            url: "https://example.com",
+            citationCount: 5,
+          },
+        ],
       }),
     });
 
@@ -179,14 +203,22 @@ describe("CompositeProvider", () => {
   });
 
   it("handles partial provider failures gracefully", async () => {
-    mockFetch
-      .mockRejectedValueOnce(new Error("USPTO down"))
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: [{ paperId: "p1", title: "Paper", abstract: "Desc", year: 2024, authors: [], url: "https://example.com", citationCount: 0 }],
-        }),
-      });
+    mockFetch.mockRejectedValueOnce(new Error("USPTO down")).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            paperId: "p1",
+            title: "Paper",
+            abstract: "Desc",
+            year: 2024,
+            authors: [],
+            url: "https://example.com",
+            citationCount: 0,
+          },
+        ],
+      }),
+    });
 
     const composite = createDefaultProviders();
     const results = await composite.search("test");
@@ -199,7 +231,10 @@ describe("CompositeProvider", () => {
         ok: true,
         json: async () => ({
           patents: Array.from({ length: 5 }, (_, i) => ({
-            patent_number: `${i}`, patent_title: `P${i}`, patent_abstract: `D${i}`, patent_date: "2024-01-01",
+            patent_number: `${i}`,
+            patent_title: `P${i}`,
+            patent_abstract: `D${i}`,
+            patent_date: "2024-01-01",
           })),
         }),
       })
@@ -207,7 +242,13 @@ describe("CompositeProvider", () => {
         ok: true,
         json: async () => ({
           data: Array.from({ length: 5 }, (_, i) => ({
-            paperId: `s${i}`, title: `Paper ${i}`, abstract: `A${i}`, year: 2024, authors: [], url: "https://example.com", citationCount: 0,
+            paperId: `s${i}`,
+            title: `Paper ${i}`,
+            abstract: `A${i}`,
+            year: 2024,
+            authors: [],
+            url: "https://example.com",
+            citationCount: 0,
           })),
         }),
       });

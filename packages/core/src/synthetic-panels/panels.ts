@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import {
@@ -10,7 +9,6 @@ import {
   type SyntheticPersona,
   type PersonaEvaluation,
   type PanelDebateEntry,
-  type PanelConsensus,
   type PanelConfig,
   type PanelResult,
   type InterRaterAgreement,
@@ -381,9 +379,7 @@ export function panelToMarkdown(result: PanelResult): string {
  * Compute inter-rater agreement statistics for panel evaluations.
  * Uses Fleiss' kappa for categorical agreement and variance metrics for scores.
  */
-export function computeInterRaterAgreement(
-  evaluations: PersonaEvaluation[]
-): InterRaterAgreement {
+export function computeInterRaterAgreement(evaluations: PersonaEvaluation[]): InterRaterAgreement {
   if (evaluations.length < 2) {
     return {
       fleissKappa: 1,
@@ -427,11 +423,9 @@ export function computeInterRaterAgreement(
   // Fleiss' kappa for verdict categories
   const categories = ["enthusiastic", "positive", "neutral", "skeptical", "opposed"];
   const N = n;
-  const k = categories.length;
+  const _k = categories.length;
 
-  const categoryCounts = categories.map(
-    (cat) => verdicts.filter((v) => v === cat).length
-  );
+  const categoryCounts = categories.map((cat) => verdicts.filter((v) => v === cat).length);
   const pj = categoryCounts.map((c) => c / N);
   const Pe = pj.reduce((sum, p) => sum + p * p, 0);
   const Po = pairwiseAgreement;

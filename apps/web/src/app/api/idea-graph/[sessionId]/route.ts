@@ -12,13 +12,19 @@ import {
   extractJson,
   withRetry,
 } from "@innovator/core";
-import type { SessionRecord, InnovationIdea } from "@innovator/core";
+import type { InnovationIdea } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 import { validateModel } from "@/lib/validate-request";
 
-const RelationshipType = z.enum(["builds-on", "conflicts-with", "prerequisite-of", "alternative-to", "complements"]);
+const RelationshipType = z.enum([
+  "builds-on",
+  "conflicts-with",
+  "prerequisite-of",
+  "alternative-to",
+  "complements",
+]);
 type RelationshipType = z.infer<typeof RelationshipType>;
 
 interface GraphNode {
@@ -43,12 +49,16 @@ interface IdeaGraph {
 }
 
 const ClassifyResponseSchema = z.object({
-  relationships: z.array(z.object({
-    sourceIndex: z.number(),
-    targetIndex: z.number(),
-    relationship: RelationshipType,
-    confidence: z.number().min(0).max(1),
-  })).max(100),
+  relationships: z
+    .array(
+      z.object({
+        sourceIndex: z.number(),
+        targetIndex: z.number(),
+        relationship: RelationshipType,
+        confidence: z.number().min(0).max(1),
+      })
+    )
+    .max(100),
 });
 
 async function classifyRelationships(
@@ -56,12 +66,22 @@ async function classifyRelationships(
   similarPairs: Array<[number, number, number]>,
   model?: string,
   signal?: AbortSignal
-): Promise<Array<{ sourceIndex: number; targetIndex: number; relationship: RelationshipType; confidence: number }>> {
+): Promise<
+  Array<{
+    sourceIndex: number;
+    targetIndex: number;
+    relationship: RelationshipType;
+    confidence: number;
+  }>
+> {
   if (similarPairs.length === 0) return [];
 
-  const pairsDesc = similarPairs.map(([i, j, sim]) =>
-    `Pair ${i}-${j} (similarity: ${sim.toFixed(2)}): "${ideas[i].title}" vs "${ideas[j].title}"`
-  ).join("\n");
+  const pairsDesc = similarPairs
+    .map(
+      ([i, j, sim]) =>
+        `Pair ${i}-${j} (similarity: ${sim.toFixed(2)}): "${ideas[i].title}" vs "${ideas[j].title}"`
+    )
+    .join("\n");
 
   const ideaList = ideas.map((idea, i) => `${i}. ${idea.title}: ${idea.description}`).join("\n");
 
@@ -170,7 +190,17 @@ export async function GET(
 
     if (ideas.length < 2) {
       return Response.json(
-        { nodes: ideas.map((i) => ({ id: i.nodeId, title: i.title, description: i.description, angleId: i.angleId, feasibility: "medium" })), edges: [], criticalPath: [] },
+        {
+          nodes: ideas.map((i) => ({
+            id: i.nodeId,
+            title: i.title,
+            description: i.description,
+            angleId: i.angleId,
+            feasibility: "medium",
+          })),
+          edges: [],
+          criticalPath: [],
+        },
         { headers: API_RESPONSE_HEADERS }
       );
     }
@@ -211,7 +241,12 @@ export async function GET(
       clearEmbeddingsIndex();
 
       // Classify relationships via LLM (graceful fallback on failure)
-      let relationships: Array<{ sourceIndex: number; targetIndex: number; relationship: RelationshipType; confidence: number }> = [];
+      let relationships: Array<{
+        sourceIndex: number;
+        targetIndex: number;
+        relationship: RelationshipType;
+        confidence: number;
+      }> = [];
       try {
         relationships = await classifyRelationships(
           ideas.map((i) => ({ title: i.title, description: i.description })),

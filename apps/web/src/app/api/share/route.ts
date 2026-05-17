@@ -3,13 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import {
-  shareInvestigation,
-  getSharedInvestigation,
-  listSharedInvestigations,
-  forkInvestigation,
-  buildShareUrl,
-} from "@innovator/core";
+import { shareInvestigation, listSharedInvestigations, buildShareUrl } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-request";
@@ -53,13 +47,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const { subject, investigation, angleResults, synthesis, title, isPublic, expiresInDays } = parsed.data;
+    const { subject, investigation, angleResults, synthesis, title, isPublic, expiresInDays } =
+      parsed.data;
 
+    /* eslint-disable @typescript-eslint/no-explicit-any -- pipeline results shape matches at runtime */
     const shared = shareInvestigation(
       subject,
-      { investigation: investigation as any, angleResults: angleResults as any, synthesis: synthesis as any },
+      {
+        investigation: investigation as any,
+        angleResults: angleResults as any,
+        synthesis: synthesis as any,
+      },
       { title, isPublic, expiresInDays }
     );
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     const baseUrl = request.headers.get("origin") ?? "https://innovator.dev";
     const shareUrl = buildShareUrl(shared.slug, baseUrl);
@@ -93,7 +94,7 @@ export async function GET() {
   try {
     const shared = listSharedInvestigations(true);
     return Response.json({ investigations: shared }, { headers: API_RESPONSE_HEADERS });
-  } catch (err) {
+  } catch {
     return new Response(JSON.stringify({ error: "Failed to list shared investigations." }), {
       status: 500,
       headers: API_RESPONSE_HEADERS,

@@ -185,34 +185,39 @@ export const HEALTHCARE_PACK: ExtendedVerticalPack = {
     EHR: "Electronic Health Record — digital version of a patient's paper chart",
     EMR: "Electronic Medical Record — digital record within a single practice or organization",
     FHIR: "Fast Healthcare Interoperability Resources — HL7 standard for healthcare data exchange via RESTful APIs",
-    "ICD-10": "International Classification of Diseases, 10th Revision — WHO diagnostic coding system",
+    "ICD-10":
+      "International Classification of Diseases, 10th Revision — WHO diagnostic coding system",
     CPT: "Current Procedural Terminology — AMA coding system for medical procedures and services",
-    "HL7": "Health Level Seven — standards framework for exchange of electronic health information",
+    HL7: "Health Level Seven — standards framework for exchange of electronic health information",
     SaMD: "Software as a Medical Device — software intended to be used for medical purposes without being part of a hardware device",
     DTx: "Digital Therapeutics — evidence-based software-driven interventions for disease prevention or management",
     RPM: "Remote Patient Monitoring — technology to monitor patients outside clinical settings",
     RTM: "Remote Therapeutic Monitoring — monitoring of therapeutic data for medication adherence and response",
     SDOH: "Social Determinants of Health — economic and social conditions that influence health outcomes",
-    HCAHPS: "Hospital Consumer Assessment of Healthcare Providers and Systems — standardized patient satisfaction survey",
+    HCAHPS:
+      "Hospital Consumer Assessment of Healthcare Providers and Systems — standardized patient satisfaction survey",
     QALY: "Quality-Adjusted Life Year — measure of disease burden combining quality and quantity of life",
     NPI: "National Provider Identifier — unique identification number for healthcare providers",
-    "BAA": "Business Associate Agreement — HIPAA-required contract for entities handling PHI on behalf of covered entities",
-    "FDA 510(k)": "Premarket notification demonstrating a device is substantially equivalent to a legally marketed device",
+    BAA: "Business Associate Agreement — HIPAA-required contract for entities handling PHI on behalf of covered entities",
+    "FDA 510(k)":
+      "Premarket notification demonstrating a device is substantially equivalent to a legally marketed device",
     "De Novo": "FDA regulatory pathway for novel low-to-moderate risk devices without a predicate",
     PMA: "Premarket Approval — FDA approval pathway for Class III (high-risk) medical devices",
     GCP: "Good Clinical Practice — international ethical and scientific quality standard for clinical trials",
     IRB: "Institutional Review Board — committee that reviews and monitors biomedical research involving human subjects",
     RWE: "Real-World Evidence — clinical evidence derived from analysis of real-world data (claims, EHRs, registries)",
     CDS: "Clinical Decision Support — tools providing clinicians with knowledge and patient-specific information",
-    SMART: "Substitutable Medical Applications, Reusable Technologies — framework for EHR-integrated apps",
+    SMART:
+      "Substitutable Medical Applications, Reusable Technologies — framework for EHR-integrated apps",
     HIE: "Health Information Exchange — electronic sharing of health information across organizations",
-    "ACO": "Accountable Care Organization — groups of providers jointly accountable for quality and cost of care",
+    ACO: "Accountable Care Organization — groups of providers jointly accountable for quality and cost of care",
     VBC: "Value-Based Care — healthcare delivery model rewarding quality outcomes over volume of services",
-    "HEDIS": "Healthcare Effectiveness Data and Information Set — quality measurement tool used by health plans",
-    "PHR": "Personal Health Record — patient-managed record of health information",
-    "CDI": "Clinical Documentation Improvement — process of improving healthcare record accuracy and specificity",
-    "PDMP": "Prescription Drug Monitoring Program — state-run database tracking controlled substance prescriptions",
-    "UDI": "Unique Device Identification — FDA system for identifying medical devices through distribution and use",
+    HEDIS:
+      "Healthcare Effectiveness Data and Information Set — quality measurement tool used by health plans",
+    PHR: "Personal Health Record — patient-managed record of health information",
+    CDI: "Clinical Documentation Improvement — process of improving healthcare record accuracy and specificity",
+    PDMP: "Prescription Drug Monitoring Program — state-run database tracking controlled substance prescriptions",
+    UDI: "Unique Device Identification — FDA system for identifying medical devices through distribution and use",
   },
 
   exampleSessions: [
@@ -220,12 +225,7 @@ export const HEALTHCARE_PACK: ExtendedVerticalPack = {
       subject: "Remote patient monitoring for chronic disease management",
       description:
         "Explore innovations in RPM technology for managing chronic conditions like diabetes, heart failure, and COPD in home settings.",
-      expectedAngles: [
-        "digital-health",
-        "patient-safety",
-        "clinical-workflow",
-        "health-equity",
-      ],
+      expectedAngles: ["digital-health", "patient-safety", "clinical-workflow", "health-equity"],
       sampleInsights: [
         "AI-powered RPM with predictive alerts for early deterioration detection",
         "Integration of continuous glucose monitors with EHR for automated insulin dosing",
@@ -254,12 +254,7 @@ export const HEALTHCARE_PACK: ExtendedVerticalPack = {
       subject: "Mental health accessibility through digital platforms",
       description:
         "Explore digital solutions to improve access to mental health services, reduce stigma, and provide evidence-based interventions.",
-      expectedAngles: [
-        "health-equity",
-        "digital-health",
-        "patient-safety",
-        "regulatory-pathway",
-      ],
+      expectedAngles: ["health-equity", "digital-health", "patient-safety", "regulatory-pathway"],
       sampleInsights: [
         "Digital CBT platform with culturally adapted content for diverse populations",
         "AI-powered crisis detection in digital health apps with real-time safety protocols",

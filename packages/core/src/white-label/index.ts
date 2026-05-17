@@ -151,7 +151,9 @@ export function registerTenant(config: TenantConfig): void {
   if (config.customDomain) {
     const existingTenant = domainIndex.get(config.customDomain);
     if (existingTenant && existingTenant !== config.tenantId) {
-      throw new Error(`Domain "${config.customDomain}" is already registered to tenant "${existingTenant}"`);
+      throw new Error(
+        `Domain "${config.customDomain}" is already registered to tenant "${existingTenant}"`
+      );
     }
   }
 
@@ -170,7 +172,9 @@ export function updateTenant(tenantId: string, updates: Partial<TenantConfig>): 
   if (updates.customDomain && updates.customDomain !== existing.customDomain) {
     const existingOwner = domainIndex.get(updates.customDomain);
     if (existingOwner && existingOwner !== tenantId) {
-      throw new Error(`Domain "${updates.customDomain}" is already registered to tenant "${existingOwner}"`);
+      throw new Error(
+        `Domain "${updates.customDomain}" is already registered to tenant "${existingOwner}"`
+      );
     }
   }
 
@@ -297,9 +301,7 @@ export function applyTerminology(tenantId: string, text: string): string {
   };
 
   // Sort by longest term first to prevent partial replacements
-  const entries = Object.entries(defaultTerms).sort(
-    ([, a], [, b]) => b.length - a.length
-  );
+  const entries = Object.entries(defaultTerms).sort(([, a], [, b]) => b.length - a.length);
 
   for (const [key, defaultTerm] of entries) {
     const customTerm = map[key as keyof TerminologyMap];

@@ -77,7 +77,10 @@ export async function POST(request: Request) {
           projectId: parsed.projectId,
         });
         logger.info("Integration registered", { id: parsed.id, type: parsed.type });
-        return Response.json({ integration: { ...integration, apiToken: undefined } }, { headers: API_RESPONSE_HEADERS });
+        return Response.json(
+          { integration: { ...integration, apiToken: undefined } },
+          { headers: API_RESPONSE_HEADERS }
+        );
       }
       case "remove": {
         const removed = removeIntegration(parsed.id);
@@ -93,22 +96,34 @@ export async function POST(request: Request) {
 
         switch (parsed.target) {
           case "jira":
-            result = await exportToJira(parsed.idea, {
-              projectKey: opts.projectKey ?? "INNOV",
-              issueType: opts.issueType,
-              epicKey: opts.epicKey,
-            }, parsed.integrationId);
+            result = await exportToJira(
+              parsed.idea,
+              {
+                projectKey: opts.projectKey ?? "INNOV",
+                issueType: opts.issueType,
+                epicKey: opts.epicKey,
+              },
+              parsed.integrationId
+            );
             break;
           case "linear":
-            result = await exportToLinear(parsed.idea, {
-              teamId: opts.teamId ?? "",
-              projectId: opts.projectId,
-            }, parsed.integrationId);
+            result = await exportToLinear(
+              parsed.idea,
+              {
+                teamId: opts.teamId ?? "",
+                projectId: opts.projectId,
+              },
+              parsed.integrationId
+            );
             break;
           case "notion":
-            result = await exportToNotion(parsed.idea, {
-              databaseId: opts.databaseId ?? "",
-            }, parsed.integrationId);
+            result = await exportToNotion(
+              parsed.idea,
+              {
+                databaseId: opts.databaseId ?? "",
+              },
+              parsed.integrationId
+            );
             break;
         }
 
@@ -128,7 +143,9 @@ export async function POST(request: Request) {
         { status: 400, headers: API_RESPONSE_HEADERS }
       );
     }
-    logger.error(error instanceof Error ? error.message : "Unknown error", { route: "/api/integrations" });
+    logger.error(error instanceof Error ? error.message : "Unknown error", {
+      route: "/api/integrations",
+    });
     return Response.json(
       { error: "Internal server error" },
       { status: 500, headers: API_RESPONSE_HEADERS }

@@ -8,8 +8,6 @@ import {
   classifySubject,
   recordAngleFeedback,
   getAngleFeedback,
-  computeAngleEffectiveness,
-  getDataPoints,
   ANGLES,
 } from "@innovator/core";
 import type { RecommendationResult, AngleFeedbackEntry, SubjectDomain } from "@innovator/core";
@@ -120,10 +118,10 @@ export async function POST(request: Request) {
 
     const parsed = RecommendRequestSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request. Provide a subject." }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
+      return new Response(JSON.stringify({ error: "Invalid request. Provide a subject." }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const { subject, model, count, useThompsonSampling } = parsed.data;
@@ -135,7 +133,12 @@ export async function POST(request: Request) {
     const classification = await classifySubject(subject, model, request.signal);
 
     // Step 2: Get base recommendations from heuristic + LLM
-    const baseResult: RecommendationResult = await smartRecommend(subject, count, model, request.signal);
+    const baseResult: RecommendationResult = await smartRecommend(
+      subject,
+      count,
+      model,
+      request.signal
+    );
 
     // Step 3: Optionally apply Thompson sampling
     let finalRecommendations = baseResult.recommendations.slice(0, count);
@@ -149,9 +152,12 @@ export async function POST(request: Request) {
       const heuristicMap = new Map(baseResult.recommendations.map((r) => [r.angleId, r.relevance]));
       const blended = thompsonData.map((t) => ({
         angleId: t.angleId,
-        relevance: Math.round(((heuristicMap.get(t.angleId) ?? 0.5) * 0.6 + t.sampledScore * 0.4) * 100) / 100,
-        rationale: baseResult.recommendations.find((r) => r.angleId === t.angleId)?.rationale
-          ?? `${t.isExploration ? "🔍 Exploring" : "⭐ Recommended"} based on ${t.alpha + t.beta - 2} observations`,
+        relevance:
+          Math.round(((heuristicMap.get(t.angleId) ?? 0.5) * 0.6 + t.sampledScore * 0.4) * 100) /
+          100,
+        rationale:
+          baseResult.recommendations.find((r) => r.angleId === t.angleId)?.rationale ??
+          `${t.isExploration ? "🔍 Exploring" : "⭐ Recommended"} based on ${t.alpha + t.beta - 2} observations`,
         isExploration: t.isExploration,
       }));
 
@@ -218,10 +224,10 @@ export async function PUT(request: Request) {
 
     const parsed = FeedbackRequestSchema.safeParse(body);
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid feedback data." }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
+      return new Response(JSON.stringify({ error: "Invalid feedback data." }), {
+        status: 400,
+        headers: API_RESPONSE_HEADERS,
+      });
     }
 
     const classification = await classifySubject(parsed.data.subject);
@@ -242,7 +248,7 @@ export async function PUT(request: Request) {
     });
 
     return Response.json({ success: true }, { headers: API_RESPONSE_HEADERS });
-  } catch (err) {
+  } catch {
     return new Response(JSON.stringify({ error: "Failed to record feedback." }), {
       status: 500,
       headers: API_RESPONSE_HEADERS,

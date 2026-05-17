@@ -3,11 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import {
-  validateIdeaMarket,
-  validateIdeasMarket,
-  generateValidationReport,
-} from "@innovator/core";
+import { validateIdeasMarket, generateValidationReport } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType, validateModel } from "@/lib/validate-request";
@@ -62,11 +58,12 @@ export async function POST(request: Request) {
     const modelError = validateModel(model);
     if (modelError) return modelError;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validated by Zod at boundary
     const results = await validateIdeasMarket(ideas as any, config);
     const report =
       subject && results.length > 0
-        ? await generateValidationReport(subject, results, model as any)
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any -- model string from validated input
+          await generateValidationReport(subject, results, model as any)
         : undefined;
 
     logger.info("Market validation completed", {

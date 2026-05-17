@@ -266,7 +266,7 @@ export function listManagedUsers(options?: {
 }
 
 /** Suspend a user. */
-export function suspendUser(userId: string, reason?: string): boolean {
+export function suspendUser(userId: string, _reason?: string): boolean {
   const user = users.get(userId);
   if (!user) return false;
   user.status = "suspended";

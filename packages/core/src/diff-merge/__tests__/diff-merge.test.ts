@@ -1,8 +1,10 @@
 vi.mock("../../copilot/client.js", () => ({
-  generateText: vi.fn().mockResolvedValue(JSON.stringify({
-    contradictions: [],
-    summary: "Test diff summary"
-  })),
+  generateText: vi.fn().mockResolvedValue(
+    JSON.stringify({
+      contradictions: [],
+      summary: "Test diff summary",
+    })
+  ),
   extractJson: vi.fn((s) => s),
 }));
 vi.mock("../../copilot/retry.js", () => ({
@@ -114,7 +116,10 @@ describe("diff-merge", () => {
 
     it("detects overlapping ideas and keeps the more detailed version", async () => {
       const sessionA = makeSession("a", [
-        makeIdea("Blockchain Supply Chain", "Using blockchain technology for supply chain transparency and tracking of goods across the entire logistics pipeline"),
+        makeIdea(
+          "Blockchain Supply Chain",
+          "Using blockchain technology for supply chain transparency and tracking of goods across the entire logistics pipeline"
+        ),
       ]);
       const sessionB = makeSession("b", [
         makeIdea("Blockchain Logistics", "Blockchain for supply chain"),
@@ -123,9 +128,7 @@ describe("diff-merge", () => {
       const result = await autoMerge(sessionA, sessionB);
 
       // Should merge overlapping ideas into one
-      const blockchainIdeas = result.mergedIdeas.filter(
-        (i) => i.title.includes("Blockchain")
-      );
+      const blockchainIdeas = result.mergedIdeas.filter((i) => i.title.includes("Blockchain"));
       expect(blockchainIdeas.length).toBeLessThanOrEqual(2);
 
       if (result.resolvedConflicts.length > 0 || blockchainIdeas.length === 1) {
@@ -137,10 +140,16 @@ describe("diff-merge", () => {
 
     it("tracks provenance for each merged idea", async () => {
       const sessionA = makeSession("sess-alpha", [
-        makeIdea("Quantum Entanglement Research", "Exploring quantum entanglement for secure communications"),
+        makeIdea(
+          "Quantum Entanglement Research",
+          "Exploring quantum entanglement for secure communications"
+        ),
       ]);
       const sessionB = makeSession("sess-beta", [
-        makeIdea("Organic Permaculture Farming", "Sustainable permaculture design for urban agriculture"),
+        makeIdea(
+          "Organic Permaculture Farming",
+          "Sustainable permaculture design for urban agriculture"
+        ),
       ]);
 
       const result = await autoMerge(sessionA, sessionB);
@@ -170,9 +179,7 @@ describe("diff-merge", () => {
     });
 
     it("handles one empty and one non-empty session", async () => {
-      const sessionA = makeSession("a", [
-        makeIdea("Only Idea", "The only idea present"),
-      ]);
+      const sessionA = makeSession("a", [makeIdea("Only Idea", "The only idea present")]);
       const sessionB = makeSession("b", []);
 
       const result = await autoMerge(sessionA, sessionB);
@@ -193,7 +200,12 @@ describe("diff-merge", () => {
     });
 
     it("handles identical sessions", async () => {
-      const ideas = [makeIdea("Shared Idea", "Exact same idea in both sessions with identical text content for matching")];
+      const ideas = [
+        makeIdea(
+          "Shared Idea",
+          "Exact same idea in both sessions with identical text content for matching"
+        ),
+      ];
       const sessionA = makeSession("a", ideas);
       const sessionB = makeSession("b", ideas);
 
@@ -205,10 +217,16 @@ describe("diff-merge", () => {
 
     it("respects custom overlapThreshold", async () => {
       const sessionA = makeSession("a", [
-        makeIdea("Machine Learning Prediction", "Using ML algorithms for prediction models in healthcare"),
+        makeIdea(
+          "Machine Learning Prediction",
+          "Using ML algorithms for prediction models in healthcare"
+        ),
       ]);
       const sessionB = makeSession("b", [
-        makeIdea("Deep Learning Prediction", "Using deep neural networks for prediction models in healthcare"),
+        makeIdea(
+          "Deep Learning Prediction",
+          "Using deep neural networks for prediction models in healthcare"
+        ),
       ]);
 
       // Very low threshold = more overlap detection = ideas merged as overlap
@@ -248,10 +266,16 @@ describe("diff-merge", () => {
 
     it("detects overlaps for similar ideas", async () => {
       const sessionA = makeSession("a", [
-        makeIdea("Blockchain Supply Chain", "Using blockchain technology for supply chain transparency and tracking"),
+        makeIdea(
+          "Blockchain Supply Chain",
+          "Using blockchain technology for supply chain transparency and tracking"
+        ),
       ]);
       const sessionB = makeSession("b", [
-        makeIdea("Blockchain Logistics Tracking", "Blockchain technology applied to logistics supply chain management and tracking"),
+        makeIdea(
+          "Blockchain Logistics Tracking",
+          "Blockchain technology applied to logistics supply chain management and tracking"
+        ),
       ]);
 
       const report = await runSemanticDiff(sessionA, sessionB);

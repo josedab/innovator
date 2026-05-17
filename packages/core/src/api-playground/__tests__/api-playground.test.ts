@@ -209,7 +209,7 @@ describe("api-playground", () => {
       const result = validateRequest("POST", "/api/investigate", {
         subject: "AI innovation",
       });
-      // validateRequest signature: (endpointPath, method, body) 
+      // validateRequest signature: (endpointPath, method, body)
       // but let's match actual signature
     });
 

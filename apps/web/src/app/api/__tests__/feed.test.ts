@@ -83,9 +83,7 @@ async function GET_RSS(request: Request) {
     const angle = url.searchParams.get("angle") ?? undefined;
     const since = url.searchParams.get("since") ?? undefined;
     const limitParam = url.searchParams.get("limit");
-    const limit = limitParam
-      ? Math.min(Math.max(parseInt(limitParam, 10) || 20, 1), 100)
-      : 20;
+    const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 20, 1), 100) : 20;
 
     let sessions: (typeof MOCK_SESSION)[];
     if (angle || since) {
@@ -149,9 +147,7 @@ async function GET_ATOM(request: Request) {
     const angle = url.searchParams.get("angle") ?? undefined;
     const since = url.searchParams.get("since") ?? undefined;
     const limitParam = url.searchParams.get("limit");
-    const limit = limitParam
-      ? Math.min(Math.max(parseInt(limitParam, 10) || 20, 1), 100)
-      : 20;
+    const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 20, 1), 100) : 20;
 
     let sessions: (typeof MOCK_SESSION)[];
     if (angle || since) {
@@ -272,9 +268,7 @@ describe("GET /api/feed/rss", () => {
     const body = await res.text();
 
     expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Type")).toBe(
-      "application/rss+xml; charset=utf-8"
-    );
+    expect(res.headers.get("Content-Type")).toBe("application/rss+xml; charset=utf-8");
     expect(body).toContain('<?xml version="1.0"');
     expect(body).toContain("<rss version=");
   });
@@ -307,9 +301,7 @@ describe("GET /api/feed/rss", () => {
     }));
     mockListSessions.mockReturnValue(sessions as any);
 
-    const res = await GET_RSS(
-      new Request("http://localhost/api/feed/rss?limit=5")
-    );
+    const res = await GET_RSS(new Request("http://localhost/api/feed/rss?limit=5"));
     const body = await res.text();
 
     const itemCount = (body.match(/<item>/g) || []).length;
@@ -329,9 +321,7 @@ describe("GET /api/feed/atom", () => {
     const body = await res.text();
 
     expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Type")).toBe(
-      "application/atom+xml; charset=utf-8"
-    );
+    expect(res.headers.get("Content-Type")).toBe("application/atom+xml; charset=utf-8");
     expect(body).toContain('<?xml version="1.0"');
     expect(body).toContain("<feed xmlns=");
   });
@@ -356,9 +346,7 @@ describe("GET /api/feed/opml", () => {
     const body = await res.text();
 
     expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Type")).toBe(
-      "text/x-opml; charset=utf-8"
-    );
+    expect(res.headers.get("Content-Type")).toBe("text/x-opml; charset=utf-8");
     expect(body).toContain('<?xml version="1.0"');
     expect(body).toContain('<opml version="2.0">');
     expect(body).toContain('text="All Sessions"');

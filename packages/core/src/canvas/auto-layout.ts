@@ -139,7 +139,10 @@ export function hierarchicalLayout(nodes: CanvasNode[], edges: CanvasEdge[]): Ca
   const roots = laidOutNodes
     .filter((node) => (incoming.get(node.id) ?? 0) === 0)
     .sort((a, b) => a.title.localeCompare(b.title));
-  const queue = (roots.length > 0 ? roots : [laidOutNodes[0]]).map((node) => ({ id: node.id, level: 0 }));
+  const queue = (roots.length > 0 ? roots : [laidOutNodes[0]]).map((node) => ({
+    id: node.id,
+    level: 0,
+  }));
   const levels = new Map<string, number>();
 
   while (queue.length > 0) {
@@ -196,7 +199,9 @@ export function forceDirectedLayout(nodes: CanvasNode[], edges: CanvasEdge[]): C
   if (nodes.length <= 1) return nodes.map(cloneNode);
 
   let laidOutNodes = nodes.map(cloneNode);
-  const uniquePositions = new Set(laidOutNodes.map((node) => `${node.position.x}:${node.position.y}`));
+  const uniquePositions = new Set(
+    laidOutNodes.map((node) => `${node.position.x}:${node.position.y}`)
+  );
   if (uniquePositions.size <= 1) {
     laidOutNodes = gridLayout(laidOutNodes);
   }

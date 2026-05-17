@@ -6,7 +6,6 @@
  * cases covering landmark innovations from iPhone to Zoom.
  */
 
-import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
@@ -23,7 +22,6 @@ import type {
   AccuracyMetrics,
   CalibrationAdjustment,
   CalibrationReport,
-  BacktestProgress,
 } from "./types.js";
 import { PipelineReplayResultSchema } from "./types.js";
 

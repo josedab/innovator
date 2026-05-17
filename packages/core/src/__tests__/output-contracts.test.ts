@@ -60,10 +60,14 @@ describe("output-contracts", () => {
 
   describe("validateAgainstContract", () => {
     it("validates conforming data", () => {
-      registerContract("item", "Item", z.object({
-        title: z.string(),
-        priority: z.number().min(1).max(5),
-      }));
+      registerContract(
+        "item",
+        "Item",
+        z.object({
+          title: z.string(),
+          priority: z.number().min(1).max(5),
+        })
+      );
 
       const result = validateAgainstContract("item", { title: "Test", priority: 3 });
       expect(result.valid).toBe(true);
@@ -72,10 +76,14 @@ describe("output-contracts", () => {
     });
 
     it("rejects non-conforming data", () => {
-      registerContract("strict", "Strict", z.object({
-        name: z.string().min(1),
-        count: z.number(),
-      }));
+      registerContract(
+        "strict",
+        "Strict",
+        z.object({
+          name: z.string().min(1),
+          count: z.number(),
+        })
+      );
 
       const result = validateAgainstContract("strict", { name: "", count: "not-a-number" });
       expect(result.valid).toBe(false);
@@ -91,10 +99,14 @@ describe("output-contracts", () => {
 
   describe("transformToContract", () => {
     it("transforms data using field mappings", () => {
-      registerContract("output", "Output", z.object({
-        summary: z.string(),
-        count: z.number(),
-      }));
+      registerContract(
+        "output",
+        "Output",
+        z.object({
+          summary: z.string(),
+          count: z.number(),
+        })
+      );
 
       const source = {
         title: "My Idea",
@@ -111,10 +123,14 @@ describe("output-contracts", () => {
     });
 
     it("applies default values for missing fields", () => {
-      registerContract("with-defaults", "Defaults", z.object({
-        name: z.string(),
-        status: z.string(),
-      }));
+      registerContract(
+        "with-defaults",
+        "Defaults",
+        z.object({
+          name: z.string(),
+          status: z.string(),
+        })
+      );
 
       const result = transformToContract("with-defaults", { title: "Test" }, [
         { sourcePath: "title", targetPath: "name" },
@@ -137,14 +153,19 @@ describe("output-contracts", () => {
     });
 
     it("uses stored transform config", () => {
-      registerContract("stored", "Stored", z.object({
-        summary: z.string(),
-      }), {
-        transformConfig: {
-          contractId: "stored",
-          mappings: [{ sourcePath: "title", targetPath: "summary" }],
-        },
-      });
+      registerContract(
+        "stored",
+        "Stored",
+        z.object({
+          summary: z.string(),
+        }),
+        {
+          transformConfig: {
+            contractId: "stored",
+            mappings: [{ sourcePath: "title", targetPath: "summary" }],
+          },
+        }
+      );
 
       const result = transformToContract("stored", { title: "Test Title" });
       expect(result.valid).toBe(true);
@@ -221,9 +242,13 @@ describe("output-contracts", () => {
     });
 
     it("sets deeply nested target path", () => {
-      registerContract("deep-target", "DeepTarget", z.object({
-        outer: z.object({ inner: z.object({ val: z.string() }) }),
-      }));
+      registerContract(
+        "deep-target",
+        "DeepTarget",
+        z.object({
+          outer: z.object({ inner: z.object({ val: z.string() }) }),
+        })
+      );
       const result = transformToContract("deep-target", { name: "test" }, [
         { sourcePath: "name", targetPath: "outer.inner.val" },
       ]);
@@ -245,10 +270,14 @@ describe("output-contracts", () => {
 
   describe("validateAgainstContract — error paths", () => {
     it("reports field-level error paths", () => {
-      registerContract("err-path", "ErrPath", z.object({
-        name: z.string(),
-        nested: z.object({ count: z.number() }),
-      }));
+      registerContract(
+        "err-path",
+        "ErrPath",
+        z.object({
+          name: z.string(),
+          nested: z.object({ count: z.number() }),
+        })
+      );
       const result = validateAgainstContract("err-path", { name: 123, nested: { count: "bad" } });
       expect(result.valid).toBe(false);
       expect(result.errors.some((e) => e.path === "name")).toBe(true);

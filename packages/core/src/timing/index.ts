@@ -16,7 +16,15 @@ import { sanitizeLlmOutput, wrapUserInput } from "../prompts/sanitize.js";
 
 /** Timing signal source. */
 export const TimingSignalSchema = z.object({
-  source: z.enum(["hype-cycle", "google-trends", "competitive-density", "regulatory", "funding", "adoption-rate", "patent-filings"]),
+  source: z.enum([
+    "hype-cycle",
+    "google-trends",
+    "competitive-density",
+    "regulatory",
+    "funding",
+    "adoption-rate",
+    "patent-filings",
+  ]),
   signalName: z.string().max(200),
   value: z.number(),
   trend: z.enum(["rising", "stable", "declining", "volatile"]),
@@ -25,7 +33,12 @@ export const TimingSignalSchema = z.object({
 });
 
 /** Timing classification for an idea. */
-export const TimingClassificationSchema = z.enum(["too-early", "right-time", "peak-window", "late-entry"]);
+export const TimingClassificationSchema = z.enum([
+  "too-early",
+  "right-time",
+  "peak-window",
+  "late-entry",
+]);
 
 /** Timing analysis for a single idea. */
 export const IdeaTimingSchema = z.object({
@@ -81,9 +94,12 @@ export async function analyzeTimings(
     throw new Error("No ideas to analyze timing for");
   }
 
-  const ideasList = ideaTitles.map((idea, i) =>
-    `${i + 1}. "${sanitizeLlmOutput(idea.title)}": ${sanitizeLlmOutput(idea.description)}`
-  ).join("\n");
+  const ideasList = ideaTitles
+    .map(
+      (idea, i) =>
+        `${i + 1}. "${sanitizeLlmOutput(idea.title)}": ${sanitizeLlmOutput(idea.description)}`
+    )
+    .join("\n");
 
   const prompt = `You are a market timing strategist analyzing the optimal execution window for innovation ideas.
 
@@ -144,14 +160,19 @@ Return valid JSON only:
         throw new Error(`Failed to parse timing analysis: ${jsonStr.slice(0, 200)}`);
       }
     },
-    { signal, isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse") }
+    {
+      signal,
+      isRetryable: (err) => err instanceof Error && err.message.includes("Failed to parse"),
+    }
   );
 
-  const rawResult = z.object({
-    ideas: z.array(IdeaTimingSchema).max(50),
-    marketMaturityStage: z.enum(["emerging", "growing", "mature", "declining"]),
-    overallTimingAdvice: z.string().max(2000),
-  }).parse(parsed);
+  const rawResult = z
+    .object({
+      ideas: z.array(IdeaTimingSchema).max(50),
+      marketMaturityStage: z.enum(["emerging", "growing", "mature", "declining"]),
+      overallTimingAdvice: z.string().max(2000),
+    })
+    .parse(parsed);
 
   const result: TimingAnalysis = {
     subject,
@@ -181,9 +202,9 @@ export function listTimingAnalyses(): TimingAnalysis[] {
  * Get ideas that are in the "peak-window" or "right-time" classification.
  */
 export function getActionableIdeas(analysis: TimingAnalysis): IdeaTiming[] {
-  return analysis.ideas.filter(
-    (i) => i.classification === "right-time" || i.classification === "peak-window"
-  ).sort((a, b) => b.urgencyScore - a.urgencyScore);
+  return analysis.ideas
+    .filter((i) => i.classification === "right-time" || i.classification === "peak-window")
+    .sort((a, b) => b.urgencyScore - a.urgencyScore);
 }
 
 /**
@@ -219,12 +240,16 @@ export function timingToMarkdown(analysis: TimingAnalysis): string {
   lines.push("");
   for (const idea of analysis.ideas) {
     lines.push(`### ${idea.ideaTitle}`);
-    lines.push(`**Classification:** ${classificationEmoji[idea.classification] ?? ""} ${idea.classification}`);
+    lines.push(
+      `**Classification:** ${classificationEmoji[idea.classification] ?? ""} ${idea.classification}`
+    );
     lines.push(`**Rationale:** ${idea.rationale}`);
     if (idea.signals.length > 0) {
       lines.push("**Key Signals:**");
       for (const s of idea.signals.slice(0, 3)) {
-        lines.push(`- ${s.signalName} (${s.source}): ${s.trend}, confidence ${(s.confidence * 100).toFixed(0)}%`);
+        lines.push(
+          `- ${s.signalName} (${s.source}): ${s.trend}, confidence ${(s.confidence * 100).toFixed(0)}%`
+        );
       }
     }
     lines.push("");

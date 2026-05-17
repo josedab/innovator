@@ -7,13 +7,7 @@
  */
 
 import { useState, useCallback, useRef, type MouseEvent, type WheelEvent } from "react";
-import type {
-  CanvasNode,
-  CanvasEdge,
-  CanvasCluster,
-  CanvasAnnotation,
-  InnovationCanvas as CanvasData,
-} from "@innovator/core/types";
+import type { CanvasNode, InnovationCanvas as CanvasData } from "@innovator/core/types";
 
 interface InnovationCanvasProps {
   canvas: CanvasData;
@@ -23,7 +17,7 @@ interface InnovationCanvasProps {
   readOnly?: boolean;
 }
 
-const ANGLE_COLORS: Record<string, string> = {
+const _ANGLE_COLORS: Record<string, string> = {
   scamper: "#3b82f6",
   "first-principles": "#ef4444",
   "cross-domain": "#22c55e",
@@ -37,8 +31,8 @@ const ANGLE_COLORS: Record<string, string> = {
 export default function InnovationCanvas({
   canvas,
   onNodeMove,
-  onEdgeAdd,
-  onAnnotationAdd,
+  onEdgeAdd: _onEdgeAdd,
+  onAnnotationAdd: _onAnnotationAdd,
   readOnly = false,
 }: InnovationCanvasProps) {
   const [viewport, setViewport] = useState(canvas.viewport);

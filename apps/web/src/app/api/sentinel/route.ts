@@ -13,10 +13,6 @@ import {
 import {
   createAutomationRule,
   listAutomationRules,
-  toggleAutomationRule,
-  deleteAutomationRule,
-  processSignalAgainstRules,
-  getPendingApprovals,
   batchReviewApprovals,
   computeSentinelPerformance,
   getBatchReviewItems,

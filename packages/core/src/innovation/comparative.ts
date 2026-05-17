@@ -2,12 +2,9 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { LlmParseError, ValidationError } from "../errors.js";
-import { buildSynthesisPrompt } from "../prompts/investigation.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
-import { wrapUserInput, sanitizeUserInput } from "../prompts/sanitize.js";
+import { sanitizeUserInput } from "../prompts/sanitize.js";
 import {
-  SynthesisSchema,
-  type AngleId,
   type AngleResult,
   type Investigation,
   type PipelineProgress,
@@ -251,7 +248,7 @@ export async function runComparativePipeline(
     );
 
     progress.comparativeSynthesis = ComparativeSynthesisSchema.parse(parsed);
-  } catch (err) {
+  } catch {
     progress.stage = "error";
     progress.error = "Comparative synthesis failed. Please try again.";
     onProgress({ ...progress });

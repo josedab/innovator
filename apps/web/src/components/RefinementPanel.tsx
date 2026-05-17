@@ -61,7 +61,7 @@ const TIER_CONFIG = {
 
 export default function RefinementPanel({
   ideas,
-  onComplete,
+  onComplete: _onComplete,
 }: {
   ideas: Array<{ id: string; title: string; description: string }>;
   onComplete?: (session: RefinementSession) => void;

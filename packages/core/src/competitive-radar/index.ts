@@ -117,13 +117,7 @@ export const RadarQuadrantSchema = z.object({
 export type RadarQuadrant = z.infer<typeof RadarQuadrantSchema>;
 
 /** Alert types for significant competitor moves. */
-export const AlertTypeSchema = z.enum([
-  "new-feature",
-  "pivot",
-  "acquisition",
-  "hire",
-  "patent",
-]);
+export const AlertTypeSchema = z.enum(["new-feature", "pivot", "acquisition", "hire", "patent"]);
 export type AlertType = z.infer<typeof AlertTypeSchema>;
 
 /** Severity levels for alerts. */
@@ -225,9 +219,7 @@ export async function runGapAnalysis(
     throw new Error(`Competitor "${competitorId}" not found`);
   }
 
-  const allCapabilities = Array.from(
-    new Set([...ourCapabilities, ...competitor.capabilities])
-  );
+  const allCapabilities = Array.from(new Set([...ourCapabilities, ...competitor.capabilities]));
 
   const prompt = `You are a competitive intelligence analyst performing a gap analysis.
 
@@ -258,9 +250,7 @@ Respond with JSON:
   "summary": "brief overall analysis"
 }`;
 
-  const raw = await withRetry(() =>
-    generateText({ prompt, model })
-  );
+  const raw = await withRetry(() => generateText({ prompt, model }));
 
   const parsed = (() => {
     try {
@@ -327,8 +317,12 @@ export function gapReportToMarkdown(report: GapAnalysisReport): string {
   if (report.gaps.length > 0) {
     lines.push(`## Capability Gaps`);
     lines.push("");
-    lines.push("| Capability | Our Status | Competitor Status | Opportunity | Market Demand | Recommendation |");
-    lines.push("|------------|-----------|-------------------|-------------|---------------|----------------|");
+    lines.push(
+      "| Capability | Our Status | Competitor Status | Opportunity | Market Demand | Recommendation |"
+    );
+    lines.push(
+      "|------------|-----------|-------------------|-------------|---------------|----------------|"
+    );
     report.gaps.forEach((g) => {
       lines.push(
         `| ${g.capability} | ${g.ourStatus} | ${g.competitorStatus} | ${g.opportunityScore} | ${g.marketDemand} | ${g.recommendation} |`
@@ -394,9 +388,7 @@ Respond with JSON:
   "trendAnalysis": "overall trend summary"
 }`;
 
-  const raw = await withRetry(() =>
-    generateText({ prompt, model: options?.model })
-  );
+  const raw = await withRetry(() => generateText({ prompt, model: options?.model }));
 
   const parsed = (() => {
     try {
@@ -469,9 +461,7 @@ Respond with JSON:
   ]
 }`;
 
-  const raw = await withRetry(() =>
-    generateText({ prompt, model: options?.model })
-  );
+  const raw = await withRetry(() => generateText({ prompt, model: options?.model }));
 
   const parsed = (() => {
     try {
@@ -549,8 +539,17 @@ export function radarDashboardToMarkdown(dashboard: RadarDashboard): string {
     lines.push("## Active Alerts");
     lines.push("");
     for (const alert of dashboard.alerts) {
-      const icon = alert.severity === "critical" ? "🔴" : alert.severity === "high" ? "🟠" : alert.severity === "medium" ? "🟡" : "🟢";
-      lines.push(`- ${icon} **[${alert.type}]** ${alert.title} — ${alert.competitor} (${alert.severity})${alert.actionRequired ? " ⚠️ Action Required" : ""}`);
+      const icon =
+        alert.severity === "critical"
+          ? "🔴"
+          : alert.severity === "high"
+            ? "🟠"
+            : alert.severity === "medium"
+              ? "🟡"
+              : "🟢";
+      lines.push(
+        `- ${icon} **[${alert.type}]** ${alert.title} — ${alert.competitor} (${alert.severity})${alert.actionRequired ? " ⚠️ Action Required" : ""}`
+      );
     }
     lines.push("");
   }
@@ -592,16 +591,16 @@ ${recentEvents
   .join("\n")}
 
 ACTIVE ALERTS:
-${alerts
-  .slice(-5)
-  .map((a) => `- [${a.type}] ${a.competitor}: ${a.title}`)
-  .join("\n") || "None"}
+${
+  alerts
+    .slice(-5)
+    .map((a) => `- [${a.type}] ${a.competitor}: ${a.title}`)
+    .join("\n") || "None"
+}
 
 Produce a concise 2-4 paragraph competitive context summary relevant to the subject. Focus only on information directly relevant to the subject being investigated.`;
 
-  const raw = await withRetry(() =>
-    generateText({ prompt, model: options?.model })
-  );
+  const raw = await withRetry(() => generateText({ prompt, model: options?.model }));
 
   return raw.trim();
 }

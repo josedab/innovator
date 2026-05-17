@@ -88,26 +88,140 @@ export type LevelDefinition = z.infer<typeof LevelDefinitionSchema>;
 /** The innovation skill tree. */
 export const SKILL_TREE: SkillNode[] = [
   // Tier 1 — Beginner
-  { id: "first-investigation", name: "First Steps", description: "Complete your first investigation", category: "exploration", icon: "🌱", xpRequired: 0, tier: 1, prerequisites: [] },
-  { id: "scamper-basics", name: "SCAMPER Novice", description: "Use the SCAMPER angle", category: "frameworks", icon: "🔧", xpRequired: 50, tier: 1, prerequisites: ["first-investigation"] },
-  { id: "first-principles-basics", name: "Principled Thinker", description: "Use first-principles angle", category: "frameworks", icon: "🧱", xpRequired: 50, tier: 1, prerequisites: ["first-investigation"] },
+  {
+    id: "first-investigation",
+    name: "First Steps",
+    description: "Complete your first investigation",
+    category: "exploration",
+    icon: "🌱",
+    xpRequired: 0,
+    tier: 1,
+    prerequisites: [],
+  },
+  {
+    id: "scamper-basics",
+    name: "SCAMPER Novice",
+    description: "Use the SCAMPER angle",
+    category: "frameworks",
+    icon: "🔧",
+    xpRequired: 50,
+    tier: 1,
+    prerequisites: ["first-investigation"],
+  },
+  {
+    id: "first-principles-basics",
+    name: "Principled Thinker",
+    description: "Use first-principles angle",
+    category: "frameworks",
+    icon: "🧱",
+    xpRequired: 50,
+    tier: 1,
+    prerequisites: ["first-investigation"],
+  },
 
   // Tier 2 — Intermediate
-  { id: "multi-angle", name: "Multi-Angle Explorer", description: "Use 4+ angles in one session", category: "exploration", icon: "🔀", xpRequired: 200, tier: 2, prerequisites: ["scamper-basics", "first-principles-basics"] },
-  { id: "idea-scorer", name: "Critical Evaluator", description: "Score 20 ideas", category: "analysis", icon: "📊", xpRequired: 300, tier: 2, prerequisites: ["first-investigation"], unlocksFeature: "advanced-scoring" },
-  { id: "collaborator", name: "Team Innovator", description: "Join 3 collaborative sessions", category: "collaboration", icon: "🤝", xpRequired: 250, tier: 2, prerequisites: ["first-investigation"], unlocksFeature: "create-sessions" },
+  {
+    id: "multi-angle",
+    name: "Multi-Angle Explorer",
+    description: "Use 4+ angles in one session",
+    category: "exploration",
+    icon: "🔀",
+    xpRequired: 200,
+    tier: 2,
+    prerequisites: ["scamper-basics", "first-principles-basics"],
+  },
+  {
+    id: "idea-scorer",
+    name: "Critical Evaluator",
+    description: "Score 20 ideas",
+    category: "analysis",
+    icon: "📊",
+    xpRequired: 300,
+    tier: 2,
+    prerequisites: ["first-investigation"],
+    unlocksFeature: "advanced-scoring",
+  },
+  {
+    id: "collaborator",
+    name: "Team Innovator",
+    description: "Join 3 collaborative sessions",
+    category: "collaboration",
+    icon: "🤝",
+    xpRequired: 250,
+    tier: 2,
+    prerequisites: ["first-investigation"],
+    unlocksFeature: "create-sessions",
+  },
 
   // Tier 3 — Advanced
-  { id: "all-angles", name: "Full Spectrum", description: "Use all 8 angles", category: "exploration", icon: "🌈", xpRequired: 500, tier: 3, prerequisites: ["multi-angle"], unlocksFeature: "custom-angles" },
-  { id: "deep-researcher", name: "Deep Diver", description: "Complete 5 deep research sessions", category: "analysis", icon: "🤿", xpRequired: 600, tier: 3, prerequisites: ["idea-scorer"], unlocksFeature: "deep-research" },
-  { id: "synthesis-master", name: "Synthesis Master", description: "Generate 10 synthesis reports", category: "synthesis", icon: "🧬", xpRequired: 500, tier: 3, prerequisites: ["multi-angle"] },
+  {
+    id: "all-angles",
+    name: "Full Spectrum",
+    description: "Use all 8 angles",
+    category: "exploration",
+    icon: "🌈",
+    xpRequired: 500,
+    tier: 3,
+    prerequisites: ["multi-angle"],
+    unlocksFeature: "custom-angles",
+  },
+  {
+    id: "deep-researcher",
+    name: "Deep Diver",
+    description: "Complete 5 deep research sessions",
+    category: "analysis",
+    icon: "🤿",
+    xpRequired: 600,
+    tier: 3,
+    prerequisites: ["idea-scorer"],
+    unlocksFeature: "deep-research",
+  },
+  {
+    id: "synthesis-master",
+    name: "Synthesis Master",
+    description: "Generate 10 synthesis reports",
+    category: "synthesis",
+    icon: "🧬",
+    xpRequired: 500,
+    tier: 3,
+    prerequisites: ["multi-angle"],
+  },
 
   // Tier 4 — Expert
-  { id: "framework-master", name: "Framework Master", description: "Master all innovation frameworks", category: "mastery", icon: "🏆", xpRequired: 1000, tier: 4, prerequisites: ["all-angles", "synthesis-master"], unlocksFeature: "angle-studio" },
-  { id: "mentor", name: "Innovation Mentor", description: "Help 5 users in collaborative sessions", category: "collaboration", icon: "🎓", xpRequired: 800, tier: 4, prerequisites: ["collaborator"] },
+  {
+    id: "framework-master",
+    name: "Framework Master",
+    description: "Master all innovation frameworks",
+    category: "mastery",
+    icon: "🏆",
+    xpRequired: 1000,
+    tier: 4,
+    prerequisites: ["all-angles", "synthesis-master"],
+    unlocksFeature: "angle-studio",
+  },
+  {
+    id: "mentor",
+    name: "Innovation Mentor",
+    description: "Help 5 users in collaborative sessions",
+    category: "collaboration",
+    icon: "🎓",
+    xpRequired: 800,
+    tier: 4,
+    prerequisites: ["collaborator"],
+  },
 
   // Tier 5 — Grandmaster
-  { id: "grandmaster", name: "Innovation Grandmaster", description: "Reach the pinnacle of innovation mastery", category: "mastery", icon: "👑", xpRequired: 2000, tier: 5, prerequisites: ["framework-master", "mentor"], unlocksFeature: "all-features" },
+  {
+    id: "grandmaster",
+    name: "Innovation Grandmaster",
+    description: "Reach the pinnacle of innovation mastery",
+    category: "mastery",
+    icon: "👑",
+    xpRequired: 2000,
+    tier: 5,
+    prerequisites: ["framework-master", "mentor"],
+    unlocksFeature: "all-features",
+  },
 ];
 
 /** Level progression definitions. */
@@ -117,7 +231,12 @@ export const LEVELS: LevelDefinition[] = [
   { level: 3, title: "Rising Innovator", xpRequired: 300, perks: ["Export features"] },
   { level: 4, title: "Skilled Innovator", xpRequired: 600, perks: ["Custom angles"] },
   { level: 5, title: "Expert Innovator", xpRequired: 1000, perks: ["Deep research", "Scoring"] },
-  { level: 6, title: "Master Innovator", xpRequired: 1500, perks: ["Angle studio", "Collaboration"] },
+  {
+    level: 6,
+    title: "Master Innovator",
+    xpRequired: 1500,
+    perks: ["Angle studio", "Collaboration"],
+  },
   { level: 7, title: "Elite Innovator", xpRequired: 2000, perks: ["All features"] },
   { level: 8, title: "Legend", xpRequired: 3000, perks: ["Community leadership"] },
   { level: 9, title: "Visionary", xpRequired: 5000, perks: ["Beta features"] },
@@ -128,16 +247,16 @@ export const LEVELS: LevelDefinition[] = [
 
 /** XP awards per activity type. */
 export const XP_REWARDS: Record<XPEvent["source"], number> = {
-  "investigation": 20,
+  investigation: 20,
   "angle-generation": 10,
-  "synthesis": 30,
+  synthesis: 30,
   "high-score-idea": 50,
-  "streak": 25,
+  streak: 25,
   "challenge-complete": 40,
-  "collaboration": 15,
+  collaboration: 15,
   "deep-research": 60,
-  "export": 5,
-  "feedback": 10,
+  export: 5,
+  feedback: 10,
 };
 
 // ---- In-Memory Store ----
@@ -226,21 +345,22 @@ export function hasSkill(userId: string, skillId: string): boolean {
 export function isFeatureUnlocked(userId: string, featureId: string): boolean {
   const progress = getOrCreateProgress(userId);
   return SKILL_TREE.some(
-    (skill) =>
-      skill.unlocksFeature === featureId &&
-      progress.unlockedSkills.includes(skill.id)
+    (skill) => skill.unlocksFeature === featureId && progress.unlockedSkills.includes(skill.id)
   );
 }
 
 /**
  * Get the full skill tree with user progress overlaid.
  */
-export function getSkillTreeWithProgress(userId: string): Array<SkillNode & { unlocked: boolean; available: boolean }> {
+export function getSkillTreeWithProgress(
+  userId: string
+): Array<SkillNode & { unlocked: boolean; available: boolean }> {
   const progress = getOrCreateProgress(userId);
   return SKILL_TREE.map((skill) => ({
     ...skill,
     unlocked: progress.unlockedSkills.includes(skill.id),
-    available: skill.prerequisites.every((p) => progress.unlockedSkills.includes(p)) &&
+    available:
+      skill.prerequisites.every((p) => progress.unlockedSkills.includes(p)) &&
       progress.totalXP >= skill.xpRequired,
   }));
 }
@@ -270,7 +390,9 @@ export function getXPHistory(userId: string, limit?: number): XPEvent[] {
 /**
  * Get leaderboard based on XP.
  */
-export function getXPLeaderboard(limit: number = 10): Array<{ userId: string; totalXP: number; level: number; levelTitle: string }> {
+export function getXPLeaderboard(
+  limit: number = 10
+): Array<{ userId: string; totalXP: number; level: number; levelTitle: string }> {
   return Array.from(userProgress.values())
     .sort((a, b) => b.totalXP - a.totalXP)
     .slice(0, limit)
@@ -329,16 +451,16 @@ function checkSkillUnlocks(progress: UserSkillProgress): void {
 
 function sourceToCategory(source: XPEvent["source"]): string {
   const mapping: Record<string, string> = {
-    "investigation": "exploration",
+    investigation: "exploration",
     "angle-generation": "frameworks",
-    "synthesis": "synthesis",
+    synthesis: "synthesis",
     "high-score-idea": "analysis",
-    "streak": "mastery",
+    streak: "mastery",
     "challenge-complete": "mastery",
-    "collaboration": "collaboration",
+    collaboration: "collaboration",
     "deep-research": "analysis",
-    "export": "mastery",
-    "feedback": "collaboration",
+    export: "mastery",
+    feedback: "collaboration",
   };
   return mapping[source] ?? "mastery";
 }

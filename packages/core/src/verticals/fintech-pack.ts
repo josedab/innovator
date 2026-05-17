@@ -190,29 +190,37 @@ export const FINTECH_PACK: ExtendedVerticalPack = {
     SCA: "Strong Customer Authentication — PSD2 requirement for two-factor authentication in payments",
     PCI: "Payment Card Industry — standards body governing payment card data security",
     SOX: "Sarbanes-Oxley Act — US law mandating financial reporting controls for public companies",
-    "Basel III": "International regulatory framework for bank capital adequacy, stress testing, and liquidity",
+    "Basel III":
+      "International regulatory framework for bank capital adequacy, stress testing, and liquidity",
     SAR: "Suspicious Activity Report — report filed with FinCEN for potentially suspicious transactions",
     CTR: "Currency Transaction Report — report required for cash transactions exceeding $10,000",
-    SWIFT: "Society for Worldwide Interbank Financial Telecommunication — global financial messaging network",
-    ISO20022: "International standard for electronic data interchange between financial institutions",
+    SWIFT:
+      "Society for Worldwide Interbank Financial Telecommunication — global financial messaging network",
+    ISO20022:
+      "International standard for electronic data interchange between financial institutions",
     ACH: "Automated Clearing House — US electronic funds transfer network for batch payments",
     RTP: "Real-Time Payments — instant payment systems enabling immediate fund transfers",
     FedNow: "Federal Reserve instant payment service for real-time gross settlement",
-    "Open Banking": "Framework allowing third-party access to banking data via APIs with customer consent",
-    "Embedded Finance": "Integration of financial services into non-financial platforms and customer journeys",
+    "Open Banking":
+      "Framework allowing third-party access to banking data via APIs with customer consent",
+    "Embedded Finance":
+      "Integration of financial services into non-financial platforms and customer journeys",
     RegTech: "Regulatory Technology — technology solutions for regulatory compliance automation",
-    SupTech: "Supervisory Technology — technology used by regulators for market oversight and monitoring",
+    SupTech:
+      "Supervisory Technology — technology used by regulators for market oversight and monitoring",
     CDD: "Customer Due Diligence — process of verifying customer identity and assessing risk",
     EDD: "Enhanced Due Diligence — additional verification for higher-risk customers and transactions",
     PEP: "Politically Exposed Person — individual with prominent public function requiring enhanced scrutiny",
     MiCA: "Markets in Crypto-Assets — EU regulation for cryptocurrency and digital asset markets",
     CBDC: "Central Bank Digital Currency — digital form of a country's fiat currency issued by central bank",
-    "Tokenization": "Process of replacing sensitive data with non-sensitive placeholder tokens",
+    Tokenization: "Process of replacing sensitive data with non-sensitive placeholder tokens",
     "A2A Payments": "Account-to-Account Payments — direct bank transfers bypassing card networks",
     LTV: "Loan-to-Value — ratio comparing loan amount to the appraised value of the asset",
     APR: "Annual Percentage Rate — annualized interest rate including fees and charges",
-    "Credit Scoring": "Statistical analysis of creditworthiness based on credit history and alternative data",
-    "Parametric Insurance": "Insurance that pays out based on predefined trigger events rather than actual losses",
+    "Credit Scoring":
+      "Statistical analysis of creditworthiness based on credit history and alternative data",
+    "Parametric Insurance":
+      "Insurance that pays out based on predefined trigger events rather than actual losses",
   },
 
   exampleSessions: [

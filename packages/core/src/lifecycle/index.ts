@@ -57,12 +57,14 @@ export const LifecycleIdeaSchema = z.object({
   assigneeId: z.string().max(200).optional(),
   assigneeName: z.string().max(200).optional(),
   priority: z.enum(["low", "medium", "high", "critical"]).default("medium"),
-  stageHistory: z.array(z.object({
-    from: LifecycleStageSchema,
-    to: LifecycleStageSchema,
-    timestamp: z.string(),
-    userId: z.string().max(200).optional(),
-  })),
+  stageHistory: z.array(
+    z.object({
+      from: LifecycleStageSchema,
+      to: LifecycleStageSchema,
+      timestamp: z.string(),
+      userId: z.string().max(200).optional(),
+    })
+  ),
   createdAt: z.string(),
   updatedAt: z.string(),
   staleAfterDays: z.number().default(14),
@@ -110,13 +112,55 @@ export const LIFECYCLE_STAGES: Array<{
   requiredEvidence: EvidenceType[];
   icon: string;
 }> = [
-  { id: "spark", name: "Spark", description: "Initial idea captured", requiredEvidence: [], icon: "✨" },
-  { id: "concept", name: "Concept", description: "Idea refined with market context", requiredEvidence: ["market-data"], icon: "💡" },
-  { id: "validated", name: "Validated", description: "Feasibility and user demand confirmed", requiredEvidence: ["user-research", "technical-feasibility"], icon: "✅" },
-  { id: "planned", name: "Planned", description: "Committed to roadmap with resources", requiredEvidence: ["financial-projection", "team-commitment"], icon: "📋" },
-  { id: "in-progress", name: "In Progress", description: "Actively being built", requiredEvidence: ["stakeholder-approval"], icon: "🚧" },
-  { id: "shipped", name: "Shipped", description: "Released to users", requiredEvidence: ["prototype"], icon: "🚀" },
-  { id: "measured", name: "Measured", description: "Impact measured and reported", requiredEvidence: ["metrics-report", "customer-feedback"], icon: "📊" },
+  {
+    id: "spark",
+    name: "Spark",
+    description: "Initial idea captured",
+    requiredEvidence: [],
+    icon: "✨",
+  },
+  {
+    id: "concept",
+    name: "Concept",
+    description: "Idea refined with market context",
+    requiredEvidence: ["market-data"],
+    icon: "💡",
+  },
+  {
+    id: "validated",
+    name: "Validated",
+    description: "Feasibility and user demand confirmed",
+    requiredEvidence: ["user-research", "technical-feasibility"],
+    icon: "✅",
+  },
+  {
+    id: "planned",
+    name: "Planned",
+    description: "Committed to roadmap with resources",
+    requiredEvidence: ["financial-projection", "team-commitment"],
+    icon: "📋",
+  },
+  {
+    id: "in-progress",
+    name: "In Progress",
+    description: "Actively being built",
+    requiredEvidence: ["stakeholder-approval"],
+    icon: "🚧",
+  },
+  {
+    id: "shipped",
+    name: "Shipped",
+    description: "Released to users",
+    requiredEvidence: ["prototype"],
+    icon: "🚀",
+  },
+  {
+    id: "measured",
+    name: "Measured",
+    description: "Impact measured and reported",
+    requiredEvidence: ["metrics-report", "customer-feedback"],
+    icon: "📊",
+  },
 ];
 
 // ---- In-Memory Store ----
@@ -270,7 +314,11 @@ export function getKanbanBoard(): KanbanBoard {
 
   for (const idea of allIdeas) {
     const daysSinceUpdate = (now - new Date(idea.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceUpdate > idea.staleAfterDays && idea.stage !== "measured" && idea.stage !== "shipped") {
+    if (
+      daysSinceUpdate > idea.staleAfterDays &&
+      idea.stage !== "measured" &&
+      idea.stage !== "shipped"
+    ) {
       staleCount++;
     }
   }

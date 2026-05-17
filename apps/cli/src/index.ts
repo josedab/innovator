@@ -23,7 +23,6 @@ import {
   getPresets,
   getPresetById,
   listSessions,
-  getSession,
   querySessions,
   deleteSession,
   updateSession,
@@ -31,18 +30,14 @@ import {
   exportToJson,
   generateGitHubIssueBody,
   scoreIdeas,
-  computePriorityScore,
   getQuadrant,
   rankIdeas,
   extractContent,
-  buildSubjectFromContent,
   runBenchmark,
   benchmarkToMarkdown,
   loadConfig,
   saveConfig,
-  initializeProviders,
   listProviders,
-  setActiveProvider,
   createConversation,
   refineConversation,
   validateIdeas,
@@ -51,18 +46,12 @@ import {
   runChain,
   getChainById,
   listChains,
-  DEFAULT_CHAINS,
   submitFeedback,
-  computeAngleScores,
   getFeedbackSummary,
   detectLanguage,
-  localizePrompt,
-  listLanguages,
   SupportedLanguageSchema,
-  detectOllama,
   getOfflineStatus,
   RECOMMENDED_MODELS,
-  DEPTH_CONFIGS,
   getDepthConfig,
   suggestDepth,
   DepthSchema,
@@ -89,19 +78,12 @@ import {
   computeReadinessScores,
   runWargaming,
   wargamingToMarkdown,
-  createRubric,
   getRubric,
   listRubrics,
-  scoreWithRubric,
   generateCostReport,
   costReportToMarkdown,
-  recordActivity,
-  analyzeTeamDNA,
-  teamDNAToMarkdown,
   mapSupplyChain,
   supplyChainToMarkdown,
-  optimizePortfolio,
-  portfolioOptimizationToMarkdown,
   analyzeTimings,
   timingToMarkdown,
   retrieveRelatedMemories,
@@ -109,41 +91,25 @@ import {
   orgDNAToMarkdown,
   getIdeaLineage,
   detectConvergence,
-  autoIndexSession,
   generateNLExecutionPlan,
   executeWithStreaming,
-  conversationToMarkdown,
-  ConversationSession,
-  addMonitorSource,
   listMonitorSources,
   generateMonitorDigest,
   monitorDigestToMarkdown,
   getMonitorState,
-  startMonitor,
-  stopMonitor,
   getRecentSignals,
-  trackImpactIdea,
-  listTrackedIdeas,
-  calculateImpactScore,
   rankByImpact,
   getInnovationFunnel,
   generateImpactDashboard,
   dashboardToMarkdown,
   listCompetitors,
-  addCompetitor,
   runGapAnalysis,
   gapReportToMarkdown,
   generateRadarDashboard,
   radarDashboardToMarkdown,
-  getAngleRecommendations,
   getPipelineRecommendation,
-  explainRecommendation,
-  generateMethodologyInsights,
-  insightsToMarkdown as methodologyInsightsToMarkdown,
-  listPersonas,
   generateStakeholderAssessment,
   assessmentToMarkdown,
-  // Innovation-as-Code
   createIaCSession,
   sessionFileName,
   diffSessions,
@@ -153,30 +119,21 @@ import {
   validateIaCSession,
   DEFAULT_CONFIG_YAML,
   DEFAULT_ANGLES_YAML,
-  // Autonomous Agent Manager
   startAgentRun,
   stopAgentRun,
   getAgentRun,
   listAgentRuns,
   exportRunPortfolio,
-  // Novelty Oracle
-  assessNovelty,
   generateNoveltyReport,
   noveltyReportToMarkdown,
-  addPriorArt,
-  clearPriorArt,
   enrichSynthesisWithNovelty,
-  // Genome Network
   createFederationNode,
-  extractPatterns,
   getNetworkDashboard,
-  gossipSync,
   computeGenomeAnalytics,
   genomeAnalyticsToMarkdown,
   generateGenomeInsights,
   enrichAngleSelection,
   listNodes,
-  // Digital Twin Monte Carlo
   runMonteCarloComparison,
   twinMonteCarloToMarkdown,
 } from "@innovator/core";
@@ -185,12 +142,9 @@ import type {
   AngleId,
   CustomAngle,
   ExportData,
-  IdeaScore,
-  InnovatorConfig,
   ValidationCheck,
   OutputMode,
   Depth,
-  AngleChain,
   Constraint,
 } from "@innovator/core";
 import { stripAnsi, validateSubject, validateModel, MAX_SUBJECT_LENGTH } from "./utils.js";
@@ -349,7 +303,7 @@ program
       const endTimer = timeStart("investigate");
 
       try {
-        const result = await investigate(subject, opts.model);
+        const result = await investigate(enrichedSubject, opts.model);
         endTimer();
         spinner.succeed("Investigation complete!\n");
         debugLog("RESPONSE", JSON.stringify(result, null, 2));
@@ -477,7 +431,7 @@ program
 
       try {
         const endInvestigate = timeStart("investigate");
-        const investigation = await investigate(subject, opts.model);
+        const investigation = await investigate(enrichedSubject, opts.model);
         endInvestigate();
         spinner.succeed("Investigation complete");
         debugLog("RESPONSE", "investigation", JSON.stringify(investigation, null, 2));
@@ -1216,7 +1170,7 @@ program
             }
           }
         }
-      } catch (err) {
+      } catch {
       } finally {
         commandCleanup = null;
         await stopCopilotClient();
@@ -1769,24 +1723,24 @@ program
     };
 
     let output: string;
-    let filename: string;
+    let _filename: string;
     switch (opts.format) {
       case "markdown": {
         const result = exportToMarkdown(data);
         output = result.content;
-        filename = result.filename;
+        _filename = result.filename;
         break;
       }
       case "json": {
         const result = exportToJson(data);
         output = result.content;
-        filename = result.filename;
+        _filename = result.filename;
         break;
       }
       case "github-issue": {
         const issue = generateGitHubIssueBody(data);
         output = `Title: ${issue.title}\nLabels: ${issue.labels.join(", ")}\n\n${issue.body}`;
-        filename = `issue-${session.subject
+        _filename = `issue-${session.subject
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .slice(0, 30)}.md`;
@@ -2795,7 +2749,11 @@ program
   .description("View innovation pipeline telemetry and metrics")
   /** Handler: display pipeline telemetry including spans, latency, and cost. */
   .action(async () => {
-    const { buildTelemetryDashboard, getSpans, getQualityTrends } = await import("@innovator/core");
+    const {
+      buildTelemetryDashboard,
+      getSpans: _getSpans,
+      getQualityTrends: _getQualityTrends,
+    } = await import("@innovator/core");
     const dashboard = buildTelemetryDashboard();
 
     console.log(chalk.bold.blue("\n📊 INNOVATION TELEMETRY\n"));
@@ -3467,7 +3425,7 @@ program
   /** Handler: reverse-engineer a product's innovation recipe. */
   .action(async (productDescription: string, opts: { model?: string }) => {
     if (opts.model && !validateModelWithLog(opts.model)) return;
-    const { analyzeProduct, recipeToMarkdown } = await import("@innovator/core");
+    const { analyzeProduct, recipeToMarkdown: _recipeToMarkdown } = await import("@innovator/core");
     const spinner = ora("Analyzing product...").start();
     try {
       const recipe = await analyzeProduct(productDescription, { model: opts.model });
@@ -3515,7 +3473,8 @@ program
       opts: { model?: string; monteCarlo?: boolean; iterations?: string }
     ) => {
       if (opts.model && !validateModelWithLog(opts.model)) return;
-      const { simulateDiffusion, diffusionToMarkdown } = await import("@innovator/core");
+      const { simulateDiffusion, diffusionToMarkdown: _diffusionToMarkdown } =
+        await import("@innovator/core");
       const spinner = ora("Simulating diffusion...").start();
       try {
         const result = await simulateDiffusion(

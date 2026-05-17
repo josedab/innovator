@@ -426,9 +426,7 @@ export function MultiModalInput({
                       <span className="text-xs text-neutral-400">Pending</span>
                     )}
                     {fileState.status === "processing" && (
-                      <span className="text-xs text-purple-500 animate-pulse">
-                        ⏳ Processing…
-                      </span>
+                      <span className="text-xs text-purple-500 animate-pulse">⏳ Processing…</span>
                     )}
                     {fileState.status === "completed" && (
                       <span className="text-xs text-green-600 dark:text-green-400">
@@ -436,9 +434,7 @@ export function MultiModalInput({
                       </span>
                     )}
                     {fileState.status === "failed" && (
-                      <span className="text-xs text-red-500">
-                        ❌ {fileState.error ?? "Failed"}
-                      </span>
+                      <span className="text-xs text-red-500">❌ {fileState.error ?? "Failed"}</span>
                     )}
                   </div>
 

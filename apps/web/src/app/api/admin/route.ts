@@ -6,7 +6,6 @@ import { z } from "zod";
 import {
   createRBACTeam,
   getRBACTeam,
-  updateRBACTeam,
   addRBACTeamMember,
   removeRBACTeamMember,
   getTeamHierarchy,

@@ -148,9 +148,13 @@ export function transformOperation(op: Operation, against: Operation): Transform
 
       if (deletedId && transformed.targetId === deletedId) {
         if (transformed.type === "delete") {
-          conflicts.push(`Delete ${transformed.id} targets an idea already deleted by ${concurrent.id}.`);
+          conflicts.push(
+            `Delete ${transformed.id} targets an idea already deleted by ${concurrent.id}.`
+          );
         } else {
-          conflicts.push(`Operation ${transformed.id} targets an idea deleted by ${concurrent.id}.`);
+          conflicts.push(
+            `Operation ${transformed.id} targets an idea deleted by ${concurrent.id}.`
+          );
         }
         transformed = markNoop(transformed);
         break;

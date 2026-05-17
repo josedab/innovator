@@ -6,7 +6,6 @@
  * GitHub issues, and Jira tickets.
  */
 
-import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   PRDSchema,

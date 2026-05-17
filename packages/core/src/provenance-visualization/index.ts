@@ -8,12 +8,7 @@
  */
 
 import { z } from "zod";
-import type {
-  Investigation,
-  AngleResult,
-  Synthesis,
-  InnovationIdea,
-} from "../types.js";
+import type { Investigation, AngleResult, Synthesis } from "../types.js";
 
 // ---- Schemas ----
 
@@ -53,12 +48,7 @@ export const SankeyDiagramSchema = z.object({
 export const ProvenanceConnectionSchema = z.object({
   fromId: z.string(),
   toId: z.string(),
-  relationship: z.enum([
-    "derived_from",
-    "inspired_by",
-    "validated_by",
-    "scored_by",
-  ]),
+  relationship: z.enum(["derived_from", "inspired_by", "validated_by", "scored_by"]),
   strength: z.number().min(0).max(1),
   evidence: z.string().max(2000).optional(),
 });
@@ -74,9 +64,7 @@ export const VisualizationProvenanceChainSchema = z.object({
       })
     )
     .max(100),
-  angles: z
-    .array(z.object({ id: z.string(), name: z.string().max(200) }))
-    .max(50),
+  angles: z.array(z.object({ id: z.string(), name: z.string().max(200) })).max(50),
   ideas: z
     .array(
       z.object({
@@ -112,16 +100,14 @@ export const ProvenanceVisualizationConfigSchema = z.object({
     .default(0.05)
     .describe("Flows below this fraction of total are collapsed"),
   layout: z.enum(["horizontal", "vertical"]).default("horizontal"),
-  colorScheme: z
-    .record(z.string().max(50))
-    .default({
-      subject: "#3B82F6",
-      investigation: "#6366F1",
-      finding: "#8B5CF6",
-      angle: "#F59E0B",
-      idea: "#10B981",
-      score: "#EF4444",
-    }),
+  colorScheme: z.record(z.string().max(50)).default({
+    subject: "#3B82F6",
+    investigation: "#6366F1",
+    finding: "#8B5CF6",
+    angle: "#F59E0B",
+    idea: "#10B981",
+    score: "#EF4444",
+  }),
 });
 
 export const ProvenanceQuerySchema = z.object({
@@ -146,19 +132,14 @@ export type SankeyNode = z.infer<typeof SankeyNodeSchema>;
 export type SankeyLink = z.infer<typeof SankeyLinkSchema>;
 export type SankeyDiagram = z.infer<typeof SankeyDiagramSchema>;
 export type ProvenanceConnection = z.infer<typeof ProvenanceConnectionSchema>;
-export type VisualizationProvenanceChain = z.infer<
-  typeof VisualizationProvenanceChainSchema
->;
-export type ProvenanceVisualizationConfig = z.infer<
-  typeof ProvenanceVisualizationConfigSchema
->;
+export type VisualizationProvenanceChain = z.infer<typeof VisualizationProvenanceChainSchema>;
+export type ProvenanceVisualizationConfig = z.infer<typeof ProvenanceVisualizationConfigSchema>;
 export type ProvenanceQuery = z.infer<typeof ProvenanceQuerySchema>;
 export type FlowMetrics = z.infer<typeof FlowMetricsSchema>;
 
 // ---- Default Config ----
 
-const DEFAULT_CONFIG: ProvenanceVisualizationConfig =
-  ProvenanceVisualizationConfigSchema.parse({});
+const DEFAULT_CONFIG: ProvenanceVisualizationConfig = ProvenanceVisualizationConfigSchema.parse({});
 
 const DEFAULT_COLORS: Record<string, string> = {
   subject: "#3B82F6",
@@ -283,17 +264,12 @@ export function buildProvenanceChain(
     for (const s of scores) {
       const matchingIdea = ideas.find(
         (idea) =>
-          idea.title.toLowerCase() === s.ideaTitle.toLowerCase() &&
-          idea.angleId === s.angleId
+          idea.title.toLowerCase() === s.ideaTitle.toLowerCase() && idea.angleId === s.angleId
       );
       if (matchingIdea) {
         const overall =
-          s.feasibility !== undefined &&
-          s.impact !== undefined &&
-          s.novelty !== undefined
-            ? Math.round(
-                ((s.feasibility + s.impact + s.novelty) / 3) * 10
-              ) / 10
+          s.feasibility !== undefined && s.impact !== undefined && s.novelty !== undefined
+            ? Math.round(((s.feasibility + s.impact + s.novelty) / 3) * 10) / 10
             : undefined;
         scoreEntries.push({
           ideaId: matchingIdea.id,
@@ -412,9 +388,7 @@ export function generateSankeyDiagram(
       type: "idea",
       value: 1,
       color: colors.idea,
-      metadata: idea.description
-        ? { description: idea.description.slice(0, 200) }
-        : undefined,
+      metadata: idea.description ? { description: idea.description.slice(0, 200) } : undefined,
     });
     links.push({
       source: angleNodeId,
@@ -435,15 +409,9 @@ export function generateSankeyDiagram(
         value: scoreValue,
         color: colors.score,
         metadata: {
-          ...(score.feasibility !== undefined
-            ? { feasibility: String(score.feasibility) }
-            : {}),
-          ...(score.impact !== undefined
-            ? { impact: String(score.impact) }
-            : {}),
-          ...(score.novelty !== undefined
-            ? { novelty: String(score.novelty) }
-            : {}),
+          ...(score.feasibility !== undefined ? { feasibility: String(score.feasibility) } : {}),
+          ...(score.impact !== undefined ? { impact: String(score.impact) } : {}),
+          ...(score.novelty !== undefined ? { novelty: String(score.novelty) } : {}),
         },
       });
       links.push({
@@ -459,9 +427,7 @@ export function generateSankeyDiagram(
     const sorted = [...nodes].sort((a, b) => b.value - a.value);
     const kept = new Set(sorted.slice(0, cfg.maxNodes).map((n) => n.id));
     const filteredNodes = nodes.filter((n) => kept.has(n.id));
-    const filteredLinks = links.filter(
-      (l) => kept.has(l.source) && kept.has(l.target)
-    );
+    const filteredLinks = links.filter((l) => kept.has(l.source) && kept.has(l.target));
     return {
       nodes: filteredNodes,
       links: filteredLinks,
@@ -485,9 +451,7 @@ export function traceIdeaProvenance(
   ideaTitle: string,
   chain: VisualizationProvenanceChain
 ): { path: string[]; connections: ProvenanceConnection[] } {
-  const idea = chain.ideas.find(
-    (i) => i.title.toLowerCase() === ideaTitle.toLowerCase()
-  );
+  const idea = chain.ideas.find((i) => i.title.toLowerCase() === ideaTitle.toLowerCase());
   if (!idea) return { path: [], connections: [] };
 
   const path: string[] = [idea.id];
@@ -524,9 +488,7 @@ export function getFlowMetrics(diagram: SankeyDiagram): FlowMetrics {
   }
   const nonLeaf = [...outgoing.values()];
   const branchingFactor =
-    nonLeaf.length > 0
-      ? nonLeaf.reduce((a, b) => a + b, 0) / nonLeaf.length
-      : 0;
+    nonLeaf.length > 0 ? nonLeaf.reduce((a, b) => a + b, 0) / nonLeaf.length : 0;
 
   // Average path length via BFS from subject
   const adjacency = new Map<string, string[]>();
@@ -537,9 +499,7 @@ export function getFlowMetrics(diagram: SankeyDiagram): FlowMetrics {
   }
 
   const depths = new Map<string, number>();
-  const queue: Array<{ id: string; depth: number }> = [
-    { id: "subject-root", depth: 0 },
-  ];
+  const queue: Array<{ id: string; depth: number }> = [{ id: "subject-root", depth: 0 }];
   while (queue.length > 0) {
     const { id, depth } = queue.shift()!;
     if (depths.has(id)) continue;
@@ -550,9 +510,7 @@ export function getFlowMetrics(diagram: SankeyDiagram): FlowMetrics {
   }
   const allDepths = [...depths.values()];
   const averagePathLength =
-    allDepths.length > 0
-      ? allDepths.reduce((a, b) => a + b, 0) / allDepths.length
-      : 0;
+    allDepths.length > 0 ? allDepths.reduce((a, b) => a + b, 0) / allDepths.length : 0;
 
   // Bottlenecks: nodes where outgoing flow is much less than incoming
   const inFlow = new Map<string, number>();
@@ -628,10 +586,7 @@ export function findHighImpactPaths(
  * Simplify a diagram by collapsing flows below the given threshold.
  * Threshold is a fraction of total flow (0-1).
  */
-export function collapseSmallFlows(
-  diagram: SankeyDiagram,
-  threshold: number
-): SankeyDiagram {
+export function collapseSmallFlows(diagram: SankeyDiagram, threshold: number): SankeyDiagram {
   const totalFlow = diagram.links.reduce((sum, l) => sum + l.value, 0);
   const minValue = totalFlow * threshold;
 
@@ -694,10 +649,7 @@ export function exportSankeyAsSVG(diagram: SankeyDiagram): string {
   }
 
   // Compute positions
-  const nodePositions = new Map<
-    string,
-    { x: number; y: number; h: number }
-  >();
+  const nodePositions = new Map<string, { x: number; y: number; h: number }>();
   const colWidth = (width - padding * 2 - nodeWidth) / maxCol;
 
   for (const [col, colNodes] of columns) {
@@ -706,8 +658,7 @@ export function exportSankeyAsSVG(diagram: SankeyDiagram): string {
     const availableHeight = height - padding * 2;
     const gap = 8;
     const totalGap = gap * (colNodes.length - 1);
-    const scale =
-      totalValue > 0 ? (availableHeight - totalGap) / totalValue : 1;
+    const scale = totalValue > 0 ? (availableHeight - totalGap) / totalValue : 1;
 
     let y = padding;
     for (const node of colNodes) {
@@ -722,9 +673,7 @@ export function exportSankeyAsSVG(diagram: SankeyDiagram): string {
   parts.push(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">`
   );
-  parts.push(
-    `<style>text { font-family: sans-serif; font-size: 11px; fill: #333; }</style>`
-  );
+  parts.push(`<style>text { font-family: sans-serif; font-size: 11px; fill: #333; }</style>`);
 
   // Title
   if (diagram.title) {
@@ -768,9 +717,7 @@ export function exportSankeyAsSVG(diagram: SankeyDiagram): string {
     const labelX = pos.x + nodeWidth + 4;
     const labelY = pos.y + pos.h / 2 + 4;
     const truncatedLabel = node.label.length > 40 ? node.label.slice(0, 37) + "..." : node.label;
-    parts.push(
-      `<text x="${labelX}" y="${labelY}">${escapeXml(truncatedLabel)}</text>`
-    );
+    parts.push(`<text x="${labelX}" y="${labelY}">${escapeXml(truncatedLabel)}</text>`);
   }
 
   parts.push("</svg>");
@@ -868,15 +815,8 @@ export function exportSankeyAsHTML(diagram: SankeyDiagram): string {
 /**
  * Format a provenance chain as Markdown for text-based display.
  */
-export function formatProvenanceMarkdown(
-  chain: VisualizationProvenanceChain
-): string {
-  const lines: string[] = [
-    "# Idea Provenance",
-    "",
-    `**Subject:** ${chain.subject}`,
-    "",
-  ];
+export function formatProvenanceMarkdown(chain: VisualizationProvenanceChain): string {
+  const lines: string[] = ["# Idea Provenance", "", `**Subject:** ${chain.subject}`, ""];
 
   if (chain.investigationFindings.length > 0) {
     lines.push("## Investigation Findings");
@@ -891,15 +831,11 @@ export function formatProvenanceMarkdown(
     lines.push("## Angles Applied");
     lines.push("");
     for (const angle of chain.angles) {
-      const angleIdeas = chain.ideas.filter(
-        (i) => i.angleId === angle.id.replace("angle-", "")
-      );
+      const angleIdeas = chain.ideas.filter((i) => i.angleId === angle.id.replace("angle-", ""));
       lines.push(`### ${angle.name} (${angleIdeas.length} ideas)`);
       for (const idea of angleIdeas) {
         const score = chain.scores.find((s) => s.ideaId === idea.id);
-        const scoreSuffix = score?.overall
-          ? ` — Score: ${score.overall.toFixed(1)}`
-          : "";
+        const scoreSuffix = score?.overall ? ` — Score: ${score.overall.toFixed(1)}` : "";
         lines.push(`- **${idea.title}**${scoreSuffix}`);
         if (idea.description) {
           lines.push(`  ${idea.description.slice(0, 150)}...`);
@@ -912,9 +848,7 @@ export function formatProvenanceMarkdown(
   if (chain.scores.length > 0) {
     lines.push("## Score Summary");
     lines.push("");
-    const sorted = [...chain.scores].sort(
-      (a, b) => (b.overall ?? 0) - (a.overall ?? 0)
-    );
+    const sorted = [...chain.scores].sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0));
     for (const score of sorted) {
       const idea = chain.ideas.find((i) => i.id === score.ideaId);
       if (!idea) continue;
@@ -925,9 +859,7 @@ export function formatProvenanceMarkdown(
       ]
         .filter(Boolean)
         .join(" ");
-      lines.push(
-        `- **${idea.title}**: ${score.overall?.toFixed(1) ?? "N/A"} (${dims})`
-      );
+      lines.push(`- **${idea.title}**: ${score.overall?.toFixed(1) ?? "N/A"} (${dims})`);
     }
     lines.push("");
   }
@@ -942,9 +874,7 @@ export function formatProvenanceMarkdown(
 /**
  * Compare provenance chains across multiple sessions.
  */
-export function compareProvenanceChains(
-  chains: VisualizationProvenanceChain[]
-): {
+export function compareProvenanceChains(chains: VisualizationProvenanceChain[]): {
   commonAngles: string[];
   uniqueAngles: Record<string, string[]>;
   ideaCounts: Record<string, number>;
@@ -962,20 +892,14 @@ export function compareProvenanceChains(
   }
 
   // Find common and unique angles
-  const angleSets = chains.map(
-    (c) => new Set(c.angles.map((a) => a.name))
-  );
+  const angleSets = chains.map((c) => new Set(c.angles.map((a) => a.name)));
   const allAngles = new Set(angleSets.flatMap((s) => [...s]));
-  const commonAngles = [...allAngles].filter((a) =>
-    angleSets.every((s) => s.has(a))
-  );
+  const commonAngles = [...allAngles].filter((a) => angleSets.every((s) => s.has(a)));
 
   const uniqueAngles: Record<string, string[]> = {};
   for (let i = 0; i < chains.length; i++) {
     const key = chains[i].subject.slice(0, 60);
-    uniqueAngles[key] = [...angleSets[i]].filter(
-      (a) => !commonAngles.includes(a)
-    );
+    uniqueAngles[key] = [...angleSets[i]].filter((a) => !commonAngles.includes(a));
   }
 
   // Idea counts and average scores per chain
@@ -985,12 +909,8 @@ export function compareProvenanceChains(
     const key = chain.subject.slice(0, 60);
     ideaCounts[key] = chain.ideas.length;
     if (chain.scores.length > 0) {
-      const total = chain.scores.reduce(
-        (s, sc) => s + (sc.overall ?? 0),
-        0
-      );
-      averageScores[key] =
-        Math.round((total / chain.scores.length) * 100) / 100;
+      const total = chain.scores.reduce((s, sc) => s + (sc.overall ?? 0), 0);
+      averageScores[key] = Math.round((total / chain.scores.length) * 100) / 100;
     }
   }
 
@@ -1007,9 +927,7 @@ export function compareProvenanceChains(
 
   const sharedThemes =
     wordSets.length > 1
-      ? [...wordSets[0]].filter((w) =>
-          wordSets.slice(1).some((s) => s.has(w))
-        )
+      ? [...wordSets[0]].filter((w) => wordSets.slice(1).some((s) => s.has(w)))
       : [];
 
   return {
@@ -1025,9 +943,7 @@ export function compareProvenanceChains(
  * Merge multiple Sankey diagrams into a single combined diagram.
  * Node IDs are prefixed to avoid collisions.
  */
-export function mergeProvenanceDiagrams(
-  diagrams: SankeyDiagram[]
-): SankeyDiagram {
+export function mergeProvenanceDiagrams(diagrams: SankeyDiagram[]): SankeyDiagram {
   if (diagrams.length === 0) {
     return { nodes: [], links: [], title: "Merged Provenance" };
   }

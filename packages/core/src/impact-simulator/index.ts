@@ -310,20 +310,28 @@ export const MonteCarloResultSchema = z.object({
   }),
   breakEvenProbability: z.number().min(0).max(1),
   positiveProbability: z.number().min(0).max(1),
-  sensitivityAnalysis: z.array(z.object({
-    variable: z.string().max(200),
-    lowValue: z.number(),
-    highValue: z.number(),
-    lowROI: z.number(),
-    highROI: z.number(),
-    sensitivity: z.number(),
-  })).max(10),
-  histogram: z.array(z.object({
-    bucketMin: z.number(),
-    bucketMax: z.number(),
-    count: z.number(),
-    percentage: z.number(),
-  })).max(50),
+  sensitivityAnalysis: z
+    .array(
+      z.object({
+        variable: z.string().max(200),
+        lowValue: z.number(),
+        highValue: z.number(),
+        lowROI: z.number(),
+        highROI: z.number(),
+        sensitivity: z.number(),
+      })
+    )
+    .max(10),
+  histogram: z
+    .array(
+      z.object({
+        bucketMin: z.number(),
+        bucketMax: z.number(),
+        count: z.number(),
+        percentage: z.number(),
+      })
+    )
+    .max(50),
   scenarioComparison: z.object({
     optimistic: z.object({ roi: z.number(), probability: z.number() }),
     base: z.object({ roi: z.number(), probability: z.number() }),
@@ -371,9 +379,10 @@ export function runMonteCarloSimulation(
       input.implementationCostMax
     );
     const adoptionRate = randomUniform(input.adoptionRateMin, input.adoptionRateMax);
-    const revenuePerUser = input.revenuePerUserMin !== undefined && input.revenuePerUserMax !== undefined
-      ? randomUniform(input.revenuePerUserMin, input.revenuePerUserMax)
-      : 1;
+    const revenuePerUser =
+      input.revenuePerUserMin !== undefined && input.revenuePerUserMax !== undefined
+        ? randomUniform(input.revenuePerUserMin, input.revenuePerUserMax)
+        : 1;
 
     const revenue = marketSize * adoptionRate * revenuePerUser;
     const roi = cost > 0 ? ((revenue - cost) / cost) * 100 : 0;
@@ -398,7 +407,9 @@ export function runMonteCarloSimulation(
   for (let i = 0; i < bucketCount; i++) {
     const bucketMin = minROI + i * bucketSize;
     const bucketMax = bucketMin + bucketSize;
-    const count = rois.filter((r) => r >= bucketMin && (i === bucketCount - 1 ? r <= bucketMax : r < bucketMax)).length;
+    const count = rois.filter(
+      (r) => r >= bucketMin && (i === bucketCount - 1 ? r <= bucketMax : r < bucketMax)
+    ).length;
     histogram.push({
       bucketMin: Math.round(bucketMin * 100) / 100,
       bucketMax: Math.round(bucketMax * 100) / 100,
@@ -412,7 +423,8 @@ export function runMonteCarloSimulation(
   const baseCost = (input.implementationCostMin + input.implementationCostMax) / 2;
   const baseAdoption = (input.adoptionRateMin + input.adoptionRateMax) / 2;
   const baseRevPerUser = (input.revenuePerUserMin ?? 1 + (input.revenuePerUserMax ?? 1)) / 2;
-  const baseROI = baseCost > 0 ? ((baseMarket * baseAdoption * baseRevPerUser - baseCost) / baseCost) * 100 : 0;
+  const _baseROI =
+    baseCost > 0 ? ((baseMarket * baseAdoption * baseRevPerUser - baseCost) / baseCost) * 100 : 0;
 
   const calcROI = (market: number, cost: number, adoption: number, rev: number) =>
     cost > 0 ? ((market * adoption * rev - cost) / cost) * 100 : 0;
@@ -422,24 +434,38 @@ export function runMonteCarloSimulation(
       variable: "Market Size",
       lowValue: input.marketSizeMin,
       highValue: input.marketSizeMax,
-      lowROI: Math.round(calcROI(input.marketSizeMin, baseCost, baseAdoption, baseRevPerUser) * 100) / 100,
-      highROI: Math.round(calcROI(input.marketSizeMax, baseCost, baseAdoption, baseRevPerUser) * 100) / 100,
+      lowROI:
+        Math.round(calcROI(input.marketSizeMin, baseCost, baseAdoption, baseRevPerUser) * 100) /
+        100,
+      highROI:
+        Math.round(calcROI(input.marketSizeMax, baseCost, baseAdoption, baseRevPerUser) * 100) /
+        100,
       sensitivity: 0,
     },
     {
       variable: "Implementation Cost",
       lowValue: input.implementationCostMin,
       highValue: input.implementationCostMax,
-      lowROI: Math.round(calcROI(baseMarket, input.implementationCostMin, baseAdoption, baseRevPerUser) * 100) / 100,
-      highROI: Math.round(calcROI(baseMarket, input.implementationCostMax, baseAdoption, baseRevPerUser) * 100) / 100,
+      lowROI:
+        Math.round(
+          calcROI(baseMarket, input.implementationCostMin, baseAdoption, baseRevPerUser) * 100
+        ) / 100,
+      highROI:
+        Math.round(
+          calcROI(baseMarket, input.implementationCostMax, baseAdoption, baseRevPerUser) * 100
+        ) / 100,
       sensitivity: 0,
     },
     {
       variable: "Adoption Rate",
       lowValue: input.adoptionRateMin,
       highValue: input.adoptionRateMax,
-      lowROI: Math.round(calcROI(baseMarket, baseCost, input.adoptionRateMin, baseRevPerUser) * 100) / 100,
-      highROI: Math.round(calcROI(baseMarket, baseCost, input.adoptionRateMax, baseRevPerUser) * 100) / 100,
+      lowROI:
+        Math.round(calcROI(baseMarket, baseCost, input.adoptionRateMin, baseRevPerUser) * 100) /
+        100,
+      highROI:
+        Math.round(calcROI(baseMarket, baseCost, input.adoptionRateMax, baseRevPerUser) * 100) /
+        100,
       sensitivity: 0,
     },
   ];

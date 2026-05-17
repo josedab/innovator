@@ -183,10 +183,7 @@ export function clearDigests(): void {
 /**
  * Generate a digest from session data.
  */
-export function generateDigest(
-  subscriptionId: string,
-  input: DigestInput
-): InnovationDigest {
+export function generateDigest(subscriptionId: string, input: DigestInput): InnovationDigest {
   const allIdeas = input.sessions.flatMap((s) =>
     s.ideas.map((idea) => ({
       ...idea,
@@ -205,9 +202,10 @@ export function generateDigest(
   const totalIdeas = allIdeas.length;
   const anglesUsed = new Set(input.sessions.flatMap((s) => s.anglesUsed)).size;
   const scores = allIdeas.map((i) => i.score).filter((s): s is number => s !== undefined);
-  const averageScore = scores.length > 0
-    ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
-    : 0;
+  const averageScore =
+    scores.length > 0
+      ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
+      : 0;
 
   // Build sections
   const sections: DigestSection[] = [];
@@ -223,7 +221,10 @@ export function generateDigest(
   if (topIdeas.length > 0) {
     const ideaList = topIdeas
       .slice(0, 5)
-      .map((i, idx) => `${idx + 1}. **${i.title}** (${i.sourceAngle})${i.score ? ` — Score: ${i.score}` : ""}`)
+      .map(
+        (i, idx) =>
+          `${idx + 1}. **${i.title}** (${i.sourceAngle})${i.score ? ` — Score: ${i.score}` : ""}`
+      )
       .join("\n");
     sections.push({
       title: "Top Ideas",
@@ -235,7 +236,10 @@ export function generateDigest(
   // Trending subjects
   const subjectCounts = new Map<string, number>();
   for (const session of input.sessions) {
-    const words = session.subject.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+    const words = session.subject
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 3);
     for (const word of words) {
       subjectCounts.set(word, (subjectCounts.get(word) ?? 0) + 1);
     }
