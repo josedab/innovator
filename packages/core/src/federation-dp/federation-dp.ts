@@ -334,7 +334,9 @@ export function detectAntiPatterns(
 // ---- Network Stats ----
 
 export function computeNetworkStats(patterns: AnonymizedPattern[]): FederationNetworkStats {
-  const uniqueOrgs = new Set(patterns.map((p) => p.id.split("-")[1]));
+  // Count unique contributing nodes by distinct epoch+topicCategory combinations
+  // (each org produces patterns for distinct epoch+topic pairs)
+  const uniqueContributors = new Set(patterns.map((p) => `${p.epoch}::${p.topicCategory}`));
 
   // Trending angles
   const angleFreq = new Map<string, { count: number; topic: string; total: number }>();
@@ -360,7 +362,7 @@ export function computeNetworkStats(patterns: AnonymizedPattern[]): FederationNe
   const antiPatterns = detectAntiPatterns(patterns);
 
   return {
-    totalNodes: uniqueOrgs.size,
+    totalNodes: uniqueContributors.size,
     totalPatterns: patterns.length,
     averageEpsilon: 1.0, // Default assumption
     trendingAngles: trending,
