@@ -151,18 +151,22 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
       const waitTime = Math.min(jitter, maxDelayMs);
 
       await new Promise<void>((resolve, reject) => {
-        let onAbort: (() => void) | undefined;
-
         const timeoutId = setTimeout(() => {
-          if (onAbort) signal?.removeEventListener("abort", onAbort);
+          if (signal) signal.removeEventListener("abort", onAbort);
           resolve();
         }, waitTime);
 
+        function onAbort() {
+          clearTimeout(timeoutId);
+          reject(new AbortError("Retry aborted"));
+        }
+
         if (signal) {
-          onAbort = () => {
+          if (signal.aborted) {
             clearTimeout(timeoutId);
             reject(new AbortError("Retry aborted"));
-          };
+            return;
+          }
           signal.addEventListener("abort", onAbort, { once: true });
         }
       });

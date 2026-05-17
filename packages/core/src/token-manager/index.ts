@@ -268,6 +268,10 @@ function computeTfIdf(sentences: string[]): Map<number, number> {
 
   for (let i = 0; i < sentenceTokens.length; i++) {
     const tokens = sentenceTokens[i];
+    if (tokens.length === 0) {
+      scores.set(i, 0);
+      continue;
+    }
     const tf = new Map<string, number>();
     for (const t of tokens) tf.set(t, (tf.get(t) ?? 0) + 1);
 

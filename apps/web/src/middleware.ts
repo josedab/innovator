@@ -274,10 +274,14 @@ export function middleware(request: NextRequest) {
     const providedKey =
       request.headers.get("x-api-key") ??
       request.headers.get("authorization")?.replace("Bearer ", "");
-    if (providedKey) {
-      const keyIndex = apiKeys.indexOf(providedKey);
-      if (keyIndex >= 0) meteringKeyId = `key-${keyIndex}`;
+    if (!providedKey || !apiKeys.includes(providedKey)) {
+      return new NextResponse(JSON.stringify({ error: "Invalid or missing API key." }), {
+        status: 401,
+        headers: { ...SECURITY_HEADERS },
+      });
     }
+    const keyIndex = apiKeys.indexOf(providedKey);
+    meteringKeyId = `key-${keyIndex}`;
   }
 
   // Per-key metering: record the call and check quota

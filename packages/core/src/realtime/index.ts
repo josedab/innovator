@@ -241,6 +241,15 @@ export class RealtimeRoomManager {
       lastActivity: now,
     };
 
+    // Remove user from any previous room to prevent stale memberships
+    const previousRoomId = this.userRooms.get(message.userId);
+    if (previousRoomId && previousRoomId !== message.roomId) {
+      const prevRoom = this.rooms.get(previousRoomId);
+      if (prevRoom) {
+        prevRoom.users.delete(message.userId);
+      }
+    }
+
     room.users.set(message.userId, user);
     this.userRooms.set(message.userId, message.roomId);
 
