@@ -84,5 +84,21 @@ check("Core package built (packages/core/dist/)", () => {
   }
 });
 
+// 6. .env.local exists
+check(".env.local configuration file", () => {
+  const envPath = resolve(ROOT, ".env.local");
+  if (!existsSync(envPath)) {
+    return { warn: "Not found — copy from .env.local.example: cp .env.local.example .env.local" };
+  }
+});
+
+// 7. node_modules exists (dependencies installed)
+check("Dependencies installed (node_modules/)", () => {
+  const nmPath = resolve(ROOT, "node_modules");
+  if (!existsSync(nmPath)) {
+    throw new Error("Not found — run: npm install");
+  }
+});
+
 console.log("");
 process.exit(exitCode);
