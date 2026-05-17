@@ -1365,3 +1365,33 @@ export type {
   AnglePack,
   ValidationResult as AnglePackValidationResult,
 } from "./angle-packs.js";
+
+// ---- First-Party Domain Packs ----
+
+export {
+  DomainAngleSchema,
+  DomainPackSchema,
+  DOMAIN_PACKS,
+  getDomainPack,
+  listDomainPacks,
+  getDomainPacksByTag,
+  installDomainPack,
+  getInstalledPacks,
+  uninstallDomainPack,
+  clearInstalledPacks,
+} from "./domain-packs.js";
+export type { DomainAngle, DomainPack } from "./domain-packs.js";
+
+// ---- Domain Pack Community ----
+
+export {
+  PackReviewSchema,
+  PackSearchResultSchema,
+  submitReview,
+  getPackReviews,
+  getPackAverageRating,
+  searchPacks,
+  getPopularPacks,
+  clearCommunityData,
+} from "./community.js";
+export type { PackReview, PackSearchResult } from "./community.js";
