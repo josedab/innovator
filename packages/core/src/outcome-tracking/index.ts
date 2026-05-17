@@ -400,6 +400,149 @@ export function buildROIDashboard(): ROIDashboard {
   };
 }
 
+// ---- Idea Outcome Tagging ----
+
+export const IdeaOutcomeStatusSchema = z.enum([
+  "implemented",
+  "failed",
+  "pivoted",
+  "in-progress",
+  "shelved",
+]);
+export type IdeaOutcomeStatus = z.infer<typeof IdeaOutcomeStatusSchema>;
+
+export const IdeaOutcomeSchema = z.object({
+  id: z.string(),
+  outcomeId: z.string(),
+  status: IdeaOutcomeStatusSchema,
+  impactMetrics: z.record(z.number()).optional(),
+  lessonsLearned: z.array(z.string().max(1000)).max(10),
+  pivotReason: z.string().max(2000).optional(),
+  timeline: z.object({
+    startedAt: z.string(),
+    completedAt: z.string().optional(),
+    milestones: z
+      .array(
+        z.object({
+          date: z.string(),
+          description: z.string().max(500),
+        })
+      )
+      .max(20)
+      .optional(),
+  }),
+  updatedAt: z.string(),
+});
+export type IdeaOutcome = z.infer<typeof IdeaOutcomeSchema>;
+
+const ideaOutcomes = new Map<string, IdeaOutcome>();
+const TERMINAL_IDEA_OUTCOME_STATUSES = new Set<IdeaOutcomeStatus>([
+  "implemented",
+  "failed",
+  "pivoted",
+  "shelved",
+]);
+
+export function tagIdeaOutcome(params: {
+  outcomeId: string;
+  status: IdeaOutcomeStatus;
+  impactMetrics?: Record<string, number>;
+  lessonsLearned?: string[];
+  pivotReason?: string;
+}): IdeaOutcome {
+  if (!outcomes.has(params.outcomeId)) {
+    throw new Error(`Outcome not found: ${params.outcomeId}`);
+  }
+  if (params.status === "pivoted" && !params.pivotReason) {
+    throw new Error("pivotReason is required when status is 'pivoted'");
+  }
+
+  const now = new Date().toISOString();
+  const ideaOutcome = IdeaOutcomeSchema.parse({
+    id: randomUUID(),
+    outcomeId: params.outcomeId,
+    status: params.status,
+    impactMetrics: params.impactMetrics,
+    lessonsLearned: params.lessonsLearned ?? [],
+    pivotReason: params.pivotReason,
+    timeline: {
+      startedAt: now,
+      completedAt: TERMINAL_IDEA_OUTCOME_STATUSES.has(params.status) ? now : undefined,
+    },
+    updatedAt: now,
+  });
+
+  ideaOutcomes.set(ideaOutcome.id, ideaOutcome);
+  return ideaOutcome;
+}
+
+export function getIdeaOutcome(id: string): IdeaOutcome | undefined {
+  return ideaOutcomes.get(id);
+}
+
+export function listIdeaOutcomes(filter?: {
+  status?: IdeaOutcomeStatus;
+  outcomeId?: string;
+}): IdeaOutcome[] {
+  let list = Array.from(ideaOutcomes.values());
+  if (filter?.status) list = list.filter((item) => item.status === filter.status);
+  if (filter?.outcomeId) list = list.filter((item) => item.outcomeId === filter.outcomeId);
+  return list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export function updateIdeaOutcome(
+  id: string,
+  updates: Partial<Pick<IdeaOutcome, "status" | "impactMetrics" | "lessonsLearned" | "pivotReason">>
+): IdeaOutcome | undefined {
+  const current = ideaOutcomes.get(id);
+  if (!current) return undefined;
+
+  const nextStatus = updates.status ?? current.status;
+  const nextPivotReason = updates.pivotReason ?? current.pivotReason;
+  if (nextStatus === "pivoted" && !nextPivotReason) {
+    throw new Error("pivotReason is required when status is 'pivoted'");
+  }
+
+  const now = new Date().toISOString();
+  const updated = IdeaOutcomeSchema.parse({
+    ...current,
+    status: nextStatus,
+    impactMetrics: updates.impactMetrics ?? current.impactMetrics,
+    lessonsLearned: updates.lessonsLearned ?? current.lessonsLearned,
+    pivotReason: nextPivotReason,
+    timeline: {
+      ...current.timeline,
+      completedAt:
+        current.timeline.completedAt ??
+        (TERMINAL_IDEA_OUTCOME_STATUSES.has(nextStatus) ? now : undefined),
+    },
+    updatedAt: now,
+  });
+
+  ideaOutcomes.set(id, updated);
+  return updated;
+}
+
+export function getOutcomesByStatus(): Record<string, number> {
+  const counts: Record<string, number> = {
+    implemented: 0,
+    failed: 0,
+    pivoted: 0,
+    "in-progress": 0,
+    shelved: 0,
+  };
+
+  for (const outcome of ideaOutcomes.values()) {
+    counts[outcome.status] = (counts[outcome.status] ?? 0) + 1;
+  }
+
+  return counts;
+}
+
+export function clearIdeaOutcomes(): void {
+  ideaOutcomes.clear();
+}
+
 /** Clear all outcomes (for testing). */
 export function clearOutcomes(): void {
   outcomes.clear();

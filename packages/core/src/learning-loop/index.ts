@@ -10,6 +10,7 @@
  * angle orderings and prompt strategies for new sessions.
  */
 
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -98,12 +99,22 @@ function ensureDir(): void {
 function loadData(): LearningData {
   ensureDir();
   if (!existsSync(LEARNING_FILE)) {
-    return { signals: [], anglePerformance: [], domainProfiles: [], lastUpdated: new Date().toISOString() };
+    return {
+      signals: [],
+      anglePerformance: [],
+      domainProfiles: [],
+      lastUpdated: new Date().toISOString(),
+    };
   }
   try {
     return LearningDataSchema.parse(JSON.parse(readFileSync(LEARNING_FILE, "utf-8")));
   } catch {
-    return { signals: [], anglePerformance: [], domainProfiles: [], lastUpdated: new Date().toISOString() };
+    return {
+      signals: [],
+      anglePerformance: [],
+      domainProfiles: [],
+      lastUpdated: new Date().toISOString(),
+    };
   }
 }
 
@@ -119,13 +130,43 @@ function extractDomain(subject: string): string {
   if (!subject || typeof subject !== "string") return "unknown";
   const normalized = subject.toLowerCase().trim();
   if (normalized.length === 0) return "unknown";
-  const stopWords = new Set(["the", "a", "an", "in", "of", "for", "and", "or", "to", "with", "on", "at", "by", "is"]);
+  const stopWords = new Set([
+    "the",
+    "a",
+    "an",
+    "in",
+    "of",
+    "for",
+    "and",
+    "or",
+    "to",
+    "with",
+    "on",
+    "at",
+    "by",
+    "is",
+  ]);
   const words = normalized.split(/\s+/).filter((w) => w.length > 2 && !stopWords.has(w));
   return words.slice(0, 5).join(" ") || "unknown";
 }
 
 function extractKeywords(subject: string): string[] {
-  const stopWords = new Set(["the", "a", "an", "in", "of", "for", "and", "or", "to", "with", "on", "at", "by", "is"]);
+  const stopWords = new Set([
+    "the",
+    "a",
+    "an",
+    "in",
+    "of",
+    "for",
+    "and",
+    "or",
+    "to",
+    "with",
+    "on",
+    "at",
+    "by",
+    "is",
+  ]);
   return subject
     .toLowerCase()
     .split(/\s+/)
@@ -369,10 +410,65 @@ export function learningInsightsToMarkdown(subject: string): string {
   }
 
   if (rec.recommendedAngles.length === 0 && rec.avoidAngles.length === 0) {
-    lines.push("*Not enough historical data to make recommendations. Run more sessions to build the learning model.*");
+    lines.push(
+      "*Not enough historical data to make recommendations. Run more sessions to build the learning model.*"
+    );
   }
 
   return lines.join("\n");
+}
+
+// ---- Angle Effectiveness Per Domain ----
+
+export function getAngleEffectiveness(
+  domain: string
+): Array<{ angleId: string; score: number; sampleSize: number }> {
+  const data = loadData();
+  const normalizedDomain = extractDomain(domain);
+
+  return data.anglePerformance
+    .filter((item) => item.domain === normalizedDomain)
+    .map((item) => ({
+      angleId: item.angleId,
+      score: item.effectivenessScore,
+      sampleSize: item.totalSessions,
+    }))
+    .sort((a, b) => b.score - a.score);
+}
+
+export function getTopAnglesForDomain(domain: string, limit: number = 3): string[] {
+  return getAngleEffectiveness(domain)
+    .slice(0, Math.max(0, limit))
+    .map((item) => item.angleId);
+}
+
+export function adjustAngleWeights(
+  domain: string,
+  outcomes: Array<{ angleId: string; success: boolean }>
+): void {
+  if (outcomes.length === 0) return;
+
+  const data = loadData();
+  const normalizedDomain = extractDomain(domain);
+  const now = new Date().toISOString();
+
+  for (const outcome of outcomes) {
+    if (!outcome.angleId) continue;
+    data.signals.push({
+      sessionId: `adjust-${randomUUID()}`,
+      angleId: outcome.angleId,
+      domain: normalizedDomain,
+      rating: outcome.success ? 9 : 3,
+      exported: outcome.success,
+      ideaCount: 1,
+      selectedIdeas: outcome.success ? 1 : 0,
+      timestamp: now,
+    });
+    recomputePerformance(data, normalizedDomain, outcome.angleId);
+  }
+
+  updateDomainProfile(data, normalizedDomain, normalizedDomain);
+  saveData(data);
 }
 
 /**
@@ -382,7 +478,12 @@ export function clearLearningData(): void {
   if (existsSync(LEARNING_FILE)) {
     writeFileSync(
       LEARNING_FILE,
-      JSON.stringify({ signals: [], anglePerformance: [], domainProfiles: [], lastUpdated: new Date().toISOString() }),
+      JSON.stringify({
+        signals: [],
+        anglePerformance: [],
+        domainProfiles: [],
+        lastUpdated: new Date().toISOString(),
+      }),
       "utf-8"
     );
   }
@@ -420,7 +521,11 @@ function recomputePerformance(data: LearningData, domain: string, angleId: strin
     }
     if (signal.exported) exportCount += weight;
     if (signal.ideaCount !== undefined) ideaCountSum += signal.ideaCount * weight;
-    if (signal.selectedIdeas !== undefined && signal.ideaCount !== undefined && signal.ideaCount > 0) {
+    if (
+      signal.selectedIdeas !== undefined &&
+      signal.ideaCount !== undefined &&
+      signal.ideaCount > 0
+    ) {
       selectionSum += (signal.selectedIdeas / signal.ideaCount) * weight;
       selectionTotal += weight;
     }
@@ -434,10 +539,15 @@ function recomputePerformance(data: LearningData, domain: string, angleId: strin
   // Composite effectiveness score (0-1)
   const effectivenessScore = Math.min(
     1,
-    (avgRating / 10) * 0.4 + exportRate * 0.2 + selectionRate * 0.2 + Math.min(1, avgIdeaCount / 5) * 0.2
+    (avgRating / 10) * 0.4 +
+      exportRate * 0.2 +
+      selectionRate * 0.2 +
+      Math.min(1, avgIdeaCount / 5) * 0.2
   );
 
-  const existing = data.anglePerformance.findIndex((ap) => ap.angleId === angleId && ap.domain === domain);
+  const existing = data.anglePerformance.findIndex(
+    (ap) => ap.angleId === angleId && ap.domain === domain
+  );
   const perf: AnglePerformance = {
     angleId,
     domain,
@@ -464,7 +574,8 @@ function updateDomainProfile(data: LearningData, domain: string, subject: string
     .sort((a, b) => b.effectivenessScore - a.effectivenessScore);
 
   const ratings = domainSignals.filter((s) => s.rating !== undefined).map((s) => s.rating!);
-  const avgQuality = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length : 0;
+  const avgQuality =
+    ratings.length > 0 ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length : 0;
 
   const existing = data.domainProfiles.findIndex((dp) => dp.domain === domain);
   const profile: DomainProfile = {
