@@ -98,7 +98,7 @@ export class OpenAIProvider implements LLMProvider {
 
   constructor(apiKey?: string, baseUrl?: string) {
     this.apiKey = apiKey ?? process.env.OPENAI_API_KEY ?? "";
-    this.baseUrl = baseUrl ?? "https://api.openai.com/v1";
+    this.baseUrl = baseUrl ?? process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
   }
 
   async generateText(options: LLMGenerateOptions): Promise<string> {
@@ -217,7 +217,7 @@ export class AnthropicProvider implements LLMProvider {
 
   constructor(apiKey?: string, baseUrl?: string) {
     this.apiKey = apiKey ?? process.env.ANTHROPIC_API_KEY ?? "";
-    this.baseUrl = baseUrl ?? "https://api.anthropic.com/v1";
+    this.baseUrl = baseUrl ?? process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com/v1";
   }
 
   async generateText(options: LLMGenerateOptions): Promise<string> {
