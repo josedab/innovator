@@ -93,7 +93,7 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const shared = listSharedInvestigations(true);
-    return Response.json({ investigations: shared }, { headers: API_RESPONSE_HEADERS });
+    return Response.json({ data: shared }, { headers: API_RESPONSE_HEADERS });
   } catch {
     return new Response(JSON.stringify({ error: "Failed to list shared investigations." }), {
       status: 500,

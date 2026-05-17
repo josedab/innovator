@@ -194,7 +194,7 @@ describe("API /api/share", () => {
       const res = await GET();
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.investigations).toHaveLength(2);
+      expect(body.data).toHaveLength(2);
     });
 
     it("returns empty list when no shared investigations", async () => {
@@ -202,7 +202,7 @@ describe("API /api/share", () => {
       const res = await GET();
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.investigations).toEqual([]);
+      expect(body.data).toEqual([]);
     });
 
     it("returns 500 when listSharedInvestigations throws", async () => {
