@@ -258,4 +258,58 @@ describe("computeCompletionPercent", () => {
       })
     ).toBe(20);
   });
+
+  it("returns 100 when all angles complete in generating stage", () => {
+    const allAngles = ["a", "b", "c", "d"];
+    expect(
+      computeCompletionPercent({
+        ...baseProgress,
+        stage: "generating",
+        completedAngles: allAngles,
+        totalAngles: 4,
+      })
+    ).toBe(80); // 20 + 60 * (4/4) = 80
+  });
+
+  it("returns 0 for error stage with 0 totalAngles and no investigation", () => {
+    expect(
+      computeCompletionPercent({
+        ...baseProgress,
+        stage: "error",
+        totalAngles: 0,
+      })
+    ).toBe(0);
+  });
+
+  it("returns 20 for error after investigation with 0 totalAngles", () => {
+    expect(
+      computeCompletionPercent({
+        ...baseProgress,
+        stage: "error",
+        investigation: MOCK_INVESTIGATION,
+        totalAngles: 0,
+        completedAngles: [],
+      })
+    ).toBe(20); // 20 + 60 * 0 = 20
+  });
+
+  it("returns 0 for unknown stage (default case)", () => {
+    expect(
+      computeCompletionPercent({
+        ...baseProgress,
+        stage: "unknown" as PipelineProgress["stage"],
+      })
+    ).toBe(0);
+  });
+
+  it("rounds fractional percentages", () => {
+    expect(
+      computeCompletionPercent({
+        ...baseProgress,
+        stage: "generating",
+        completedAngles: ["a"],
+        totalAngles: 3,
+      })
+    ).toBe(40); // 20 + 60 * (1/3) = 40 (Math.round)
+  });
 });

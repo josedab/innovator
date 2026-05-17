@@ -7,7 +7,25 @@
  */
 
 import type { InnovatorPlugin, AnglePlugin, ExporterPlugin, VisualizerPlugin } from "../types.js";
-import { ConfigurationError, ValidationError } from "../errors.js";
+import { ConfigurationError, ValidationError, fromZodError } from "../errors.js";
+import { getEventBus } from "../events/emitter.js";
+import { z } from "zod";
+
+/** Zod schema for validating plugin metadata at registration time. */
+export const PluginBaseSchema = z.object({
+  id: z
+    .string()
+    .min(1, "Plugin ID must not be empty")
+    .max(200, "Plugin ID must be at most 200 characters")
+    .regex(
+      /^[a-z0-9][a-z0-9._-]*$/,
+      "Plugin ID must start with a lowercase letter or digit and contain only lowercase letters, digits, dots, hyphens, or underscores"
+    ),
+  name: z.string().min(1, "Plugin name must not be empty").max(500),
+  version: z.string().min(1, "Plugin version must not be empty").max(100),
+  type: z.enum(["angle", "exporter", "visualizer"]),
+  description: z.string().max(2000).optional(),
+});
 
 /** Context provided to plugins during lifecycle events. */
 export interface PluginContext {
@@ -64,6 +82,13 @@ export function registerPlugin(plugin: LifecyclePlugin): void {
   if (!plugin.id || !plugin.name || !plugin.type) {
     throw new ValidationError("Plugin must have id, name, and type");
   }
+
+  // Validate plugin metadata against schema
+  const result = PluginBaseSchema.safeParse(plugin);
+  if (!result.success) {
+    throw fromZodError(result.error, `Invalid plugin "${plugin.id ?? "(unknown)"}"`);
+  }
+
   if (plugins.has(plugin.id)) {
     throw new ValidationError(`Plugin "${plugin.id}" is already registered`);
   }
@@ -80,6 +105,15 @@ export function registerPlugin(plugin: LifecyclePlugin): void {
 
   plugins.set(plugin.id, plugin);
   initState.set(plugin.id, "pending");
+
+  getEventBus()
+    .emit("plugin.registered", {
+      pluginId: plugin.id,
+      pluginName: plugin.name,
+      pluginType: plugin.type,
+      version: plugin.version,
+    })
+    .catch(() => {});
 }
 
 /**
@@ -100,14 +134,26 @@ export async function initPlugin(id: string): Promise<void> {
     try {
       await plugin.onInit(buildContext(id));
       initState.set(id, "initialized");
+      getEventBus()
+        .emit("plugin.initialized", { pluginId: id })
+        .catch(() => {});
     } catch (err) {
       initState.set(id, "failed");
+      getEventBus()
+        .emit("plugin.init_failed", {
+          pluginId: id,
+          error: err instanceof Error ? err.message : String(err),
+        })
+        .catch(() => {});
       throw new ConfigurationError(
         `Plugin "${id}" initialization failed: ${err instanceof Error ? err.message : String(err)}`
       );
     }
   } else {
     initState.set(id, "initialized");
+    getEventBus()
+      .emit("plugin.initialized", { pluginId: id })
+      .catch(() => {});
   }
 }
 
@@ -145,7 +191,13 @@ export async function unregisterPlugin(id: string): Promise<boolean> {
     }
   }
   initState.delete(id);
-  return plugins.delete(id);
+  const removed = plugins.delete(id);
+
+  getEventBus()
+    .emit("plugin.unregistered", { pluginId: id })
+    .catch(() => {});
+
+  return removed;
 }
 
 /**
@@ -156,6 +208,32 @@ export async function unregisterPlugin(id: string): Promise<boolean> {
  */
 export function getPlugin(id: string): InnovatorPlugin | undefined {
   return plugins.get(id);
+}
+
+/**
+ * Get a registered plugin by ID, throwing if not found.
+ * Use when a plugin is required and its absence is an error.
+ *
+ * @param id - The plugin identifier to look up.
+ * @returns The plugin instance.
+ * @throws {ConfigurationError} If no plugin with the given ID is registered.
+ */
+export function getPluginOrThrow(id: string): InnovatorPlugin {
+  const plugin = plugins.get(id);
+  if (!plugin) {
+    throw new ConfigurationError(`Plugin "${id}" is not registered`, id);
+  }
+  return plugin;
+}
+
+/**
+ * Check whether a plugin with the given ID is registered.
+ *
+ * @param id - The plugin identifier to check.
+ * @returns `true` if the plugin is registered, `false` otherwise.
+ */
+export function hasPlugin(id: string): boolean {
+  return plugins.has(id);
 }
 
 /**

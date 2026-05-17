@@ -95,6 +95,22 @@ export function flatMap<T, U, E>(
 }
 
 /**
+ * Type guard to check if a Result is a success (Ok).
+ * Narrows the type so `result.value` is accessible in the truthy branch.
+ */
+export function isOk<T, E>(result: Result<T, E>): result is Ok<T> {
+  return result.ok;
+}
+
+/**
+ * Type guard to check if a Result is a failure (Err).
+ * Narrows the type so `result.error` is accessible in the truthy branch.
+ */
+export function isErr<T, E>(result: Result<T, E>): result is Err<E> {
+  return !result.ok;
+}
+
+/**
  * Extract the value from a Result, throwing the error if it's a failure.
  * Non-Error values are wrapped in an Error to ensure consistent throw behavior.
  */

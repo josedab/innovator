@@ -22,6 +22,10 @@ export const EventTypeSchema = z.enum([
   "session.saved",
   "retry.attempt",
   "retry.exhausted",
+  "plugin.registered",
+  "plugin.unregistered",
+  "plugin.initialized",
+  "plugin.init_failed",
 ]);
 
 export type EventType = z.infer<typeof EventTypeSchema>;

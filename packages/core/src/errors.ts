@@ -223,8 +223,74 @@ export class AbortError extends InnovatorError {
 }
 
 /**
+ * Error that aggregates multiple errors from batch/parallel operations.
+ * Useful when running multiple angles concurrently or validating many ideas,
+ * where several independent operations may fail.
+ *
+ * @example
+ * ```ts
+ * const errors = failedAngles.map(a => new LlmError(`Angle ${a.id} failed`));
+ * throw new AggregateInnovatorError("3 of 8 angles failed", errors);
+ * ```
+ */
+export class AggregateInnovatorError extends InnovatorError {
+  /** The individual errors collected during the batch operation. */
+  readonly errors: readonly Error[];
+
+  constructor(message: string, errors: Error[], code: InnovatorErrorCode = "ERR_PIPELINE") {
+    super(message, code);
+    this.name = "AggregateInnovatorError";
+    this.errors = Object.freeze([...errors]);
+  }
+
+  override toJSON(): Record<string, unknown> {
+    return {
+      ...super.toJSON(),
+      errorCount: this.errors.length,
+      errors: this.errors.map((e) => ({
+        name: e.name,
+        message: e.message,
+      })),
+    };
+  }
+}
+
+/**
  * Type guard to check if an unknown value is an InnovatorError.
  */
 export function isInnovatorError(err: unknown): err is InnovatorError {
   return err instanceof InnovatorError;
+}
+
+/**
+ * Convert a Zod validation error into a structured {@link ValidationError}.
+ * Extracts issue paths and messages for programmatic inspection.
+ *
+ * @param zodError - A ZodError instance (from `schema.parse()` failures).
+ * @param context - Optional context message prepended to the error message.
+ * @returns A ValidationError with structured `issues` extracted from the ZodError.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   InvestigationSchema.parse(data);
+ * } catch (e) {
+ *   if (e instanceof z.ZodError) throw fromZodError(e, "Invalid investigation");
+ * }
+ * ```
+ */
+export function fromZodError(
+  zodError: { issues: Array<{ path: (string | number)[]; message: string }> },
+  context?: string
+): ValidationError {
+  const issues = zodError.issues.map((issue) => ({
+    path: issue.path.join("."),
+    message: issue.message,
+  }));
+  const summary = issues
+    .slice(0, 5)
+    .map((i) => (i.path ? `${i.path}: ${i.message}` : i.message))
+    .join("; ");
+  const prefix = context ? `${context}: ` : "Validation failed: ";
+  return new ValidationError(`${prefix}${summary}`, { issues });
 }

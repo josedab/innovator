@@ -16,7 +16,9 @@ export {
   PipelineError,
   ConfigurationError,
   AbortError,
+  AggregateInnovatorError,
   isInnovatorError,
+  fromZodError,
 } from "./errors.js";
 export type { InnovatorErrorCode } from "./errors.js";
 
@@ -151,6 +153,8 @@ export {
   partitionResults,
   flatMapAsync,
   mapAsync,
+  isOk,
+  isErr,
 } from "./result/index.js";
 export type { Result, Ok, Err } from "./result/index.js";
 

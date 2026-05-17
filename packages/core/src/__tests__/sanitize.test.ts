@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { sanitizeUserInput, wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import {
+  sanitizeUserInput,
+  wrapUserInput,
+  sanitizeLlmOutput,
+  validateSubject,
+} from "../prompts/sanitize.js";
 
 describe("sanitizeUserInput", () => {
   it("returns trimmed input unchanged for benign text", () => {
@@ -244,5 +249,94 @@ describe("sanitizeUserInput — advanced injection patterns", () => {
     const input = "The data source is production database";
     const result = sanitizeUserInput(input);
     expect(result).toBe("The data source is production database");
+  });
+});
+
+describe("validateSubject", () => {
+  it("accepts valid subjects and returns sanitized string", () => {
+    const result = validateSubject("solar energy");
+    expect(result.valid).toBe(true);
+    expect(result.sanitized).toBe("solar energy");
+    expect(result.error).toBeUndefined();
+  });
+
+  it("trims whitespace from valid subjects", () => {
+    const result = validateSubject("  machine learning  ");
+    expect(result.valid).toBe(true);
+    expect(result.sanitized).toBe("machine learning");
+  });
+
+  it("rejects non-string input (number)", () => {
+    const result = validateSubject(42);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe("Subject must be a string");
+  });
+
+  it("rejects non-string input (null)", () => {
+    const result = validateSubject(null);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe("Subject must be a string");
+  });
+
+  it("rejects non-string input (undefined)", () => {
+    const result = validateSubject(undefined);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe("Subject must be a string");
+  });
+
+  it("rejects empty string", () => {
+    const result = validateSubject("");
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe("Subject must not be empty");
+  });
+
+  it("rejects whitespace-only string", () => {
+    const result = validateSubject("   ");
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe("Subject must not be empty");
+  });
+
+  it("rejects string shorter than minimum (1 char)", () => {
+    const result = validateSubject("a");
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("at least 2 characters");
+  });
+
+  it("rejects string exceeding maximum length", () => {
+    const result = validateSubject("x".repeat(501));
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("must not exceed 500 characters");
+  });
+
+  it("accepts string at exactly maximum length", () => {
+    const result = validateSubject("x".repeat(500));
+    expect(result.valid).toBe(true);
+    expect(result.sanitized).toBe("x".repeat(500));
+  });
+
+  it("rejects input that becomes empty after sanitization", () => {
+    // All zero-width characters
+    const result = validateSubject("\u200B\u200B\u200B");
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("invalid or unsafe characters");
+  });
+
+  it("rejects input that becomes too short after sanitization", () => {
+    // "a" + bunch of zero-width chars = "a" after sanitization (1 char < 2 min)
+    const result = validateSubject("a\u200B\u200C\u200D\u2060\uFEFF");
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("too short after removing unsafe characters");
+  });
+
+  it("sanitizes injection patterns in valid subjects", () => {
+    const result = validateSubject("solar energy innovations and possibilities");
+    expect(result.valid).toBe(true);
+    expect(result.sanitized).toBe("solar energy innovations and possibilities");
+  });
+
+  it("rejects objects", () => {
+    const result = validateSubject({ subject: "test" });
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe("Subject must be a string");
   });
 });

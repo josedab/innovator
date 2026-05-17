@@ -7,11 +7,15 @@ import {
   mapResult,
   mapError,
   flatMap,
+  flatMapAsync,
+  mapAsync,
   unwrap,
   unwrapOr,
   unwrapOrElse,
   collectResults,
   partitionResults,
+  isOk,
+  isErr,
 } from "../result/index.js";
 import type { Result } from "../result/index.js";
 
@@ -190,6 +194,79 @@ describe("Result type", () => {
       const { values, errors } = partitionResults([err("e1"), err("e2")]);
       expect(values).toEqual([]);
       expect(errors).toEqual(["e1", "e2"]);
+    });
+  });
+
+  describe("isOk / isErr type guards", () => {
+    it("isOk returns true for ok results", () => {
+      const r = ok(42);
+      expect(isOk(r)).toBe(true);
+      if (isOk(r)) {
+        expect(r.value).toBe(42);
+      }
+    });
+
+    it("isOk returns false for err results", () => {
+      const r = err(new Error("fail"));
+      expect(isOk(r)).toBe(false);
+    });
+
+    it("isErr returns true for err results", () => {
+      const r = err("bad");
+      expect(isErr(r)).toBe(true);
+      if (isErr(r)) {
+        expect(r.error).toBe("bad");
+      }
+    });
+
+    it("isErr returns false for ok results", () => {
+      const r = ok(42);
+      expect(isErr(r)).toBe(false);
+    });
+
+    it("type guards narrow correctly in conditional branches", () => {
+      const r: Result<number, string> = Math.random() > 2 ? ok(1) : err("e");
+      if (isOk(r)) {
+        const _v: number = r.value;
+        expect(typeof _v).toBe("number");
+      } else {
+        const _e: string = r.error;
+        expect(typeof _e).toBe("string");
+      }
+    });
+  });
+
+  describe("flatMapAsync", () => {
+    it("chains successful async results", async () => {
+      const r = await flatMapAsync(ok(5), async (x) => ok(x * 2));
+      expect(r.ok).toBe(true);
+      if (r.ok) expect(r.value).toBe(10);
+    });
+
+    it("propagates errors from first result", async () => {
+      const r = await flatMapAsync(err("e1") as Result<number, string>, async (x) => ok(x * 2));
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error).toBe("e1");
+    });
+
+    it("propagates errors from chained async function", async () => {
+      const r = await flatMapAsync(ok(5), async () => err("e2") as Result<number, string>);
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error).toBe("e2");
+    });
+  });
+
+  describe("mapAsync", () => {
+    it("transforms ok values asynchronously", async () => {
+      const r = await mapAsync(ok(5), async (x) => x * 3);
+      expect(r.ok).toBe(true);
+      if (r.ok) expect(r.value).toBe(15);
+    });
+
+    it("passes through errors unchanged", async () => {
+      const r = await mapAsync(err(new Error("e")), async (x: number) => x * 2);
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error.message).toBe("e");
     });
   });
 });

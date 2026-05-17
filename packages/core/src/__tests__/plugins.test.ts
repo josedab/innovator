@@ -3,6 +3,8 @@ import {
   registerPlugin,
   unregisterPlugin,
   getPlugin,
+  getPluginOrThrow,
+  hasPlugin,
   listPlugins,
   getPluginsByType,
   clearPlugins,
@@ -15,6 +17,8 @@ import {
 } from "../plugins/index.js";
 import type { AnglePlugin, ExporterPlugin, ExportData } from "../types.js";
 import type { LifecyclePlugin } from "../plugins/index.js";
+import { getEventBus, resetEventBus } from "../events/emitter.js";
+import type { PipelineEvent } from "../events/types.js";
 
 const sampleAnglePlugin: AnglePlugin = {
   id: "test-angle-plugin",
@@ -45,6 +49,7 @@ const sampleExporterPlugin: ExporterPlugin = {
 describe("plugin registry", () => {
   beforeEach(() => {
     clearPluginsSync();
+    resetEventBus();
   });
 
   it("registers and retrieves a plugin", () => {
@@ -127,6 +132,51 @@ describe("plugin registry", () => {
     });
   });
 
+  describe("plugin schema validation", () => {
+    it("rejects plugin with invalid ID format (uppercase)", () => {
+      const plugin: AnglePlugin = {
+        ...sampleAnglePlugin,
+        id: "InvalidID",
+      };
+      expect(() => registerPlugin(plugin)).toThrow("Plugin ID must start with");
+    });
+
+    it("rejects plugin with empty version", () => {
+      const plugin: AnglePlugin = {
+        ...sampleAnglePlugin,
+        id: "valid-id",
+        version: "",
+      };
+      expect(() => registerPlugin(plugin)).toThrow("Plugin version must not be empty");
+    });
+
+    it("rejects plugin with invalid type", () => {
+      const plugin = {
+        ...sampleAnglePlugin,
+        id: "bad-type",
+        type: "unknown" as "angle",
+      };
+      expect(() => registerPlugin(plugin)).toThrow(/Invalid plugin/);
+    });
+
+    it("accepts plugin with dots and underscores in ID", () => {
+      const plugin: AnglePlugin = {
+        ...sampleAnglePlugin,
+        id: "my.plugin_v2",
+      };
+      expect(() => registerPlugin(plugin)).not.toThrow();
+      expect(getPlugin("my.plugin_v2")).toBeDefined();
+    });
+
+    it("rejects plugin with ID starting with a hyphen", () => {
+      const plugin: AnglePlugin = {
+        ...sampleAnglePlugin,
+        id: "-bad-start",
+      };
+      expect(() => registerPlugin(plugin)).toThrow("Plugin ID must start with");
+    });
+  });
+
   describe("ExporterPlugin", () => {
     it("export() async invocation returns string", async () => {
       const exportData: ExportData = { subject: "test", angleResults: [] };
@@ -187,6 +237,49 @@ describe("plugin registry", () => {
       await expect(loadPlugin("./nonexistent-but-already-registered.js")).rejects.toThrow(
         "Failed to load plugin"
       );
+    });
+  });
+
+  describe("getPluginOrThrow", () => {
+    it("returns plugin when registered", () => {
+      registerPlugin(sampleAnglePlugin);
+      const plugin = getPluginOrThrow("test-angle-plugin");
+      expect(plugin).toEqual(sampleAnglePlugin);
+    });
+
+    it("throws ConfigurationError when plugin not found", () => {
+      expect(() => getPluginOrThrow("nonexistent")).toThrow("not registered");
+      expect(() => getPluginOrThrow("nonexistent")).toThrow(/nonexistent/);
+    });
+
+    it("throws with plugin id in configKey", () => {
+      try {
+        getPluginOrThrow("missing-plugin");
+        expect.fail("Should have thrown");
+      } catch (e: unknown) {
+        expect((e as { configKey: string }).configKey).toBe("missing-plugin");
+      }
+    });
+  });
+
+  describe("hasPlugin", () => {
+    it("returns true for registered plugins", () => {
+      registerPlugin(sampleAnglePlugin);
+      expect(hasPlugin("test-angle-plugin")).toBe(true);
+    });
+
+    it("returns false for unregistered plugins", () => {
+      expect(hasPlugin("nonexistent")).toBe(false);
+    });
+
+    it("returns false after plugin is unregistered", async () => {
+      registerPlugin(sampleAnglePlugin);
+      await unregisterPlugin("test-angle-plugin");
+      expect(hasPlugin("test-angle-plugin")).toBe(false);
+    });
+
+    it("returns false for empty string id", () => {
+      expect(hasPlugin("")).toBe(false);
     });
   });
 
@@ -338,6 +431,78 @@ describe("plugin registry", () => {
       };
       expect(ctx.getPlugin("test-angle-plugin")).toBeDefined();
       expect(ctx.listPlugins().length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe("plugin lifecycle events", () => {
+    it("emits plugin.registered event on registration", async () => {
+      const events: PipelineEvent[] = [];
+      getEventBus().on("plugin.registered", (e) => {
+        events.push(e);
+      });
+
+      registerPlugin(sampleAnglePlugin);
+
+      // Allow async event delivery
+      await new Promise((r) => setTimeout(r, 10));
+      expect(events).toHaveLength(1);
+      expect(events[0].payload.pluginId).toBe("test-angle-plugin");
+      expect(events[0].payload.pluginType).toBe("angle");
+    });
+
+    it("emits plugin.unregistered event on removal", async () => {
+      const events: PipelineEvent[] = [];
+      getEventBus().on("plugin.unregistered", (e) => {
+        events.push(e);
+      });
+
+      registerPlugin(sampleAnglePlugin);
+      await unregisterPlugin("test-angle-plugin");
+
+      await new Promise((r) => setTimeout(r, 10));
+      expect(events).toHaveLength(1);
+      expect(events[0].payload.pluginId).toBe("test-angle-plugin");
+    });
+
+    it("emits plugin.initialized event on successful init", async () => {
+      const events: PipelineEvent[] = [];
+      getEventBus().on("plugin.initialized", (e) => {
+        events.push(e);
+      });
+
+      const plugin: LifecyclePlugin = {
+        ...sampleAnglePlugin,
+        id: "init-event-plugin",
+        onInit: async () => {},
+      };
+      registerPlugin(plugin);
+      await initPlugin("init-event-plugin");
+
+      await new Promise((r) => setTimeout(r, 10));
+      expect(events).toHaveLength(1);
+      expect(events[0].payload.pluginId).toBe("init-event-plugin");
+    });
+
+    it("emits plugin.init_failed event on failed init", async () => {
+      const events: PipelineEvent[] = [];
+      getEventBus().on("plugin.init_failed", (e) => {
+        events.push(e);
+      });
+
+      const plugin: LifecyclePlugin = {
+        ...sampleAnglePlugin,
+        id: "fail-event-plugin",
+        onInit: async () => {
+          throw new Error("init boom");
+        },
+      };
+      registerPlugin(plugin);
+      await expect(initPlugin("fail-event-plugin")).rejects.toThrow("initialization failed");
+
+      await new Promise((r) => setTimeout(r, 10));
+      expect(events).toHaveLength(1);
+      expect(events[0].payload.pluginId).toBe("fail-event-plugin");
+      expect(events[0].payload.error).toContain("init boom");
     });
   });
 });

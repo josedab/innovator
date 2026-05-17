@@ -10,7 +10,9 @@ import {
   PipelineError,
   ConfigurationError,
   AbortError,
+  AggregateInnovatorError,
   isInnovatorError,
+  fromZodError,
 } from "../errors.js";
 import { RetryExhaustedError } from "../copilot/retry.js";
 
@@ -159,6 +161,58 @@ describe("errors", () => {
     });
   });
 
+  describe("AggregateInnovatorError", () => {
+    it("collects multiple errors with default code", () => {
+      const errors = [new Error("angle 1 failed"), new Error("angle 2 failed")];
+      const err = new AggregateInnovatorError("2 of 8 angles failed", errors);
+      expect(err.name).toBe("AggregateInnovatorError");
+      expect(err.code).toBe("ERR_PIPELINE");
+      expect(err.errors).toHaveLength(2);
+      expect(err.message).toBe("2 of 8 angles failed");
+      expect(err).toBeInstanceOf(InnovatorError);
+    });
+
+    it("supports custom error code", () => {
+      const err = new AggregateInnovatorError("validation batch failed", [], "ERR_VALIDATION");
+      expect(err.code).toBe("ERR_VALIDATION");
+    });
+
+    it("errors array is frozen (immutable)", () => {
+      const errors = [new Error("e1")];
+      const err = new AggregateInnovatorError("test", errors);
+      expect(() => (err.errors as Error[]).push(new Error("e2"))).toThrow();
+      expect(err.errors).toHaveLength(1);
+    });
+
+    it("serializes to JSON with error details", () => {
+      const errors = [
+        new LlmError("timeout on gpt-4.1", { model: "gpt-4.1" }),
+        new ValidationError("bad schema"),
+      ];
+      const err = new AggregateInnovatorError("batch failed", errors);
+      const json = err.toJSON();
+      expect(json.name).toBe("AggregateInnovatorError");
+      expect(json.errorCount).toBe(2);
+      expect(json.errors).toEqual([
+        { name: "LlmError", message: "timeout on gpt-4.1" },
+        { name: "ValidationError", message: "bad schema" },
+      ]);
+    });
+
+    it("is detected by isInnovatorError", () => {
+      const err = new AggregateInnovatorError("test", []);
+      expect(isInnovatorError(err)).toBe(true);
+    });
+
+    it("handles empty errors array", () => {
+      const err = new AggregateInnovatorError("no errors collected", []);
+      expect(err.errors).toHaveLength(0);
+      const json = err.toJSON();
+      expect(json.errorCount).toBe(0);
+      expect(json.errors).toEqual([]);
+    });
+  });
+
   describe("RetryExhaustedError", () => {
     it("extends InnovatorError with ERR_RETRY_EXHAUSTED code", () => {
       const cause = new Error("network failure");
@@ -200,6 +254,80 @@ describe("errors", () => {
       expect(isInnovatorError("string")).toBe(false);
       expect(isInnovatorError(null)).toBe(false);
       expect(isInnovatorError(undefined)).toBe(false);
+    });
+  });
+
+  describe("fromZodError", () => {
+    it("converts Zod-like error to ValidationError with structured issues", () => {
+      const zodError = {
+        issues: [
+          { path: ["summary"], message: "Required" },
+          {
+            path: ["keyAspects", 0, "title"],
+            message: "String must contain at most 500 character(s)",
+          },
+        ],
+      };
+      const err = fromZodError(zodError);
+      expect(err).toBeInstanceOf(ValidationError);
+      expect(err.code).toBe("ERR_VALIDATION");
+      expect(err.issues).toHaveLength(2);
+      expect(err.issues![0]).toEqual({ path: "summary", message: "Required" });
+      expect(err.issues![1]).toEqual({
+        path: "keyAspects.0.title",
+        message: "String must contain at most 500 character(s)",
+      });
+    });
+
+    it("includes context prefix in error message when provided", () => {
+      const zodError = {
+        issues: [{ path: ["title"], message: "Required" }],
+      };
+      const err = fromZodError(zodError, "Invalid investigation");
+      expect(err.message).toContain("Invalid investigation");
+      expect(err.message).toContain("title: Required");
+    });
+
+    it("uses default prefix when no context is provided", () => {
+      const zodError = {
+        issues: [{ path: [], message: "Invalid input" }],
+      };
+      const err = fromZodError(zodError);
+      expect(err.message).toContain("Validation failed: ");
+      expect(err.message).toContain("Invalid input");
+    });
+
+    it("truncates message to first 5 issues", () => {
+      const zodError = {
+        issues: Array.from({ length: 10 }, (_, i) => ({
+          path: [`field${i}`],
+          message: `Error ${i}`,
+        })),
+      };
+      const err = fromZodError(zodError);
+      expect(err.issues).toHaveLength(10);
+      // Message only shows first 5
+      expect(err.message).toContain("field4");
+      expect(err.message).not.toContain("field5");
+    });
+
+    it("handles empty path in issues", () => {
+      const zodError = {
+        issues: [{ path: [], message: "Root-level error" }],
+      };
+      const err = fromZodError(zodError);
+      expect(err.issues![0].path).toBe("");
+      expect(err.message).toContain("Root-level error");
+    });
+
+    it("serializes correctly via toJSON", () => {
+      const zodError = {
+        issues: [{ path: ["name"], message: "Too short" }],
+      };
+      const err = fromZodError(zodError, "Plugin validation");
+      const json = err.toJSON();
+      expect(json.code).toBe("ERR_VALIDATION");
+      expect(json.issues).toEqual([{ path: "name", message: "Too short" }]);
     });
   });
 
