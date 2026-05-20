@@ -8,6 +8,7 @@ const mockSendAndWait = vi.fn();
 const mockSend = vi.fn().mockResolvedValue(undefined);
 const mockOn = vi.fn().mockReturnValue(vi.fn()); // returns unsub fn
 const mockCreateSession = vi.fn();
+const mockDeleteSession = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@github/copilot-sdk", () => {
   return {
@@ -15,12 +16,14 @@ vi.mock("@github/copilot-sdk", () => {
       start = mockStart;
       stop = mockStop;
       createSession = mockCreateSession;
+      deleteSession = mockDeleteSession;
     },
   };
 });
 
 // Set up createSession default
 mockCreateSession.mockReturnValue({
+  sessionId: "test-session",
   sendAndWait: mockSendAndWait,
   send: mockSend,
   disconnect: mockDisconnect,
@@ -41,6 +44,7 @@ describe("copilot/client", () => {
     // Reset singleton by stopping any existing client
     await stopCopilotClient();
     mockCreateSession.mockReturnValue({
+      sessionId: "test-session",
       sendAndWait: mockSendAndWait,
       send: mockSend,
       disconnect: mockDisconnect,
@@ -119,7 +123,9 @@ describe("copilot/client", () => {
       const sessionOpts = mockCreateSession.mock.calls[0][0];
       // Test the permission handler denies write operations
       const handler = sessionOpts.onPermissionRequest;
-      expect(handler({ kind: "read" })).toEqual({ kind: "approved" });
+      expect(handler({ kind: "read" })).toEqual(
+        expect.objectContaining({ kind: "denied-by-rules" })
+      );
       expect(handler({ kind: "write" })).toEqual(
         expect.objectContaining({ kind: "denied-by-rules" })
       );
@@ -130,7 +136,9 @@ describe("copilot/client", () => {
       await generateText({ prompt: "test", serverMode: false, timeoutMs: 5000 });
       const sessionOpts = mockCreateSession.mock.calls[0][0];
       const handler = sessionOpts.onPermissionRequest;
-      expect(handler({ kind: "read" })).toEqual({ kind: "approved" });
+      expect(handler({ kind: "read" })).toEqual(
+        expect.objectContaining({ kind: "denied-by-rules" })
+      );
       expect(handler({ kind: "shell" })).toEqual(
         expect.objectContaining({ kind: "denied-by-rules" })
       );

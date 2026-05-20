@@ -269,9 +269,6 @@ export async function runAutoPipeline(
       },
       {
         signal: effectiveSignal,
-        isRetryable: (err) =>
-          err instanceof Error &&
-          (err.message.includes("Failed to parse") || err.message.includes("No JSON object found")),
         ...retryOpts,
       }
     );

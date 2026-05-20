@@ -97,14 +97,7 @@ export async function generateForAngle(
           );
         }
       },
-      {
-        signal,
-        isRetryable: (err) =>
-          err instanceof Error &&
-          (err.message.includes("Failed to parse") ||
-            err.message.includes("No JSON object found") ||
-            err.message.includes("Unbalanced JSON braces")),
-      }
+      { signal }
     );
     result = AngleResultSchema.parse(parsed);
   } catch (err) {

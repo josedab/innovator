@@ -464,6 +464,31 @@ describe("InnovatorClient", () => {
       vi.unstubAllGlobals();
     });
 
+    it("applies the configured timeout to stream connection setup", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn((_url: string, init?: RequestInit) => {
+          return new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener(
+              "abort",
+              () => reject(new DOMException("The operation was aborted", "AbortError")),
+              { once: true }
+            );
+          });
+        })
+      );
+      const timeoutClient = new InnovatorClient({
+        baseUrl: "https://api.example.com",
+        timeout: 1,
+      });
+
+      const error = await timeoutClient.streamAuto("test", () => {}).catch((err) => err);
+
+      expect(error).toBeInstanceOf(InnovatorError);
+      expect(error.code).toBe("TIMEOUT");
+      vi.unstubAllGlobals();
+    });
+
     it("throws TIMEOUT on fetch timeout (AbortError without external signal)", async () => {
       const abortError = new DOMException("The operation was aborted", "AbortError");
       vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError));

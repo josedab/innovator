@@ -2,9 +2,19 @@ import { CopilotClient } from "@github/copilot-sdk";
 import type { PermissionRequest } from "@github/copilot-sdk";
 import { AbortError, LlmError, LlmTimeoutError, LlmParseError } from "../errors.js";
 import { LRUCache } from "../cache/index.js";
+import { Semaphore } from "../concurrency/index.js";
 import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 
 const DEFAULT_MODEL = process.env.INNOVATOR_DEFAULT_MODEL || "gpt-4.1";
+
+function positiveIntegerFromEnv(name: string, fallback: number): number {
+  const value = Number.parseInt(process.env[name] ?? "", 10);
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
+const llmSemaphore = new Semaphore(positiveIntegerFromEnv("INNOVATOR_LLM_MAX_CONCURRENCY", 2), {
+  maxWaiters: positiveIntegerFromEnv("INNOVATOR_LLM_MAX_QUEUE", 16),
+});
 
 /** Error codes that indicate the connection was already closed (client disconnect, broken pipe). */
 const EXPECTED_DISCONNECT_CODES = new Set(["ECONNRESET", "EPIPE", "ECONNABORTED"]);
@@ -26,7 +36,39 @@ async function safeDisconnect(session: { disconnect(): Promise<void> }): Promise
   }
 }
 
+function createSessionCleanup(
+  client: CopilotClient,
+  session: { sessionId: string; disconnect(): Promise<void> }
+): {
+  disconnect(): Promise<void>;
+  cleanup(): Promise<void>;
+} {
+  let disconnected = false;
+  let deleted = false;
+
+  const disconnect = async () => {
+    if (disconnected) return;
+    disconnected = true;
+    await safeDisconnect(session);
+  };
+
+  return {
+    disconnect,
+    async cleanup() {
+      await disconnect();
+      if (!deleted) {
+        deleted = true;
+        await client.deleteSession(session.sessionId);
+      }
+    },
+  };
+}
+
 let clientPromise: Promise<CopilotClient> | null = null;
+let clientInstance: CopilotClient | null = null;
+let liveLlmCallers = 0;
+const activeLlmOperations = new Set<symbol>();
+let zombieResetPromise: Promise<void> | null = null;
 
 /**
  * Get or create the shared {@link CopilotClient} singleton.
@@ -37,19 +79,79 @@ let clientPromise: Promise<CopilotClient> | null = null;
  */
 export async function getCopilotClient(): Promise<CopilotClient> {
   if (!clientPromise) {
-    clientPromise = (async () => {
-      const client = new CopilotClient();
-      try {
-        await client.start();
-        return client;
-      } catch (err) {
-        // Clear the cached promise so next call retries
-        clientPromise = null;
-        throw err;
+    const client = new CopilotClient();
+    clientInstance = client;
+    clientPromise = client.start().then(
+      () => client,
+      (error) => {
+        if (clientInstance === client) {
+          clientInstance = null;
+          clientPromise = null;
+        }
+        throw error;
       }
-    })();
+    );
   }
   return clientPromise;
+}
+
+function finishLlmOperation(operationId: symbol): void {
+  if (activeLlmOperations.delete(operationId)) {
+    llmSemaphore.release();
+  }
+}
+
+async function forceResetCopilotClient(): Promise<void> {
+  const client = clientInstance;
+  const operationsToRelease = [...activeLlmOperations];
+  clientInstance = null;
+  clientPromise = null;
+
+  try {
+    if (client) {
+      await Promise.race([
+        client.forceStop(),
+        new Promise<void>((resolve) => setTimeout(resolve, 2_000)),
+      ]);
+    }
+  } finally {
+    for (const operationId of operationsToRelease) {
+      finishLlmOperation(operationId);
+    }
+  }
+}
+
+function beginClientReset(): Promise<void> {
+  if (!zombieResetPromise) {
+    zombieResetPromise = forceResetCopilotClient()
+      .catch(() => {})
+      .finally(() => {
+        zombieResetPromise = null;
+      });
+  }
+  return zombieResetPromise;
+}
+
+function scheduleZombieReset(): void {
+  if (liveLlmCallers === 0 && activeLlmOperations.size > 0) {
+    void beginClientReset();
+  }
+}
+
+async function waitForClientReset(signal: AbortSignal): Promise<void> {
+  const reset = zombieResetPromise;
+  if (!reset) return;
+  if (signal.aborted) {
+    throw new AbortError("Request was aborted while client reset");
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const onAbort = () => reject(new AbortError("Request was aborted while client reset"));
+    signal.addEventListener("abort", onAbort, { once: true });
+    reset.then(resolve, reject).finally(() => {
+      signal.removeEventListener("abort", onAbort);
+    });
+  });
 }
 
 /**
@@ -57,36 +159,50 @@ export async function getCopilotClient(): Promise<CopilotClient> {
  * Safe to call even if no client has been created.
  */
 export async function stopCopilotClient(): Promise<void> {
-  if (clientPromise) {
-    try {
-      const client = await clientPromise;
+  if (zombieResetPromise) {
+    await zombieResetPromise;
+    return;
+  }
+
+  const client = clientInstance;
+  try {
+    if (client) {
       await client.stop();
-    } finally {
-      clientPromise = null;
+    } else if (clientPromise) {
+      await clientPromise.then((pendingClient) => pendingClient.stop());
+    }
+  } finally {
+    clientInstance = null;
+    clientPromise = null;
+    for (const operationId of [...activeLlmOperations]) {
+      finishLlmOperation(operationId);
     }
   }
 }
 
+/** Reset a failed shared client only when no live LLM callers are active. */
+export async function resetCopilotClientIfIdle(): Promise<boolean> {
+  if (liveLlmCallers > 0) return false;
+  await beginClientReset();
+  return true;
+}
+
 /**
- * Create a restricted permission handler that only allows read operations.
- * Denies shell, write, and custom-tool requests with a contextual error message.
+ * Create a permission handler that denies every built-in tool request.
  */
 function createPermissionHandler(mode: string) {
   return (request: PermissionRequest) => {
-    if (request.kind === "read") {
-      return { kind: "approved" as const };
-    }
     return {
       kind: "denied-by-rules" as const,
-      rules: [`${mode} mode: ${request.kind} not allowed`],
+      rules: [{ kind: `${mode}:${request.kind}`, argument: null }],
     };
   };
 }
 
-/** Permission handler for web/API routes — restricts Copilot to read-only operations. */
+/** Permission handler for web/API routes — denies all built-in tools. */
 const serverPermissionHandler = createPermissionHandler("Server");
 
-/** Permission handler for CLI usage — restricts Copilot to read-only operations. */
+/** Permission handler for CLI usage — denies all built-in tools. */
 const cliPermissionHandler = createPermissionHandler("CLI");
 
 export interface GenerateOptions {
@@ -110,6 +226,87 @@ const DEFAULT_TIMEOUT_MS = (() => {
   return 90_000;
 })();
 
+async function withLlmPermit<T>(
+  options: GenerateOptions,
+  operation: (permittedOptions: GenerateOptions) => Promise<T>
+): Promise<T> {
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const startedAt = Date.now();
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  const signal = options.signal ? AbortSignal.any([options.signal, timeoutSignal]) : timeoutSignal;
+
+  try {
+    while (true) {
+      await waitForClientReset(signal);
+      await llmSemaphore.acquire({ signal });
+      if (!zombieResetPromise) break;
+      llmSemaphore.release();
+    }
+  } catch (error) {
+    if (options.signal?.aborted) {
+      throw new AbortError("Request was aborted");
+    }
+    if (timeoutSignal.aborted) {
+      throw new LlmTimeoutError(timeoutMs, { model: options.model });
+    }
+    throw error;
+  }
+
+  liveLlmCallers++;
+  let releaseOnExit = true;
+  try {
+    const remainingMs = timeoutMs - (Date.now() - startedAt);
+    if (remainingMs <= 0) {
+      throw new LlmTimeoutError(timeoutMs, { model: options.model });
+    }
+    const permittedOptions = {
+      ...options,
+      signal,
+      timeoutMs: remainingMs,
+    };
+    const operationPromise = operation(permittedOptions);
+    const operationId = Symbol("llm-operation");
+    releaseOnExit = false;
+    activeLlmOperations.add(operationId);
+    operationPromise.then(
+      () => finishLlmOperation(operationId),
+      () => finishLlmOperation(operationId)
+    );
+
+    return await new Promise<T>((resolve, reject) => {
+      const onAbort = () => {
+        reject(
+          options.signal?.aborted
+            ? new AbortError("Request was aborted")
+            : new LlmTimeoutError(timeoutMs, { model: options.model })
+        );
+      };
+
+      if (signal.aborted) {
+        onAbort();
+      } else {
+        signal.addEventListener("abort", onAbort, { once: true });
+      }
+      operationPromise.then(
+        (value) => {
+          signal.removeEventListener("abort", onAbort);
+          resolve(value);
+        },
+        (error) => {
+          signal.removeEventListener("abort", onAbort);
+          reject(error);
+        }
+      );
+    });
+  } finally {
+    liveLlmCallers--;
+    if (releaseOnExit) {
+      llmSemaphore.release();
+    }
+    scheduleZombieReset();
+  }
+}
+
 /**
  * Send a prompt and wait for the complete response.
  */
@@ -118,17 +315,31 @@ export async function generateText(options: GenerateOptions): Promise<string> {
     throw new AbortError("Request was aborted");
   }
 
+  return withLlmPermit(options, generateTextWithPermit);
+}
+
+async function generateTextWithPermit(options: GenerateOptions): Promise<string> {
   const client = await getCopilotClient();
+  if (options.signal?.aborted) {
+    throw new AbortError("Request was aborted during client startup");
+  }
   const session = await client.createSession({
     model: options.model || DEFAULT_MODEL,
+    availableTools: [],
+    infiniteSessions: { enabled: false },
     onPermissionRequest: options.serverMode ? serverPermissionHandler : cliPermissionHandler,
   });
+  const sessionCleanup = createSessionCleanup(client, session);
+  if (options.signal?.aborted) {
+    await sessionCleanup.cleanup();
+    throw new AbortError("Request was aborted during session setup");
+  }
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const abortHandler = () => {
-    safeDisconnect(session).catch(() => {});
+    sessionCleanup.disconnect().catch(() => {});
   };
 
   try {
@@ -151,7 +362,7 @@ export async function generateText(options: GenerateOptions): Promise<string> {
   } finally {
     if (timeoutId !== undefined) clearTimeout(timeoutId);
     options.signal?.removeEventListener("abort", abortHandler);
-    await safeDisconnect(session);
+    await sessionCleanup.cleanup();
   }
 }
 
@@ -166,18 +377,37 @@ export async function generateTextStream(
     throw new AbortError("Request was aborted");
   }
 
+  return withLlmPermit(options, (permittedOptions) =>
+    generateTextStreamWithPermit(permittedOptions, onChunk)
+  );
+}
+
+async function generateTextStreamWithPermit(
+  options: GenerateOptions,
+  onChunk: (chunk: string) => void
+): Promise<string> {
   const client = await getCopilotClient();
+  if (options.signal?.aborted) {
+    throw new AbortError("Request was aborted during client startup");
+  }
   const session = await client.createSession({
     model: options.model || DEFAULT_MODEL,
+    availableTools: [],
+    infiniteSessions: { enabled: false },
     onPermissionRequest: options.serverMode ? serverPermissionHandler : cliPermissionHandler,
   });
+  const sessionCleanup = createSessionCleanup(client, session);
+  if (options.signal?.aborted) {
+    await sessionCleanup.cleanup();
+    throw new AbortError("Request was aborted during session setup");
+  }
 
   let fullText = "";
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   const abortHandler = () => {
-    safeDisconnect(session).catch(() => {});
+    sessionCleanup.disconnect().catch(() => {});
   };
 
   let unsubDelta: (() => void) | undefined;
@@ -194,15 +424,11 @@ export async function generateTextStream(
     };
 
     const idleListener = () => {
-      safeDisconnect(session)
-        .then(() => idleResolve(fullText))
-        .catch(idleReject);
+      idleResolve(fullText);
     };
 
     const errorListener = (err: { data: { message: string } }) => {
-      safeDisconnect(session)
-        .then(() => idleReject(new LlmError(err.data.message, { model: options.model })))
-        .catch(idleReject);
+      idleReject(new LlmError(err.data.message, { model: options.model }));
     };
 
     let idleResolve: (value: string) => void;
@@ -221,7 +447,7 @@ export async function generateTextStream(
       }),
       new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
-          safeDisconnect(session).catch(() => {});
+          sessionCleanup.disconnect().catch(() => {});
           reject(new LlmTimeoutError(timeoutMs, { model: options.model }));
         }, timeoutMs);
       }),
@@ -232,7 +458,7 @@ export async function generateTextStream(
     unsubError?.();
     if (timeoutId !== undefined) clearTimeout(timeoutId);
     options.signal?.removeEventListener("abort", abortHandler);
-    await safeDisconnect(session);
+    await sessionCleanup.cleanup();
   }
 }
 

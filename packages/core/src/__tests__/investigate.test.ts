@@ -82,4 +82,21 @@ describe("investigate", () => {
 
     await expect(investigate("test")).rejects.toThrow("LLM error");
   });
+
+  it("retries transient network errors with the shared retry policy", async () => {
+    vi.useFakeTimers();
+    try {
+      mockGenerateText
+        .mockRejectedValueOnce(new Error("fetch failed"))
+        .mockResolvedValue("raw response");
+
+      const resultPromise = investigate("test");
+      await vi.runAllTimersAsync();
+
+      await expect(resultPromise).resolves.toEqual(MOCK_INVESTIGATION);
+      expect(mockGenerateText).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

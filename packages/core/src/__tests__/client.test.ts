@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ---- Mocks must be declared before imports ----
 
-const { mockStart, mockStop, mockCreateSession } = vi.hoisted(() => ({
+const { mockStart, mockStop, mockCreateSession, mockDeleteSession } = vi.hoisted(() => ({
   mockStart: vi.fn(),
   mockStop: vi.fn(),
   mockCreateSession: vi.fn(),
+  mockDeleteSession: vi.fn(),
 }));
 
 vi.mock("@github/copilot-sdk", () => {
@@ -13,6 +14,7 @@ vi.mock("@github/copilot-sdk", () => {
     start = mockStart;
     stop = mockStop;
     createSession = mockCreateSession;
+    deleteSession = mockDeleteSession;
   }
   return { CopilotClient: MockCopilotClient };
 });
@@ -163,7 +165,9 @@ describe("copilot/client", () => {
     beforeEach(() => {
       mockStart.mockResolvedValue(undefined);
       mockDisconnect.mockResolvedValue(undefined);
+      mockDeleteSession.mockResolvedValue(undefined);
       mockCreateSession.mockResolvedValue({
+        sessionId: "test-session",
         sendAndWait: mockSendAndWait,
         disconnect: mockDisconnect,
       });
@@ -177,6 +181,7 @@ describe("copilot/client", () => {
       expect(result).toBe("Hello world");
       expect(mockSendAndWait).toHaveBeenCalledWith({ prompt: "test" });
       expect(mockDisconnect).toHaveBeenCalled();
+      expect(mockDeleteSession).toHaveBeenCalledWith("test-session");
     });
 
     it("throws LlmParseError when response has no content", async () => {
@@ -210,9 +215,9 @@ describe("copilot/client", () => {
       await generateText({ prompt: "test", serverMode: true });
 
       const sessionArgs = mockCreateSession.mock.calls[0][0];
-      // Server mode should use permission handler that approves reads and denies writes
+      // Server mode disables all built-in tool permissions.
       const readResult = sessionArgs.onPermissionRequest({ kind: "read" });
-      expect(readResult.kind).toBe("approved");
+      expect(readResult.kind).toBe("denied-by-rules");
 
       const writeResult = sessionArgs.onPermissionRequest({ kind: "write" });
       expect(writeResult.kind).toBe("denied-by-rules");
@@ -225,7 +230,7 @@ describe("copilot/client", () => {
 
       const sessionArgs = mockCreateSession.mock.calls[0][0];
       const readResult = sessionArgs.onPermissionRequest({ kind: "read" });
-      expect(readResult.kind).toBe("approved");
+      expect(readResult.kind).toBe("denied-by-rules");
 
       const shellResult = sessionArgs.onPermissionRequest({ kind: "shell" });
       expect(shellResult.kind).toBe("denied-by-rules");
@@ -246,7 +251,13 @@ describe("copilot/client", () => {
 
       await generateText({ prompt: "test", model: "gpt-5" });
 
-      expect(mockCreateSession).toHaveBeenCalledWith(expect.objectContaining({ model: "gpt-5" }));
+      expect(mockCreateSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: "gpt-5",
+          availableTools: [],
+          infiniteSessions: { enabled: false },
+        })
+      );
     });
 
     it("disconnects session even on error", async () => {
@@ -256,16 +267,14 @@ describe("copilot/client", () => {
       expect(mockDisconnect).toHaveBeenCalled();
     });
 
-    it("removes abort event listener after completion", async () => {
+    it("does not react to external abort after completion", async () => {
       mockSendAndWait.mockResolvedValue({ data: { content: "ok" } });
       const controller = new AbortController();
-      const addSpy = vi.spyOn(controller.signal, "addEventListener");
-      const removeSpy = vi.spyOn(controller.signal, "removeEventListener");
 
       await generateText({ prompt: "test", signal: controller.signal });
+      controller.abort();
 
-      expect(addSpy).toHaveBeenCalledWith("abort", expect.any(Function), { once: true });
-      expect(removeSpy).toHaveBeenCalledWith("abort", expect.any(Function));
+      expect(mockDisconnect).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -279,6 +288,7 @@ describe("copilot/client", () => {
     beforeEach(() => {
       mockStart.mockResolvedValue(undefined);
       mockDisconnect.mockResolvedValue(undefined);
+      mockDeleteSession.mockResolvedValue(undefined);
 
       // Capture event listeners for manual triggering
       const listeners: Record<string, Function> = {};
@@ -297,6 +307,7 @@ describe("copilot/client", () => {
       });
 
       mockCreateSession.mockResolvedValue({
+        sessionId: "stream-session",
         send: mockSend,
         disconnect: mockDisconnect,
         on: mockOn,

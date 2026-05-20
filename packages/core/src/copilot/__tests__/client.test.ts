@@ -4,7 +4,14 @@ vi.mock("@github/copilot-sdk", () => ({
   CopilotClient: vi.fn(),
 }));
 
-import { generateTextStream, generateText, extractJson, stopCopilotClient } from "../client.js";
+import { CopilotClient } from "@github/copilot-sdk";
+import {
+  generateTextStream,
+  generateText,
+  extractJson,
+  resetCopilotClientIfIdle,
+  stopCopilotClient,
+} from "../client.js";
 
 describe("copilot/client", () => {
   beforeEach(async () => {
@@ -36,6 +43,182 @@ describe("copilot/client", () => {
       await expect(
         generateTextStream({ prompt: "test", signal: controller.signal }, () => {})
       ).rejects.toThrow("Request was aborted");
+    });
+  });
+
+  describe("global LLM concurrency", () => {
+    it("limits active Copilot sessions across concurrent requests", async () => {
+      const pendingResponses: Array<() => void> = [];
+      const createSession = vi.fn(async () => ({
+        sessionId: `session-${createSession.mock.calls.length}`,
+        sendAndWait: vi.fn(
+          () =>
+            new Promise<{ data: { content: string } }>((resolve) => {
+              pendingResponses.push(() => resolve({ data: { content: "ok" } }));
+            })
+        ),
+        disconnect: vi.fn().mockResolvedValue(undefined),
+      }));
+      const client = {
+        start: vi.fn().mockResolvedValue(undefined),
+        stop: vi.fn().mockResolvedValue(undefined),
+        forceStop: vi.fn().mockResolvedValue(undefined),
+        deleteSession: vi.fn().mockResolvedValue(undefined),
+        createSession,
+      };
+      vi.mocked(CopilotClient).mockImplementation(function MockCopilotClient() {
+        return client as never;
+      });
+
+      const requests = [
+        generateText({ prompt: "one", timeoutMs: 5_000 }),
+        generateText({ prompt: "two", timeoutMs: 5_000 }),
+        generateText({ prompt: "three", timeoutMs: 5_000 }),
+      ];
+
+      try {
+        await vi.waitFor(() => expect(createSession).toHaveBeenCalledTimes(2));
+        await expect(resetCopilotClientIfIdle()).resolves.toBe(false);
+        pendingResponses.shift()?.();
+        await vi.waitFor(() => expect(createSession).toHaveBeenCalledTimes(3));
+        pendingResponses.splice(0).forEach((resolve) => resolve());
+
+        await expect(Promise.all(requests)).resolves.toEqual(["ok", "ok", "ok"]);
+        await expect(resetCopilotClientIfIdle()).resolves.toBe(true);
+      } finally {
+        pendingResponses.splice(0).forEach((resolve) => resolve());
+      }
+    });
+
+    it("applies the request timeout while waiting for a permit", async () => {
+      const pendingResponses: Array<() => void> = [];
+      const createSession = vi.fn(async () => ({
+        sessionId: `session-${createSession.mock.calls.length}`,
+        sendAndWait: vi.fn(
+          () =>
+            new Promise<{ data: { content: string } }>((resolve) => {
+              pendingResponses.push(() => resolve({ data: { content: "ok" } }));
+            })
+        ),
+        disconnect: vi.fn().mockResolvedValue(undefined),
+      }));
+      const client = {
+        start: vi.fn().mockResolvedValue(undefined),
+        stop: vi.fn().mockResolvedValue(undefined),
+        forceStop: vi.fn().mockResolvedValue(undefined),
+        deleteSession: vi.fn().mockResolvedValue(undefined),
+        createSession,
+      };
+      vi.mocked(CopilotClient).mockImplementation(function MockCopilotClient() {
+        return client as never;
+      });
+
+      const activeRequests = [
+        generateText({ prompt: "one", timeoutMs: 5_000 }),
+        generateText({ prompt: "two", timeoutMs: 5_000 }),
+      ];
+
+      try {
+        await vi.waitFor(() => expect(createSession).toHaveBeenCalledTimes(2));
+        await expect(generateText({ prompt: "queued", timeoutMs: 10 })).rejects.toThrow(
+          "timed out"
+        );
+        pendingResponses.splice(0).forEach((resolve) => resolve());
+        await expect(Promise.all(activeRequests)).resolves.toEqual(["ok", "ok"]);
+      } finally {
+        pendingResponses.splice(0).forEach((resolve) => resolve());
+      }
+    });
+
+    it("times out during session setup without sending the prompt", async () => {
+      const sendAndWait = vi.fn().mockResolvedValue({ data: { content: "late" } });
+      const disconnect = vi.fn().mockResolvedValue(undefined);
+      const client = {
+        start: vi.fn().mockResolvedValue(undefined),
+        stop: vi.fn().mockResolvedValue(undefined),
+        forceStop: vi.fn().mockResolvedValue(undefined),
+        deleteSession: vi.fn().mockResolvedValue(undefined),
+        createSession: vi.fn(
+          () =>
+            new Promise((resolve) => {
+              setTimeout(
+                () => resolve({ sessionId: "delayed-session", sendAndWait, disconnect }),
+                60
+              );
+            })
+        ),
+      };
+      vi.mocked(CopilotClient).mockImplementation(function MockCopilotClient() {
+        return client as never;
+      });
+
+      const startedAt = Date.now();
+      await expect(generateText({ prompt: "setup", timeoutMs: 20 })).rejects.toThrow("timed out");
+      expect(Date.now() - startedAt).toBeLessThan(55);
+
+      await new Promise((resolve) => setTimeout(resolve, 70));
+      expect(sendAndWait).not.toHaveBeenCalled();
+      expect(disconnect).toHaveBeenCalledOnce();
+    });
+
+    it("blocks new operations until timed-out setup reset completes", async () => {
+      const setupResolvers: Array<
+        (session: {
+          sessionId: string;
+          sendAndWait: ReturnType<typeof vi.fn>;
+          disconnect: ReturnType<typeof vi.fn>;
+        }) => void
+      > = [];
+      const disconnect = vi.fn().mockResolvedValue(undefined);
+      let resolveForceStop: (() => void) | undefined;
+      const client = {
+        start: vi.fn().mockResolvedValue(undefined),
+        stop: vi.fn().mockResolvedValue(undefined),
+        forceStop: vi.fn(
+          () =>
+            new Promise<void>((resolve) => {
+              resolveForceStop = resolve;
+            })
+        ),
+        deleteSession: vi.fn().mockResolvedValue(undefined),
+        createSession: vi.fn(
+          () =>
+            new Promise((resolve) => {
+              setupResolvers.push(resolve);
+            })
+        ),
+      };
+      vi.mocked(CopilotClient).mockImplementation(function MockCopilotClient() {
+        return client as never;
+      });
+
+      const first = generateText({ prompt: "stuck-1", timeoutMs: 10 });
+      const second = generateText({ prompt: "stuck-2", timeoutMs: 10 });
+      const settledRequests = Promise.allSettled([first, second]);
+      await vi.waitFor(() => expect(client.createSession).toHaveBeenCalledTimes(2));
+      await expect(settledRequests).resolves.toEqual([
+        expect.objectContaining({ status: "rejected" }),
+        expect.objectContaining({ status: "rejected" }),
+      ]);
+
+      await vi.waitFor(() => expect(client.forceStop).toHaveBeenCalled());
+
+      const recoveredRequest = generateText({ prompt: "recovered", timeoutMs: 1_000 });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(client.createSession).toHaveBeenCalledTimes(2);
+
+      resolveForceStop?.();
+      await vi.waitFor(() => expect(client.createSession).toHaveBeenCalledTimes(3));
+
+      setupResolvers.splice(0).forEach((resolve) =>
+        resolve({
+          sessionId: "pending-session",
+          sendAndWait: vi.fn().mockResolvedValue({ data: { content: "recovered" } }),
+          disconnect,
+        })
+      );
+      await expect(recoveredRequest).resolves.toBe("recovered");
+      await vi.waitFor(() => expect(disconnect).toHaveBeenCalledTimes(3));
     });
   });
 

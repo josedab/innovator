@@ -179,6 +179,23 @@ describe("generateForAngle", () => {
     );
   });
 
+  it("retries transient network errors with the shared retry policy", async () => {
+    vi.useFakeTimers();
+    try {
+      mockGenerateText
+        .mockRejectedValueOnce(new Error("ECONNRESET"))
+        .mockResolvedValue("raw response");
+
+      const resultPromise = generateForAngle("test", MOCK_INVESTIGATION, "scamper");
+      await vi.runAllTimersAsync();
+
+      await expect(resultPromise).resolves.toEqual(MOCK_ANGLE_RESULT);
+      expect(mockGenerateText).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   // ---- Custom angle fallback ----
   it("falls back to custom angle when ID not in built-in map", async () => {
     const customAngle = {

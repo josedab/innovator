@@ -30,6 +30,8 @@ export {
   getCopilotClient,
   /** Shut down the Copilot LLM client and release resources. */
   stopCopilotClient,
+  /** Reset a failed Copilot client only when no LLM operations are active. */
+  resetCopilotClientIfIdle,
   /** Generate a complete text response from the LLM. */
   generateText,
   /** Stream text tokens from the LLM via an async iterable. */

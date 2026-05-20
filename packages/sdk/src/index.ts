@@ -336,6 +336,8 @@ export class InnovatorClient {
     }
     const onAbort = () => controller.abort();
     externalSignal?.addEventListener("abort", onAbort, { once: true });
+    const timer = setTimeout(() => controller.abort(), this.timeout);
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 
     try {
       const res = await fetch(url, {
@@ -369,7 +371,7 @@ export class InnovatorClient {
         throw new InnovatorError("Response body is null", 0, "NO_BODY");
       }
 
-      const reader = res.body.getReader();
+      reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
       let currentEvent: string | undefined;
@@ -414,6 +416,8 @@ export class InnovatorClient {
       }
       throw new InnovatorError((err as Error).message ?? "Stream error", 0, "STREAM_ERROR", err);
     } finally {
+      clearTimeout(timer);
+      await reader?.cancel?.().catch(() => {});
       externalSignal?.removeEventListener("abort", onAbort);
     }
   }

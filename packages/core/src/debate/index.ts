@@ -218,10 +218,7 @@ async function generateArguments(
       const parsed = JSON.parse(jsonStr);
       return ArgumentsResponseSchema.parse(parsed);
     },
-    {
-      signal: config.signal,
-      isRetryable: (err: unknown) => err instanceof Error && err.message.includes("parse"),
-    }
+    { signal: config.signal }
   );
 }
 
@@ -284,10 +281,7 @@ export async function runDebate(
       const parsed = JSON.parse(jsonStr);
       return VerdictResponseSchema.parse(parsed);
     },
-    {
-      signal: config.signal,
-      isRetryable: (err: unknown) => err instanceof Error && err.message.includes("parse"),
-    }
+    { signal: config.signal }
   );
 
   return DebateResultSchema.parse({
