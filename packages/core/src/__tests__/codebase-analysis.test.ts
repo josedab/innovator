@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, rmSync, existsSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -74,6 +74,21 @@ describe("codebase-analysis", { timeout: 15_000 }, () => {
     it("respects maxFiles limit", () => {
       const files = discoverFiles(testDir, undefined, 2);
       expect(files.length).toBeLessThanOrEqual(2);
+    });
+
+    it("does not follow nested file or directory symlinks", () => {
+      const outsideDir = join(tmpdir(), `innovator-codebase-outside-${Date.now()}`);
+      mkdirSync(outsideDir, { recursive: true });
+      writeFileSync(join(outsideDir, "outside.ts"), "export const outside = true;");
+      symlinkSync(outsideDir, join(testDir, "src", "outside-link"));
+      symlinkSync(join(outsideDir, "outside.ts"), join(testDir, "src", "outside-file.ts"));
+
+      try {
+        const files = discoverFiles(testDir);
+        expect(files.some((file) => file.includes("outside"))).toBe(false);
+      } finally {
+        rmSync(outsideDir, { recursive: true, force: true });
+      }
     });
   });
 

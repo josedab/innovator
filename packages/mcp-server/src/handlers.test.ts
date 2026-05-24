@@ -318,6 +318,16 @@ describe("handleInnovateFromCode", () => {
     await expect(handleInnovateFromCode({ path: "" })).rejects.toThrow();
   });
 
+  it("rejects existing paths outside MCP_ALLOWED_ROOT", async () => {
+    await expect(handleInnovateFromCode({ path: "/tmp" })).rejects.toThrow(
+      "outside MCP_ALLOWED_ROOT"
+    );
+  });
+
+  it("caps the maximum number of analyzed files", async () => {
+    await expect(handleInnovateFromCode({ path: ".", maxFiles: 1_001 })).rejects.toThrow();
+  });
+
   it("succeeds with valid existing directory", async () => {
     const mockAnalysis = {
       fileCount: 5,

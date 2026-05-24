@@ -8,32 +8,41 @@ import {
 } from "@innovator/core";
 import type { AngleId, PipelineProgress, CodebaseAnalysis, InnovationPR } from "@innovator/core";
 import { InvestigateInputSchema, GenerateInputSchema, AutoPipelineInputSchema } from "./schemas.js";
-import { resolve, normalize } from "node:path";
-import { existsSync, lstatSync, realpathSync } from "node:fs";
+import { isAbsolute, relative, resolve, sep } from "node:path";
+import { existsSync, realpathSync, statSync } from "node:fs";
+
+const MAX_ANALYSIS_FILES = 1_000;
 
 /**
- * Validate that a path is safe to access: resolves to an absolute path,
- * exists on disk, is not a symlink to an external location, and contains
- * no traversal sequences.
+ * Resolve a requested path and ensure its real location remains inside the configured root.
  */
-function validatePath(rawPath: string): string {
+function validatePath(rawPath: string, expectedType: "file" | "directory"): string {
   const resolved = resolve(rawPath);
-  if (resolved !== normalize(resolved)) {
-    throw new Error("Path contains invalid sequences");
-  }
   if (!existsSync(resolved)) {
     throw new Error(`Path does not exist: ${resolved}`);
   }
-  // Check for symlink — resolve the real path and verify it still matches
-  const stat = lstatSync(resolved);
-  if (stat.isSymbolicLink()) {
-    const realPath = realpathSync(resolved);
-    const cwd = process.cwd();
-    if (!realPath.startsWith(cwd)) {
-      throw new Error("Symlink target is outside the working directory");
-    }
+
+  const configuredRoot = resolve(process.env.MCP_ALLOWED_ROOT ?? process.cwd());
+  if (!existsSync(configuredRoot)) {
+    throw new Error(`MCP_ALLOWED_ROOT does not exist: ${configuredRoot}`);
   }
-  return resolved;
+
+  const allowedRoot = realpathSync(configuredRoot);
+  const realPath = realpathSync(resolved);
+  const relativePath = relative(allowedRoot, realPath);
+  if (relativePath === ".." || relativePath.startsWith(`..${sep}`) || isAbsolute(relativePath)) {
+    throw new Error("Path is outside MCP_ALLOWED_ROOT");
+  }
+
+  const stat = statSync(realPath);
+  if (expectedType === "file" && !stat.isFile()) {
+    throw new Error("Path must reference a file");
+  }
+  if (expectedType === "directory" && !stat.isDirectory()) {
+    throw new Error("Path must reference a directory");
+  }
+
+  return realPath;
 }
 
 /**
@@ -125,11 +134,11 @@ export async function handleInnovateFromCode(args: unknown): Promise<string> {
   const input = z
     .object({
       path: z.string().min(1).describe("Path to the repository or directory to analyze"),
-      maxFiles: z.number().optional().default(200),
+      maxFiles: z.number().int().min(1).max(MAX_ANALYSIS_FILES).optional().default(200),
     })
     .parse(args);
 
-  const safePath = validatePath(input.path);
+  const safePath = validatePath(input.path, "directory");
   const analysis = analyzeCodebaseSync(safePath, { maxFiles: input.maxFiles });
   const deepResult = deepAnalyze(analysis as CodebaseAnalysis);
   const prs = generateInnovationPRs(analysis as CodebaseAnalysis);
@@ -175,7 +184,7 @@ export async function handleInnovateFile(args: unknown): Promise<string> {
     })
     .parse(args);
 
-  const safePath = validatePath(input.path);
+  const safePath = validatePath(input.path, "file");
   const { dirname } = await import("node:path");
   const rootPath = dirname(safePath);
   const analysis = analyzeCodebaseSync(rootPath, { maxFiles: 50 });
@@ -218,7 +227,7 @@ export async function handleInnovateArchitecture(args: unknown): Promise<string>
     })
     .parse(args);
 
-  const safePath = validatePath(input.path);
+  const safePath = validatePath(input.path, "directory");
   const analysis = analyzeCodebaseSync(safePath, { maxFiles: 500 });
   const _deepResult = deepAnalyze(analysis as CodebaseAnalysis);
   const prs = generateInnovationPRs(analysis as CodebaseAnalysis);

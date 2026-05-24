@@ -8,7 +8,7 @@
  */
 
 import { z } from "zod";
-import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, existsSync, lstatSync, readdirSync, statSync } from "node:fs";
 import { join, extname, relative } from "node:path";
 import { ValidationError } from "../errors.js";
 
@@ -183,6 +183,9 @@ export function discoverFiles(
       const fullPath = join(dir, entry);
       let stat;
       try {
+        if (lstatSync(fullPath).isSymbolicLink()) {
+          continue;
+        }
         stat = statSync(fullPath);
       } catch {
         continue;

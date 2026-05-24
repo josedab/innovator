@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
+import packageJson from "../package.json" with { type: "json" };
 
 /**
- * Tests for MCP Server entry point (index.ts).
- *
- * Since index.ts calls main() at module level, we mock all external deps
- * and capture the server's tool registrations on first import.
+ * Tests for MCP server construction without starting a transport.
  */
 
 const toolRegistrations: Array<{
@@ -13,8 +11,8 @@ const toolRegistrations: Array<{
   schema: unknown;
   handler: (...args: unknown[]) => unknown;
 }> = [];
-let serverConnectArgs: unknown = undefined;
 let constructorArgs: unknown = undefined;
+let assertSupportedTransport: (argv?: readonly string[]) => void;
 
 vi.mock("@modelcontextprotocol/sdk/server/mcp.js", () => {
   return {
@@ -32,9 +30,7 @@ vi.mock("@modelcontextprotocol/sdk/server/mcp.js", () => {
       }
       resource() {}
       prompt() {}
-      async connect(transport: unknown) {
-        serverConnectArgs = transport;
-      }
+      async connect() {}
       async close() {}
     },
   };
@@ -90,21 +86,18 @@ vi.mock("./prompts.js", () => ({
   getPromptMessages: vi.fn().mockReturnValue([]),
 }));
 
-// Prevent process.exit from killing tests
-vi.spyOn(process, "exit").mockImplementation((() => {}) as never);
-
-describe("MCP Server (index.ts)", () => {
+describe("MCP Server (server.ts)", () => {
   beforeAll(async () => {
-    // Import triggers createServer() and main()
-    await import("./index.js");
-    // Allow async main() to settle
-    await new Promise((r) => setTimeout(r, 100));
+    const serverModule = await import("./server.js");
+    assertSupportedTransport = serverModule.assertSupportedTransport;
+    const { createServer } = serverModule;
+    createServer();
   });
 
-  it("creates McpServer with name 'innovator' and version '0.1.0'", () => {
+  it("creates McpServer with package name and version", () => {
     expect(constructorArgs).toEqual({
       name: "innovator",
-      version: "0.1.0",
+      version: packageJson.version,
     });
   });
 
@@ -127,8 +120,10 @@ describe("MCP Server (index.ts)", () => {
     expect(toolNames).toContain("novelty-check");
   });
 
-  it("connects to stdio transport (default)", () => {
-    expect(serverConnectArgs).toEqual(expect.objectContaining({ type: "stdio" }));
+  it("rejects the retired SSE transport", () => {
+    expect(() => assertSupportedTransport(["node", "server", "--sse"])).toThrow(
+      "Use the stdio transport"
+    );
   });
 
   it("tool descriptions are non-empty strings", () => {

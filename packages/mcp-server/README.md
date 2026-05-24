@@ -11,18 +11,13 @@ npm run build
 
 ## Usage
 
-### stdio transport (default)
+### stdio transport
 
 ```bash
 npx @innovator/mcp-server
 ```
 
-### SSE transport
-
-```bash
-npx @innovator/mcp-server --sse
-# Server listens on port 3100 (configurable via MCP_PORT env var)
-```
+stdio is the only supported transport. The legacy `--sse` flag fails closed with an error; there is no MCP HTTP listener or `MCP_PORT` setting.
 
 ## MCP Client Configuration
 
@@ -136,7 +131,13 @@ Add to `.vscode/mcp.json`:
     "required": true,
     "description": "Path to the repository or directory"
   },
-  "maxFiles": { "type": "number", "required": false, "default": 200 }
+  "maxFiles": {
+    "type": "number",
+    "minimum": 1,
+    "maximum": 1000,
+    "required": false,
+    "default": 200
+  }
 }
 ```
 
@@ -249,6 +250,20 @@ All tools return `content` as an array of text objects:
 
 **`innovate-architecture`** returns a Markdown report with an analysis summary and Innovation PR details.
 
+## Filesystem Safety
+
+`innovate-from-code`, `innovate-file`, and `innovate-architecture` resolve real filesystem paths and reject any target outside `MCP_ALLOWED_ROOT`.
+
+- `MCP_ALLOWED_ROOT` defaults to the MCP process working directory.
+- Symlink targets must remain inside the allowed root.
+- `innovate-from-code.maxFiles` accepts `1`–`1000` files and defaults to `200`.
+
+Set an explicit root when the MCP client starts outside the repository you want to analyze:
+
+```bash
+MCP_ALLOWED_ROOT=/absolute/path/to/repository npx @innovator/mcp-server
+```
+
 ## Authentication
 
 The MCP server uses your **GitHub Copilot subscription** via the GitHub CLI for LLM access. No separate API keys are required for default usage.
@@ -268,9 +283,12 @@ The MCP server uses your **GitHub Copilot subscription** via the GitHub CLI for 
 
 ## Environment Variables
 
-| Variable   | Description               | Default |
-| ---------- | ------------------------- | ------- |
-| `MCP_PORT` | SSE transport listen port | `3100`  |
+| Variable                   | Description                                              | Default                   |
+| -------------------------- | -------------------------------------------------------- | ------------------------- |
+| `MCP_ALLOWED_ROOT`         | Maximum filesystem root available to code-analysis tools | Current working directory |
+| `INNOVATOR_DEFAULT_MODEL`  | Default LLM model                                        | `gpt-4.1`                 |
+| `INNOVATOR_LLM_TIMEOUT_MS` | LLM request timeout in milliseconds                      | `90000`                   |
+| `GH_TOKEN`                 | Copilot authentication for non-interactive environments  | _unset_                   |
 
 ## Error Handling
 
@@ -285,13 +303,13 @@ When a tool call fails, the server returns an error response:
 
 Common errors:
 
-| Error                             | Cause                                                      | Resolution                                                   |
-| --------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
-| `ZodError`                        | Invalid or missing parameters                              | Check required fields and types against the parameter schema |
-| `Path does not exist`             | `innovate-from-code`/`innovate-file` given an invalid path | Provide an absolute path to an existing file or directory    |
-| `Path contains invalid sequences` | Path traversal attempt detected                            | Use a clean absolute path without `..` sequences             |
-| Copilot token errors              | GitHub CLI not authenticated or no Copilot subscription    | Run `gh auth login` and verify Copilot access                |
-| LLM timeout                       | LLM request exceeded the timeout threshold                 | Increase `INNOVATOR_LLM_TIMEOUT_MS` or simplify the subject  |
+| Error                              | Cause                                                          | Resolution                                                   |
+| ---------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ |
+| `ZodError`                         | Invalid or missing parameters                                  | Check required fields and types against the parameter schema |
+| `Path does not exist`              | `innovate-from-code`/`innovate-file` given an invalid path     | Provide an absolute path to an existing file or directory    |
+| `Path is outside MCP_ALLOWED_ROOT` | Requested path resolves outside the configured filesystem root | Move the target under `MCP_ALLOWED_ROOT` or change the root  |
+| Copilot token errors               | GitHub CLI not authenticated or no Copilot subscription        | Run `gh auth login` and verify Copilot access                |
+| LLM timeout                        | LLM request exceeded the timeout threshold                     | Increase `INNOVATOR_LLM_TIMEOUT_MS` or simplify the subject  |
 
 ## Troubleshooting
 
@@ -300,8 +318,8 @@ Common errors:
 | **Server starts but tools don't appear in client** | Ensure your MCP client config points to the correct command (`npx @innovator/mcp-server`). Restart the client after config changes.                      |
 | **"Cannot find module" errors on startup**         | Run `npm run build` first. The MCP server requires compiled output in `dist/`.                                                                           |
 | **Claude Desktop doesn't connect**                 | Check `claude_desktop_config.json` syntax — JSON must be valid. Verify the path in `command` is accessible. Restart Claude Desktop after config changes. |
-| **SSE transport connection refused**               | Ensure port 3100 (or `MCP_PORT`) is not in use. Check firewall settings. The SSE server binds to `0.0.0.0` by default.                                   |
+| **`--sse` exits with an error**                    | This is expected. Network transports are disabled; configure the client to launch the stdio command instead.                                             |
 | **`gh auth` / Copilot token errors**               | Run `gh auth login` and ensure your account has an active Copilot subscription. In CI, set `GH_TOKEN` env var.                                           |
 | **Slow responses or timeouts**                     | LLM calls can take 30–120s for complex subjects. Increase `INNOVATOR_LLM_TIMEOUT_MS` (default: 90000). Use a simpler subject to test connectivity.       |
-| **`innovate-from-code` returns empty results**     | Ensure the `path` is an absolute path to a directory with source files. The tool scans up to `maxFiles` (default: 200) files.                            |
+| **`innovate-from-code` returns empty results**     | Ensure the path is inside `MCP_ALLOWED_ROOT` and contains source files. The tool scans `maxFiles` files (default: 200, maximum: 1000).                   |
 | **stdio transport garbles output**                 | Don't mix stdio MCP output with other stdout logging. The MCP server uses stdout exclusively for JSON-RPC messages in stdio mode.                        |
