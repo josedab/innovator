@@ -2,14 +2,14 @@
   "name": "@innovator/copilot-extension",
   "version": "0.1.0",
   "private": true,
-  "description": "GitHub Copilot Extension — exposes Innovator as @innovator in Copilot Chat",
+  "description": "Deprecated GitHub App-based Copilot Extension compatibility package; use @innovator/mcp-server",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "start": "node dist/index.js"
+    "start": "node -e \"console.error('GitHub App-based Copilot Extensions were retired on November 10, 2025. Use @innovator/mcp-server.'); process.exit(1)\""
   },
   "dependencies": {
     "@innovator/core": "*"
@@ -18,6 +18,6 @@
     "typescript": "^5.6.0"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   }
 }

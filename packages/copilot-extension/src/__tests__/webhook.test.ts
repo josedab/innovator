@@ -180,11 +180,34 @@ describe("handleWebhook", () => {
   describe("auto command", () => {
     it("routes /auto command and returns progress", async () => {
       mockParseSlashCommand.mockReturnValue({ command: "auto", args: "AI testing" });
-      mockRunAutoPipeline.mockResolvedValue(undefined);
+      mockRunAutoPipeline.mockImplementation(
+        async (
+          _subject: string,
+          onProgress: (progress: {
+            stage: string;
+            completedAngles: string[];
+            totalAngles: number;
+          }) => void
+        ) => {
+          onProgress({
+            stage: "generating",
+            completedAngles: ["scamper"],
+            totalAngles: 2,
+          });
+        }
+      );
 
       const result = await handleWebhook(makePayload("/auto AI testing"));
+
       expect(result.status).toBe("success");
-      expect(result.chunks.length).toBeGreaterThan(0);
+      expect(result.chunks.some((chunk) => chunk.includes("generating"))).toBe(true);
+      expect(mockRunAutoPipeline).toHaveBeenCalledWith(
+        "AI testing",
+        expect.any(Function),
+        undefined,
+        undefined,
+        undefined
+      );
     });
 
     it("returns help when auto has no args", async () => {

@@ -2,6 +2,8 @@
 
 Chat platform bot that brings Innovator's AI-powered innovation pipeline to Slack, Discord, and Microsoft Teams.
 
+> **Production availability:** Chat-platform integrations are development/experimental and are not exposed by the first production API profile. A bot adapter must be deployed as a separate application.
+
 ## Overview
 
 The bot exposes a `/innovate` command that runs the full auto pipeline (investigate → generate → synthesize) and streams progress updates directly into your chat channel.

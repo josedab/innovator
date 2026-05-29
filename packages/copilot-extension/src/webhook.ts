@@ -143,10 +143,9 @@ export async function handleWebhook(
         }
         chunks.push(formatSSEChunk(`🚀 **Running full auto pipeline for:** ${args.trim()}\n\n`));
         let lastProgress = "";
-        await runAutoPipeline(args.trim(), {
-          model: options?.model,
-          signal: options?.signal,
-          onProgress: (progress) => {
+        await runAutoPipeline(
+          args.trim(),
+          (progress) => {
             const update = `**Stage:** ${progress.stage} | **Completed:** ${progress.completedAngles.length}/${progress.totalAngles}\n`;
             if (update !== lastProgress) {
               chunks.push(formatSSEChunk(update));
@@ -156,7 +155,10 @@ export async function handleWebhook(
               chunks.push(formatSSEChunk(formatSynthesisForChat(progress.synthesis).markdown));
             }
           },
-        });
+          options?.model,
+          undefined,
+          options?.signal
+        );
         break;
       }
 
