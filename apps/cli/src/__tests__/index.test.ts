@@ -1,32 +1,78 @@
-import { describe, it, expect } from "vitest";
-import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Command } from "commander";
 
-const CLI_PATH = resolve(__dirname, "../index.ts");
-const TSX = resolve(__dirname, "../../../../node_modules/.bin/tsx");
+vi.mock("@innovator/core", () => ({
+  ANGLES: [
+    {
+      id: "scamper",
+      name: "SCAMPER",
+      icon: "S",
+      shortDescription: "Transform ideas with SCAMPER prompts",
+    },
+  ],
+  ANGLE_IDS: ["scamper"],
+  KNOWN_MODELS: [],
+  MAX_CONCURRENCY: 4,
+  loadCustomAngles: vi.fn(() => []),
+  stopCopilotClient: vi.fn(async () => undefined),
+}));
 
-function run(...args: string[]): { stdout: string; stderr: string; status: number } {
+import { parseCli, program } from "../program.js";
+
+let stdout = "";
+let stderr = "";
+let consoleOutput: string[] = [];
+let consoleErrors: string[] = [];
+
+async function execute(...args: string[]): Promise<unknown> {
   try {
-    const stdout = execFileSync(TSX, [CLI_PATH, ...args], {
-      encoding: "utf-8",
-      timeout: 20_000,
-      env: { ...process.env, NODE_ENV: "test" },
-    });
-    return { stdout, stderr: "", status: 0 };
-  } catch (err: unknown) {
-    const e = err as { stdout?: string; stderr?: string; status?: number };
-    return {
-      stdout: e.stdout ?? "",
-      stderr: e.stderr ?? "",
-      status: e.status ?? 1,
-    };
+    await parseCli(args);
+    return undefined;
+  } catch (err) {
+    return err;
   }
 }
 
+function overrideExits(command: Command): void {
+  command.exitOverride();
+  command.commands.forEach(overrideExits);
+}
+
 describe("CLI smoke tests", () => {
-  it("prints help with --help", { timeout: 25_000 }, () => {
-    const { stdout, status } = run("--help");
-    expect(status).toBe(0);
+  beforeEach(() => {
+    stdout = "";
+    stderr = "";
+    consoleOutput = [];
+    consoleErrors = [];
+    process.exitCode = undefined;
+
+    overrideExits(program);
+    program.configureOutput({
+      writeOut: (text) => {
+        stdout += text;
+      },
+      writeErr: (text) => {
+        stderr += text;
+      },
+    });
+
+    vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
+      consoleOutput.push(args.map(String).join(" "));
+    });
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      consoleErrors.push(args.map(String).join(" "));
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    process.exitCode = undefined;
+  });
+
+  it("prints help with --help", async () => {
+    const error = await execute("--help");
+
+    expect(error).toMatchObject({ code: "commander.helpDisplayed" });
     expect(stdout).toContain("innovator");
     expect(stdout).toContain("investigate");
     expect(stdout).toContain("innovate");
@@ -34,28 +80,33 @@ describe("CLI smoke tests", () => {
     expect(stdout).toContain("angles");
   });
 
-  it("prints version with --version", { timeout: 25_000 }, () => {
-    const { stdout, status } = run("--version");
-    expect(status).toBe(0);
+  it("prints the package version with --version", async () => {
+    const error = await execute("--version");
+
+    expect(error).toMatchObject({ code: "commander.version" });
     expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
-  it("lists available angles", { timeout: 25_000 }, () => {
-    const { stdout, status } = run("angles");
-    expect(status).toBe(0);
-    expect(stdout).toContain("scamper");
-    expect(stdout).toContain("Innovation Angles");
+  it("lists available angles", async () => {
+    const error = await execute("angles");
+
+    expect(error).toBeUndefined();
+    expect(consoleOutput.join("\n")).toContain("scamper");
+    expect(consoleOutput.join("\n")).toContain("Innovation Angles");
   });
 
-  it("rejects innovate without --angles", { timeout: 25_000 }, () => {
-    const { stderr, status } = run("innovate", "test-subject");
-    expect(status).not.toBe(0);
+  it("rejects innovate without --angles", async () => {
+    const error = await execute("innovate", "test-subject");
+
+    expect(error).toMatchObject({ code: "commander.missingMandatoryOptionValue" });
     expect(stderr).toContain("--angles");
   });
 
-  it("rejects unknown angle IDs", { timeout: 25_000 }, () => {
-    const { stderr, status } = run("innovate", "test-subject", "--angles", "nonexistent-angle");
-    expect(status).not.toBe(0);
-    expect(stderr).toContain("Unknown angle");
+  it("rejects unknown angle IDs", async () => {
+    const error = await execute("innovate", "test-subject", "--angles", "nonexistent-angle");
+
+    expect(error).toBeUndefined();
+    expect(process.exitCode).toBe(1);
+    expect(consoleErrors.join("\n")).toContain("Unknown angles");
   });
 });

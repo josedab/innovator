@@ -5,18 +5,23 @@
  * @innovator/core functions and render rich responses with collapsible sections.
  * Also provides CodeLens annotations for contextual innovation suggestions.
  */
-
 import * as vscode from "vscode";
-import {
-  investigate,
-  generateForAngle,
-  ANGLES,
-  type Investigation,
-  type AngleResult,
-  type InnovationIdea,
-} from "@innovator/core";
+import type { Investigation, AngleResult, InnovationIdea } from "@innovator/core" with {
+  "resolution-mode": "import",
+};
 
 const PARTICIPANT_ID = "innovator.chat";
+
+function importCore() {
+  return import("@innovator/core");
+}
+
+let coreModule: ReturnType<typeof importCore> | undefined;
+
+function loadCore(): ReturnType<typeof importCore> {
+  coreModule ??= importCore();
+  return coreModule;
+}
 
 interface ChatContext {
   lastInvestigation?: Investigation;
@@ -332,6 +337,7 @@ async function handleInvestigate(
   const abortController = new AbortController();
   token.onCancellationRequested(() => abortController.abort());
 
+  const { investigate } = await loadCore();
   const result = await investigate(subject, undefined, abortController.signal);
 
   ctx.lastInvestigation = result;
@@ -393,6 +399,7 @@ async function handleInnovate(
 
   const abortController = new AbortController();
   token.onCancellationRequested(() => abortController.abort());
+  const { ANGLES, generateForAngle, investigate } = await loadCore();
 
   // Use cached investigation if same subject, otherwise run new one
   let inv = ctx.lastInvestigation;
