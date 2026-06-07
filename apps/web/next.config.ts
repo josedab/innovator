@@ -1,8 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@innovator/core"],
-  serverExternalPackages: ["better-sqlite3"],
+  serverExternalPackages: [
+    "@innovator/core",
+    "@github/copilot-sdk",
+    "@github/copilot",
+    "better-sqlite3",
+    "koffi",
+    "vscode-jsonrpc",
+  ],
   turbopack: {
     resolveAlias: {
       "better-sqlite3": { browser: "./empty-module.js" },

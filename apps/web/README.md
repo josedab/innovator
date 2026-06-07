@@ -1,6 +1,12 @@
 # Innovator Web App
 
-The Next.js 16 web frontend for the Innovator AI-Powered Innovation Engine.
+The Next.js 16.2.12 development frontend and production API runtime for the Innovator AI-Powered Innovation Engine.
+
+> **Production contract:** The first production release is headless, single-process, and single-tenant. Browser pages and all non-allowlisted API routes return `404`.
+
+Production allows public `GET /healthz` and `GET /readyz`, plus these authenticated routes:
+
+`GET /api/health`, `GET /api/angles`, `GET /api/presets`, `POST /api/investigate`, `POST /api/innovate`, `POST /api/auto`, `POST /api/nl-innovate`, `POST /api/v1/investigate`, `POST /api/v1/innovate`, `POST /api/v1/auto`, and `GET /api/v1/openapi`.
 
 ## App Flow
 
@@ -32,7 +38,7 @@ stateDiagram-v2
 
 ## API Routes
 
-The web app exposes 161 API route files. Below is the complete reference organized by category.
+The web app contains 161 API route files. The catalog below is primarily for development and experimentation; routes outside the production allowlist above return `404` in production.
 
 ### Core Innovation Pipeline
 
@@ -245,15 +251,15 @@ The web app exposes 161 API route files. Below is the complete reference organiz
 
 ### Authenticated API (v1)
 
-| Route                 | Method            | Description                                                  |
-| --------------------- | ----------------- | ------------------------------------------------------------ |
-| `/api/v1/investigate` | POST              | Programmatic investigation with API key auth + rate limiting |
-| `/api/v1/innovate`    | POST              | Generate ideas with API key auth + rate limiting             |
-| `/api/v1/auto`        | POST              | Run full pipeline with optional streaming + auth             |
-| `/api/v1/keys`        | GET, POST, DELETE | Manage API keys: list, create, or revoke                     |
-| `/api/v1/webhooks`    | GET, POST, DELETE | Webhook subscription management                              |
-| `/api/v1/plugins`     | GET               | List registered plugins with API key authentication          |
-| `/api/v1/openapi`     | GET               | Serve OpenAPI specification in JSON format                   |
+| Route                 | Method | Description                                                  | Production |
+| --------------------- | ------ | ------------------------------------------------------------ | ---------- |
+| `/api/v1/investigate` | POST   | Programmatic investigation with API key auth + rate limiting | Supported  |
+| `/api/v1/innovate`    | POST   | Generate ideas with API key auth + rate limiting             | Supported  |
+| `/api/v1/auto`        | POST   | Run full pipeline with optional streaming + auth             | Supported  |
+| `/api/v1/openapi`     | GET    | Serve authenticated OpenAPI specification                    | Supported  |
+| `/api/v1/keys`        | CRUD   | Dynamic key management                                       | 404        |
+| `/api/v1/webhooks`    | CRUD   | Webhook subscription management                              | 404        |
+| `/api/v1/plugins`     | GET    | List registered plugins                                      | 404        |
 
 ### Request Examples
 
@@ -261,16 +267,19 @@ The web app exposes 161 API route files. Below is the complete reference organiz
 # Investigate
 curl -X POST http://localhost:3000/api/investigate \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
   -d '{"subject": "code review processes"}'
 
 # Innovate with specific angles
 curl -X POST http://localhost:3000/api/innovate \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
   -d '{"subject": "code review", "investigation": {...}, "angles": ["scamper"], "synthesize": true}'
 
 # Auto mode (SSE stream)
 curl -X POST http://localhost:3000/api/auto \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
   -d '{"subject": "code review processes"}'
 ```
 
@@ -309,27 +318,25 @@ The dev server runs at [http://localhost:3000](http://localhost:3000).
 
 Copy `.env.local.example` from the monorepo root to `.env.local` and adjust as needed. See the [Deployment guide](../../website/docs/guides/deployment.md) for production settings.
 
-| Variable                   | Required | Default           | Description                                                        |
-| -------------------------- | -------- | ----------------- | ------------------------------------------------------------------ |
-| `INNOVATOR_DEFAULT_MODEL`  | No       | `gpt-4.1`         | Default LLM model for all pipeline calls                           |
-| `INNOVATOR_API_KEY`        | No       | —                 | Protects API routes (always set in production)                     |
-| `INNOVATOR_API_KEYS`       | No       | —                 | Comma-separated multi-key auth (takes precedence over single key)  |
-| `INNOVATOR_LLM_TIMEOUT_MS` | No       | `90000`           | LLM request timeout in milliseconds                                |
-| `INNOVATOR_EXTRA_MODELS`   | No       | —                 | Additional model IDs to allow (comma-separated)                    |
-| `INNOVATOR_EMBED_API_KEY`  | No       | —                 | API key for the `/api/embed` widget endpoint                       |
-| `INNOVATOR_EMBED_ORIGINS`  | No       | `*`               | CORS origins for `/api/embed` (comma-separated)                    |
-| `PORT`                     | No       | `3000`            | Dev server port                                                    |
-| `GH_TOKEN`                 | No       | —                 | GitHub token for Copilot SDK auth when `gh` CLI is unavailable     |
-| `OPENAI_API_KEY`           | No       | —                 | OpenAI API key for direct OpenAI provider (alternative to Copilot) |
-| `ANTHROPIC_API_KEY`        | No       | —                 | Anthropic API key for direct Anthropic provider                    |
-| `OLLAMA_BASE_URL`          | No       | `localhost:11434` | Base URL for local Ollama LLM inference                            |
+| Variable                       | Production                   | Default   | Description                                              |
+| ------------------------------ | ---------------------------- | --------- | -------------------------------------------------------- |
+| `NODE_ENV`                     | Required                     | —         | Must be `production`                                     |
+| `INNOVATOR_DEPLOYMENT_PROFILE` | Required                     | —         | Must be `single-tenant`                                  |
+| `INNOVATOR_API_KEYS`           | Required                     | —         | Unique comma-separated keys, each at least 32 characters |
+| `GH_TOKEN`                     | Required                     | —         | Production Copilot token                                 |
+| `INNOVATOR_DEFAULT_MODEL`      | Optional                     | `gpt-4.1` | Default LLM model                                        |
+| `INNOVATOR_LLM_TIMEOUT_MS`     | Optional                     | `90000`   | LLM request timeout in milliseconds                      |
+| `PORT`                         | Optional                     | `3000`    | Server port                                              |
+| `INNOVATOR_API_KEY`            | Unsupported with plural form | —         | Legacy development/compatibility key                     |
 
 Clients authenticate via `Authorization: Bearer <key>` or `X-API-Key: <key>` headers.
 
 ## Tech Stack
 
-- **Next.js 16** with App Router and Turbopack
+- **Next.js 16.2.12** with App Router and Turbopack
 - **React 19** with client/server component separation
 - **Tailwind CSS 4** for styling
 - **@innovator/core** for types (client) and SDK logic (server API routes)
 - **Zod** for request validation in API routes
+
+The repository requires Node.js 22+ and pins root overrides for `postcss` 8.5.23 and `sharp` 0.35.3.

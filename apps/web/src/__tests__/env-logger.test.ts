@@ -86,6 +86,7 @@ describe("env", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     if (originalModel === undefined) {
       delete process.env.INNOVATOR_DEFAULT_MODEL;
     } else {
@@ -122,5 +123,27 @@ describe("env", () => {
     const { validateEnv } = await import("@/lib/env");
     const env = validateEnv();
     expect(env.INNOVATOR_DEFAULT_MODEL).toBeUndefined();
+  });
+
+  it("fails closed when production authentication is missing", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("INNOVATOR_DEPLOYMENT_PROFILE", "single-tenant");
+    vi.stubEnv("GH_TOKEN", "github-token");
+    vi.stubEnv("INNOVATOR_API_KEYS", "");
+    vi.resetModules();
+    const { validateEnv } = await import("@/lib/env");
+
+    expect(() => validateEnv()).toThrow("INNOVATOR_API_KEYS");
+  });
+
+  it("accepts a complete production runtime configuration", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("INNOVATOR_DEPLOYMENT_PROFILE", "single-tenant");
+    vi.stubEnv("GH_TOKEN", "github-token");
+    vi.stubEnv("INNOVATOR_API_KEYS", "k".repeat(32));
+    vi.resetModules();
+    const { validateEnv } = await import("@/lib/env");
+
+    expect(() => validateEnv()).not.toThrow();
   });
 });

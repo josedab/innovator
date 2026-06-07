@@ -1,18 +1,45 @@
 # API Routes Reference
 
-This document catalogs all API routes exposed by the Innovator web application.
+This document catalogs API route files in the Innovator web application. Most are development/experimental surfaces.
 
 ## Overview
 
 - **Total routes:** ~76
 - **Framework:** Next.js App Router (`route.ts` handlers)
 - **Streaming:** Routes marked with SSE use `ReadableStream` for real-time output
-- **Authentication:** Public by default; `/v1/*` routes require API key authentication with rate limiting
+- **Development authentication:** May be anonymous when no key is configured
+- **Production authentication:** Every supported `/api/*` route requires an API key
 - **Validation:** Most POST routes validate `Content-Type: application/json` and request body with Zod schemas
+
+## Production Allowlist
+
+When `NODE_ENV=production`, `runtime-policy.ts` exposes only:
+
+| Access    | Method | Path                  |
+| --------- | ------ | --------------------- |
+| Public    | GET    | `/healthz`            |
+| Public    | GET    | `/readyz`             |
+| Protected | GET    | `/api/health`         |
+| Protected | GET    | `/api/angles`         |
+| Protected | GET    | `/api/presets`        |
+| Protected | POST   | `/api/investigate`    |
+| Protected | POST   | `/api/innovate`       |
+| Protected | POST   | `/api/auto`           |
+| Protected | POST   | `/api/nl-innovate`    |
+| Protected | POST   | `/api/v1/investigate` |
+| Protected | POST   | `/api/v1/innovate`    |
+| Protected | POST   | `/api/v1/auto`        |
+| Protected | GET    | `/api/v1/openapi`     |
+
+All routes in the catalog below that are not in this table return `404` in production. OAuth, billing, tenant/workspace administration, uploads, webhooks, integrations, collaboration, dynamic keys, and portal routes are development/experimental only. A wrong method on an allowlisted path returns `405`.
 
 ---
 
-## Core Innovation Routes
+## Development Route Catalog
+
+The `Auth` column below describes development behavior. Production behavior is defined exclusively by the allowlist above.
+
+### Core Innovation Routes
 
 | Method | Path                    | Auth | Description                                                          |
 | ------ | ----------------------- | ---- | -------------------------------------------------------------------- |
@@ -27,7 +54,7 @@ This document catalogs all API routes exposed by the Innovator web application.
 | POST   | `/api/combinatorial`    | No   | Combinatorial synthesis across angles                                |
 | POST   | `/api/autonomous-agent` | No   | Self-directed exploration via SSE streaming                          |
 
-## Angles & Presets
+### Angles & Presets
 
 | Method | Path           | Auth | Description                                    |
 | ------ | -------------- | ---- | ---------------------------------------------- |
@@ -36,7 +63,7 @@ This document catalogs all API routes exposed by the Innovator web application.
 | DELETE | `/api/angles`  | No   | Remove a custom angle by ID                    |
 | GET    | `/api/presets` | No   | List innovation presets by category            |
 
-## Analysis & Simulation
+### Analysis & Simulation
 
 | Method    | Path                      | Auth | Description                                          |
 | --------- | ------------------------- | ---- | ---------------------------------------------------- |
@@ -56,7 +83,7 @@ This document catalogs all API routes exposed by the Innovator web application.
 | POST      | `/api/timing`             | No   | Analyze implementation timing and milestones         |
 | POST      | `/api/wargaming`          | No   | Competitive wargaming scenarios                      |
 
-## Content & Artifacts
+### Content & Artifacts
 
 | Method | Path              | Auth | Description                                                |
 | ------ | ----------------- | ---- | ---------------------------------------------------------- |
@@ -65,7 +92,7 @@ This document catalogs all API routes exposed by the Innovator web application.
 | POST   | `/api/content`    | No   | Generate and revise marketing content from ideas           |
 | POST   | `/api/scaffold`   | No   | Generate implementation scaffolding and project templates  |
 
-## Assessment & Evaluation
+### Assessment & Evaluation
 
 | Method    | Path               | Auth | Description                                             |
 | --------- | ------------------ | ---- | ------------------------------------------------------- |
@@ -79,7 +106,7 @@ This document catalogs all API routes exposed by the Innovator web application.
 | POST      | `/api/team-dna`    | No   | Analyze team composition and synergies                  |
 | POST      | `/api/telemetry`   | No   | Quality metrics, diversity, and hallucination detection |
 
-## Collaboration & Social
+### Collaboration & Social
 
 | Method    | Path                 | Auth | Description                                          |
 | --------- | -------------------- | ---- | ---------------------------------------------------- |
@@ -89,7 +116,7 @@ This document catalogs all API routes exposed by the Innovator web application.
 | GET, POST | `/api/realtime`      | No   | Real-time collaboration (SSE fallback)               |
 | GET, POST | `/api/social`        | No   | Share, like, comment, follow, feed, trending         |
 
-## Data & History
+### Data & History
 
 | Method                   | Path               | Auth | Description                                         |
 | ------------------------ | ------------------ | ---- | --------------------------------------------------- |
@@ -102,7 +129,7 @@ This document catalogs all API routes exposed by the Innovator web application.
 | POST                     | `/api/search`      | No   | Semantic search, clustering, and document discovery |
 | GET                      | `/api/tracker`     | No   | Dashboard with recent tracked ideas                 |
 
-## Sharing & Export
+### Sharing & Export
 
 | Method    | Path                | Auth                     | Description                                                          |
 | --------- | ------------------- | ------------------------ | -------------------------------------------------------------------- |
@@ -112,20 +139,20 @@ This document catalogs all API routes exposed by the Innovator web application.
 | GET, POST | `/api/share/[slug]` | No                       | Retrieve or fork a shared investigation by slug                      |
 | GET       | `/api/widget`       | No                       | Serve innovator-widget web component                                 |
 
-## Learning & Curriculum
+### Learning & Curriculum
 
 | Method    | Path              | Auth | Description                               |
 | --------- | ----------------- | ---- | ----------------------------------------- |
 | GET, POST | `/api/curriculum` | No   | Learning paths, modules, and certificates |
 
-## Mobile & Capture
+### Mobile & Capture
 
 | Method    | Path                        | Auth | Description                                          |
 | --------- | --------------------------- | ---- | ---------------------------------------------------- |
 | GET, POST | `/api/mobile`               | No   | Voice, camera, and text capture for mobile companion |
 | GET, POST | `/api/meeting-intelligence` | No   | Extract innovation signals from transcripts          |
 
-## Platform & Infrastructure
+### Platform & Infrastructure
 
 | Method    | Path                 | Auth | Description                                           |
 | --------- | -------------------- | ---- | ----------------------------------------------------- |
@@ -137,18 +164,18 @@ This document catalogs all API routes exposed by the Innovator web application.
 | GET, POST | `/api/portal`        | No   | Developer portal (tenants, keys, billing)             |
 | POST      | `/api/webhooks`      | No   | Register and list webhooks with event delivery        |
 
-## Programmatic API (v1)
+### Programmatic API (v1)
 
-All `/api/v1/*` routes require API key authentication via `X-API-Key` header and enforce rate limiting.
+Supported V1 production routes require `X-API-Key` or `Authorization: Bearer` and enforce rate limiting.
 
-| Method            | Path                  | Auth    | Rate Limit | Description                              |
-| ----------------- | --------------------- | ------- | ---------- | ---------------------------------------- |
-| POST              | `/api/v1/auto`        | API Key | 10/min     | Streaming or non-streaming full pipeline |
-| POST              | `/api/v1/innovate`    | API Key | 20/min     | Generate ideas for angles                |
-| POST              | `/api/v1/investigate` | API Key | 30/min     | Investigation endpoint                   |
-| GET, POST, DELETE | `/api/v1/keys`        | API Key | —          | Manage API keys                          |
-| GET               | `/api/v1/openapi`     | No      | —          | OpenAPI specification                    |
-| GET               | `/api/v1/plugins`     | API Key | —          | List registered plugins                  |
+| Method | Path                  | Auth    | Rate Limit | Production |
+| ------ | --------------------- | ------- | ---------- | ---------- |
+| POST   | `/api/v1/auto`        | API Key | 10/min     | Supported  |
+| POST   | `/api/v1/innovate`    | API Key | 20/min     | Supported  |
+| POST   | `/api/v1/investigate` | API Key | 30/min     | Supported  |
+| GET    | `/api/v1/openapi`     | API Key | —          | Supported  |
+| CRUD   | `/api/v1/keys`        | API Key | —          | 404        |
+| GET    | `/api/v1/plugins`     | API Key | —          | 404        |
 
 ---
 
@@ -158,3 +185,4 @@ All `/api/v1/*` routes require API key authentication via `X-API-Key` header and
 - **Error responses:** All routes return `{ error: string }` with appropriate HTTP status codes (400, 404, 500).
 - **Content-Type:** POST routes expect `application/json` unless otherwise noted.
 - **CORS:** Only `/api/embed` returns CORS headers; other routes are same-origin.
+- **Production route control:** `apps/web/src/lib/runtime-policy.ts` returns `404` before unsupported handlers run.

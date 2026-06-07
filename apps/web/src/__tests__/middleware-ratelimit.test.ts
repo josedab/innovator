@@ -47,7 +47,7 @@ vi.mock("next/server", () => {
   };
 });
 
-import { middleware, setMeteringKeyTier } from "../middleware";
+import { proxy as middleware, setMeteringKeyTier } from "../proxy";
 
 function makeRequest(
   path: string,
@@ -58,7 +58,7 @@ function makeRequest(
     nextUrl: { pathname: path },
     method: opts?.method ?? "GET",
     headers: {
-      get: (k: string) => headersMap.get(k) ?? null,
+      get: (k: string) => headersMap.get(k) ?? headersMap.get(k.toLowerCase()) ?? null,
       // Support iteration for Object.fromEntries() in CSP path
       [Symbol.iterator]: () => headersMap.entries(),
     },
@@ -71,6 +71,8 @@ describe("middleware rate-limit edge cases", () => {
     timeoutCallbacks.length = 0;
     mockNextResponseNext.mockClear();
     mockNextResponseConstructor.mockClear();
+    vi.stubEnv("INNOVATOR_API_KEY", "");
+    vi.stubEnv("INNOVATOR_API_KEYS", "");
   });
 
   afterEach(() => {
@@ -165,32 +167,6 @@ describe("middleware rate-limit edge cases", () => {
     });
   });
 
-  describe("concurrent request cap", () => {
-    it("returns 429 on 3rd concurrent request from same IP", () => {
-      const ip = "10.0.4.1";
-      // Don't flush timeouts - keep inflight counters active
-      const res1 = middleware(makeRequest("/api/test", { ip }) as never);
-      expect(res1.status).toBe(200);
-      const res2 = middleware(makeRequest("/api/test", { ip }) as never);
-      expect(res2.status).toBe(200);
-      const res3 = middleware(makeRequest("/api/test", { ip }) as never);
-      expect(res3.status).toBe(429);
-      expect(res3.body).toContain("Too many concurrent requests");
-    });
-
-    it("releases in-flight slots after timeout callback fires", () => {
-      const ip = "10.0.4.2";
-      middleware(makeRequest("/api/test", { ip }) as never);
-      middleware(makeRequest("/api/test", { ip }) as never);
-
-      // Flush timeouts to simulate inflight timeout callback
-      flushTimeouts();
-
-      const res = middleware(makeRequest("/api/test", { ip }) as never);
-      expect(res.status).toBe(200);
-    });
-  });
-
   describe("body size limit", () => {
     it("returns 413 when content-length exceeds 100KB", () => {
       const ip = "10.0.5.1";
@@ -218,24 +194,23 @@ describe("middleware rate-limit edge cases", () => {
     });
   });
 
-  describe("Content-Length required", () => {
-    it("returns 411 for POST without content-length", () => {
+  describe("chunked request support", () => {
+    it("allows POST without content-length for route-level streamed validation", () => {
       const ip = "10.0.6.1";
       const res = middleware(makeRequest("/api/test", { ip, method: "POST" }) as never);
-      expect(res.status).toBe(411);
-      expect(res.body).toContain("Content-Length header is required");
+      expect(res.status).toBe(200);
     });
 
-    it("returns 411 for PUT without content-length", () => {
+    it("allows PUT without content-length", () => {
       const ip = "10.0.6.2";
       const res = middleware(makeRequest("/api/test", { ip, method: "PUT" }) as never);
-      expect(res.status).toBe(411);
+      expect(res.status).toBe(200);
     });
 
-    it("returns 411 for PATCH without content-length", () => {
+    it("allows PATCH without content-length", () => {
       const ip = "10.0.6.3";
       const res = middleware(makeRequest("/api/test", { ip, method: "PATCH" }) as never);
-      expect(res.status).toBe(411);
+      expect(res.status).toBe(200);
     });
 
     it("allows GET without content-length", () => {
@@ -322,7 +297,7 @@ describe("middleware rate-limit edge cases", () => {
       const ip = "10.0.9.1";
       const res = middleware(makeRequest("/api/test", { ip }) as never);
       expect(res.status).toBe(401);
-      expect(res.body).toContain("Invalid or missing API key");
+      expect(res.body).toContain("Missing API key");
     });
 
     it("returns 401 when x-api-key does not match", () => {
@@ -355,6 +330,68 @@ describe("middleware rate-limit edge cases", () => {
       const ip = "10.0.9.4";
       const res = middleware(makeRequest("/api/test", { ip }) as never);
       expect(res.status).toBe(200);
+    });
+  });
+
+  describe("single-tenant production profile", () => {
+    const productionKey = "p".repeat(32);
+
+    beforeEach(() => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("INNOVATOR_DEPLOYMENT_PROFILE", "single-tenant");
+      vi.stubEnv("INNOVATOR_API_KEYS", productionKey);
+      vi.stubEnv("GH_TOKEN", "github-token");
+    });
+
+    it("keeps liveness public while hiding application pages", () => {
+      expect(middleware(makeRequest("/healthz") as never).status).toBe(200);
+      expect(middleware(makeRequest("/") as never).status).toBe(404);
+      expect(middleware(makeRequest("/_next/image") as never).status).toBe(404);
+    });
+
+    it("returns 404 for experimental API routes", () => {
+      const response = middleware(
+        makeRequest("/api/billing", {
+          method: "POST",
+          headers: { "x-api-key": productionKey },
+        }) as never
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it("requires authentication on allowlisted API routes", () => {
+      const unauthenticated = middleware(
+        makeRequest("/api/investigate", {
+          method: "POST",
+          headers: { "content-length": "20" },
+        }) as never
+      );
+      const authenticated = middleware(
+        makeRequest("/api/investigate", {
+          method: "POST",
+          headers: {
+            "content-length": "20",
+            "x-api-key": productionKey,
+          },
+          ip: "10.20.30.40",
+        }) as never
+      );
+
+      expect(unauthenticated.status).toBe(401);
+      expect(authenticated.status).toBe(200);
+    });
+
+    it("returns 405 for unsupported methods on an allowlisted route", () => {
+      const response = middleware(
+        makeRequest("/api/investigate", {
+          method: "GET",
+          headers: { "x-api-key": productionKey },
+        }) as never
+      );
+
+      expect(response.status).toBe(405);
+      expect(response.headers.get("Allow")).toBe("POST");
     });
   });
 });

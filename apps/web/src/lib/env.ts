@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { KNOWN_MODELS } from "@innovator/core/types";
 import { logger } from "./logger";
+import { validateProductionRuntime } from "./runtime-policy";
 
 /** Re-exported list of known LLM model identifiers from `@innovator/core`. */
 export { KNOWN_MODELS };
@@ -24,6 +25,7 @@ export type Env = z.infer<typeof envSchema>;
  * Logs warnings for unknown model names but does not throw.
  */
 export function validateEnv(): Env {
+  validateProductionRuntime();
   const result = envSchema.safeParse(process.env);
 
   if (!result.success) {

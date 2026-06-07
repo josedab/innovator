@@ -51,6 +51,16 @@ describe("instrumentation — register()", () => {
     expect(eventNames).toContain("unhandledRejection");
   });
 
+  it("treats an unset NEXT_RUNTIME as the Node.js server runtime", async () => {
+    delete process.env.NEXT_RUNTIME;
+    const { register } = await import("../instrumentation.js");
+
+    await register();
+
+    const eventNames = processOnSpy.mock.calls.map(([event]) => event);
+    expect(eventNames).toContain("beforeExit");
+  });
+
   it("does not register handlers in non-nodejs runtime", async () => {
     process.env.NEXT_RUNTIME = "edge";
     const { register } = await import("../instrumentation.js");

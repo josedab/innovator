@@ -36,7 +36,7 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }));
 
-vi.mock("@/middleware", () => ({
+vi.mock("@/proxy", () => ({
   setMeteringKeyTier: vi.fn(),
   getMeteringLog: vi.fn(() => []),
 }));

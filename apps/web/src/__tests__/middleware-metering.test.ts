@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Inline the metering & quota logic for testability (mirrors middleware.test.ts pattern)
-// The actual middleware.ts exports these functions but requires NextRequest
+// The actual proxy.ts exports these functions but requires NextRequest
 
 interface MeteringEntry {
   keyId: string;

@@ -10,7 +10,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Overview
 
-`apps/web` is a Next.js App Router application serving the Innovator UI and API routes. It is part of a monorepo that also includes `apps/cli` (CLI tool), `packages/core` (shared logic), and `website` (docs site).
+`apps/web` is a Next.js App Router application serving the development UI and API routes. In production it runs as a headless, single-process, single-tenant API; browser and experimental SaaS routes return `404`.
 
 ## Project Structure
 
@@ -51,7 +51,7 @@ apps/web/src/
 │   ├── rate-limit.ts         # In-memory rate limiting
 │   ├── logger.ts             # Structured logging
 │   └── env.ts                # Environment configuration
-├── middleware.ts               # Rate limiting, auth, CSP headers, body size limits
+├── proxy.ts                    # Route policy, rate limiting, auth, CSP headers
 └── instrumentation.ts         # CopilotClient lifecycle (env validation + graceful shutdown)
 ```
 
@@ -69,7 +69,8 @@ apps/web/src/
 - Each exports `GET` and/or `POST` handler functions
 - Input validation uses Zod schemas
 - All responses include `API_RESPONSE_HEADERS` from `src/lib/api-headers.ts`
-- **OpenAPI spec** is available at `/api/v1/openapi` and as a static file at `public/openapi.json`
+- **OpenAPI spec** is available at authenticated `/api/v1/openapi`; `public/openapi.json` is a development artifact and is blocked by the production allowlist
+- Production route availability is controlled by `src/lib/runtime-policy.ts`. Only `/healthz`, `/readyz`, and the explicit protected API allowlist are available when `NODE_ENV=production`
 
 ### API Route Documentation Convention
 
@@ -104,8 +105,9 @@ For SSE endpoints, document the event stream format in the `@response` section.
 
 ### Authentication
 
-- `src/middleware.ts` checks `INNOVATOR_API_KEY` on all `/api/*` routes when the env var is set
-- `INNOVATOR_API_KEYS` supports comma-separated multi-key auth
+- Production requires `INNOVATOR_API_KEYS` with unique comma-separated keys of at least 32 characters
+- `INNOVATOR_API_KEY` is legacy and must not be combined with `INNOVATOR_API_KEYS`
+- `/healthz` and `/readyz` are public; every supported `/api/*` production route is authenticated
 - See `src/lib/api-auth.ts` for validation logic
 
 ### State Machine
@@ -128,7 +130,7 @@ For SSE endpoints, document the event stream format in the `@response` section.
 | ------------------- | -------------------------------------------------------------------------------------------------------- |
 | Add a new API route | Create `src/app/api/<name>/route.ts`, export `GET`/`POST`, validate with Zod, use `API_RESPONSE_HEADERS` |
 | Add a new component | Create in `src/components/`, add test in `src/components/__tests__/`                                     |
-| Modify auth         | Edit `src/lib/api-auth.ts` and `src/middleware.ts`                                                       |
+| Modify auth         | Edit `src/lib/api-auth.ts` and `src/proxy.ts`                                                            |
 | Start dev server    | `npm run dev` from monorepo root (builds core first, then starts Next.js)                                |
 | Run tests           | `npm test` from monorepo root                                                                            |
 
@@ -136,16 +138,19 @@ For SSE endpoints, document the event stream format in the `@response` section.
 
 See `.env.local.example` at monorepo root. Key variables:
 
-| Variable                   | Description                               |
-| -------------------------- | ----------------------------------------- |
-| `INNOVATOR_DEFAULT_MODEL`  | Default LLM model                         |
-| `INNOVATOR_API_KEY`        | API key for route auth (optional)         |
-| `INNOVATOR_API_KEYS`       | Comma-separated multi-key auth (optional) |
-| `INNOVATOR_LLM_TIMEOUT_MS` | LLM request timeout in ms                 |
+| Variable                       | Description                                                 |
+| ------------------------------ | ----------------------------------------------------------- |
+| `NODE_ENV`                     | Must be `production` in the production runtime              |
+| `INNOVATOR_DEPLOYMENT_PROFILE` | Must be `single-tenant` in production                       |
+| `INNOVATOR_API_KEYS`           | Required production keys; unique and at least 32 chars each |
+| `GH_TOKEN`                     | Required production Copilot token                           |
+| `INNOVATOR_DEFAULT_MODEL`      | Default LLM model                                           |
+| `INNOVATOR_API_KEY`            | Legacy development/compatibility key only                   |
+| `INNOVATOR_LLM_TIMEOUT_MS`     | LLM request timeout in ms                                   |
 
 ## Do Not
 
 - Do not add `"use client"` to API route files
 - Do not import from `@innovator/core` in client components (use `@innovator/core/types` for types only)
-- Do not modify `middleware.ts` without understanding the rate-limiting and auth flow
+- Do not modify `proxy.ts` without understanding the route policy, rate-limiting, and auth flow
 - Do not use `fetch()` in server-side API routes to call other API routes — import the core functions directly

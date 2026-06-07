@@ -31,3 +31,8 @@ yarn-error.log*
 
 # TypeDoc output
 packages/core/docs/
+
+# Source directories named "lib" may be ignored by global Git settings.
+!apps/web/src/lib/
+!apps/web/src/lib/provider-health.ts
+!apps/web/src/lib/runtime-policy.ts

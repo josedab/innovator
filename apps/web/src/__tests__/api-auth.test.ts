@@ -9,12 +9,19 @@ function makeRequest(headers: Record<string, string> = {}): Request {
 
 describe("validateApiKey", () => {
   const originalEnv = process.env.INNOVATOR_API_KEYS;
+  const originalLegacyKey = process.env.INNOVATOR_API_KEY;
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     if (originalEnv !== undefined) {
       process.env.INNOVATOR_API_KEYS = originalEnv;
     } else {
       delete process.env.INNOVATOR_API_KEYS;
+    }
+    if (originalLegacyKey !== undefined) {
+      process.env.INNOVATOR_API_KEY = originalLegacyKey;
+    } else {
+      delete process.env.INNOVATOR_API_KEY;
     }
   });
 
@@ -111,6 +118,29 @@ describe("validateApiKey", () => {
       const result = validateApiKey(makeRequest({ Authorization: "Basic abc123" }));
       expect(result.valid).toBe(false);
       expect(result.error).toContain("Missing API key");
+    });
+  });
+
+  describe("production fail-closed behavior", () => {
+    it("rejects requests when production keys are missing", () => {
+      vi.stubEnv("NODE_ENV", "production");
+      delete process.env.INNOVATOR_API_KEYS;
+      delete process.env.INNOVATOR_API_KEY;
+
+      const result = validateApiKey(makeRequest());
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("not configured");
+    });
+
+    it("accepts a configured production key", () => {
+      const key = "p".repeat(32);
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("INNOVATOR_API_KEYS", key);
+
+      const result = validateApiKey(makeRequest({ Authorization: `Bearer ${key}` }));
+
+      expect(result).toEqual({ valid: true, keyId: "key-0" });
     });
   });
 });

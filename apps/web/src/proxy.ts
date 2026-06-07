@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { validateApiKey } from "./lib/api-auth";
+import { getProductionRouteDecision, isProductionRuntime } from "./lib/runtime-policy";
 
 interface RateLimitEntry {
   count: number;
@@ -10,9 +12,7 @@ const WINDOW_MS = 60_000; // 1 minute
 const MAX_REQUESTS = 10;
 const AUTO_MAX_REQUESTS = 3; // Stricter limit for /api/auto (triggers 10+ LLM calls per request)
 const INNOVATE_MAX_REQUESTS = 5; // Stricter limit for /api/innovate (triggers up to 9 LLM calls per request)
-const MAX_CONCURRENT_PER_IP = 2; // Max simultaneous in-flight requests per IP
 const MAX_BODY_SIZE = 100 * 1024; // 100KB max request body size
-const INFLIGHT_TIMEOUT_MS = 3 * 60_000;
 const MAX_RATE_LIMIT_ENTRIES = 10_000;
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -28,7 +28,6 @@ const SECURITY_HEADERS: Record<string, string> = {
 const rateLimitMap = new Map<string, RateLimitEntry>();
 const autoRateLimitMap = new Map<string, RateLimitEntry>();
 const innovateRateLimitMap = new Map<string, RateLimitEntry>();
-const inFlightMap = new Map<string, number>();
 
 // ---- Per-key API metering ----
 // Lightweight in-memory metering that runs in edge middleware.
@@ -141,20 +140,6 @@ function cleanup() {
     }
   }
 
-  // Clean up stale inFlightMap entries and enforce size cap
-  for (const [key, count] of inFlightMap) {
-    if (count <= 0) {
-      inFlightMap.delete(key);
-    }
-  }
-  if (inFlightMap.size > MAX_RATE_LIMIT_ENTRIES) {
-    const excess = inFlightMap.size - MAX_RATE_LIMIT_ENTRIES;
-    const keys = [...inFlightMap.keys()];
-    for (let i = 0; i < excess; i++) {
-      inFlightMap.delete(keys[i]);
-    }
-  }
-
   // Clean up old metering entries
   const meteringCutoff = now - METERING_RETENTION_MS;
   const firstValid = meteringLog.findIndex((e) => e.timestamp >= meteringCutoff);
@@ -227,7 +212,30 @@ function checkRouteRateLimit(
  * @param request - The incoming Next.js request
  * @returns A NextResponse with security headers, or a 4xx/5xx error response
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
+  const routeDecision = getProductionRouteDecision(request.nextUrl.pathname, request.method);
+  if (routeDecision.action === "misconfigured") {
+    return new NextResponse(JSON.stringify({ error: "Production runtime is misconfigured." }), {
+      status: 503,
+      headers: SECURITY_HEADERS,
+    });
+  }
+  if (routeDecision.action === "not-found") {
+    return new NextResponse(JSON.stringify({ error: "Not found" }), {
+      status: 404,
+      headers: SECURITY_HEADERS,
+    });
+  }
+  if (routeDecision.action === "method-not-allowed") {
+    return new NextResponse(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: {
+        ...SECURITY_HEADERS,
+        Allow: routeDecision.allowedMethods.join(", "),
+      },
+    });
+  }
+
   // For non-API routes, apply nonce-based CSP
   if (!request.nextUrl.pathname.startsWith("/api/")) {
     const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
@@ -256,37 +264,20 @@ export function middleware(request: NextRequest) {
 
   cleanup();
 
-  // API key authentication: if INNOVATOR_API_KEY is set, require it on all /api/* routes
-  const apiKey = process.env.INNOVATOR_API_KEY;
-  const apiKeys = (process.env.INNOVATOR_API_KEYS ?? "").split(",").filter(Boolean);
-  let meteringKeyId = "anonymous";
-
-  if (apiKey) {
-    const providedKey = request.headers.get("x-api-key");
-    if (!providedKey || providedKey !== apiKey) {
-      return new NextResponse(JSON.stringify({ error: "Invalid or missing API key." }), {
-        status: 401,
-        headers: { ...SECURITY_HEADERS },
-      });
-    }
-    meteringKeyId = "key-0";
-  } else if (apiKeys.length > 0) {
-    const providedKey =
-      request.headers.get("x-api-key") ??
-      request.headers.get("authorization")?.replace("Bearer ", "");
-    if (!providedKey || !apiKeys.includes(providedKey)) {
-      return new NextResponse(JSON.stringify({ error: "Invalid or missing API key." }), {
-        status: 401,
-        headers: { ...SECURITY_HEADERS },
-      });
-    }
-    const keyIndex = apiKeys.indexOf(providedKey);
-    meteringKeyId = `key-${keyIndex}`;
+  const auth = validateApiKey(request);
+  if (!auth.valid) {
+    const status = auth.error?.includes("Server API authentication") ? 503 : 401;
+    return new NextResponse(JSON.stringify({ error: auth.error }), {
+      status,
+      headers: { ...SECURITY_HEADERS },
+    });
   }
+  const meteringKeyId = auth.keyId ?? "anonymous";
 
-  // Per-key metering: record the call and check quota
   const route = request.nextUrl.pathname;
-  recordMeteringEntry(meteringKeyId, route, request.method);
+  if (!isProductionRuntime()) {
+    recordMeteringEntry(meteringKeyId, route, request.method);
+  }
 
   // Reject oversized request bodies before they consume parsing resources
   const contentLength = request.headers.get("content-length");
@@ -297,22 +288,14 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  // Require Content-Length on mutation requests to prevent unbounded body parsing
-  const method = request.method;
-  if ((method === "POST" || method === "PUT" || method === "PATCH") && !contentLength) {
-    return new NextResponse(JSON.stringify({ error: "Content-Length header is required." }), {
-      status: 411,
-      headers: { ...SECURITY_HEADERS },
-    });
-  }
-
   const requestId = crypto.randomUUID();
   const ip = getClientIp(request);
   const now = Date.now();
 
-  // Per-key tier-based quota check (free: 100/day, pro: 10K/day, enterprise: unlimited)
-  const quotaResponse = checkKeyQuota(meteringKeyId, requestId);
-  if (quotaResponse) return quotaResponse;
+  if (!isProductionRuntime()) {
+    const quotaResponse = checkKeyQuota(meteringKeyId, requestId);
+    if (quotaResponse) return quotaResponse;
+  }
 
   const globalRateLimitResponse = checkRouteRateLimit(
     rateLimitMap,
@@ -350,59 +333,8 @@ export function middleware(request: NextRequest) {
     if (rateLimitResponse) return rateLimitResponse;
   }
 
-  // Concurrent in-flight request limit per IP: prevents a single client from
-  // monopolizing server resources (e.g., holding open multiple long-running SSE streams)
-  const currentInFlight = inFlightMap.get(ip) ?? 0;
-  if (currentInFlight >= MAX_CONCURRENT_PER_IP) {
-    return new NextResponse(
-      JSON.stringify({
-        error: "Too many concurrent requests. Please wait for existing requests to complete.",
-      }),
-      {
-        status: 429,
-        headers: {
-          ...SECURITY_HEADERS,
-          "X-Request-ID": requestId,
-        },
-      }
-    );
-  }
-  if (inFlightMap.size < MAX_RATE_LIMIT_ENTRIES || inFlightMap.has(ip)) {
-    inFlightMap.set(ip, currentInFlight + 1);
-  } else {
-    // Map is full and this is a new IP — reject to prevent unbounded memory growth
-    // from tracking too many unique IPs simultaneously
-    return new NextResponse(
-      JSON.stringify({ error: "Server is at capacity. Please try again later." }),
-      {
-        status: 503,
-        headers: {
-          ...SECURITY_HEADERS,
-          "Retry-After": "30",
-          "X-Request-ID": requestId,
-        },
-      }
-    );
-  }
-
   const response = NextResponse.next();
   response.headers.set("X-Request-ID", requestId);
-
-  // Decrement in-flight count after response completes.
-  // Note: Next.js middleware cannot hook into response completion, so we use a
-  // 3-minute timeout as a safety net to prevent permanent counter leaks from
-  // dropped connections or long-running SSE streams.
-  const decrementInFlight = () => {
-    const count = inFlightMap.get(ip);
-    if (count !== undefined) {
-      if (count <= 1) {
-        inFlightMap.delete(ip);
-      } else {
-        inFlightMap.set(ip, count - 1);
-      }
-    }
-  };
-  setTimeout(decrementInFlight, INFLIGHT_TIMEOUT_MS);
 
   return response;
 }
@@ -410,6 +342,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/api/:path*",
-    "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

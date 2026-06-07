@@ -16,7 +16,7 @@ import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-request";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
-import { setMeteringKeyTier, getMeteringLog } from "@/middleware";
+import { setMeteringKeyTier, getMeteringLog } from "@/proxy";
 
 const UsageSchema = z.object({
   action: z.literal("usage"),
