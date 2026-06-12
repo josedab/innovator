@@ -13,7 +13,7 @@ import { logger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-request";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 import { validateApiKey } from "@/lib/api-auth";
-import { checkRateLimit, addRateLimitHeaders } from "@/lib/rate-limit";
+import { addRateLimitHeaders, checkRateLimit, scopedRateLimitKey } from "@/lib/rate-limit";
 
 const CreateWebhookSchema = z.object({
   url: z.string().url().max(2000),
@@ -46,7 +46,10 @@ export async function POST(request: Request) {
     });
   }
 
-  const rateLimit = checkRateLimit(auth.keyId ?? "anonymous", { limit: 10, windowMs: 60_000 });
+  const rateLimit = checkRateLimit(scopedRateLimitKey("v1:webhooks", auth.keyId ?? "anonymous"), {
+    limit: 10,
+    windowMs: 60_000,
+  });
   if (!rateLimit.allowed) {
     return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
       status: 429,

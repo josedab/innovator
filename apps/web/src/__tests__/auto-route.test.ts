@@ -21,6 +21,12 @@ vi.mock("@/lib/logger", () => ({
 vi.mock("@/lib/validate-request", () => ({
   validateJsonContentType: vi.fn().mockReturnValue(null),
   validateModel: vi.fn().mockReturnValue(null),
+  readJsonBody: (request: Request) => request.json(),
+  jsonBodyErrorResponse: () =>
+    new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    }),
 }));
 
 vi.mock("@/lib/api-headers", () => ({

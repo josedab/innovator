@@ -18,17 +18,24 @@ import {
 import type { AngleId, AngleResult, ScoringResult } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import { validateJsonContentType, validateModel } from "@/lib/validate-request";
+import {
+  jsonBodyErrorResponse,
+  readJsonBody,
+  validateJsonContentType,
+  validateModel,
+} from "@/lib/validate-request";
 import { CACHE_HEADERS, API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
-const RequestSchema = z.object({
-  subject: z.string().min(1).max(500),
-  investigation: InvestigationSchema,
-  angles: z.array(z.enum(ANGLE_IDS)).min(1).max(8),
-  model: z.string().optional(),
-  synthesize: z.boolean().optional(),
-  score: z.boolean().optional(),
-});
+const RequestSchema = z
+  .object({
+    subject: z.string().min(1).max(500),
+    investigation: InvestigationSchema,
+    angles: z.array(z.enum(ANGLE_IDS)).min(1).max(8),
+    model: z.string().optional(),
+    synthesize: z.boolean().optional(),
+    score: z.boolean().optional(),
+  })
+  .strict();
 
 /**
  * POST /api/innovate — Generate innovations for selected angles.
@@ -74,12 +81,9 @@ export async function POST(request: Request) {
 
     let body: unknown;
     try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
+      body = await readJsonBody(request);
+    } catch (error) {
+      return jsonBodyErrorResponse(error);
     }
 
     const parsed = RequestSchema.safeParse(body);

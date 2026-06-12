@@ -346,13 +346,17 @@ export function getOpenApiSpec(): Record<string, unknown> {
       description: "AI-Powered Innovation Engine API",
     },
     servers: [{ url: "/api/v1" }],
-    security: [{ ApiKeyAuth: [] }],
+    security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }],
     components: {
       securitySchemes: {
         ApiKeyAuth: {
           type: "apiKey",
           in: "header",
           name: "X-API-Key",
+        },
+        BearerAuth: {
+          type: "http",
+          scheme: "bearer",
         },
       },
       schemas: {
@@ -444,6 +448,7 @@ export function getOpenApiSpec(): Record<string, unknown> {
               "application/json": {
                 schema: {
                   type: "object",
+                  additionalProperties: false,
                   required: ["subject"],
                   properties: {
                     subject: {
@@ -462,7 +467,13 @@ export function getOpenApiSpec(): Record<string, unknown> {
               description: "Investigation result",
               content: {
                 "application/json": {
-                  schema: { $ref: "#/components/schemas/Investigation" },
+                  schema: {
+                    type: "object",
+                    properties: {
+                      data: { $ref: "#/components/schemas/Investigation" },
+                    },
+                    required: ["data"],
+                  },
                 },
               },
             },
@@ -489,13 +500,32 @@ export function getOpenApiSpec(): Record<string, unknown> {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["subject", "investigation", "angles"],
+                  additionalProperties: false,
+                  required: ["subject", "angles"],
                   properties: {
-                    subject: { type: "string", description: "The subject to innovate on" },
-                    investigation: { $ref: "#/components/schemas/Investigation" },
+                    subject: {
+                      type: "string",
+                      minLength: 1,
+                      maxLength: 500,
+                      description: "The subject to investigate and innovate on",
+                    },
                     angles: {
                       type: "array",
-                      items: { type: "string" },
+                      minItems: 1,
+                      maxItems: 8,
+                      items: {
+                        type: "string",
+                        enum: [
+                          "scamper",
+                          "first-principles",
+                          "cross-domain",
+                          "constraints",
+                          "inversion",
+                          "perspectives",
+                          "what-if",
+                          "trend-collision",
+                        ],
+                      },
                       description: "Array of angle IDs to use",
                     },
                     model: { type: "string", description: "LLM model override" },
@@ -512,12 +542,19 @@ export function getOpenApiSpec(): Record<string, unknown> {
                   schema: {
                     type: "object",
                     properties: {
-                      results: {
-                        type: "array",
-                        items: { $ref: "#/components/schemas/AngleResult" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          investigation: { $ref: "#/components/schemas/Investigation" },
+                          angleResults: {
+                            type: "array",
+                            items: { $ref: "#/components/schemas/AngleResult" },
+                          },
+                        },
+                        required: ["investigation", "angleResults"],
                       },
                     },
-                    required: ["results"],
+                    required: ["data"],
                   },
                 },
               },
@@ -546,6 +583,7 @@ export function getOpenApiSpec(): Record<string, unknown> {
               "application/json": {
                 schema: {
                   type: "object",
+                  additionalProperties: false,
                   required: ["subject"],
                   properties: {
                     subject: {
@@ -554,6 +592,12 @@ export function getOpenApiSpec(): Record<string, unknown> {
                       description: "The subject for the full pipeline",
                     },
                     model: { type: "string", description: "LLM model override" },
+                    stream: {
+                      type: "boolean",
+                      default: true,
+                      description:
+                        "Return an SSE stream when true, or a JSON data envelope when false",
+                    },
                   },
                 },
               },
@@ -561,8 +605,20 @@ export function getOpenApiSpec(): Record<string, unknown> {
           },
           responses: {
             "200": {
-              description: "SSE stream of pipeline progress events",
+              description: "Pipeline result as SSE (stream=true) or JSON (stream=false)",
               content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      data: {
+                        type: "object",
+                        description: "Final pipeline progress object",
+                      },
+                    },
+                    required: ["data"],
+                  },
+                },
                 "text/event-stream": {
                   schema: {
                     type: "object",

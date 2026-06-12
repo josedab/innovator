@@ -4,7 +4,13 @@ vi.mock("@innovator/core", () => ({
   KNOWN_MODELS: ["gpt-4.1", "gpt-4.1-mini", "gpt-5"],
 }));
 
-import { validateJsonContentType, validateModel } from "../lib/validate-request";
+import {
+  JsonBodyError,
+  jsonBodyErrorResponse,
+  readJsonBody,
+  validateJsonContentType,
+  validateModel,
+} from "../lib/validate-request";
 import { API_RESPONSE_HEADERS } from "../lib/api-headers";
 
 function makeRequest(contentType?: string): Request {
@@ -74,5 +80,45 @@ describe("validateModel", () => {
     for (const [key, value] of Object.entries(API_RESPONSE_HEADERS)) {
       expect(result.headers.get(key)).toBe(value);
     }
+  });
+});
+
+describe("readJsonBody", () => {
+  it("parses a JSON body delivered in multiple chunks", async () => {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('{"subject":'));
+        controller.enqueue(encoder.encode('"test"}'));
+        controller.close();
+      },
+    });
+    const request = new Request("http://localhost/api/test", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+      duplex: "half",
+    } as RequestInit & { duplex: "half" });
+
+    await expect(readJsonBody(request)).resolves.toEqual({ subject: "test" });
+  });
+
+  it("rejects the actual streamed size when Content-Length is absent", async () => {
+    const request = new Request("http://localhost/api/test", {
+      method: "POST",
+      body: "x".repeat(11),
+    });
+
+    await expect(readJsonBody(request, 10)).rejects.toMatchObject({
+      status: 413,
+      message: "Request body too large",
+    });
+  });
+
+  it("returns a consistent response for malformed JSON", async () => {
+    const response = jsonBodyErrorResponse(new JsonBodyError("Invalid JSON body", 400));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
   });
 });

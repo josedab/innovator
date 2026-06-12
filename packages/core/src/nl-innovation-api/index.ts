@@ -9,14 +9,16 @@
 import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
-import { ValidationError, PipelineError } from "../errors.js";
+import { LlmParseError, ValidationError, PipelineError } from "../errors.js";
 import { wrapUserInput } from "../prompts/sanitize.js";
 import { investigate } from "../innovation/index.js";
 import { generateForAngle } from "../innovation/index.js";
+import { getCustomAngle } from "../innovation/custom-angles.js";
 import { scoreIdeas } from "../scoring/index.js";
 import { runDebate } from "../debate/index.js";
 import { generateArtifact } from "../artifacts/index.js";
-import type { Investigation, AngleResult, InnovationIdea, AngleId } from "../types.js";
+import { ANGLE_IDS } from "../types.js";
+import type { Investigation, AngleResult, InnovationIdea } from "../types.js";
 import type { ArtifactType } from "../artifacts/index.js";
 import type { DebateResult } from "../debate/index.js";
 import type { ScoringResult } from "../scoring/index.js";
@@ -34,9 +36,9 @@ export const ConversationMessageSchema = z.object({
 export type ConversationMessage = z.infer<typeof ConversationMessageSchema>;
 
 export const ExecutionStepSchema = z.object({
-  id: z.string(),
+  id: z.string().min(1).max(100),
   type: z.enum(["investigate", "generate", "score", "debate", "artifact", "custom"]),
-  description: z.string(),
+  description: z.string().min(1).max(500),
   params: z.record(z.unknown()).default({}),
   status: z.enum(["pending", "running", "completed", "failed", "skipped"]).default("pending"),
   result: z.unknown().optional(),
@@ -45,9 +47,9 @@ export const ExecutionStepSchema = z.object({
 export type ExecutionStep = z.infer<typeof ExecutionStepSchema>;
 
 export const ExecutionPlanSchema = z.object({
-  id: z.string(),
-  prompt: z.string(),
-  steps: z.array(ExecutionStepSchema),
+  id: z.string().min(1).max(100),
+  prompt: z.string().min(1).max(5000),
+  steps: z.array(ExecutionStepSchema).min(1).max(12),
   createdAt: z.number(),
   status: z.enum(["pending", "running", "completed", "failed", "cancelled"]).default("pending"),
 });
@@ -110,9 +112,73 @@ export type ConversationSessionState = z.infer<typeof ConversationSessionSchema>
 
 export const PlanGenerationResultSchema = z.object({
   plan: ExecutionPlanSchema,
-  explanation: z.string(),
+  explanation: z.string().max(1000),
 });
 export type PlanGenerationResult = z.infer<typeof PlanGenerationResultSchema>;
+
+const GeneratedStepBaseSchema = z.object({
+  id: z.string().min(1).max(100).optional(),
+  description: z.string().min(1).max(500),
+});
+
+const PlanAngleIdSchema = z
+  .string()
+  .min(1)
+  .max(100)
+  .regex(/^[a-z0-9-]+$/)
+  .refine(
+    (angleId) =>
+      (ANGLE_IDS as readonly string[]).includes(angleId) || getCustomAngle(angleId) !== undefined,
+    "Unknown innovation angle"
+  );
+
+const GeneratedExecutionStepSchema = z.discriminatedUnion("type", [
+  GeneratedStepBaseSchema.extend({
+    type: z.literal("investigate"),
+    params: z.object({ subject: z.string().min(1).max(500) }).strict(),
+  }).strict(),
+  GeneratedStepBaseSchema.extend({
+    type: z.literal("generate"),
+    params: z
+      .object({
+        angleId: PlanAngleIdSchema,
+        count: z.number().int().min(1).max(20).optional(),
+      })
+      .strict(),
+  }).strict(),
+  GeneratedStepBaseSchema.extend({
+    type: z.literal("score"),
+    params: z.object({}).strict().default({}),
+  }).strict(),
+  GeneratedStepBaseSchema.extend({
+    type: z.literal("debate"),
+    params: z
+      .object({
+        ideaIndex: z.number().int().min(0).max(100).optional(),
+        topN: z.number().int().min(1).max(10).optional(),
+      })
+      .strict(),
+  }).strict(),
+  GeneratedStepBaseSchema.extend({
+    type: z.literal("artifact"),
+    params: z
+      .object({
+        artifactType: z.enum(["prd", "user-story", "tech-spec", "pitch-outline", "okr"]),
+      })
+      .strict(),
+  }).strict(),
+  GeneratedStepBaseSchema.extend({
+    type: z.literal("custom"),
+    params: z.object({ instruction: z.string().min(1).max(2000) }).strict(),
+  }).strict(),
+]);
+
+const GeneratedPlanSchema = z
+  .object({
+    steps: z.array(GeneratedExecutionStepSchema).min(1).max(12),
+    explanation: z.string().max(1000).default(""),
+  })
+  .strict();
 
 /* -------------------------------------------------------------------------- */
 /*  Helpers                                                                   */
@@ -145,15 +211,53 @@ Return ONLY a JSON object with this shape:
   "explanation": "<one-sentence summary of the plan>"
 }`;
 
+async function generateValidatedSteps(
+  planningPrompt: string,
+  model?: string,
+  signal?: AbortSignal
+): Promise<{ steps: ExecutionStep[]; explanation: string }> {
+  const generated = await withRetry(
+    async () => {
+      const raw = await generateText({
+        prompt: planningPrompt,
+        model,
+        signal,
+      });
+
+      const extracted = extractJson(raw);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(extracted) as unknown;
+      } catch {
+        throw new LlmParseError("Failed to parse execution plan as JSON", extracted);
+      }
+      return GeneratedPlanSchema.parse(parsed);
+    },
+    { signal }
+  );
+
+  return {
+    explanation: generated.explanation,
+    steps: generated.steps.map((step) => ({
+      id: step.id ?? uid(),
+      type: step.type,
+      description: step.description,
+      params: step.params,
+      status: "pending",
+    })),
+  };
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Intent Parsing                                                            */
 /* -------------------------------------------------------------------------- */
 
 export async function parseInnovationIntent(
   prompt: string,
-  model?: string
+  model?: string,
+  signal?: AbortSignal
 ): Promise<ExecutionPlan> {
-  const result = await generateExecutionPlan(prompt, model);
+  const result = await generateExecutionPlan(prompt, model, signal);
   return result.plan;
 }
 
@@ -163,35 +267,26 @@ export async function parseInnovationIntent(
 
 export async function generateExecutionPlan(
   prompt: string,
-  model?: string
+  model?: string,
+  signal?: AbortSignal
 ): Promise<PlanGenerationResult> {
-  const raw = await withRetry(() =>
-    generateText({
-      prompt: `${PLAN_GENERATION_PROMPT}\n\nUser request:\n${wrapUserInput("request", prompt)}`,
-      model,
-    })
+  const generated = await generateValidatedSteps(
+    `${PLAN_GENERATION_PROMPT}\n\nUser request:\n${wrapUserInput("request", prompt)}`,
+    model,
+    signal
   );
-
-  const json = JSON.parse(extractJson(raw));
-  const steps: ExecutionStep[] = (json.steps ?? []).map((s: Record<string, unknown>) => ({
-    id: (s.id as string) ?? uid(),
-    type: s.type as ExecutionStep["type"],
-    description: (s.description as string) ?? "",
-    params: (s.params as Record<string, unknown>) ?? {},
-    status: "pending" as const,
-  }));
 
   const plan: ExecutionPlan = {
     id: uid(),
     prompt,
-    steps,
+    steps: generated.steps,
     createdAt: now(),
     status: "pending",
   };
 
   return {
     plan,
-    explanation: (json.explanation as string) ?? "",
+    explanation: generated.explanation,
   };
 }
 
@@ -221,15 +316,13 @@ async function executeStep(
     case "investigate": {
       const subject = (params.subject as string) ?? ctx.subject;
       ctx.subject = subject;
-      const inv = await withRetry(() => investigate(subject, ctx.model, ctx.signal), {
-        signal: ctx.signal,
-      });
+      const inv = await investigate(subject, ctx.model, ctx.signal);
       ctx.investigation = inv;
       return inv;
     }
 
     case "generate": {
-      const angleId = (params.angleId as string) ?? "scamper";
+      const angleId = PlanAngleIdSchema.parse(params.angleId ?? "scamper");
       if (!ctx.investigation) {
         onEvent({
           type: "step_progress",
@@ -237,20 +330,14 @@ async function executeStep(
           message: "Running investigation first…",
           timestamp: now(),
         });
-        ctx.investigation = await withRetry(() => investigate(ctx.subject, ctx.model, ctx.signal), {
-          signal: ctx.signal,
-        });
+        ctx.investigation = await investigate(ctx.subject, ctx.model, ctx.signal);
       }
-      const result = await withRetry(
-        () =>
-          generateForAngle(
-            ctx.subject,
-            ctx.investigation!,
-            angleId as AngleId,
-            ctx.model,
-            ctx.signal
-          ),
-        { signal: ctx.signal }
+      const result = await generateForAngle(
+        ctx.subject,
+        ctx.investigation!,
+        angleId,
+        ctx.model,
+        ctx.signal
       );
       ctx.angleResults.push(result);
       return result;
@@ -260,9 +347,12 @@ async function executeStep(
       if (ctx.angleResults.length === 0) {
         throw new ValidationError("No ideas to score — run a generate step first.");
       }
-      const sr = await withRetry(
-        () => scoreIdeas(ctx.subject, ctx.angleResults, ctx.investigation, ctx.model, ctx.signal),
-        { signal: ctx.signal }
+      const sr = await scoreIdeas(
+        ctx.subject,
+        ctx.angleResults,
+        ctx.investigation,
+        ctx.model,
+        ctx.signal
       );
       ctx.scoringResult = sr;
       return sr;
@@ -286,7 +376,8 @@ async function executeStep(
           message: `Debating: ${idea.title}`,
           timestamp: now(),
         });
-        const dr = await withRetry(() => runDebate(idea, ctx.investigation, { model: ctx.model }), {
+        const dr = await runDebate(idea, ctx.investigation, {
+          model: ctx.model,
           signal: ctx.signal,
         });
         results.push(dr);
@@ -302,16 +393,12 @@ async function executeStep(
         throw new ValidationError("No ideas available — run a generate step first.");
       }
       const idea = allIdeas[0]!;
-      const artifact = await withRetry(
-        () =>
-          generateArtifact(
-            idea,
-            artifactType,
-            { subject: ctx.subject, investigation: ctx.investigation },
-            ctx.model,
-            ctx.signal
-          ),
-        { signal: ctx.signal }
+      const artifact = await generateArtifact(
+        idea,
+        artifactType,
+        { subject: ctx.subject, investigation: ctx.investigation },
+        ctx.model,
+        ctx.signal
       );
       ctx.artifacts.push(artifact);
       return artifact;
@@ -370,8 +457,13 @@ export async function executeWithStreaming(
 
   for (const step of plan.steps) {
     if (options?.signal?.aborted) {
-      step.status = "skipped";
-      continue;
+      for (const pendingStep of plan.steps) {
+        if (pendingStep.status === "pending") {
+          pendingStep.status = "skipped";
+        }
+      }
+      plan.status = "cancelled";
+      break;
     }
 
     step.status = "running";
@@ -395,6 +487,17 @@ export async function executeWithStreaming(
         timestamp: now(),
       });
     } catch (err) {
+      if (options?.signal?.aborted) {
+        step.status = "skipped";
+        for (const pendingStep of plan.steps) {
+          if (pendingStep.status === "pending") {
+            pendingStep.status = "skipped";
+          }
+        }
+        plan.status = "cancelled";
+        break;
+      }
+
       const message = err instanceof Error ? err.message : String(err);
       step.status = "failed";
       step.error = message;
@@ -408,9 +511,11 @@ export async function executeWithStreaming(
     }
   }
 
-  plan.status = plan.steps.every((s) => s.status === "completed" || s.status === "skipped")
-    ? "completed"
-    : "failed";
+  if (plan.status !== "cancelled") {
+    plan.status = plan.steps.every((s) => s.status === "completed" || s.status === "skipped")
+      ? "completed"
+      : "failed";
+  }
 
   onEvent({
     type: "execution_completed",
@@ -426,14 +531,14 @@ export async function executeWithStreaming(
 export async function applyCorrection(
   plan: ExecutionPlan,
   correction: string,
-  model?: string
+  model?: string,
+  signal?: AbortSignal
 ): Promise<ExecutionPlan> {
   const pendingSteps = plan.steps.filter((s) => s.status === "pending");
   const completedIds = plan.steps.filter((s) => s.status === "completed").map((s) => s.id);
 
-  const raw = await withRetry(() =>
-    generateText({
-      prompt: `${PLAN_GENERATION_PROMPT}
+  const generated = await generateValidatedSteps(
+    `${PLAN_GENERATION_PROMPT}
 
 The user wants to modify an in-progress plan.
 
@@ -444,24 +549,22 @@ User correction:
 ${wrapUserInput("correction", correction)}
 
 Return the FULL updated list of remaining steps (do NOT include already-completed steps).`,
-      model,
-    })
+    model,
+    signal
   );
 
-  const json = JSON.parse(extractJson(raw));
-  const updatedSteps: ExecutionStep[] = (json.steps ?? []).map((s: Record<string, unknown>) => ({
-    id: (s.id as string) ?? uid(),
-    type: s.type as ExecutionStep["type"],
-    description: (s.description as string) ?? "",
-    params: (s.params as Record<string, unknown>) ?? {},
-    status: "pending" as const,
-  }));
+  const retainedSteps = plan.steps.filter(
+    (step) => step.status === "completed" || step.status === "running"
+  );
+  if (generated.steps.length > 12 - retainedSteps.length) {
+    throw new ValidationError("Corrected execution plan exceeds the 12-step limit");
+  }
 
-  // Keep completed/running steps, replace pending ones
-  plan.steps = [
-    ...plan.steps.filter((s) => s.status === "completed" || s.status === "running"),
-    ...updatedSteps,
-  ];
+  const validatedPlan = ExecutionPlanSchema.parse({
+    ...plan,
+    steps: [...retainedSteps, ...generated.steps],
+  });
+  plan.steps = validatedPlan.steps;
 
   return plan;
 }

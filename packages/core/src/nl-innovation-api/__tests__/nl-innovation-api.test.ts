@@ -8,13 +8,11 @@ vi.mock("../../copilot/client.js", () => ({
           type: "investigate",
           description: "Research the topic",
           params: { subject: "test" },
-          order: 1,
         },
         {
           type: "generate",
           description: "Generate ideas",
           params: { angleId: "scamper" },
-          order: 2,
         },
       ],
     })
@@ -24,6 +22,19 @@ vi.mock("../../copilot/client.js", () => ({
 vi.mock("../../copilot/retry.js", () => ({
   withRetry: vi.fn((fn) => fn()),
 }));
+vi.mock("../../innovation/custom-angles.js", () => ({
+  getCustomAngle: vi.fn((angleId: string) =>
+    angleId === "custom-angle"
+      ? {
+          id: "custom-angle",
+          name: "Custom Angle",
+          description: "Custom test angle",
+          promptTemplate: "{{subject}}",
+          createdAt: new Date().toISOString(),
+        }
+      : undefined
+  ),
+}));
 
 import { describe, it, expect, beforeEach } from "vitest";
 import {
@@ -32,7 +43,11 @@ import {
   ConversationMessageSchema,
   ExecutionStepSchema,
   ExecutionPlanSchema,
+  applyCorrection,
+  executeWithStreaming,
+  generateExecutionPlan,
 } from "../index.js";
+import { generateText } from "../../copilot/client.js";
 
 describe("nl-innovation-api", () => {
   // ---- Zod Schemas ----
@@ -89,6 +104,151 @@ describe("nl-innovation-api", () => {
         description: "bad step",
       });
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe("generated plan validation", () => {
+    it("passes cancellation through plan generation", async () => {
+      const controller = new AbortController();
+
+      await generateExecutionPlan("test prompt", "gpt-5", controller.signal);
+
+      expect(vi.mocked(generateText)).toHaveBeenCalledWith(
+        expect.objectContaining({ signal: controller.signal })
+      );
+    });
+
+    it("rejects invalid angle IDs from the model", async () => {
+      vi.mocked(generateText).mockResolvedValueOnce(
+        JSON.stringify({
+          steps: [
+            {
+              type: "generate",
+              description: "Generate ideas",
+              params: { angleId: "not-a-real-angle" },
+            },
+          ],
+        })
+      );
+
+      await expect(generateExecutionPlan("test prompt")).rejects.toThrow();
+    });
+
+    it("accepts registered custom angle IDs from the model", async () => {
+      vi.mocked(generateText).mockResolvedValueOnce(
+        JSON.stringify({
+          steps: [
+            {
+              type: "generate",
+              description: "Generate custom ideas",
+              params: { angleId: "custom-angle" },
+            },
+          ],
+        })
+      );
+
+      const result = await generateExecutionPlan("test prompt");
+
+      expect(result.plan.steps[0].params.angleId).toBe("custom-angle");
+    });
+
+    it("rejects plans with more than twelve steps", async () => {
+      vi.mocked(generateText).mockResolvedValueOnce(
+        JSON.stringify({
+          steps: Array.from({ length: 13 }, (_, index) => ({
+            id: `step-${index}`,
+            type: "custom",
+            description: "Run a bounded custom instruction",
+            params: { instruction: "test" },
+          })),
+        })
+      );
+
+      await expect(generateExecutionPlan("test prompt")).rejects.toThrow();
+    });
+
+    it("marks a pre-aborted execution plan as cancelled", async () => {
+      const plan = ExecutionPlanSchema.parse({
+        id: "plan-1",
+        prompt: "test prompt",
+        steps: [
+          {
+            id: "step-1",
+            type: "investigate",
+            description: "Research topic",
+            params: { subject: "test" },
+          },
+        ],
+        createdAt: Date.now(),
+      });
+      const controller = new AbortController();
+      controller.abort();
+
+      await executeWithStreaming(plan, () => {}, { signal: controller.signal });
+
+      expect(plan.status).toBe("cancelled");
+      expect(plan.steps[0].status).toBe("skipped");
+    });
+
+    it("marks an abort during the final step as cancelled", async () => {
+      const controller = new AbortController();
+      const plan = ExecutionPlanSchema.parse({
+        id: "plan-final-abort",
+        prompt: "test prompt",
+        steps: [
+          {
+            id: "step-1",
+            type: "custom",
+            description: "Run custom work",
+            params: { instruction: "test" },
+          },
+        ],
+        createdAt: Date.now(),
+      });
+      vi.mocked(generateText).mockImplementationOnce(async () => {
+        controller.abort();
+        throw new Error("aborted");
+      });
+
+      await executeWithStreaming(plan, () => {}, { signal: controller.signal });
+
+      expect(plan.status).toBe("cancelled");
+      expect(plan.steps[0].status).toBe("skipped");
+    });
+
+    it("rejects a correction that would exceed the plan step limit", async () => {
+      const plan = ExecutionPlanSchema.parse({
+        id: "plan-correction-limit",
+        prompt: "test prompt",
+        steps: [
+          {
+            id: "completed-step",
+            type: "custom",
+            description: "Completed work",
+            params: { instruction: "done" },
+            status: "completed",
+          },
+          {
+            id: "pending-step",
+            type: "custom",
+            description: "Pending work",
+            params: { instruction: "pending" },
+          },
+        ],
+        createdAt: Date.now(),
+      });
+      vi.mocked(generateText).mockResolvedValueOnce(
+        JSON.stringify({
+          steps: Array.from({ length: 12 }, (_, index) => ({
+            id: `replacement-${index}`,
+            type: "custom",
+            description: "Replacement work",
+            params: { instruction: "test" },
+          })),
+        })
+      );
+
+      await expect(applyCorrection(plan, "replace pending work")).rejects.toThrow("12-step limit");
     });
   });
 

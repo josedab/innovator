@@ -7,15 +7,22 @@ import { generateNLExecutionPlan, executeWithStreaming } from "@innovator/core";
 import type { StreamEvent } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import { validateJsonContentType, validateModel } from "@/lib/validate-request";
+import {
+  jsonBodyErrorResponse,
+  readJsonBody,
+  validateJsonContentType,
+  validateModel,
+} from "@/lib/validate-request";
 import { SECURITY_HEADERS, API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const HEARTBEAT_MS = 15_000;
 
-const RequestSchema = z.object({
-  prompt: z.string().min(1).max(5000),
-  model: z.string().optional(),
-});
+const RequestSchema = z
+  .object({
+    prompt: z.string().min(1).max(5000),
+    model: z.string().optional(),
+  })
+  .strict();
 
 /**
  * Natural Language Innovation API — single-prompt orchestration with SSE streaming.
@@ -30,12 +37,9 @@ export async function POST(request: Request) {
 
     let body: unknown;
     try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
+      body = await readJsonBody(request);
+    } catch (error) {
+      return jsonBodyErrorResponse(error);
     }
 
     const parsed = RequestSchema.safeParse(body);
@@ -54,8 +58,9 @@ export async function POST(request: Request) {
 
     const { prompt, model } = parsed.data;
     const abortController = new AbortController();
+    const onAbort = () => abortController.abort();
 
-    request.signal.addEventListener("abort", () => abortController.abort());
+    request.signal.addEventListener("abort", onAbort, { once: true });
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -80,7 +85,7 @@ export async function POST(request: Request) {
           }, HEARTBEAT_MS);
 
           // Generate execution plan
-          const result = await generateNLExecutionPlan(prompt, model);
+          const result = await generateNLExecutionPlan(prompt, model, abortController.signal);
           send({ type: "plan_generated", plan: result.plan, timestamp: Date.now() });
 
           // Execute with streaming
@@ -97,6 +102,7 @@ export async function POST(request: Request) {
           });
         } finally {
           if (heartbeat) clearInterval(heartbeat);
+          request.signal.removeEventListener("abort", onAbort);
           logger.info("NL innovate completed", {
             requestId,
             durationMs: Date.now() - startTime,

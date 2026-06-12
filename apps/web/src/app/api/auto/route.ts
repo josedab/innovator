@@ -7,16 +7,23 @@ import { runAutoPipeline, ANGLE_IDS } from "@innovator/core";
 import type { PipelineProgress } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import { validateJsonContentType, validateModel } from "@/lib/validate-request";
+import {
+  jsonBodyErrorResponse,
+  readJsonBody,
+  validateJsonContentType,
+  validateModel,
+} from "@/lib/validate-request";
 import { SECURITY_HEADERS, API_RESPONSE_HEADERS } from "@/lib/api-headers";
 
 const HEARTBEAT_MS = 15_000;
 const MAX_SUBJECT_LENGTH = 500;
 
-const RequestSchema = z.object({
-  subject: z.string().min(1).max(MAX_SUBJECT_LENGTH),
-  model: z.string().optional(),
-});
+const RequestSchema = z
+  .object({
+    subject: z.string().min(1).max(MAX_SUBJECT_LENGTH),
+    model: z.string().optional(),
+  })
+  .strict();
 
 /**
  * POST /api/auto — Run the full innovation pipeline with SSE streaming.
@@ -60,12 +67,9 @@ export async function POST(request: Request) {
 
     let body: unknown;
     try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
+      body = await readJsonBody(request);
+    } catch (error) {
+      return jsonBodyErrorResponse(error);
     }
 
     const parsed = RequestSchema.safeParse(body);

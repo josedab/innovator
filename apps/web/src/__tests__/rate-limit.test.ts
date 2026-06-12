@@ -6,12 +6,14 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 
 let checkRateLimit: typeof import("../../lib/rate-limit").checkRateLimit;
 let addRateLimitHeaders: typeof import("../../lib/rate-limit").addRateLimitHeaders;
+let scopedRateLimitKey: typeof import("../../lib/rate-limit").scopedRateLimitKey;
 
 beforeEach(async () => {
   // Re-import to get the functions (store persists but we use unique keys)
   const mod = await import("../lib/rate-limit");
   checkRateLimit = mod.checkRateLimit;
   addRateLimitHeaders = mod.addRateLimitHeaders;
+  scopedRateLimitKey = mod.scopedRateLimitKey;
 });
 
 describe("checkRateLimit", () => {
@@ -66,6 +68,14 @@ describe("checkRateLimit", () => {
 
     expect(blockedA.allowed).toBe(false);
     expect(allowedB.allowed).toBe(true);
+  });
+
+  it("isolates the same caller across route scopes", () => {
+    const config = { limit: 1, windowMs: 60_000 };
+    const caller = "key-0";
+
+    expect(checkRateLimit(scopedRateLimitKey("investigate", caller), config).allowed).toBe(true);
+    expect(checkRateLimit(scopedRateLimitKey("auto", caller), config).allowed).toBe(true);
   });
 
   it("resets after window expires", () => {

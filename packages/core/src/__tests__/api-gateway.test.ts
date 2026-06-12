@@ -408,6 +408,38 @@ describe("api-gateway", () => {
       expect((spec.info as Record<string, unknown>).title).toBe("Innovator API");
       expect(spec.paths).toMatchObject(expect.any(Object));
     });
+
+    it("documents the actual V1 innovate request and response envelopes", () => {
+      const spec = getOpenApiSpec() as {
+        paths: {
+          "/innovate": {
+            post: {
+              requestBody: {
+                content: { "application/json": { schema: { required: string[] } } };
+              };
+              responses: {
+                "200": {
+                  content: {
+                    "application/json": {
+                      schema: { properties: Record<string, unknown> };
+                    };
+                  };
+                };
+              };
+            };
+          };
+        };
+      };
+      const operation = spec.paths["/innovate"].post;
+
+      expect(operation.requestBody.content["application/json"].schema.required).toEqual([
+        "subject",
+        "angles",
+      ]);
+      expect(
+        operation.responses["200"].content["application/json"].schema.properties
+      ).toHaveProperty("data");
+    });
   });
 
   // ---- Multi-Tenant Management ----

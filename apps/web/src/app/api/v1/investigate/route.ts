@@ -6,15 +6,22 @@ export const runtime = "nodejs";
 import { investigate } from "@innovator/core";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import { validateJsonContentType, validateModel } from "@/lib/validate-request";
+import {
+  jsonBodyErrorResponse,
+  readJsonBody,
+  validateJsonContentType,
+  validateModel,
+} from "@/lib/validate-request";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 import { validateApiKey } from "@/lib/api-auth";
-import { checkRateLimit, addRateLimitHeaders } from "@/lib/rate-limit";
+import { addRateLimitHeaders, checkRateLimit, scopedRateLimitKey } from "@/lib/rate-limit";
 
-const RequestSchema = z.object({
-  subject: z.string().min(1).max(500),
-  model: z.string().optional(),
-});
+const RequestSchema = z
+  .object({
+    subject: z.string().min(1).max(500),
+    model: z.string().optional(),
+  })
+  .strict();
 
 /** POST /api/v1/investigate — programmatic API with auth and rate limiting. */
 export async function POST(request: Request) {
@@ -26,7 +33,10 @@ export async function POST(request: Request) {
     });
   }
 
-  const rateLimit = checkRateLimit(auth.keyId ?? "anonymous", { limit: 30, windowMs: 60_000 });
+  const rateLimit = checkRateLimit(
+    scopedRateLimitKey("v1:investigate", auth.keyId ?? "anonymous"),
+    { limit: 30, windowMs: 60_000 }
+  );
   if (!rateLimit.allowed) {
     return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
       status: 429,
@@ -44,12 +54,9 @@ export async function POST(request: Request) {
 
     let body: unknown;
     try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
+      body = await readJsonBody(request);
+    } catch (error) {
+      return jsonBodyErrorResponse(error);
     }
 
     const parsed = RequestSchema.safeParse(body);

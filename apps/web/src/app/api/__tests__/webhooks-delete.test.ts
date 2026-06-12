@@ -33,6 +33,7 @@ vi.mock("@/lib/api-auth", () => ({
 const mockCheckRateLimit = vi.fn();
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),
+  scopedRateLimitKey: (scope: string, key: string) => `${scope}:${key}`,
   addRateLimitHeaders: vi.fn((h: Record<string, string>, _rl: unknown) => ({
     ...h,
     "X-RateLimit-Limit": "10",
