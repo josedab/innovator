@@ -18,9 +18,9 @@ COPY apps/cli/package.json apps/cli/
 # Deterministic install from lockfile; skip optional deps to reduce size
 RUN npm ci --ignore-scripts
 
-# Copy source and build (core → cli → web)
+# Copy source and build only the workspaces shipped in this image.
 COPY . .
-RUN npm run build
+RUN npm run build:container
 
 # Remove devDependencies to slim down the production node_modules
 RUN npm prune --omit=dev
@@ -45,15 +45,19 @@ RUN apt-get update && \
 
 # Create non-root user for runtime security
 RUN groupadd --gid 1001 innovator && \
-    useradd --uid 1001 --gid innovator --shell /bin/false --create-home innovator
+    useradd --uid 1001 --gid innovator --shell /bin/false --create-home innovator && \
+    install -d -o innovator -g innovator /home/innovator/.innovator && \
+    install -d -o innovator -g innovator /home/innovator/.copilot
 
 WORKDIR /app
 
 # Copy only production artifacts from builder
 COPY --from=builder --chown=innovator:innovator /app/package.json /app/package-lock.json ./
+COPY --from=builder --chown=innovator:innovator /app/scripts/validate-production-env.mjs ./scripts/
 COPY --from=builder --chown=innovator:innovator /app/node_modules ./node_modules
 COPY --from=builder --chown=innovator:innovator /app/packages/core/dist ./packages/core/dist
 COPY --from=builder --chown=innovator:innovator /app/packages/core/package.json ./packages/core/
+COPY --from=builder --chown=innovator:innovator /app/packages/core/node_modules ./packages/core/node_modules
 COPY --from=builder --chown=innovator:innovator /app/apps/cli/dist ./apps/cli/dist
 COPY --from=builder --chown=innovator:innovator /app/apps/cli/package.json ./apps/cli/
 COPY --from=builder --chown=innovator:innovator /app/apps/web/.next ./apps/web/.next
@@ -69,8 +73,8 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 # Health check for orchestrators (Docker Compose, ECS, K8s liveness probe)
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "const http = require('http'); http.get('http://localhost:3000/', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=12s --start-period=30s --retries=3 \
+  CMD node -e "const http = require('http'); http.get('http://localhost:3000/readyz', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 # Use dumb-init as PID 1 to handle signals properly (graceful shutdown)
 ENTRYPOINT ["dumb-init", "--"]

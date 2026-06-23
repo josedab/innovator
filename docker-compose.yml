@@ -1,33 +1,21 @@
 services:
-  # Main Innovator web application — Next.js app serving the API and UI.
-  # Built from the repo root Dockerfile. Connects to Postgres for session persistence.
   innovator:
     build: .
     ports:
-      - "3000:3000" # Web UI and API
+      - "127.0.0.1:3000:3000"
     environment:
-      - PORT=3000
-      - NODE_ENV=production
-      - INNOVATOR_API_KEY=${INNOVATOR_API_KEY} # Optional: protects API routes
-      - INNOVATOR_DEFAULT_MODEL=${INNOVATOR_DEFAULT_MODEL:-gpt-4.1} # LLM model for generation
-      - INNOVATOR_LLM_TIMEOUT_MS=${INNOVATOR_LLM_TIMEOUT_MS:-90000} # Request timeout (ms)
-      - GH_TOKEN=${GH_TOKEN} # GitHub token for Copilot SDK auth
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-innovator}:${POSTGRES_PASSWORD}@postgres:5432/innovator
-      # SaaS / Stripe billing (optional — required only if billing features are enabled)
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-} # Stripe secret API key
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-} # Stripe webhook signing secret
-      - STRIPE_PRICE_PRO=${STRIPE_PRICE_PRO:-price_pro_monthly}
-      - STRIPE_PRICE_TEAM=${STRIPE_PRICE_TEAM:-price_team_monthly}
-      - STRIPE_PRICE_ENTERPRISE=${STRIPE_PRICE_ENTERPRISE:-price_enterprise_monthly}
-      # SaaS / GitHub OAuth (optional — required only if OAuth login is enabled)
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-} # GitHub OAuth App client ID
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-} # GitHub OAuth App client secret
-      - GITHUB_REDIRECT_URI=${GITHUB_REDIRECT_URI:-http://localhost:3000/api/auth/callback}
-    depends_on:
-      postgres:
-        condition: service_healthy
+      PORT: "3000"
+      NODE_ENV: production
+      INNOVATOR_DEPLOYMENT_PROFILE: single-tenant
+      INNOVATOR_API_KEYS: ${INNOVATOR_API_KEYS:?Set a 32+ character INNOVATOR_API_KEYS value}
+      INNOVATOR_DEFAULT_MODEL: ${INNOVATOR_DEFAULT_MODEL:-gpt-4.1}
+      INNOVATOR_LLM_TIMEOUT_MS: ${INNOVATOR_LLM_TIMEOUT_MS:-90000}
+      GH_TOKEN: ${GH_TOKEN:?Set GH_TOKEN for the Copilot provider}
+    volumes:
+      - innovator_data:/home/innovator/.innovator
+      - copilot_data:/home/innovator/.copilot
     restart: unless-stopped
-    # Security hardening
+    stop_grace_period: 2m
     security_opt:
       - no-new-privileges:true
     read_only: true
@@ -44,61 +32,18 @@ services:
           "CMD",
           "node",
           "-e",
-          "const http = require('http'); http.get('http://localhost:3000/', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+          "const http = require('http'); http.get('http://localhost:3000/readyz', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
         ]
       interval: 30s
-      timeout: 5s
-      start_period: 15s
+      timeout: 12s
+      start_period: 30s
       retries: 3
-
-  # PostgreSQL database — stores innovation sessions, history, and collaboration data.
-  postgres:
-    image: postgres:16-alpine
-    ports:
-      - "127.0.0.1:5432:5432" # Bind to localhost only — not exposed to network
-    environment:
-      POSTGRES_DB: innovator
-      POSTGRES_USER: ${POSTGRES_USER:-innovator}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env or environment}
-    volumes:
-      - pgdata:/var/lib/postgresql/data # Persist data across container restarts
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-innovator}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    deploy:
-      resources:
-        limits:
-          memory: 512m
-          cpus: "1.0"
-
-  # pgAdmin — web-based PostgreSQL admin UI for development/debugging.
-  # Access at http://localhost:5050 with the credentials below.
-  pgadmin:
-    image: dpage/pgadmin4:9.4
-    ports:
-      - "127.0.0.1:5050:80" # Bind to localhost only
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@innovator.dev}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Set PGADMIN_PASSWORD in .env or environment}
-      PGADMIN_CONFIG_SERVER_MODE: "False" # Single-user desktop mode
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    profiles:
-      - debug # Only start pgadmin with: docker compose --profile debug up
-    deploy:
-      resources:
-        limits:
-          memory: 256m
-          cpus: "0.5"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 volumes:
-  pgdata: # Named volume for PostgreSQL data persistence
+  innovator_data:
+  copilot_data:

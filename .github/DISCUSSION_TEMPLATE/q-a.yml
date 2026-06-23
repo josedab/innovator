@@ -19,6 +19,6 @@ body:
     attributes:
       label: Additional Context
       description: Any relevant details about your setup or what you've tried.
-      placeholder: "I'm running Node 20 on..."
+      placeholder: "I'm running Node 22 on..."
     validations:
       required: false

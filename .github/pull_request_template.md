@@ -14,7 +14,7 @@ Closes #
 
 ## Checklist
 
-- [ ] `npm run check` passes (lint + typecheck + format + test)
+- [ ] `npm run check` passes (lint + typecheck + format + production audit + test + docs build)
 - [ ] Tests added for new functionality
 - [ ] Documentation updated (if applicable)
 - [ ] No new dependencies without justification

@@ -3,34 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "*.md"
-      - "docs/**"
-      - "website/**"
-      - "examples/**"
-      - ".github/ISSUE_TEMPLATE/**"
-      - ".github/DISCUSSION_TEMPLATE/**"
-      - ".github/CODEOWNERS"
-      - ".github/CODE_OF_CONDUCT.md"
-      - ".github/SUPPORT.md"
-      - ".github/SECURITY.md"
-      - ".github/pull_request_template.md"
-      - "LICENSE"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "*.md"
-      - "docs/**"
-      - "website/**"
-      - "examples/**"
-      - ".github/ISSUE_TEMPLATE/**"
-      - ".github/DISCUSSION_TEMPLATE/**"
-      - ".github/CODEOWNERS"
-      - ".github/CODE_OF_CONDUCT.md"
-      - ".github/SUPPORT.md"
-      - ".github/SECURITY.md"
-      - ".github/pull_request_template.md"
-      - "LICENSE"
 
 permissions:
   contents: read
@@ -65,6 +39,9 @@ jobs:
 
       - name: Type Check
         run: npm run typecheck
+
+      - name: Production Dependency Audit
+        run: npm run audit:production
 
   build-and-test:
     needs: lint
@@ -107,16 +84,6 @@ jobs:
       - name: Test with Coverage
         run: npm run test:coverage
 
-      - name: Coverage Summary
-        if: always()
-        run: |
-          if [ -f coverage/lcov-report/index.html ]; then
-            echo "### 📊 Coverage Report" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            # Extract summary line from text report
-            npx vitest run --coverage 2>&1 | grep -E "^(All files|Statements|Branches|Functions|Lines)" | head -5 >> "$GITHUB_STEP_SUMMARY" || true
-          fi
-
       - name: Upload Coverage Report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -128,5 +95,18 @@ jobs:
       - name: Check Outdated Dependencies
         run: npm outdated || true
 
-      - name: Security Audit
-        run: npm audit --audit-level=high --omit=dev || echo "::warning::npm audit found vulnerabilities — review before release"
+  container:
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      INNOVATOR_API_KEYS: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      GH_TOKEN: test-token
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Validate Compose
+        run: docker compose config --quiet
+
+      - name: Build Production Image
+        run: docker build -t innovator:ci .

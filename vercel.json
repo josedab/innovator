@@ -1,11 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "//buildCommand": "Runs the monorepo build script to compile all packages and the Next.js app",
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build:container",
   "//outputDirectory": "Points to the Next.js build output from the web app workspace",
   "outputDirectory": "apps/web/.next",
   "//installCommand": "Installs all workspace dependencies from the monorepo root",
-  "installCommand": "npm install",
+  "installCommand": "npm ci",
   "//framework": "Tells Vercel to use Next.js optimizations (ISR, edge functions, image optimization)",
   "framework": "nextjs",
   "//rewrites": "Ensures /api/* paths are passed through as-is to Next.js API routes rather than being treated as static assets",

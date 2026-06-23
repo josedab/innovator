@@ -50,7 +50,7 @@ check("npm >= 10", () => {
     const version = execSync("npm --version", { encoding: "utf8" }).trim();
     const major = parseInt(version.split(".")[0], 10);
     if (major < 10) {
-      throw new Error(`Found npm ${version} — upgrade to 10+ (comes with Node 20+)`);
+      throw new Error(`Found npm ${version} — upgrade to 10+ (comes with Node 22+)`);
     }
   } catch (err) {
     if (err.message.includes("Found npm")) throw err;
