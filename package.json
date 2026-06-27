@@ -12,30 +12,35 @@
     "dev": "npm run dev --workspace=apps/web",
     "dev:core": "npm run dev --workspace=packages/core",
     "dev:all": "concurrently --kill-others-on-fail -n core,web -c blue,green \"npm run dev:core\" \"npm run dev --workspace=apps/web\"",
-    "build": "npm run build --workspace=packages/core && npm run build --workspace=apps/cli && npm run build --workspace=apps/web",
-    "build:check": "node -e \"const fs = require('fs'); const files = ['packages/core/dist/index.js', 'packages/core/dist/client.js', 'apps/cli/dist/index.js']; const missing = files.filter(f => !fs.existsSync(f)); if (missing.length) { console.error('Missing build outputs:', missing.join(', ')); process.exit(1); } console.log('All build outputs verified.')\"",
+    "build": "npm run build --workspace=packages/core && npm run build --workspace=apps/cli && npm run build --workspace=apps/web && npm run build --workspace=packages/bot && npm run build --workspace=packages/mcp-server && npm run build --workspace=packages/sdk && npm run build --workspace=packages/vscode-extension && npm run build --workspace=packages/create-innovator",
+    "build:container": "npm run build --workspace=packages/core && npm run build --workspace=apps/cli && npm run build --workspace=apps/web",
+    "build:check": "node scripts/check-build-outputs.mjs",
     "dev:cli": "npm run start --workspace=@innovator/cli",
     "dev:docs": "npm run start --workspace=website",
     "docs:api": "npm run docs:api --workspace=packages/core",
     "cli": "npx tsx apps/cli/src/index.ts",
     "test": "vitest run",
-    "test:ci": "npm run format:check && npm run lint && npm run typecheck && npm run build && npm run build:check && npm run build --workspace=website && npm run test:coverage",
+    "test:ci": "npm run format:check && npm run lint && npm run typecheck && npm run audit:production && npm run build && npm run build:check && npm run build --workspace=website && npm run test:coverage",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:changed": "vitest run --changed",
     "validate": "npm run typecheck && npm test",
-    "check": "npm run lint && npm run typecheck && npm run format:check && npm test && npm run build --workspace=website",
+    "check": "npm run lint && npm run typecheck && npm run format:check && npm run audit:production && npm test && npm run build --workspace=website",
     "lint": "eslint . && npm run lint --workspace=apps/web",
     "lint:fix": "eslint --fix . && prettier --write .",
-    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p apps/cli && tsc --noEmit -p apps/web",
+    "pretypecheck": "npm run build --workspace=packages/core",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p apps/cli && tsc --noEmit -p apps/web && tsc --noEmit -p packages/bot && tsc --noEmit -p packages/mcp-server && tsc --noEmit -p packages/sdk && tsc --noEmit -p packages/copilot-extension && tsc --noEmit -p packages/vscode-extension && tsc --noEmit -p packages/create-innovator && npm run typecheck --workspace=website",
     "typecheck:core": "tsc --noEmit -p packages/core",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "audit:production": "npm audit --omit=dev --audit-level=low",
     "clean": "rm -rf packages/core/dist apps/web/.next apps/cli/dist coverage && find . -name '*.tsbuildinfo' -not -path './node_modules/*' -delete",
     "clean:all": "npm run clean && rm -rf node_modules packages/core/node_modules apps/web/node_modules apps/cli/node_modules",
     "docs:build": "npm run build --workspace=website",
     "doctor": "node scripts/doctor.mjs",
     "prepare": "husky",
+    "prestart": "node scripts/validate-production-env.mjs",
+    "release": "semantic-release",
     "start": "npm run start --workspace=apps/web",
     "docker:build": "docker build -t innovator .",
     "docker:up": "docker compose up -d",
@@ -45,6 +50,12 @@
   "devDependencies": {
     "@commitlint/cli": "^20.5.3",
     "@commitlint/config-conventional": "^20.5.3",
+    "@semantic-release/changelog": "7.0.0",
+    "@semantic-release/commit-analyzer": "13.0.1",
+    "@semantic-release/git": "11.0.1",
+    "@semantic-release/github": "12.0.9",
+    "@semantic-release/npm": "13.1.5",
+    "@semantic-release/release-notes-generator": "14.1.1",
     "@testing-library/dom": "^10.4.1",
     "@typescript-eslint/eslint-plugin": "^8.59.1",
     "@typescript-eslint/parser": "^8.59.1",
@@ -55,8 +66,14 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.3",
+    "semantic-release": "25.0.8",
     "typescript": "^5.6.0",
     "vitest": "^4.1.5"
+  },
+  "overrides": {
+    "@hono/node-server": "2.0.12",
+    "postcss": "8.5.23",
+    "sharp": "0.35.3"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -70,5 +87,6 @@
   "engines": {
     "node": ">=22.0.0",
     "npm": ">=10.0.0"
-  }
+  },
+  "packageManager": "npm@10.9.8"
 }
