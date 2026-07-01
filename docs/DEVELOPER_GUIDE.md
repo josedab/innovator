@@ -29,21 +29,23 @@ Practical recipes and patterns for working with the Innovator codebase. For setu
 
 ## Quick Reference
 
-| Task                   | Command                                                     |
-| ---------------------- | ----------------------------------------------------------- |
-| Start dev server       | `npm run dev`                                               |
-| Build everything       | `npm run build`                                             |
-| Run all quality gates  | `npm run check`                                             |
-| Run tests              | `npm test`                                                  |
-| Run a single test file | `npx vitest run packages/core/src/__tests__/angles.test.ts` |
-| Type check             | `npm run typecheck`                                         |
-| Format code            | `npm run format`                                            |
-| Lint + auto-fix        | `npm run lint:fix`                                          |
-| Check prerequisites    | `npm run doctor`                                            |
-| Generate API docs      | `npm run docs:api`                                          |
-| Run CLI in dev mode    | `npm run cli -- investigate "my subject"`                   |
-| Clean build artifacts  | `npm run clean`                                             |
-| Full clean + rebuild   | `npm run clean:all && npm install && npm run build`         |
+| Task                        | Command                                                     |
+| --------------------------- | ----------------------------------------------------------- |
+| Start dev server            | `npm run dev`                                               |
+| Build production workspaces | `npm run build`                                             |
+| Run all quality gates       | `npm run check`                                             |
+| Audit runtime dependencies  | `npm run audit:production`                                  |
+| Simulate CI checks          | `npm run test:ci`                                           |
+| Run tests                   | `npm test`                                                  |
+| Run a single test file      | `npx vitest run packages/core/src/__tests__/angles.test.ts` |
+| Type check                  | `npm run typecheck`                                         |
+| Format code                 | `npm run format`                                            |
+| Lint + auto-fix             | `npm run lint:fix`                                          |
+| Check prerequisites         | `npm run doctor`                                            |
+| Generate API docs           | `npm run docs:api`                                          |
+| Run CLI in dev mode         | `npm run cli -- investigate "my subject"`                   |
+| Clean build artifacts       | `npm run clean`                                             |
+| Full clean + rebuild        | `npm run clean:all && npm install && npm run build`         |
 
 ---
 
@@ -115,6 +117,8 @@ Innovator is configured via environment variables. Copy `.env.local.example` to 
 cp .env.local.example .env.local
 ```
 
+Production requires `NODE_ENV=production`, `INNOVATOR_DEPLOYMENT_PROFILE=single-tenant`, unique 32+ character values in `INNOVATOR_API_KEYS`, and `GH_TOKEN`. The first production profile is headless, single-process, and single-tenant.
+
 ### Core Variables
 
 | Variable                   | Description                                      | Default   |
@@ -125,12 +129,12 @@ cp .env.local.example .env.local
 
 ### Authentication & Security
 
-| Variable                  | Description                                           | Default               |
-| ------------------------- | ----------------------------------------------------- | --------------------- |
-| `INNOVATOR_API_KEY`       | API key protecting web routes (`X-API-Key` header)    | _unset_ (open access) |
-| `INNOVATOR_API_KEYS`      | Comma-separated multi-key auth (overrides single key) | _unset_               |
-| `INNOVATOR_EMBED_API_KEY` | API key for the `/api/embed` widget endpoint          | _unset_               |
-| `INNOVATOR_EMBED_ORIGINS` | Comma-separated CORS origins for embed endpoint       | `*`                   |
+| Variable                  | Description                                                          | Default               |
+| ------------------------- | -------------------------------------------------------------------- | --------------------- |
+| `INNOVATOR_API_KEYS`      | Required in production; unique comma-separated 32+ character keys    | _unset_               |
+| `INNOVATOR_API_KEY`       | Legacy development/compatibility key; never combine with plural form | _unset_ (open access) |
+| `INNOVATOR_EMBED_API_KEY` | Development-only key for `/api/embed` (route is 404 in production)   | _unset_               |
+| `INNOVATOR_EMBED_ORIGINS` | Development-only CORS origins for `/api/embed`                       | `*`                   |
 
 ### Alternative LLM Providers
 
@@ -142,12 +146,16 @@ cp .env.local.example .env.local
 
 ### CI & Infrastructure
 
-| Variable              | Description                                | Default                 |
-| --------------------- | ------------------------------------------ | ----------------------- |
-| `GH_TOKEN`            | GitHub token for Copilot auth in CI/Docker | _unset_                 |
-| `PORT`                | Dev server port                            | `3000`                  |
-| `MCP_PORT`            | MCP server SSE transport port              | `3100`                  |
-| `PLAYWRIGHT_BASE_URL` | Base URL for E2E tests                     | `http://localhost:3000` |
+| Variable                       | Description                                               | Default                   |
+| ------------------------------ | --------------------------------------------------------- | ------------------------- |
+| `NODE_ENV`                     | Must be `production` in the production profile            | Development-managed       |
+| `INNOVATOR_DEPLOYMENT_PROFILE` | Must be `single-tenant` in production                     | _unset_                   |
+| `GH_TOKEN`                     | Required production Copilot token; also used in CI/Docker | _unset_                   |
+| `PORT`                         | Server port                                               | `3000`                    |
+| `MCP_ALLOWED_ROOT`             | Filesystem boundary for MCP analysis tools                | Current working directory |
+| `PLAYWRIGHT_BASE_URL`          | Base URL for E2E tests                                    | `http://localhost:3000`   |
+
+The MCP server supports stdio only. `--sse` fails closed and `MCP_PORT` is not used.
 
 > **Full reference:** See [`.env.local.example`](../.env.local.example) for all variables with inline docs, and [Configuration docs](../website/docs/configuration.md) for detailed usage examples.
 
@@ -612,13 +620,13 @@ if (similar.length > 0) {
 
 > 📖 **Architecture Reference:** [Database & Persistence](../ARCHITECTURE.md#database--persistence-postgresql--sqlite--in-memory)
 
-Innovator uses a pluggable `StorageProvider` abstraction (`packages/core/src/storage/types.ts`) so business logic never depends on a specific database. Three backends ship out of the box:
+Innovator uses a pluggable `StorageProvider` abstraction (`packages/core/src/storage/types.ts`) so business logic does not depend on a specific database. The PostgreSQL types and migrations are experimental design work; the adapter is not implemented for the first production profile.
 
-| Backend    | Module                     | Use Case                          |
-| ---------- | -------------------------- | --------------------------------- |
-| In-memory  | `storage/memory.ts`        | Tests and ephemeral CLI runs      |
-| SQLite     | `storage/sqlite.ts`        | Single-user / local persistence   |
-| PostgreSQL | `storage/drivers/index.ts` | Production multi-user deployments |
+| Backend    | Module                     | Status                               |
+| ---------- | -------------------------- | ------------------------------------ |
+| In-memory  | `storage/memory.ts`        | Tests and ephemeral development runs |
+| SQLite     | `storage/sqlite.ts`        | Local development                    |
+| PostgreSQL | `storage/drivers/index.ts` | Design/migration scaffolding only    |
 
 ### The StorageProvider Interface
 
@@ -645,38 +653,27 @@ Call `initialize()` once at startup — it runs any pending migrations automatic
 
 ### Choosing a Backend at Runtime
 
-The active backend is selected by the `DATABASE_URL` environment variable:
+Backend selection remains development/experimental. Do not configure `DATABASE_URL` for the first production profile, which persists application and Copilot state in the `innovator_data` and `copilot_data` volumes.
 
 ```bash
 # SQLite (default for CLI)
 DATABASE_URL=sqlite:~/.innovator/data.db
 
-# PostgreSQL
+# PostgreSQL design example only; no supported adapter
 DATABASE_URL=postgresql://innovator:changeme@localhost:5432/innovator
 
 # In-memory (tests / CI)
 # Omit DATABASE_URL entirely — the in-memory provider is used automatically
 ```
 
-### PostgreSQL Setup
+### PostgreSQL Design
 
-```bash
-# Start PostgreSQL via Docker Compose
-docker compose up -d postgres
-
-# Verify
-docker compose exec postgres pg_isready -U innovator
-
-# Connect directly
-docker compose exec postgres psql -U innovator -d innovator
-```
-
-Migrations are split into two sets:
+Migration definitions are split into two sets:
 
 - **`CORE_MIGRATIONS`** (`storage/drivers/index.ts`) — tables for sessions, workspaces, analytics, API gateway, collaboration, decisions, tournaments, and schedules.
 - **`PROJECT_MIGRATIONS`** (`workspace-persistence/index.ts`) — tables for multi-session innovation projects (`innovation_projects`, `project_sessions`, `project_snapshots`, `team_contexts`).
 
-Both sets are applied automatically on `initialize()`. See the [Schema Overview](../ARCHITECTURE.md#schema-overview) in ARCHITECTURE.md for the full table listing.
+They document the intended schema, but there is no supported production initialization or migration procedure. See the [Schema Overview](../ARCHITECTURE.md#schema-overview) in ARCHITECTURE.md for the design reference.
 
 ### Writing Storage-Dependent Code
 

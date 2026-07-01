@@ -4,6 +4,8 @@
 
 Accepted
 
+> **Current operational note (2026):** The repository now requires Node.js 22+. Interactive development can still use `gh auth login`, while the production profile requires `GH_TOKEN`. The original decision context below is retained for history.
+
 ## Context
 
 Innovator requires a large language model for its core capabilities: investigating subjects, generating ideas from innovation angles, and synthesizing strategic recommendations. The team needed to choose a default LLM backend that balances accessibility, cost, and quality.

@@ -36,27 +36,27 @@ npm run dev
 
 The repository includes a `Makefile` that wraps common npm scripts. All targets mirror their npm equivalents:
 
-| Target               | Description                                           |
-| -------------------- | ----------------------------------------------------- |
-| `make help`          | Show all available targets                            |
-| `make install`       | Install dependencies                                  |
-| `make dev`           | Start web dev server (builds core first)              |
-| `make dev-all`       | Run core watch + web dev in parallel                  |
-| `make dev-docs`      | Start Docusaurus docs server                          |
-| `make dev-cli`       | Run CLI in dev mode via tsx                           |
-| `make build`         | Build all packages for production                     |
-| `make build-check`   | Verify expected build outputs exist                   |
-| `make clean`         | Remove build artifacts                                |
-| `make clean-all`     | Clean artifacts + all `node_modules/`                 |
-| `make test`          | Run all tests                                         |
-| `make test-coverage` | Run tests with coverage report                        |
-| `make test-ci`       | Simulate full CI pipeline                             |
-| `make check`         | Run all quality gates (lint, typecheck, format, test) |
-| `make lint`          | Run ESLint                                            |
-| `make lint-fix`      | Auto-fix linting and formatting issues                |
-| `make typecheck`     | Run TypeScript type checking                          |
-| `make format`        | Format all files with Prettier                        |
-| `make doctor`        | Check prerequisites (Node, gh CLI, auth, core build)  |
+| Target               | Description                                          |
+| -------------------- | ---------------------------------------------------- |
+| `make help`          | Show all available targets                           |
+| `make install`       | Install dependencies                                 |
+| `make dev`           | Start web dev server (builds core first)             |
+| `make dev-all`       | Run core watch + web dev in parallel                 |
+| `make dev-docs`      | Start Docusaurus docs server                         |
+| `make dev-cli`       | Run CLI in dev mode via tsx                          |
+| `make build`         | Build all packages for production                    |
+| `make build-check`   | Verify expected build outputs exist                  |
+| `make clean`         | Remove build artifacts                               |
+| `make clean-all`     | Clean artifacts + all `node_modules/`                |
+| `make test`          | Run all tests                                        |
+| `make test-coverage` | Run tests with coverage report                       |
+| `make test-ci`       | Simulate CI, including production audit/build checks |
+| `make check`         | Run quality gates, production audit, and docs build  |
+| `make lint`          | Run ESLint                                           |
+| `make lint-fix`      | Auto-fix linting and formatting issues               |
+| `make typecheck`     | Run TypeScript type checking                         |
+| `make format`        | Format all files with Prettier                       |
+| `make doctor`        | Check prerequisites (Node, gh CLI, auth, core build) |
 
 > **💻 Dev Container / Codespaces:** This repo includes a `.devcontainer/devcontainer.json` with Node.js 22, GitHub CLI, and ESLint/Prettier extensions pre-configured. Open in Codespaces or VS Code Dev Containers to skip manual setup.
 
@@ -71,7 +71,7 @@ innovator/
 │   ├── core/             # Shared innovation engine (types, prompts, pipeline)
 │   ├── bot/              # Chat platform bot (Slack, Discord, Teams)
 │   ├── create-innovator/ # `npx create-innovator` scaffolding CLI
-│   └── mcp-server/       # Model Context Protocol server (stdio & SSE)
+│   └── mcp-server/       # Model Context Protocol server (stdio only)
 ├── website/          # Docusaurus documentation site
 └── package.json      # Workspace root
 ```
@@ -86,7 +86,7 @@ innovator/
 npm run check
 ```
 
-This runs lint, typecheck, format check, and tests. To simulate the **full CI pipeline** (including build and coverage):
+This runs lint, typecheck, format check, the production dependency audit, tests, and the documentation build. To simulate the main CI quality/build/test sequence locally (including production builds, output validation, and coverage):
 
 ```bash
 npm run test:ci
@@ -121,29 +121,30 @@ All commands are run from the monorepo root.
 
 ### Quality
 
-| Command                | Description                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| `npm run check`        | Run all quality gates (lint, typecheck, format, test)                          |
-| `npm run test:ci`      | Simulate full CI pipeline (format, lint, typecheck, build, test with coverage) |
-| `npm run lint`         | Run ESLint across all packages                                                 |
-| `npm run lint:fix`     | Auto-fix all linting and formatting issues                                     |
-| `npm run typecheck`    | Run TypeScript type checking across all packages                               |
-| `npm run format`       | Format all files with Prettier                                                 |
-| `npm run format:check` | Check formatting without writing changes                                       |
-| `npm test`             | Run all tests with vitest                                                      |
-| `npm run test:watch`   | Run tests in watch mode                                                        |
-| `npm run test:e2e`     | Run Playwright end-to-end tests (**run from `apps/web/`**, not the repo root)  |
-| `npm run test:e2e:ui`  | Run Playwright E2E tests with interactive UI (**run from `apps/web/`**)        |
+| Command                    | Description                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------- |
+| `npm run check`            | Run lint, typecheck, format, production audit, tests, and the documentation build |
+| `npm run test:ci`          | Simulate CI quality/build/test checks, output/docs validation, and coverage       |
+| `npm run audit:production` | Audit runtime dependencies; fail on any production advisory                       |
+| `npm run lint`             | Run ESLint across all packages                                                    |
+| `npm run lint:fix`         | Auto-fix all linting and formatting issues                                        |
+| `npm run typecheck`        | Type-check every supported workspace, including the documentation site            |
+| `npm run format`           | Format all files with Prettier                                                    |
+| `npm run format:check`     | Check formatting without writing changes                                          |
+| `npm test`                 | Run all tests with vitest                                                         |
+| `npm run test:watch`       | Run tests in watch mode                                                           |
+| `npm run test:e2e`         | Run Playwright end-to-end tests (**run from `apps/web/`**, not the repo root)     |
+| `npm run test:e2e:ui`      | Run Playwright E2E tests with interactive UI (**run from `apps/web/`**)           |
 
 ### Build
 
-| Command               | Description                                                 |
-| --------------------- | ----------------------------------------------------------- |
-| `npm run build`       | Build core package and web app for production               |
-| `npm run clean`       | Remove build artifacts (`dist/`, `.next/`, `*.tsbuildinfo`) |
-| `npm run build:check` | Verify all expected build outputs exist                     |
-| `npm run clean:all`   | Clean build artifacts and all `node_modules/` directories   |
-| `npm run docs:api`    | Generate TypeDoc API documentation for the core package     |
+| Command               | Description                                                    |
+| --------------------- | -------------------------------------------------------------- |
+| `npm run build`       | Build every supported production workspace in dependency order |
+| `npm run build:check` | Verify all expected build outputs exist                        |
+| `npm run clean`       | Remove build artifacts (`dist/`, `.next/`, `*.tsbuildinfo`)    |
+| `npm run clean:all`   | Clean build artifacts and all `node_modules/` directories      |
+| `npm run docs:api`    | Generate TypeDoc API documentation for the core package        |
 
 ### CLI
 
@@ -210,7 +211,7 @@ Tests are configured in `vitest.config.ts` at the repository root. Key settings:
 
 - **Environment** — Web app tests (`apps/web/**`) run in a `jsdom` environment; all other tests use the default Node environment.
 - **Coverage provider** — V8, with `lcov` and `text` reporters.
-- **Minimum thresholds** — CI enforces **50%** coverage for lines, functions, and branches. Pull requests that drop below these thresholds will fail.
+- **Minimum thresholds** — CI enforces **72% lines, 73% functions, and 58% branches**. Pull requests that drop below any threshold will fail.
 - **Run coverage locally** with `npm run test:coverage`.
 
 ## Testing Guide
@@ -267,7 +268,7 @@ const MOCK_INVESTIGATION: Investigation = {
 
 ### Coverage Thresholds
 
-CI enforces a **50% minimum** for lines, functions, and branches (configured in `vitest.config.ts`). This threshold reflects the project's reliance on LLM integration code that is mocked in tests — the goal is to ensure utility and pipeline logic is well-tested while acknowledging that full coverage of SDK-dependent code requires integration tests. Run `npm run test:coverage` to check locally.
+CI enforces **72% line coverage, 73% function coverage, and 58% branch coverage** (configured in `vitest.config.ts`). These thresholds are ratcheted independently so coverage cannot regress while branch-heavy integration code remains practical to test. Run `npm run test:coverage` to check locally.
 
 ## E2E Testing with Playwright
 
@@ -520,13 +521,13 @@ This blocks `yarn` and `pnpm` from being used to install dependencies. The monor
 
 Three GitHub Actions workflows run automatically:
 
-| Workflow    | File          | Trigger                              | What it does                                                                                                                                                                    |
-| ----------- | ------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **CI**      | `ci.yml`      | Push & PR to `main`                  | Format check → Lint → Typecheck → Build → Build check → Build website → Test → Coverage → Upload coverage artifact → Check outdated deps → Security audit. Runs on Node 22.     |
-| **CodeQL**  | `codeql.yml`  | Push & PR to `main`, weekly schedule | CodeQL security analysis with `security-and-quality` queries on JavaScript/TypeScript. Results appear in **Security → Code scanning**.                                          |
-| **Release** | `release.yml` | Push to `main` (upstream only)       | Installs → Builds → Tests → Runs `semantic-release` to bump version, update CHANGELOG, create Git tag, and publish GitHub Release. Only runs on `josedab/innovator`, not forks. |
+| Workflow    | File          | Trigger                              | What it does                                                                                                                                                                                                                      |
+| ----------- | ------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CI**      | `ci.yml`      | Push & PR to `main`                  | Format → Lint → Typecheck → production dependency audit → build/output checks → docs build → coverage. A separate container job validates Compose and builds the production image. Runs on Node 22.                               |
+| **CodeQL**  | `codeql.yml`  | Push & PR to `main`, weekly schedule | CodeQL security analysis with `security-and-quality` queries on JavaScript/TypeScript. Results appear in **Security → Code scanning**.                                                                                            |
+| **Release** | `release.yml` | Successful CI run on upstream `main` | Checks out the exact tested revision, installs dependencies, rebuilds, reruns `npm run audit:production`, then runs `semantic-release`. Failed or non-`main` CI runs cannot release. Only runs on `josedab/innovator`, not forks. |
 
-All CI checks must pass before a PR can be merged. You can simulate the full CI pipeline locally:
+All required CI checks must pass before a PR can be merged. You can simulate the main quality/build/test sequence locally:
 
 ```bash
 npm run test:ci
@@ -562,7 +563,7 @@ This project uses [semantic-release](https://github.com/semantic-release/semanti
 
 ### How it works
 
-1. **Trigger** — Every push to the `main` branch runs the release workflow (`.github/workflows/release.yml`).
+1. **Trigger** — A successful `CI` workflow run for the upstream `main` branch triggers the release workflow (`.github/workflows/release.yml`) for the exact tested commit.
 2. **Version bump** — `semantic-release` analyzes commit messages since the last release and determines the next version using [Conventional Commits](https://www.conventionalcommits.org/):
    - `fix:` → patch release (e.g. 1.0.0 → 1.0.1)
    - `feat:` → minor release (e.g. 1.0.0 → 1.1.0)
@@ -593,14 +594,15 @@ The release pipeline is configured in `.releaserc.json` at the repository root. 
 
 1. You open a PR with conventional commit messages (e.g., `feat: add export button`).
 2. The PR is reviewed and merged into `main`.
-3. The release workflow runs automatically on the push to `main`.
-4. `semantic-release` analyzes all commits since the last release tag.
-5. If releasable commits exist (`feat:`, `fix:`, or breaking changes), a new version is calculated, `CHANGELOG.md` is updated, a Git tag is created, and a GitHub Release is published.
-6. Commits with prefixes like `docs:`, `chore:`, `refactor:`, `test:`, or `style:` do **not** trigger a release on their own.
+3. CI runs all quality, production dependency, build, test, documentation, and container checks.
+4. After CI succeeds, the release workflow checks out that tested revision.
+5. `semantic-release` analyzes all commits since the last release tag.
+6. If releasable commits exist (`feat:`, `fix:`, or breaking changes), a new version is calculated, `CHANGELOG.md` is updated, a Git tag is created, and a GitHub Release is published.
+7. Commits with prefixes like `docs:`, `chore:`, `refactor:`, `test:`, or `style:` do **not** trigger a release on their own.
 
 ### Who can publish
 
-Only pushes to `main` on the upstream repository (`josedab/innovator`) trigger a release. Fork pushes and pull request branches do not. The workflow uses the `GITHUB_TOKEN` secret provided by GitHub Actions — no additional credentials are needed.
+Only successful CI runs for `main` commits on the upstream repository (`josedab/innovator`) can trigger a release. Fork pushes, pull request branches, and failed CI runs do not. The workflow uses the `GITHUB_TOKEN` secret provided by GitHub Actions — no additional credentials are needed.
 
 ## Code of Conduct
 

@@ -4,13 +4,28 @@ This document covers upgrade paths and breaking changes for Innovator.
 
 ## Version Compatibility
 
-| Innovator Version | Node.js | npm | Notes                             |
-| ----------------- | ------- | --- | --------------------------------- |
-| 0.1.0             | 20+     | 10+ | Initial release, stateless design |
-| 0.2.0             | 20+     | 10+ | Extended engine, multi-provider   |
-| 0.3.0 (current)   | 20+     | 10+ | Moonshot modules, UX improvements |
+| Innovator Version | Node.js | npm | Notes                                    |
+| ----------------- | ------- | --- | ---------------------------------------- |
+| 0.1.0             | 20+     | 10+ | Initial release, stateless design        |
+| 0.2.0             | 20+     | 10+ | Extended engine, multi-provider          |
+| 0.3.0 (current)   | 22+     | 10+ | Production profile and runtime hardening |
 
 ## Upgrading within v0.3.x (Post-Release Changes)
+
+### First Production Profile
+
+Production now requires:
+
+- `NODE_ENV=production`
+- `INNOVATOR_DEPLOYMENT_PROFILE=single-tenant`
+- `INNOVATOR_API_KEYS` with unique comma-separated keys of at least 32 characters each
+- `GH_TOKEN`
+
+Do not set legacy `INNOVATOR_API_KEY` together with `INNOVATOR_API_KEYS`.
+
+The first production profile is headless, single-process, single-tenant, and single-replica. Browser/SaaS surfaces return `404`; Docker Compose persists state in `innovator_data`; Vercel/serverless, horizontal scaling, and PostgreSQL are unsupported.
+
+MCP now supports stdio only. Remove `--sse` and `MCP_PORT`, and use `MCP_ALLOWED_ROOT` to bound filesystem analysis. GitHub App-based Copilot Extensions were retired on November 10, 2025; migrate direct integrations to `@innovator/mcp-server`.
 
 ### Typed Error Migration
 
@@ -186,12 +201,12 @@ npm run build
 
 v0.2.0 introduces several optional environment variables. None are required — existing `.env.local` files work without changes. See [Configuration](/docs/configuration) for the full list.
 
-| Variable            | Purpose                       |
-| ------------------- | ----------------------------- |
-| `OPENAI_API_KEY`    | Direct OpenAI provider        |
-| `ANTHROPIC_API_KEY` | Direct Anthropic provider     |
-| `OLLAMA_BASE_URL`   | Local Ollama instance         |
-| `MCP_PORT`          | MCP server SSE transport port |
+| Variable            | Purpose                                                         |
+| ------------------- | --------------------------------------------------------------- |
+| `OPENAI_API_KEY`    | Direct OpenAI provider                                          |
+| `ANTHROPIC_API_KEY` | Direct Anthropic provider                                       |
+| `OLLAMA_BASE_URL`   | Local Ollama instance                                           |
+| `MCP_PORT`          | Historical MCP SSE port; removed in current v0.3.x (stdio only) |
 
 ## Breaking Changes
 

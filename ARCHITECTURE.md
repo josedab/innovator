@@ -13,7 +13,7 @@ graph BT
   mcp["packages/mcp-server<br/><i>MCP server</i>"]
   bot["packages/bot<br/><i>Chat bot</i>"]
   vscode["packages/vscode-extension<br/><i>VS Code extension</i>"]
-  copilot["packages/copilot-extension<br/><i>Copilot Extension</i>"]
+  copilot["packages/copilot-extension<br/><i>Retired extension compatibility stub</i>"]
   create["packages/create-innovator<br/><i>Project scaffolder</i>"]
   action["action/<br/><i>GitHub Action</i>"]
   website["website/<br/><i>Docusaurus docs</i>"]
@@ -33,7 +33,9 @@ graph BT
 
 `@innovator/core` is the shared engine: types, prompt templates, LLM provider abstraction, and the innovation pipeline. All consumers (`web`, `cli`, `mcp-server`, `bot`) depend on it — none contain business logic directly.
 
-## Request Flow (Web)
+## Request Flow (Development Web UI)
+
+The browser flow below is development-only. Production clients call the allowlisted API routes directly through the TLS reverse proxy.
 
 ```mermaid
 sequenceDiagram
@@ -114,14 +116,14 @@ graph LR
     style Copilot fill:#22c55e,color:#fff,stroke:#16a34a
 ```
 
-| Provider      | Env Variable        | Default                  | Notes                           |
-| ------------- | ------------------- | ------------------------ | ------------------------------- |
-| **Copilot**   | _(none, uses `gh`)_ | —                        | Default provider via GitHub CLI |
-| **OpenAI**    | `OPENAI_API_KEY`    | —                        | Direct OpenAI API access        |
-| **Anthropic** | `ANTHROPIC_API_KEY` | —                        | Direct Anthropic API access     |
-| **Ollama**    | `OLLAMA_BASE_URL`   | `http://localhost:11434` | Local LLM inference             |
+| Provider      | Env Variable                                            | Default                  | Notes                                        |
+| ------------- | ------------------------------------------------------- | ------------------------ | -------------------------------------------- |
+| **Copilot**   | `GH_TOKEN` in production; `gh` during local development | —                        | Required provider for the production profile |
+| **OpenAI**    | `OPENAI_API_KEY`                                        | —                        | Development/experimental direct access       |
+| **Anthropic** | `ANTHROPIC_API_KEY`                                     | —                        | Development/experimental direct access       |
+| **Ollama**    | `OLLAMA_BASE_URL`                                       | `http://localhost:11434` | Development/experimental local inference     |
 
-The Copilot provider is the default and requires no API keys — it uses the authenticated GitHub CLI (`gh auth login`). Alternative providers are available for environments without Copilot access.
+The Copilot provider is required for the first production profile and receives an explicit `GH_TOKEN`. Interactive development can instead use `gh auth login`; alternative providers remain development/experimental.
 
 ## MCP Server
 
@@ -145,9 +147,9 @@ graph LR
         T6["innovate-architecture"]
     end
 
-    CD <-->|"stdio / SSE"| MCP
-    CU <-->|"stdio / SSE"| MCP
-    VS <-->|"stdio / SSE"| MCP
+    CD <-->|"stdio"| MCP
+    CU <-->|"stdio"| MCP
+    VS <-->|"stdio"| MCP
     MCP --> Core["@innovator/core"]
     Core --> LLM["LLM Provider → LLM"]
 
@@ -157,11 +159,12 @@ graph LR
 
 **Architecture:**
 
-- `src/index.ts` — Server entry point, transport selection (stdio default, SSE via `--sse`)
-- `src/handlers.ts` — Tool implementations wrapping core functions (`handleInvestigate`, `handleGenerate`, `handleAutoPipeline`)
+- `src/index.ts` — Process entry point
+- `src/server.ts` — Tool/resource registration and stdio transport
+- `src/handlers.ts` — Tool implementations, validation, and filesystem boundary checks
 - `src/schemas.ts` — Zod validation schemas for tool inputs
 
-**Exposed tools:** `investigate`, `innovate`, `auto`
+The legacy `--sse` flag fails closed. Filesystem tools are limited to `MCP_ALLOWED_ROOT` (the current working directory by default), and `innovate-from-code.maxFiles` is capped at `1000`.
 
 ## Key Directories
 
@@ -236,29 +239,29 @@ graph LR
 
 #### Infrastructure & Platform
 
-| Path                                       | Purpose                              |
-| ------------------------------------------ | ------------------------------------ |
-| `packages/core/src/history/`               | Session history persistence          |
-| `packages/core/src/metering/`              | API usage metering                   |
-| `packages/core/src/observatory/`           | Prompt call monitoring and debugging |
-| `packages/core/src/telemetry/`             | Anonymous usage telemetry            |
-| `packages/core/src/scheduler/`             | Scheduled task execution             |
-| `packages/core/src/api-gateway/`           | API key management and rate limiting |
-| `packages/core/src/workspace-persistence/` | PostgreSQL workspace persistence     |
+| Path                                       | Purpose                                    |
+| ------------------------------------------ | ------------------------------------------ |
+| `packages/core/src/history/`               | Session history persistence                |
+| `packages/core/src/metering/`              | API usage metering                         |
+| `packages/core/src/observatory/`           | Prompt call monitoring and debugging       |
+| `packages/core/src/telemetry/`             | Anonymous usage telemetry                  |
+| `packages/core/src/scheduler/`             | Scheduled task execution                   |
+| `packages/core/src/api-gateway/`           | API key management and rate limiting       |
+| `packages/core/src/workspace-persistence/` | Experimental PostgreSQL design scaffolding |
 
 #### Consumer Packages
 
-| Path                          | Purpose                                               |
-| ----------------------------- | ----------------------------------------------------- |
-| `packages/mcp-server/src/`    | MCP server exposing tools via stdio/SSE transports    |
-| `packages/bot/`               | Chat platform bot (Slack, Discord, Teams)             |
-| `packages/vscode-extension/`  | VS Code extension for in-editor innovation            |
-| `packages/copilot-extension/` | GitHub Copilot Extension (@innovator in Copilot Chat) |
-| `packages/create-innovator/`  | Project scaffolder (`npx create-innovator`)           |
-| `packages/sdk/`               | Framework-agnostic SDK client                         |
-| `apps/web/src/components/`    | React UI components                                   |
-| `apps/web/src/app/api/`       | Next.js API route handlers                            |
-| `apps/cli/src/`               | Commander.js CLI entry point                          |
+| Path                          | Purpose                                                            |
+| ----------------------------- | ------------------------------------------------------------------ |
+| `packages/mcp-server/src/`    | MCP server exposing tools through stdio transport                  |
+| `packages/bot/`               | Chat platform bot (Slack, Discord, Teams)                          |
+| `packages/vscode-extension/`  | VS Code extension for in-editor innovation                         |
+| `packages/copilot-extension/` | Compatibility stub for retired GitHub App-based Copilot Extensions |
+| `packages/create-innovator/`  | Project scaffolder (`npx create-innovator`)                        |
+| `packages/sdk/`               | Framework-agnostic SDK client                                      |
+| `apps/web/src/components/`    | React UI components                                                |
+| `apps/web/src/app/api/`       | Next.js API route handlers                                         |
+| `apps/cli/src/`               | Commander.js CLI entry point                                       |
 
 > **Note:** `packages/core/src/` contains 217 module directories. The tables above cover the most commonly referenced ones, organized by category. For the complete module index with descriptions and usage examples, see the [Feature Module Catalog](website/docs/guides/feature-catalog.md).
 
@@ -354,7 +357,7 @@ sequenceDiagram
 - Events follow the stage progression: `investigating` → `generating` → `synthesizing` → `complete`
 - The `currentAngle` field identifies which angle is actively generating
 
-SSE was chosen over WebSockets (see ADR-0007) for unidirectional updates, serverless compatibility, and native browser `EventSource` support.
+SSE was chosen over WebSockets (see ADR-0007) for unidirectional updates and browser streaming support. This protocol choice does not imply serverless deployment support; the first production profile is single-process and single-replica.
 
 ## Pipeline State Machine
 
@@ -387,7 +390,7 @@ stateDiagram-v2
 
 API routes use a two-layer validation strategy:
 
-1. **Middleware layer** (`apps/web/src/middleware.ts`) — Rate limiting, auth, body size (100 KB cap), CSP headers, `Content-Length` enforcement
+1. **Proxy layer** (`apps/web/src/proxy.ts`) — Production route allowlisting, API authentication, rate limiting, CSP headers, and early `Content-Length` rejection when present
 2. **Route-level Zod schemas** — Each API route defines a Zod schema for its request body
 
 ```typescript
@@ -429,9 +432,11 @@ interface LLMProvider {
 - **AnthropicProvider** — Direct Anthropic API via `@anthropic-ai/sdk`
 - **OllamaProvider** — Local inference via Ollama REST API
 
-## PostgreSQL Database
+## PostgreSQL Adapter Design (Not Implemented)
 
-When running with `docker-compose`, Innovator uses PostgreSQL 16 for persistent storage. The connection is configured via the `DATABASE_URL` environment variable.
+The repository contains storage abstractions and migration definitions for a possible PostgreSQL adapter, but that adapter is **not implemented for the first production release**. Docker Compose does not run PostgreSQL or pgAdmin, and `DATABASE_URL` is not part of the supported production contract.
+
+The schema below is retained as an experimental design reference, not deployment guidance.
 
 ### Schema Overview
 
@@ -648,42 +653,7 @@ erDiagram
 
 ### Local Development Setup
 
-```bash
-# 1. Set required passwords in .env (or export them)
-echo 'POSTGRES_PASSWORD=changeme' >> .env
-echo 'PGADMIN_PASSWORD=changeme' >> .env
-
-# 2. Start PostgreSQL + pgAdmin
-docker compose up -d postgres pgadmin
-
-# 3. Verify Postgres is healthy
-docker compose exec postgres pg_isready -U innovator
-```
-
-- **PostgreSQL** is available at `localhost:5432` (user: `innovator`, db: `innovator`)
-- **pgAdmin** web UI is at `http://localhost:5050` (email: `admin@innovator.dev`)
-
-### Running Migrations
-
-Migrations run automatically when the app connects via `PostgreSQLDriver`. To run the full stack with migrations:
-
-```bash
-# Start all services (Postgres + app) — migrations run on app startup
-docker compose up -d
-
-# Or run just the app against an existing Postgres instance
-DATABASE_URL=postgresql://innovator:changeme@localhost:5432/innovator npm run dev
-```
-
-### Connection Configuration
-
-| Variable            | Default      | Description                        |
-| ------------------- | ------------ | ---------------------------------- |
-| `DATABASE_URL`      | —            | Full PostgreSQL connection string  |
-| `POSTGRES_USER`     | `innovator`  | Database user (docker-compose)     |
-| `POSTGRES_PASSWORD` | _(required)_ | Database password (docker-compose) |
-
-The PostgreSQL driver uses connection pooling (max 20 connections) and supports transaction-based migration rollback on failure.
+There is no supported PostgreSQL startup, migration, connection, or backup procedure. The production service persists filesystem state in `/home/innovator/.innovator` through the `innovator_data` Docker volume. Implementing and validating a PostgreSQL adapter would require a separate architecture decision and production-readiness review.
 
 ## Full Documentation
 
@@ -691,70 +661,40 @@ See the [Docusaurus docs site](https://github.com/josedab/innovator/blob/main/we
 
 ## Production Deployment
 
-### Docker Deployment
+The first production release is a headless, single-process, single-tenant API deployed as one Docker Compose replica.
 
-The included `Dockerfile` builds a production-ready image from `node:20-slim` with the GitHub CLI pre-installed for Copilot SDK authentication.
+```mermaid
+flowchart LR
+    Client[Authenticated client]
+    Proxy[Authenticated TLS reverse proxy]
+    API[Innovator process]
+    Copilot[GitHub Copilot]
+    State[(innovator_data)]
 
-```bash
-# Build the production image
-docker build -t innovator .
-
-# Run with required environment variables
-docker run -d \
-  -p 3000:3000 \
-  -e GH_TOKEN="$GH_TOKEN" \
-  -e INNOVATOR_API_KEY="$INNOVATOR_API_KEY" \
-  -e DATABASE_URL="postgresql://user:pass@db-host:5432/innovator" \
-  innovator
+    Client -->|HTTPS| Proxy
+    Proxy -->|X-API-Key or Bearer| API
+    API -->|GH_TOKEN| Copilot
+    API -->|/home/innovator/.innovator| State
 ```
 
-For a full stack (app + Postgres + pgAdmin):
+Required runtime configuration:
 
-```bash
-# Configure .env with required secrets
-cp .env.local.example .env
-# Edit .env: set POSTGRES_PASSWORD, PGADMIN_PASSWORD, GH_TOKEN, INNOVATOR_API_KEY
+| Variable                       | Requirement                                              |
+| ------------------------------ | -------------------------------------------------------- |
+| `NODE_ENV`                     | `production`                                             |
+| `INNOVATOR_DEPLOYMENT_PROFILE` | `single-tenant`                                          |
+| `INNOVATOR_API_KEYS`           | Unique comma-separated keys, each at least 32 characters |
+| `GH_TOKEN`                     | Required for the production Copilot provider             |
 
-docker compose up -d
-```
+Legacy `INNOVATOR_API_KEY` must not be combined with `INNOVATOR_API_KEYS`.
 
-### Cloud Deployment
+Docker Compose binds `127.0.0.1:3000`, mounts `innovator_data`, keeps the remaining filesystem read-only, rotates logs, and uses a two-minute shutdown grace period. An authenticated TLS reverse proxy must be the only external entry point; never expose port 3000 directly.
 
-| Platform                    | Strategy                                       | Notes                                                                                  |
-| --------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
-| **Vercel**                  | `vercel.json` included; serverless Next.js     | No Postgres or GitHub CLI; use `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` as LLM provider |
-| **AWS ECS / GCP Cloud Run** | Deploy the Docker image as a container service | Attach a managed Postgres (RDS/Cloud SQL) via `DATABASE_URL`                           |
-| **Railway / Render**        | Connect repo; auto-detects `Dockerfile`        | Add Postgres plugin and set `DATABASE_URL` automatically                               |
-| **Self-hosted**             | `docker compose up -d` on any Linux host       | Use a reverse proxy (nginx/Caddy) for TLS termination                                  |
+Use `/healthz` for liveness, `/readyz` for configuration and writable-state readiness, and authenticated `/api/health` for detailed diagnostics.
 
-### Environment Configuration
+Rate limiting and state coordination are process-local, so production is single-replica only. Vercel/serverless and horizontal scaling are unsupported. Back up and restore the complete `innovator_data` volume.
 
-All production instances require these variables:
-
-| Variable                   | Required               | Description                                                                      |
-| -------------------------- | ---------------------- | -------------------------------------------------------------------------------- |
-| `GH_TOKEN`                 | Yes (Copilot provider) | GitHub token for Copilot SDK auth; or use `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` |
-| `INNOVATOR_API_KEY`        | Recommended            | Protects API routes; without it, all routes are open                             |
-| `DATABASE_URL`             | For persistence        | PostgreSQL connection string; without it, data is ephemeral                      |
-| `INNOVATOR_DEFAULT_MODEL`  | No                     | Default: `gpt-4.1`                                                               |
-| `INNOVATOR_LLM_TIMEOUT_MS` | No                     | Default: `90000` (90s)                                                           |
-| `PORT`                     | No                     | Default: `3000`                                                                  |
-
-### Scaling Considerations
-
-- **Stateless app tier** — The Next.js app holds no in-process state; scale horizontally behind a load balancer.
-- **Database** — Use a managed Postgres instance with connection pooling (e.g., PgBouncer) for >10 app replicas.
-- **LLM rate limits** — The pipeline's `MAX_CONCURRENCY=2` limits parallel LLM calls per request. With multiple replicas, total concurrency = `2 × replicas`. Monitor provider rate limits accordingly.
-- **SSE connections** — Each `/api/auto` or `/api/pipeline` request holds an open SSE connection for the pipeline duration (~30–120s). Ensure your load balancer supports long-lived HTTP connections and does not apply aggressive idle timeouts.
-- **Body size** — Middleware enforces a 100 KB request body limit. No additional proxy configuration is needed for typical payloads.
-
-### Operational Best Practices
-
-- **Health check** — `GET /` returns the web UI; use it as a basic liveness probe.
-- **Secrets** — Never commit `.env` files. Use platform-native secret managers (AWS Secrets Manager, GCP Secret Manager, Vercel env vars).
-- **Logging** — The app logs to stdout/stderr. Collect logs via your platform's logging pipeline (CloudWatch, Cloud Logging, etc.).
-- **Backups** — Enable automated backups on your managed Postgres instance. The `pgdata` Docker volume is not backed up by default.
-- **Updates** — Pull the latest image, run `docker compose up -d`. Migrations run automatically on startup.
+See the [Deployment guide](website/docs/guides/deployment.md) for the production route allowlist and operating procedures.
 
 ## Architecture Decision Records
 

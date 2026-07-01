@@ -4,7 +4,7 @@ Command-line interface for the Innovator AI-powered innovation engine.
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - GitHub Copilot subscription
 - GitHub CLI authenticated (`gh auth login`)
 

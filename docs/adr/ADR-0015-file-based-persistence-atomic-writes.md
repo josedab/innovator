@@ -1,5 +1,7 @@
 # ADR-0015: File-Based Persistence with Atomic Writes
 
+> **Current operational note (2026):** The first production profile deliberately uses this file-based model with one process, one replica, and backed-up `innovator_data` plus `copilot_data` volumes. PostgreSQL is not an available production fallback because its adapter is not implemented; the scale-out limitation below remains a future design concern.
+
 ## Status
 
 Accepted

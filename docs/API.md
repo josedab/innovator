@@ -2653,8 +2653,8 @@ Pluggable storage abstraction with validated provider registration and an in-mem
 ```typescript
 import { setStorage, getStorage } from "@innovator/core";
 
-// Register a custom storage provider
-setStorage(myPostgresProvider);
+// Register a custom provider that implements the StorageProvider interface
+setStorage(myStorageProvider);
 
 // Retrieve the active provider
 const provider = getStorage();
@@ -3198,7 +3198,7 @@ getRemainingBudget(dir?)          // Remaining ε before exhaustion
 
 ## Rate Limiting
 
-API routes enforce per-IP rate limits via middleware (`apps/web/src/middleware.ts`) and a sliding-window limiter (`apps/web/src/lib/rate-limit.ts`).
+API routes enforce per-IP limits via the Next.js proxy (`apps/web/src/proxy.ts`) and route-scoped sliding-window limits (`apps/web/src/lib/rate-limit.ts`).
 
 ### Rate Limits by Endpoint
 
@@ -3239,7 +3239,7 @@ When rate-limited, the API returns `429 Too Many Requests` with:
 
 ### Tier-Based Quotas
 
-When `INNOVATOR_API_KEY` or `INNOVATOR_API_KEYS` is configured, requests are tiered:
+Tier assignment is a development/experimental metering feature. Production keys come from `INNOVATOR_API_KEYS`, and dynamic tier/key administration routes return `404`.
 
 | Tier       | Daily Limit         |
 | ---------- | ------------------- |
@@ -3247,7 +3247,7 @@ When `INNOVATOR_API_KEY` or `INNOVATOR_API_KEYS` is configured, requests are tie
 | Pro        | 10,000 requests/day |
 | Enterprise | Unlimited           |
 
-> **Note:** The rate limiter uses an in-memory store. For multi-instance deployments, replace with a shared store (e.g., Redis).
+> **Production note:** Rate limiting and metering are process-local. Run exactly one production replica; Vercel/serverless and horizontal scaling are unsupported.
 
 ---
 

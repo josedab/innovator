@@ -1,5 +1,7 @@
 # ADR-0008: Pluggable Storage Provider Abstraction
 
+> **Current operational note (2026):** The first production profile persists application files in `innovator_data` and Copilot session state in `copilot_data`; it does not expose storage-backend selection as a deployment option. PostgreSQL is not implemented, and serverless or horizontally scaled remote-database deployments are unsupported. The provider discussion below records the abstraction's design context.
+
 ## Status
 
 Accepted

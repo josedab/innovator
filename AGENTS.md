@@ -16,7 +16,7 @@ innovator/
 │   ├── mcp-server/   # MCP server for AI tool integration
 │   ├── bot/          # Chat platform bot (Slack, Discord, Teams)
 │   ├── sdk/          # Framework-agnostic SDK client
-│   ├── copilot-extension/  # GitHub Copilot Extension
+│   ├── copilot-extension/  # Retired GitHub App extension compatibility stub
 │   ├── vscode-extension/   # VS Code extension
 │   └── create-innovator/   # Project scaffolder (npx create-innovator)
 ├── action/           # GitHub Action
@@ -31,19 +31,20 @@ innovator/
 | ----------------- | ------------------------------------------------------- |
 | Install           | `npm install` (from root only)                          |
 | Dev server        | `npm run dev`                                           |
-| Build all         | `npm run build` (core → cli → web)                      |
+| Build all         | `npm run build` (all supported production workspaces)   |
 | Run tests         | `npm test`                                              |
 | Run single test   | `npx vitest run packages/core/src/__tests__/my-test.ts` |
 | Watch tests       | `npm run test:watch`                                    |
 | Type check        | `npm run typecheck`                                     |
 | Lint + fix        | `npm run lint:fix`                                      |
 | Format            | `npm run format`                                        |
+| Production audit  | `npm run audit:production`                              |
 | All quality gates | `npm run check`                                         |
 | Doctor (prereqs)  | `npm run doctor`                                        |
 
 ## Build Order
 
-The build must follow: `packages/core` → `apps/cli` → `apps/web`. This is encoded in the root `build` script. Never build a consumer before core.
+The root `build` script builds all supported workspaces in dependency order, starting with `packages/core`. Never build a consumer before core.
 
 ## Core Module Conventions (`packages/core/src/`)
 

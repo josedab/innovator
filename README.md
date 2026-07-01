@@ -31,9 +31,22 @@ npx innovator auto 'solar energy'
 - **Subject Investigation** — AI analyzes your subject to identify key aspects, challenges, and opportunities
 - **8 Innovation Angles** — Choose from SCAMPER, First Principles, Cross-Domain Analogy, Constraint Injection, Problem Inversion, Role-Based Perspectives, What-If Scenarios, and Trend Collision
 - **Auto Mode** — Runs all angles automatically and synthesizes a strategic recommendation
-- **Web App** — Beautiful UI with investigation → angle selection → results flow
+- **Development Web App** — Browser UI for local experimentation and feature development
 - **CLI Tool** — Full-featured command-line interface with progress indicators
-- **Copilot SDK** — Powered by your GitHub Copilot subscription (no separate API keys needed)
+- **Copilot SDK** — Powered by your GitHub Copilot subscription; local development can use `gh auth`, while production passes `GH_TOKEN`
+
+## Production Support
+
+The first production release is a **headless, single-process, single-tenant API** deployment. The browser UI and experimental SaaS surfaces remain available for development, but intentionally return `404` when `NODE_ENV=production`.
+
+Production exposes only these routes:
+
+| Access    | Routes                                                                                                                                                                                                                                              |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public    | `GET /healthz`, `GET /readyz`                                                                                                                                                                                                                       |
+| Protected | `GET /api/health`, `GET /api/angles`, `GET /api/presets`, `POST /api/investigate`, `POST /api/innovate`, `POST /api/auto`, `POST /api/nl-innovate`, `POST /api/v1/investigate`, `POST /api/v1/innovate`, `POST /api/v1/auto`, `GET /api/v1/openapi` |
+
+OAuth, billing, tenant/workspace administration, uploads, webhooks, integrations, collaboration, dynamic API keys, the developer portal, and all other routes are development/experimental only. See the [Deployment guide](website/docs/guides/deployment.md) for the supported production setup.
 
 ## Prerequisites
 
@@ -132,7 +145,7 @@ innovator/
 │   │       └── prompts/    # Prompt templates for each angle
 │   ├── sdk/          # Framework-agnostic SDK client (@innovator/sdk)
 │   ├── bot/          # Chat bot integration
-│   ├── copilot-extension/ # GitHub Copilot Extension (@innovator in Copilot Chat)
+│   ├── copilot-extension/ # Retired GitHub App extension compatibility/migration stub
 │   ├── create-innovator/  # Project scaffolder (npx create-innovator)
 │   ├── mcp-server/   # MCP server for AI tool integration
 │   └── vscode-extension/  # VS Code extension
@@ -141,25 +154,26 @@ innovator/
 
 ### Build Order & Dependencies
 
-The monorepo must be built in dependency order. `npm run build` handles this automatically.
+The monorepo must be built in dependency order. `npm run build` handles all supported workspaces automatically.
 
 ```
-packages/core  →  apps/cli  →  apps/web
-                  packages/mcp-server
-                  packages/bot
-                  packages/copilot-extension
-                  packages/sdk
+packages/core → apps/cli → apps/web → packages/bot → packages/mcp-server
+              → packages/sdk → packages/vscode-extension → packages/create-innovator
 ```
 
-| Package                 | Depends On        | Build Command                          |
-| ----------------------- | ----------------- | -------------------------------------- |
-| `@innovator/core`       | _(none)_          | `npm run build -w packages/core`       |
-| `apps/cli`              | `@innovator/core` | `npm run build -w apps/cli`            |
-| `apps/web`              | `@innovator/core` | `npm run build -w apps/web`            |
-| `@innovator/mcp-server` | `@innovator/core` | `npm run build -w packages/mcp-server` |
-| `@innovator/bot`        | `@innovator/core` | `npm run build -w packages/bot`        |
-| `@innovator/sdk`        | _(standalone)_    | `npm run build -w packages/sdk`        |
-| `website`               | _(standalone)_    | `npm run build -w website`             |
+| Package                       | Depends On        | Build Command                                |
+| ----------------------------- | ----------------- | -------------------------------------------- |
+| `@innovator/core`             | _(none)_          | `npm run build -w packages/core`             |
+| `apps/cli`                    | `@innovator/core` | `npm run build -w apps/cli`                  |
+| `apps/web`                    | `@innovator/core` | `npm run build -w apps/web`                  |
+| `@innovator/mcp-server`       | `@innovator/core` | `npm run build -w packages/mcp-server`       |
+| `@innovator/bot`              | `@innovator/core` | `npm run build -w packages/bot`              |
+| `@innovator/sdk`              | _(standalone)_    | `npm run build -w packages/sdk`              |
+| `@innovator/vscode-extension` | `@innovator/core` | `npm run build -w packages/vscode-extension` |
+| `create-innovator`            | _(standalone)_    | `npm run build -w packages/create-innovator` |
+| `website`                     | _(standalone)_    | `npm run build -w website`                   |
+
+`packages/copilot-extension` is a retired compatibility stub. It remains type-checked for compatibility but is not part of the supported root production build.
 
 > **Always build `packages/core` first.** Never build a consumer before core. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full dependency graph.
 
@@ -168,18 +182,21 @@ packages/core  →  apps/cli  →  apps/web
 The MCP (Model Context Protocol) server in `packages/mcp-server/` exposes Innovator's capabilities as tools callable by any MCP-compatible AI client — Claude Desktop, Cursor, Windsurf, VS Code, and others.
 
 ```bash
-# stdio transport (default)
+# stdio transport (the only supported transport)
 npx @innovator/mcp-server
-
-# SSE transport (port 3100 by default, configurable via MCP_PORT)
-npx @innovator/mcp-server --sse
 ```
 
+`--sse` is intentionally disabled and exits with an error. Filesystem analysis tools are restricted to `MCP_ALLOWED_ROOT` (the process working directory by default), and `maxFiles` cannot exceed `1000`.
+
 Available tools: `investigate`, `innovate`, `auto`, `innovate-from-code`, `innovate-file`, and `innovate-architecture`. See the [MCP Server README](packages/mcp-server/README.md) for client configuration examples.
+
+> **Copilot Extension migration:** GitHub retired GitHub App-based, server-side Copilot Extensions on November 10, 2025. `packages/copilot-extension` is a compatibility stub whose start command fails with migration guidance. Use `@innovator/mcp-server` for direct Copilot integration. The client-side [VS Code extension](packages/vscode-extension/README.md) is separate and remains supported.
 
 ## Chat Bot
 
 The [`packages/bot/`](packages/bot/) package provides chat platform adapters for Slack, Discord, and Microsoft Teams. Expose a `/innovate` command that runs the full auto pipeline and streams progress updates directly into your chat channel.
+
+Chat-platform integrations are development/experimental and are not part of the first production API deployment.
 
 ```bash
 npm install @innovator/bot
@@ -230,44 +247,36 @@ Supported models include `gpt-4.1`, `gpt-5`, `claude-sonnet-4.5`, and others ava
 
 ### Environment Variables
 
-| Variable                   | Description                                                                   | Default                  | Required |
-| -------------------------- | ----------------------------------------------------------------------------- | ------------------------ | -------- |
-| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime                              | `gpt-4.1`                | No       |
-| `INNOVATOR_API_KEY`        | API key to protect web routes (`X-API-Key` header)                            | _unset_                  | No       |
-| `INNOVATOR_API_KEYS`       | Comma-separated API keys for multi-key auth (`X-API-Key`/Bearer)              | _unset_                  | No       |
-| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for LLM requests in milliseconds                                      | `90000`                  | No       |
-| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs                                  | _unset_                  | No       |
-| `INNOVATOR_EMBED_ORIGINS`  | Comma-separated CORS origins for `/api/embed` widget endpoint                 | `*`                      | No       |
-| `INNOVATOR_EMBED_API_KEY`  | API key to protect the `/api/embed` widget endpoint (`X-Embed-Key`)           | _unset_                  | No       |
-| `GH_TOKEN`                 | GitHub token for Copilot SDK auth in CI/Docker (when `gh` CLI is unavailable) | _unset_                  | No\*     |
-| `OPENAI_API_KEY`           | OpenAI API key for direct OpenAI provider (non-Copilot usage)                 | _unset_                  | No       |
-| `ANTHROPIC_API_KEY`        | Anthropic API key for direct Anthropic provider (non-Copilot usage)           | _unset_                  | No       |
-| `OLLAMA_BASE_URL`          | Base URL for local Ollama instance                                            | `http://localhost:11434` | No       |
-| `PORT`                     | Dev server port                                                               | `3000`                   | No       |
+Production requires all four variables below:
+
+| Variable                       | Production value/requirement                                         |
+| ------------------------------ | -------------------------------------------------------------------- |
+| `NODE_ENV`                     | Must be `production`                                                 |
+| `INNOVATOR_DEPLOYMENT_PROFILE` | Must be `single-tenant`                                              |
+| `INNOVATOR_API_KEYS`           | One or more unique comma-separated keys, each at least 32 characters |
+| `GH_TOKEN`                     | Required for the production GitHub Copilot provider                  |
+
+`INNOVATOR_API_KEY` is a legacy single-key option for development and compatibility. Do not configure it together with `INNOVATOR_API_KEYS`; production must use the plural variable. Clients may send one configured key with `X-API-Key` or `Authorization: Bearer`.
+
+Optional settings include `INNOVATOR_DEFAULT_MODEL` (default `gpt-4.1`), `INNOVATOR_LLM_TIMEOUT_MS` (default `90000`), `INNOVATOR_EXTRA_MODELS`, and `PORT` (default `3000`). Embed, OAuth, billing, database, and other SaaS variables configure development/experimental surfaces only.
 
 ## Docker
 
-The project includes a multi-service Docker Compose setup for containerized development and deployment:
-
-| Service     | Description                          | Port |
-| ----------- | ------------------------------------ | ---- |
-| `innovator` | Next.js app (multi-stage Dockerfile) | 3000 |
-| `postgres`  | PostgreSQL 16 database               | 5432 |
-| `pgadmin`   | pgAdmin 4 web UI                     | 5050 |
+Docker Compose is the supported first-production deployment path:
 
 ```bash
-# Start all services (set GH_TOKEN for Copilot auth in Docker)
-export GH_TOKEN=$(gh auth token)
-docker-compose up
+export INNOVATOR_CLIENT_API_KEY="$(openssl rand -hex 32)"
+export INNOVATOR_API_KEYS="$INNOVATOR_CLIENT_API_KEY"
+export GH_TOKEN="$(gh auth token)"
+docker compose up -d --build
 
-# Or run in background
-docker-compose up -d
-
-# Open the app at http://localhost:3000
-# Open pgAdmin at http://localhost:5050 (admin@innovator.dev / admin)
+curl http://127.0.0.1:3000/healthz
+curl -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" http://127.0.0.1:3000/api/health
 ```
 
-> **Note:** The `innovator` service requires `GH_TOKEN` for Copilot SDK authentication since `gh auth login` is not available inside the container. See [Environment Variables](#environment-variables).
+Compose binds only to `127.0.0.1:3000`, mounts `innovator_data` at `/home/innovator/.innovator` and `copilot_data` at `/home/innovator/.copilot`, keeps the rest of the container read-only, rotates logs, and allows two minutes for graceful shutdown. PostgreSQL and pgAdmin are intentionally absent because the PostgreSQL adapter is not implemented.
+
+Place an authenticated TLS reverse proxy in front of the service and inject or forward an API key. **Never expose port 3000 directly.** Run one replica only: rate limiting and state are process-local. Back up both production volumes before upgrades and restore them together if rollback is required.
 
 ## Dev Container / Codespaces
 
@@ -309,14 +318,18 @@ Have a question or idea? Join the conversation on [GitHub Discussions](https://g
 
 To report a vulnerability, please follow the instructions in [SECURITY.md](.github/SECURITY.md). **Do not open a public issue for security vulnerabilities.** We aim to acknowledge reports within 48 hours.
 
+Run `npm run audit:production` to audit runtime dependencies; the policy fails on any production advisory. CI also validates Docker Compose, builds the production image, and gates releases on a successful CI run for the exact revision.
+
 ## Tech Stack
 
-- **Next.js 16** — Full-stack React framework
+- **Next.js 16.2.12** — App Router runtime for the development UI and production API
 - **@github/copilot-sdk** — AI via GitHub Copilot subscription
 - **TypeScript** — End-to-end type safety
 - **Tailwind CSS** — Utility-first styling
 - **Zod** — Runtime validation of AI outputs
 - **Commander.js** — CLI framework
+
+The repository requires Node.js 22+ and pins root dependency overrides for `postcss` 8.5.23 and `sharp` 0.35.3.
 
 ## Architecture Decision Records
 

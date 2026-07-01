@@ -2,6 +2,8 @@
 
 Framework-agnostic TypeScript SDK client for the [Innovator](../../README.md) innovation platform API.
 
+> **Production availability:** The first production profile supports the SDK methods backed by `POST /api/investigate`, `/api/innovate`, `/api/auto`, and `/api/nl-innovate`. API-key authentication is required. Advanced methods backed by other routes are development/experimental and receive `404` from a production server.
+
 ## Installation
 
 ```bash
@@ -15,7 +17,7 @@ import { InnovatorClient } from "@innovator/sdk";
 
 const client = new InnovatorClient({
   baseUrl: "http://localhost:3000",
-  apiKey: "your-api-key", // optional
+  apiKey: process.env.INNOVATOR_CLIENT_API_KEY, // required by production servers
 });
 
 // Investigate a subject
@@ -25,16 +27,20 @@ const investigation = await client.investigate("renewable energy");
 const events = await client.auto("renewable energy");
 ```
 
+This is a server-side Node.js example. Do not bundle a production Innovator key into browser JavaScript; route browser requests through your authenticated backend or reverse proxy.
+
 ## Configuration
 
 ```ts
 const client = new InnovatorClient({
   baseUrl: "https://innovator.example.com", // Required
-  apiKey: "inv_abc123", // Optional — sent as Bearer token
+  apiKey: process.env.INNOVATOR_CLIENT_API_KEY, // Required in production
   timeout: 120_000, // Optional — request timeout in ms (default: 120s)
   maxRetries: 2, // Optional — retries for transient failures (default: 2)
 });
 ```
+
+Use a client-specific environment variable for the selected key. Do not expose the server's full `INNOVATOR_API_KEYS` list—or any production key—to browser bundles.
 
 ## API Reference
 
@@ -95,6 +101,10 @@ await client.streamNLInnovate("Improve developer onboarding", (event) => {
   console.log(event.data);
 });
 ```
+
+## Development/Experimental Methods
+
+The methods below target routes outside the first production allowlist. They can be used against the development server, but a production server intentionally returns `404`.
 
 ### `diffMerge(action, sessions, options?)`
 
@@ -193,7 +203,7 @@ import { InnovatorClient, InnovatorError } from "@innovator/sdk";
 const app = express();
 const client = new InnovatorClient({
   baseUrl: process.env.INNOVATOR_URL ?? "http://localhost:3000",
-  apiKey: process.env.INNOVATOR_API_KEY,
+  apiKey: process.env.INNOVATOR_CLIENT_API_KEY,
 });
 
 app.post("/api/brainstorm", express.json(), async (req, res) => {
@@ -281,7 +291,7 @@ import { InnovatorClient, InnovatorError } from "@innovator/sdk";
 
 const client = new InnovatorClient({
   baseUrl: "http://localhost:3000",
-  apiKey: "inv_abc123",
+  apiKey: process.env.INNOVATOR_CLIENT_API_KEY,
   timeout: 180_000,
 });
 
@@ -319,10 +329,11 @@ The SDK exports Zod schemas for request validation:
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`InnovatorError` with status 0**     | Network error or server unreachable. Verify `baseUrl` is correct and the server is running.                                                  |
 | **`TIMEOUT` errors**                   | Increase the `timeout` option (default: 120s). Complex subjects or slower models may need 180s+.                                             |
-| **`401 Unauthorized`**                 | Ensure `apiKey` matches the server's `INNOVATOR_API_KEY` env var. The key is sent as a Bearer token.                                         |
+| **`401 Unauthorized`**                 | Ensure `apiKey` matches one entry in the server's `INNOVATOR_API_KEYS`. The client sends the selected key as a bearer token.                 |
+| **`404` from an advanced method**      | That method is development/experimental and is outside the first production route allowlist.                                                 |
 | **`429 Too Many Requests`**            | You've hit the server's rate limit. The SDK retries automatically (up to `maxRetries`), but you may need to add backoff in your application. |
 | **SSE stream disconnects**             | Proxies or CDNs may close idle connections. The server sends heartbeats every 15s; ensure your proxy timeout is >15s.                        |
-| **`TypeError: fetch is not defined`**  | The SDK uses the global `fetch` API. In Node.js <18, install a polyfill like `undici` or `node-fetch`.                                       |
+| **`TypeError: fetch is not defined`**  | This repository requires Node.js 22+, which includes global `fetch`. Verify the runtime version.                                             |
 | **Zod validation errors from schemas** | Ensure you're using the same version of `@innovator/sdk` as the server. Schema shapes may change between versions.                           |
 | **`ABORTED` error code**               | The request was cancelled via `AbortSignal`. This is expected when using `signal` in `RequestOptions`.                                       |
 

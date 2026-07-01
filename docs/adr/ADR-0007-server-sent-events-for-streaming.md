@@ -4,6 +4,8 @@
 
 Accepted
 
+> **Current operational note (2026):** SSE remains the API streaming protocol, but the first production profile does not support Vercel/serverless deployment. It runs as one long-lived process and one replica. The original option analysis below is retained for history.
+
 ## Context
 
 The auto pipeline (ADR-0005) makes 10+ sequential LLM calls and can take 30–90 seconds to complete. Without streaming, the user sees nothing until the entire pipeline finishes — an unacceptable UX. The team needed a mechanism to push real-time progress updates from server to client.

@@ -4,6 +4,8 @@
 
 Accepted
 
+> **Current operational note (2026):** Production now requires `INNOVATOR_API_KEYS`, rejects mixed singular/plural key configuration, exposes only an explicit route allowlist, and supports one replica. Optional authentication and multi-instance alternatives discussed below describe the original decision context.
+
 ## Context
 
 Innovator's API routes proxy user requests to LLM providers, consuming rate-limited and potentially costly resources (Copilot subscription quota, OpenAI API credits). Without protection, the API is vulnerable to:
@@ -19,9 +21,9 @@ The team needed a security model that works for both local development (minimal 
 
 We implement **layered security** in the web app's API layer (`apps/web/src/lib/rate-limit.ts` and `apps/web/src/lib/api-auth.ts`):
 
-### 1. API Key Authentication (Optional)
+### 1. API Key Authentication
 
-When `INNOVATOR_API_KEY` is set, all `/api/*` requests must include a matching `X-API-Key` header. `INNOVATOR_API_KEYS` supports comma-separated multi-key auth for team deployments. When unset, the API is open (suitable for local development).
+Production requires `INNOVATOR_API_KEYS` with unique 32+ character keys and an explicit `single-tenant` deployment profile. Supported API requests must include `X-API-Key` or `Authorization: Bearer`. Local development may leave authentication unset.
 
 ### 2. Rate Limiting (Global + Per-Route)
 
@@ -31,13 +33,13 @@ Three in-memory rate limit maps enforce per-IP request caps:
 - **`/api/auto`**: 3 requests/minute per IP (each triggers 10+ LLM calls).
 - **`/api/innovate`**: 5 requests/minute per IP (each triggers up to 9 LLM calls).
 
-### 3. Concurrent Request Limiting
+### 3. LLM Concurrency Limiting
 
-Maximum 2 simultaneous in-flight requests per IP, preventing a single client from monopolizing server resources with multiple long-running SSE streams.
+The shared Copilot client uses a process-wide semaphore. The default is 2 active calls and 16 queued calls, and the request deadline includes queue wait.
 
 ### 4. Request Body Size Limits
 
-`Content-Length` is required on all mutation requests (POST/PUT/PATCH) and capped at 100KB. Requests exceeding this are rejected before body parsing.
+Supported JSON routes cap the actual streamed request body at 100 KB. `Content-Length` is used for an early rejection when present, while chunked requests remain supported.
 
 ### 5. Content Security Policy
 
@@ -64,7 +66,7 @@ Rate limit maps are capped at 10,000 entries and periodically cleaned to prevent
 **Positive:**
 
 - **Proportional protection** — Rate limits are tuned per endpoint based on their LLM cost multiplier. Cheap endpoints (investigate: 1 call) have generous limits; expensive ones (auto: 10+ calls) are tightly controlled.
-- **Opt-in auth** — Local development requires zero auth setup. Production deployments add a single env var.
+- **Fail-closed production auth** — Local development requires zero auth setup, while production refuses to start without its profile, API keys, and Copilot token.
 - **Request tracing** — Every API response includes `X-Request-ID` for debugging and log correlation.
 - **No external dependencies** — All security logic is in-process, requiring no Redis, no external rate limiter, no auth provider.
 
