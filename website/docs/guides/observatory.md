@@ -8,6 +8,10 @@ sidebar_position: 8
 
 Monitor, analyze, and compare LLM calls across your innovation pipeline with the prompt observatory.
 
+:::caution Production availability
+The observatory API and browser surfaces are development/experimental and return `404` in the first production profile. Core-package examples remain useful for local development.
+:::
+
 ## Overview
 
 The observatory captures every LLM call made during innovation sessions — prompts, responses, token usage, latency, and quality scores. Use it to debug prompts, optimize costs, and run A/B comparisons between models or prompt variants.

@@ -40,7 +40,7 @@ npm run test:coverage
 
 ## Coverage Thresholds
 
-CI enforces a **35% minimum** for lines, functions, and branches (configured in `vitest.config.ts`). This threshold reflects the project's reliance on LLM integration code that is mocked in tests.
+CI enforces **72% line coverage, 73% function coverage, and 58% branch coverage** (configured in `vitest.config.ts`). The thresholds are ratcheted independently to prevent regressions.
 
 Run `npm run test:coverage` locally to check. Pull requests that drop below these thresholds will fail.
 
@@ -257,13 +257,18 @@ Key settings from `apps/web/playwright.config.ts`:
 
 ## CI Pipeline
 
-The full CI pipeline runs via `npm run test:ci`, which executes:
+The local CI simulation runs via `npm run test:ci`, which executes:
 
 1. Format check (`prettier --check`)
 2. Lint (`eslint`)
 3. Type check (`tsc --noEmit`)
-4. Build all packages
-5. Tests with coverage enforcement
+4. Production runtime dependency audit (`npm run audit:production`, all severities)
+5. Build all supported production workspaces
+6. Verify expected build outputs
+7. Build the documentation site
+8. Run tests with coverage enforcement
+
+Hosted CI additionally generates API docs, performs non-blocking dependency/link checks, validates Docker Compose, and builds the production image.
 
 You can simulate this locally:
 
@@ -274,5 +279,5 @@ npm run test:ci
 Or run the quality gates individually:
 
 ```bash
-npm run check   # lint + typecheck + format + test
+npm run check   # lint + typecheck + format + production audit + test + docs build
 ```

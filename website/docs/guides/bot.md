@@ -8,6 +8,10 @@ sidebar_position: 11
 
 Run Innovator as a chat bot in Slack, Discord, or Microsoft Teams.
 
+:::caution Production availability
+Slack, Discord, and Teams integrations are development/experimental and are not exposed by the first production API profile. Deploying a bot adapter is a separate application responsibility.
+:::
+
 ## Overview
 
 The `@innovator/bot` package provides platform adapters that connect Innovator's auto pipeline to chat platforms. Users send `/innovate <subject>` and receive streamed progress updates followed by a final innovation report.

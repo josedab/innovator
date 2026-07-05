@@ -92,6 +92,10 @@ A single actionable paragraph summarizing where to focus first.
 
 ## Pipeline DAG
 
+:::caution Production availability
+`POST /api/pipeline-dag` is development/experimental and returns `404` in the first production profile. Use supported `POST /api/auto` or `POST /api/v1/auto` for production auto pipelines.
+:::
+
 The `/api/pipeline-dag` endpoint extends Auto Mode by compiling **natural language descriptions** into executable pipeline DAGs (directed acyclic graphs). Instead of running the fixed 8-angle pipeline, you describe a custom pipeline in plain English and the system builds and optionally executes it.
 
 ### Compiling a Pipeline

@@ -8,9 +8,13 @@ sidebar_position: 1
 
 Get Innovator running and generate your first innovation ideas in under 5 minutes.
 
+:::note Development vs production
+The browser UI described below is for local development. The first production release is a headless, single-process, single-tenant API; browser routes return `404` in production.
+:::
+
 ## Prerequisites
 
-- **Node.js 20+** (see `.nvmrc`)
+- **Node.js 22+** (see `.nvmrc`)
 - **npm** as package manager (yarn and pnpm are not supported and will be blocked at install time)
 - **GitHub Copilot subscription** (Free, Pro, or Enterprise)
 - **GitHub CLI** authenticated (`gh auth login`)
@@ -31,7 +35,7 @@ npm run doctor
 
 This checks Node.js version, GitHub CLI installation, Copilot authentication, and core package build status. Fix any ❌ items before continuing — see [Troubleshooting](/docs/troubleshooting#npm-run-doctor-checks) for details.
 
-## Start the web app
+## Start the Development Web App
 
 ```bash
 npm run dev
@@ -68,6 +72,24 @@ npx tsx apps/cli/src/index.ts investigate "home automation"
 npx tsx apps/cli/src/index.ts auto "home automation"
 ```
 
+## Production API Quick Start
+
+Use Docker Compose for the supported production profile:
+
+```bash
+export INNOVATOR_CLIENT_API_KEY="$(openssl rand -hex 32)"
+export INNOVATOR_API_KEYS="$INNOVATOR_CLIENT_API_KEY"
+export GH_TOKEN="$(gh auth token)"
+docker compose up -d --build
+
+curl http://127.0.0.1:3000/healthz
+curl \
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
+  http://127.0.0.1:3000/api/health
+```
+
+Compose binds to `127.0.0.1:3000`. Put an authenticated TLS reverse proxy in front and never expose port 3000 directly. See [Deployment](/docs/guides/deployment).
+
 ## Scaffold a new project
 
 Use `create-innovator` to generate a pre-configured project with provider settings and custom angle templates:
@@ -84,7 +106,7 @@ The scaffolder prompts for your preferred LLM provider and optionally includes d
 ```
 innovator/
 ├── apps/
-│   ├── web/            # Next.js 16 web application
+│   ├── web/            # Next.js 16.2.12 development UI and API runtime
 │   └── cli/            # Command-line interface
 ├── packages/
 │   └── core/           # Shared innovation engine
@@ -101,11 +123,11 @@ If you prefer a pre-configured environment, this repository includes a [dev cont
 - **GitHub Codespaces** — click **"Code → Codespaces → New codespace"** on the GitHub repo page
 - **VS Code Dev Containers** — open the repo locally and select **"Reopen in Container"**
 
-The dev container provides Node.js 20, GitHub CLI, ESLint/Prettier extensions with format-on-save, and port 3000 forwarded automatically. Dependencies are installed via the `postCreateCommand`, so you can run `npm run dev` immediately.
+The dev container provides Node.js 22, GitHub CLI, ESLint/Prettier extensions with format-on-save, and port 3000 forwarded automatically. Dependencies are installed via the `postCreateCommand`, so you can run `npm run dev` immediately.
 
 ## Next steps
 
 - [Core Concepts](/docs/core-concepts) — understand the mental model
-- [Web App Guide](/docs/guides/web-app) — explore the full UI
+- [Web App Development Guide](/docs/guides/web-app) — explore the local development UI
 - [CLI Guide](/docs/guides/cli) — power-user workflows
 - [API Reference](/docs/api-reference) — all exported functions and types

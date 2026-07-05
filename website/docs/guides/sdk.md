@@ -8,6 +8,10 @@ sidebar_position: 14
 
 The `@innovator/sdk` package provides a framework-agnostic TypeScript client for the Innovator API. Use it to integrate innovation capabilities into any Node.js or browser application.
 
+:::caution Production availability
+The first production profile supports SDK calls backed by `POST /api/investigate`, `/api/innovate`, `/api/auto`, and `/api/nl-innovate`. Production API-key authentication is required. Advanced methods backed by other routes are development/experimental and receive `404`.
+:::
+
 ## Installation
 
 ```bash
@@ -21,7 +25,7 @@ import { InnovatorClient } from "@innovator/sdk";
 
 const client = new InnovatorClient({
   baseUrl: "http://localhost:3000",
-  apiKey: "your-api-key", // optional
+  apiKey: process.env.INNOVATOR_CLIENT_API_KEY, // required by production servers
 });
 
 // Investigate a subject
@@ -33,16 +37,20 @@ const events = await client.auto("renewable energy");
 console.log(events);
 ```
 
+This is a server-side Node.js example. Do not bundle a production Innovator key into browser JavaScript; route browser requests through your authenticated backend or reverse proxy.
+
 ## Configuration
 
 ```ts
 const client = new InnovatorClient({
   baseUrl: "https://innovator.example.com", // Required — your Innovator instance URL
-  apiKey: "inv_abc123", // Optional — sent as Bearer token
+  apiKey: process.env.INNOVATOR_CLIENT_API_KEY, // Required in production
   timeout: 120_000, // Optional — request timeout in ms (default: 120s)
   maxRetries: 2, // Optional — retries for 408/429/5xx errors (default: 2)
 });
 ```
+
+Use a client-specific environment variable for the selected key. Do not expose the server's full `INNOVATOR_API_KEYS` list to browser bundles or other client applications.
 
 ## Core Methods
 
@@ -98,7 +106,9 @@ const events = await client.nlInnovate("How can we improve developer onboarding 
 await client.streamNLInnovate("Improve developer onboarding", (event) => console.log(event.data));
 ```
 
-## Advanced Methods
+## Development/Experimental Methods
+
+These methods target routes outside the first production allowlist. Use them only with the development server; production intentionally returns `404`.
 
 ### Session Diff & Merge
 

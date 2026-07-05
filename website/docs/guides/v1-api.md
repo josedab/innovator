@@ -6,96 +6,78 @@ sidebar_position: 10
 
 # V1 Authenticated API
 
-Programmatic access to Innovator with API key authentication, rate limiting, and an OpenAPI specification.
+The `/api/v1/*` production surface provides stable, API-key-authenticated access for integrations and scripts.
 
-## Overview
+## Configure Keys
 
-The `/api/v1/*` endpoints provide a stable, authenticated API surface for integrations, scripts, and third-party applications. All requests require an `X-API-Key` header.
-
-## API Key Management
-
-### Creating a Key
+Production keys are static runtime configuration:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/keys \
-  -H "Content-Type: application/json" \
-  -d '{ "name": "My Integration" }'
+export INNOVATOR_API_KEYS="$(openssl rand -hex 32)"
 ```
 
-Response:
+Requirements:
 
-```json
-{
-  "id": "key-uuid",
-  "name": "My Integration",
-  "key": "inv_abc123...",
-  "enabled": true,
-  "createdAt": "2025-01-15T10:00:00.000Z"
-}
-```
+- one or more comma-separated values
+- every key contains at least 32 characters
+- every key is unique
+- legacy `INNOVATOR_API_KEY` is not set at the same time
 
-:::caution
-The full API key is only returned once at creation time. Store it securely.
-:::
-
-### Listing Keys
-
-```bash
-curl http://localhost:3000/api/v1/keys
-```
-
-```json
-{
-  "keys": [
-    {
-      "id": "key-uuid",
-      "name": "My Integration",
-      "enabled": true,
-      "createdAt": "2025-01-15T10:00:00.000Z",
-      "lastUsedAt": "2025-01-15T12:30:00.000Z",
-      "usage": { "totalRequests": 42 }
-    }
-  ]
-}
-```
-
-### Revoking a Key
-
-```bash
-curl -X DELETE http://localhost:3000/api/v1/keys \
-  -H "Content-Type: application/json" \
-  -d '{ "id": "key-uuid" }'
-```
+Dynamic key creation, listing, and revocation endpoints are development/experimental only and return `404` in production. Rotate keys by updating `INNOVATOR_API_KEYS` in the deployment environment.
 
 ## Authentication
 
-Include the API key in every request via the `X-API-Key` header:
+Send one configured key with either header:
+
+```http
+X-API-Key: <key>
+```
+
+```http
+Authorization: Bearer <key>
+```
+
+Example:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/investigate \
+export INNOVATOR_CLIENT_API_KEY="<one key from INNOVATOR_API_KEYS>"
+
+curl -X POST https://api.example.com/api/v1/investigate \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: inv_abc123..." \
-  -d '{ "subject": "remote work tools" }'
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
+  -d '{"subject":"remote work tools"}'
 ```
 
-Unauthenticated requests return `401`:
+Missing or invalid keys return `401`. Invalid server authentication configuration returns `503`.
 
-```json
-{ "error": "API key required" }
-```
+## Production Endpoints
 
-## Endpoints
+| Method | Route                 | Description                                       |
+| ------ | --------------------- | ------------------------------------------------- |
+| POST   | `/api/v1/investigate` | Investigate a subject                             |
+| POST   | `/api/v1/innovate`    | Investigate and generate for selected angles      |
+| POST   | `/api/v1/auto`        | Run the full pipeline, streaming or non-streaming |
+| GET    | `/api/v1/openapi`     | Retrieve the authenticated OpenAPI specification  |
+
+Other `/api/v1/*` routes, including dynamic keys, webhooks, and plugins, return `404` in production.
 
 ### `POST /api/v1/investigate`
 
-Run an investigation on a subject.
-
 ```bash
-curl -X POST http://localhost:3000/api/v1/investigate \
+curl -X POST https://api.example.com/api/v1/investigate \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: inv_abc123..." \
-  -d '{ "subject": "developer productivity tools", "model": "gpt-4.1" }'
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
+  -d '{"subject":"developer productivity tools","model":"gpt-4.1"}'
 ```
+
+Request:
+
+| Field     | Type     | Required | Constraint  |
+| --------- | -------- | -------- | ----------- |
+| `subject` | `string` | Yes      | 1–500 chars |
+| `model`   | `string` | No       | Valid model |
+
+Response:
 
 ```json
 {
@@ -109,16 +91,14 @@ curl -X POST http://localhost:3000/api/v1/investigate \
 }
 ```
 
-**Rate limit:** 30 req/min
+Handler limit: 30 requests/minute per key.
 
 ### `POST /api/v1/innovate`
 
-Generate innovations for specific angles.
-
 ```bash
-curl -X POST http://localhost:3000/api/v1/innovate \
+curl -X POST https://api.example.com/api/v1/innovate \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: inv_abc123..." \
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
   -d '{
     "subject": "developer productivity tools",
     "angles": ["scamper", "first-principles"],
@@ -126,172 +106,115 @@ curl -X POST http://localhost:3000/api/v1/innovate \
   }'
 ```
 
+Request:
+
+| Field     | Type        | Required | Constraint                     |
+| --------- | ----------- | -------- | ------------------------------ |
+| `subject` | `string`    | Yes      | 1–500 chars                    |
+| `angles`  | `AngleId[]` | Yes      | 1–8 built-in angle identifiers |
+| `model`   | `string`    | No       | Valid model                    |
+
+Response:
+
 ```json
 {
   "data": {
-    "investigation": { ... },
-    "angleResults": [
-      { "angleId": "scamper", "angleName": "SCAMPER", "ideas": [...], "reasoning": "..." }
-    ]
+    "investigation": {},
+    "angleResults": []
   }
 }
 ```
 
-**Rate limit:** 20 req/min. Max 20 angles per request.
+Handler limit: 20 requests/minute per key.
 
 ### `POST /api/v1/auto`
 
-Run the full auto pipeline with optional streaming.
+Streaming is enabled by default:
 
 ```bash
-# Streaming (default)
-curl -X POST http://localhost:3000/api/v1/auto \
+curl -N -X POST https://api.example.com/api/v1/auto \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: inv_abc123..." \
-  -d '{ "subject": "developer productivity tools", "stream": true }'
-
-# Non-streaming
-curl -X POST http://localhost:3000/api/v1/auto \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: inv_abc123..." \
-  -d '{ "subject": "developer productivity tools", "stream": false }'
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
+  -d '{"subject":"developer productivity tools","stream":true}'
 ```
 
-**Streaming response:** SSE events with `PipelineProgress` payloads.
-**Non-streaming response:**
+Each SSE `data:` line contains a `PipelineProgress` object. Keepalive comments are sent every 15 seconds.
 
-```json
-{ "data": { "investigation": { ... }, "angleResults": [...], "synthesis": { ... } } }
-```
-
-**Rate limit:** 10 req/min
-
-### `GET /api/v1/plugins`
-
-List registered plugins (requires API key).
+For a single JSON response:
 
 ```bash
-curl http://localhost:3000/api/v1/plugins \
-  -H "X-API-Key: inv_abc123..."
+curl -X POST https://api.example.com/api/v1/auto \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
+  -d '{"subject":"developer productivity tools","stream":false}'
 ```
 
-```json
-{ "data": [{ "id": "...", "name": "...", "type": "...", "version": "...", "description": "..." }] }
-```
+Handler limit: 10 requests/minute per key.
 
 ### `GET /api/v1/openapi`
 
-Retrieve the OpenAPI specification (no authentication required).
+The OpenAPI document is protected in production:
 
 ```bash
-curl http://localhost:3000/api/v1/openapi
+curl \
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
+  https://api.example.com/api/v1/openapi
 ```
 
 ## Rate Limits
 
-### Rate Limiting Layers
+V1 handler limits run in addition to middleware limits:
 
-Requests to the V1 API pass through **two independent rate limiting layers**. Both must allow the request for it to succeed:
+| Layer                  | Limit                              |
+| ---------------------- | ---------------------------------- |
+| Global proxy           | 10 requests/minute per IP          |
+| V1 investigate handler | 30 requests/minute per route + key |
+| V1 innovate handler    | 20 requests/minute per route + key |
+| V1 auto handler        | 10 requests/minute per route + key |
+| Copilot semaphore      | 2 active calls, 16 queued          |
 
-1. **Global middleware limit (per IP):** The Next.js middleware (`apps/web/src/middleware.ts`) enforces a blanket limit of **10 requests/min per IP** across _all_ `/api/*` routes — including v1 endpoints. This layer also limits each IP to **2 concurrent in-flight requests**.
+The global 10 requests/minute per-IP limit is the effective ceiling for a single client IP. Limits and counters are process-local, which is one reason production supports only one replica.
 
-2. **Per-key endpoint limits:** The v1 route handlers apply additional rate limits keyed by API key, as listed below.
-
-If you are hitting `429` errors sooner than the per-endpoint limits suggest, the global middleware limit is likely the cause. To avoid this, spread requests across time or reduce parallel calls.
-
-### Per-Endpoint Limits
-
-| Endpoint              | Limit      |
-| --------------------- | ---------- |
-| `/api/v1/investigate` | 30 req/min |
-| `/api/v1/innovate`    | 20 req/min |
-| `/api/v1/auto`        | 10 req/min |
-
-:::caution
-The global middleware limit of 10 req/min per IP is the effective ceiling regardless of the per-endpoint limits above. For example, even though `/api/v1/investigate` allows 30 req/min per key, a single IP cannot exceed 10 total API requests per minute.
-:::
-
-When rate limited, the API returns `429`:
-
-```json
-{ "error": "Rate limit exceeded. Try again later." }
-```
+Rate-limited requests return `429`; middleware responses include `Retry-After` where applicable.
 
 ## Error Responses
 
-| Status | Meaning              |
-| ------ | -------------------- |
-| `200`  | Success              |
-| `201`  | Resource created     |
-| `400`  | Invalid request body |
-| `401`  | Missing/invalid key  |
-| `429`  | Rate limit exceeded  |
-| `500`  | Internal error       |
+| Status | Meaning                                            |
+| ------ | -------------------------------------------------- |
+| `200`  | Success                                            |
+| `400`  | Invalid JSON, model, or request body               |
+| `401`  | Missing or invalid API key                         |
+| `404`  | Route is outside the production allowlist          |
+| `411`  | Required `Content-Length` is missing               |
+| `413`  | Request body exceeds 100 KB                        |
+| `429`  | Rate or concurrency limit exceeded                 |
+| `500`  | Pipeline or provider failure                       |
+| `503`  | Production runtime or authentication misconfigured |
 
-## Programmatic Usage (Node.js)
+## Node.js Example
 
 ```typescript
-const API_KEY = process.env.INNOVATOR_API_KEY;
-const BASE_URL = "http://localhost:3000";
+const apiKey = process.env.INNOVATOR_CLIENT_API_KEY;
+const baseUrl = "https://api.example.com";
 
 async function investigate(subject: string) {
-  const res = await fetch(`${BASE_URL}/api/v1/investigate`, {
+  const response = await fetch(`${baseUrl}/api/v1/investigate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-API-Key": API_KEY!,
+      "X-API-Key": apiKey!,
     },
     body: JSON.stringify({ subject }),
   });
 
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-  return res.json();
-}
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
 
-const result = await investigate("remote work tools");
-console.log(result.data.summary);
+  return response.json();
+}
 ```
 
-## API Versioning & Deprecation Policy
+## Versioning
 
-### Versioning Scheme
-
-The API uses URL-path versioning (`/api/v1/...`). New major versions introduce a new path prefix (`/api/v2/...`) while the previous version continues to be served.
-
-### What Constitutes a Breaking Change
-
-The following are **breaking changes** that require a new major version:
-
-- Removing an endpoint or HTTP method
-- Removing or renaming a response field
-- Changing a field's type (e.g., `string` → `number`)
-- Adding a new required request field
-- Changing the meaning of an existing field
-- Changing authentication requirements for an endpoint
-
-The following are **non-breaking** and may be introduced in the current version:
-
-- Adding new optional request fields
-- Adding new response fields
-- Adding new endpoints
-- Adding new enum values to existing fields
-- Relaxing validation constraints (e.g., increasing max length)
-
-### Deprecation Timeline
-
-When a new API version is released:
-
-1. **Announcement** — Deprecation notice added to the changelog and documentation
-2. **Overlap period** — The deprecated version continues to function for at least **6 months** after the new version is available
-3. **Deprecation headers** — Deprecated endpoints return a `Deprecation` header with the sunset date and a `Link` header pointing to the migration guide
-4. **Sunset** — After the overlap period, deprecated endpoints return `410 Gone`
-
-### Version Lifecycle
-
-| Version | Status  | Notes                                    |
-| ------- | ------- | ---------------------------------------- |
-| `v1`    | Current | Active development; no planned successor |
-
-### Migration Guidance
-
-When a new version is released, a migration guide will be published at `/docs/guides/migration-v{N}` with endpoint-by-endpoint upgrade instructions.
+The API uses URL-path versioning. A future incompatible API would use a new prefix such as `/api/v2`. Deprecation and migration details will be published before any supported production endpoint is removed.

@@ -8,6 +8,50 @@ sidebar_position: 7
 
 Common issues and how to resolve them.
 
+## Production Startup Returns 503
+
+Production fails closed when required runtime configuration is missing or invalid.
+
+Verify:
+
+```bash
+NODE_ENV=production
+INNOVATOR_DEPLOYMENT_PROFILE=single-tenant
+INNOVATOR_API_KEYS=replace-with-one-or-more-unique-32-character-keys
+GH_TOKEN=replace-with-token
+```
+
+Do not set legacy `INNOVATOR_API_KEY` together with `INNOVATOR_API_KEYS`. Check readiness for a sanitized result:
+
+```bash
+curl -i http://127.0.0.1:3000/readyz
+docker compose logs --tail=100 innovator
+```
+
+`/readyz` also returns `503` when either state directory is not writable or the Copilot provider cannot start and list available models.
+
+## A Route Returns 404 in Production
+
+This is expected for the browser UI and experimental surfaces. Production only exposes the route allowlist documented in the [Deployment guide](/docs/guides/deployment#production-routes).
+
+OAuth, billing, tenant/workspace administration, uploads, webhooks, integrations, collaboration, dynamic API keys, the portal, and other non-allowlisted routes intentionally return `404`.
+
+## Protected API Returns 401
+
+Send one configured production key:
+
+```bash
+curl \
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
+  https://api.example.com/api/health
+```
+
+The `Authorization` header with the bearer scheme is also accepted. Confirm the client key exactly matches one entry in `INNOVATOR_API_KEYS`.
+
+## MCP `--sse` Fails
+
+This is intentional. The MCP server supports stdio only and the legacy network transport fails closed. Remove `--sse` and `MCP_PORT` from the client configuration. Use `MCP_ALLOWED_ROOT` to restrict filesystem analysis.
+
 ## "Cannot find module '@github/copilot-sdk'"
 
 **Cause:** Dependencies not installed.
@@ -70,7 +114,7 @@ Check the error response for details:
 
 Ensure your request includes all required fields. See the [API Reference](/docs/api-reference).
 
-## Web app shows "Error" after investigation
+## Web app shows "Error" after investigation (development only)
 
 **Cause:** The API route failed. Check the terminal running `npm run dev` for the full error.
 
@@ -87,7 +131,7 @@ Common issues:
 - A long-running LLM call (some models take 30-60 seconds per angle)
 - Network timeout — the SSE stream may have been interrupted
 
-**Fix:** Refresh the page and try again. The pipeline is stateless so there's no stale state to worry about.
+**Fix:** Refresh the page and retry. In-flight pipelines are not resumable.
 
 ## Build errors after editing core package
 
@@ -101,16 +145,11 @@ The web app's dev server (`npm run dev`) picks up changes automatically via `tra
 
 ## `npm run doctor` checks
 
-The `npm run doctor` command (implemented in `scripts/doctor.mjs`) verifies your development environment is ready. It runs 4 checks in order and exits with a non-zero code if any fail. The `npm run dev` command runs `doctor` automatically before starting the dev server.
+The `npm run doctor` command (implemented in `scripts/doctor.mjs`) verifies the development environment and exits non-zero when a required check fails. `npm run dev` runs it automatically.
 
-| #   | Check                        | What it verifies                                                    | Fix if it fails                                                                   |
-| --- | ---------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 1   | **Node.js ≥ 20**             | Parses `process.versions.node` and checks the major version is ≥ 20 | Install Node.js 20+ via `nvm install 20` or from [nodejs.org](https://nodejs.org) |
-| 2   | **GitHub CLI installed**     | Runs `gh --version` and checks it exits successfully                | Install from [cli.github.com](https://cli.github.com)                             |
-| 3   | **GitHub CLI authenticated** | Runs `gh auth status` and checks it exits successfully              | Run `gh auth login`                                                               |
-| 4   | **Core package built**       | Checks that `packages/core/dist/` directory exists on disk          | Run `npm run build --workspace=packages/core`                                     |
+Checks cover Node.js 22+, npm 10+, TypeScript 5.6+, GitHub CLI installation/authentication, core and CLI build outputs, `.env.local`, installed dependencies, workspace manifests, Git hooks, `.nvmrc`, the lockfile, and available disk space.
 
-Each check prints ✅ on success or ❌ with an error message on failure. All 4 checks run even if earlier ones fail, so you can see every issue at once.
+Each check prints ✅, ⚠️, or ❌ so you can address all reported issues in one pass.
 
 If all checks pass (✅), you're ready to develop. If any check fails (❌), follow the fix instructions above.
 
@@ -163,7 +202,7 @@ PORT=3001 npm run dev
    ```bash
    export GH_TOKEN=ghp_your_token
    ```
-3. If using Copilot in production, consider switching to a direct provider (OpenAI/Anthropic) that uses stable API keys
+3. In the first production profile, refresh or replace `GH_TOKEN`; direct OpenAI and Anthropic providers are development/experimental rather than supported production fallbacks
 
 ## Request Timeout Tuning
 
@@ -184,9 +223,11 @@ Increase the LLM timeout via the `INNOVATOR_LLM_TIMEOUT_MS` environment variable
 INNOVATOR_LLM_TIMEOUT_MS=180000 npm run dev
 ```
 
-For production deployments, set this in your environment configuration. Note that some hosting platforms (e.g., Vercel) have their own function execution time limits that may also need adjustment.
+For production deployments, set this in the Compose environment and ensure the TLS reverse proxy allows at least 180 seconds for streaming requests. Vercel/serverless is unsupported.
 
-## CORS Errors with Embed Widget
+## CORS Errors with Embed Widget (development only)
+
+`/api/embed` returns `404` in production.
 
 **Cause:** The `<innovator-widget>` or `/api/embed` endpoint is being called from a domain not in the allowed origins list.
 
@@ -214,14 +255,14 @@ For production deployments, set this in your environment configuration. Note tha
 
 3. Verify the `/api/embed` endpoint responds to `OPTIONS` requests — it should return CORS headers automatically
 
-## "Custom angle with ID already exists"
+## "Custom angle with ID already exists" (development only)
 
 **Cause:** You're trying to register a custom angle with an ID that is already taken — either by a built-in angle or a previously registered custom angle.
 
 **Fix:**
 
 1. Choose a different, unique ID for your custom angle
-2. If you want to replace an existing custom angle, remove it first via `removeCustomAngle(id)` or `DELETE /api/custom-angles?id=<id>`, then re-add it
+2. If you want to replace an existing custom angle, remove it first via `removeCustomAngle(id)` or a development-only custom-angle route, then re-add it
 3. Built-in angle IDs (`scamper`, `first-principles`, `cross-domain`, `constraints`, `inversion`, `perspectives`, `what-if`, `trend-collision`) cannot be overridden
 
 ## SSE Stream Closes Unexpectedly During Auto Mode
@@ -258,9 +299,9 @@ Innovator is developed and tested primarily on macOS and Linux. If you're on Win
    wsl --install
    ```
 2. Open a WSL terminal (Ubuntu is the default distribution)
-3. Install Node.js 20+ inside WSL:
+3. Install Node.js 22+ inside WSL:
    ```bash
-   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+   curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
    sudo apt install -y nodejs
    ```
 4. Install GitHub CLI inside WSL:
@@ -294,10 +335,11 @@ If you prefer to run natively on Windows:
   npm config set script-shell "C:\\Program Files\\Git\\bin\\bash.exe"
   ```
 - **Port conflicts** — Use `netstat -ano | findstr :3000` instead of `lsof` to find port conflicts.
-- **Environment variables** — Use `set` instead of `export`, or use [cross-env](https://www.npmjs.com/package/cross-env):
+- **Environment variables** — Use `set` instead of `export`, or use [cross-env](https://www.npmjs.com/package/cross-env). For local development:
   ```powershell
-  set INNOVATOR_API_KEY=your-key && npm start
+  set INNOVATOR_DEFAULT_MODEL=gpt-4.1 && npm run dev
   ```
+  Use the documented Docker Compose profile rather than native `npm start` for production.
 - **Path length limits** — Enable long paths in Windows if you encounter `ENAMETOOLONG` errors:
   ```powershell
   # Run as Administrator

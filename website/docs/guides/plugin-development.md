@@ -8,6 +8,10 @@ sidebar_position: 17
 
 This guide walks you through creating custom plugins for Innovator. Plugins let you extend the system with new innovation angles, export formats, and visualizations.
 
+:::caution Production availability
+Dynamic plugin routes and plugin listing are development/experimental and return `404` in the first production profile. This guide covers local core-package extension development.
+:::
+
 ## Quick Start — Hello World Plugin
 
 Copy and save this as `hello-plugin.ts`, then run it to verify your setup:

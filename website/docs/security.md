@@ -49,17 +49,22 @@ Innovator applies multiple layers of security throughout the stack:
 
 ### API Security
 
-- **Authentication** — Optional API key auth via `INNOVATOR_API_KEY` or `INNOVATOR_API_KEYS` (comma-separated). When set, all `/api/*` routes require a valid key in the `X-API-Key` header or `Authorization: Bearer` header.
-- **Rate limiting** — Per-route and global rate limits enforced in `middleware.ts`. Configurable window and max requests.
-- **Body size limits** — Request bodies are capped at 100 KB to prevent resource exhaustion.
-- **Concurrent request cap** — Limits simultaneous in-flight requests per IP.
+- **Production authentication** — `INNOVATOR_API_KEYS` is required. It must contain one or more unique comma-separated keys, each at least 32 characters. Every supported `/api/*` route requires `X-API-Key` or `Authorization: Bearer`.
+- **Legacy key isolation** — `INNOVATOR_API_KEY` is a legacy development/compatibility setting and must not be combined with `INNOVATOR_API_KEYS`.
+- **Public probes only** — `/healthz` and `/readyz` are the only unauthenticated production routes. `/api/health` is authenticated and returns detailed component health.
+- **Production allowlist** — Middleware returns `404` for the browser UI and non-production API surfaces, including OAuth, billing, tenant/workspace administration, uploads, webhooks, integrations, collaboration, dynamic key management, and the portal.
+- **Rate limiting** — Fixed per-route and global limits are enforced in `proxy.ts`.
+- **Body size limits** — Supported JSON routes enforce a 100 KB streamed-byte limit, including chunked requests.
+- **LLM backpressure** — A process-wide semaphore bounds active Copilot sessions and the wait queue.
+- **No Copilot built-in tools** — One-shot generation sessions expose no filesystem, shell, or MCP tools; prompts cannot ask the SDK to read runtime files.
 - **Security headers** — CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, and Permissions-Policy headers set on all responses.
+- **Single-replica boundary** — Rate limiting, metering, and runtime state are process-local. Horizontal scaling and serverless deployment are unsupported.
 
 ### Input Validation
 
 - **Zod schemas** — All API request bodies are validated with Zod schemas at the route level (see [ADR-0006](https://github.com/josedab/innovator/blob/main/docs/adr/ADR-0006-zod-schema-validation-at-all-boundaries.md)).
 - **LLM output validation** — AI responses are parsed and validated with Zod schemas before being returned to clients.
-- **Subject length limits** — Investigation subjects are capped at 5,000 characters.
+- **Subject length limits** — Investigation subjects are capped at 500 characters; natural-language orchestration prompts are capped at 5,000.
 
 ### Prompt Injection Defense
 
@@ -71,23 +76,34 @@ Innovator applies multiple layers of security throughout the stack:
 
 - **Read-only mode** — The Copilot SDK client operates with restricted permissions: shell, write, and custom-tool requests are denied. Only read operations are allowed.
 
+### MCP Filesystem Boundary
+
+- **stdio only** — The MCP server does not expose a network listener; `--sse` fails closed.
+- **Restricted paths** — Filesystem tools resolve real paths and reject targets outside `MCP_ALLOWED_ROOT`, which defaults to the process working directory.
+- **Bounded scans** — `innovate-from-code.maxFiles` is capped at `1000`.
+
 ## Security Best Practices
 
 When deploying Innovator, follow these practices:
 
-- **Always set `INNOVATOR_API_KEY`** in production to protect API routes
-- **Rotate API keys** periodically
-- **Use HTTPS** via reverse proxy or platform (required for CSP headers and service workers)
+- **Set all required production variables**: `NODE_ENV=production`, `INNOVATOR_DEPLOYMENT_PROFILE=single-tenant`, `INNOVATOR_API_KEYS`, and `GH_TOKEN`
+- **Rotate API keys** with a staged overlap using two unique keys
+- **Use an authenticated TLS reverse proxy** that injects or forwards the API key
+- **Never expose port 3000 directly**; Docker Compose binds it to `127.0.0.1`
+- **Run exactly one replica**
+- **Back up and test restoration of both `innovator_data` and `copilot_data`**
 - **Monitor access logs** for unusual Copilot quota usage
-- **Scope `gh auth` credentials** to minimum required permissions
-- **Use `GH_TOKEN`** with limited scopes for Docker and CI deployments
-- **Run `npm audit`** regularly to check for dependency vulnerabilities
-- **Keep dependencies updated** — the CI pipeline includes `npm outdated` checks
+- **Scope `GH_TOKEN`** to the minimum permissions required by the Copilot provider
+- **Run `npm run audit:production`** before deployment
+- **Keep dependencies updated** — review the repository's weekly Dependabot pull requests
 
 ## Dependency Security
 
 - **CodeQL analysis** runs weekly on JavaScript/TypeScript code via GitHub Actions
-- **npm audit** is included in the CI pipeline
-- **Dependabot** (or equivalent) can be enabled for automated dependency updates
+- **Production dependency policy** — `npm run audit:production` audits runtime dependencies and fails on any production advisory
+- **Build coverage** — root build and typecheck commands cover all supported production workspaces
+- **Container validation** — CI validates Docker Compose and builds the production image
+- **Release gating** — releases run only after CI succeeds for the exact `main` revision
+- **Dependabot** opens weekly dependency update pull requests
 
 See the [Deployment Guide](/docs/guides/deployment) for detailed security configuration.

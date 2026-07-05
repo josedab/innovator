@@ -8,6 +8,10 @@ sidebar_position: 19
 
 Innovator supports voice-driven innovation sessions. You can speak commands like _"investigate solar energy"_ or _"next angle"_ and hear results narrated back via text-to-speech. This guide covers setup, configuration, and usage.
 
+:::caution Production availability
+Browser UI and voice-specific surfaces are development/experimental and return `404` in the first production profile.
+:::
+
 ## Prerequisites
 
 ### Browser-based (Web Speech API)

@@ -8,6 +8,10 @@ sidebar_position: 7
 
 Generate structured documents from your innovation ideas — PRDs, user stories, technical specifications, pitch outlines, and OKRs.
 
+:::caution Production availability
+The `/api/artifacts` and `/api/export` examples in this guide are development/experimental. These routes return `404` in the first production profile. The underlying core-package APIs remain available for local library use.
+:::
+
 ## Overview
 
 The artifacts module transforms raw innovation ideas into actionable, structured documents. Each artifact type has a specialized prompt template that produces sections, metadata, and formatted content ready for export.

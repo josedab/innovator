@@ -4,9 +4,6 @@ title: Contributing
 sidebar_position: 8
 ---
 
-{/_ This is a summary of the contributing guide. The full version is at the repository root:
-https://github.com/josedab/innovator/blob/main/CONTRIBUTING.md _/}
-
 # Contributing
 
 We welcome contributions to Innovator! Whether it's fixing a bug, adding a feature, improving documentation, or adding a new innovation angle.
@@ -145,8 +142,9 @@ Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`
 3. Make your changes with appropriate commits
 4. Run all quality checks before pushing:
    ```bash
-   npm run check     # lint, typecheck, format, test
-   npm run test:ci   # full CI simulation (includes build + coverage)
+   npm run check     # lint, typecheck, format, production audit, test, docs build
+   npm run test:ci   # CI quality/build/test simulation (output checks, docs, coverage)
+   npm run audit:production # runtime dependency audit; fails on any advisory
    ```
 5. Open a pull request with a clear description
 
@@ -210,7 +208,7 @@ const MOCK_INVESTIGATION: Investigation = {
 
 ### Coverage thresholds
 
-CI enforces a **35% minimum** for lines, functions, and branches (configured in `vitest.config.ts`). Run `npm run test:coverage` to check locally.
+CI enforces **72% line coverage, 73% function coverage, and 58% branch coverage** (configured in `vitest.config.ts`). Run `npm run test:coverage` to check locally.
 
 ## Topics covered in the full guide
 

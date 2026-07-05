@@ -11,6 +11,24 @@ This guide provides detailed solutions for common issues you may encounter when 
 
 ---
 
+## Production Runtime
+
+### Startup or readiness returns 503
+
+Production requires `NODE_ENV=production`, `INNOVATOR_DEPLOYMENT_PROFILE=single-tenant`, one or more unique 32+ character keys in `INNOVATOR_API_KEYS`, and `GH_TOKEN`. Do not also set legacy `INNOVATOR_API_KEY`.
+
+`/readyz` also checks both state directories and verifies that the Copilot provider can start and list models.
+
+### A browser or SaaS route returns 404
+
+This is expected. The first production profile is headless and only exposes the [production route allowlist](/docs/guides/deployment#production-routes). OAuth, billing, uploads, webhooks, integrations, collaboration, dynamic keys, portal, and other experimental surfaces return `404`.
+
+### MCP `--sse` exits
+
+This is intentional. Configure the MCP client to launch `@innovator/mcp-server` over stdio, remove `MCP_PORT`, and set `MCP_ALLOWED_ROOT` when filesystem analysis must be restricted to a specific repository.
+
+---
+
 ## Authentication & Copilot
 
 ### `gh auth` / Copilot token errors
@@ -48,7 +66,7 @@ export GH_TOKEN=ghp_your_personal_access_token
 
 1. Re-authenticate: `gh auth login && gh auth status`
 2. For CI/Docker: use `GH_TOKEN` with a long-lived token
-3. For production: consider a direct provider (OpenAI/Anthropic) that uses stable API keys
+3. For production: verify the required `GH_TOKEN` is current and available to the container
 
 ---
 
@@ -97,7 +115,7 @@ INNOVATOR_LLM_TIMEOUT_MS=180000 npm run dev
 ```
 
 :::note
-Some hosting platforms (e.g., Vercel) have their own function execution time limits that may also need adjustment.
+For production, ensure the authenticated TLS reverse proxy allows at least 180 seconds for streaming responses. Vercel/serverless is unsupported.
 :::
 
 ---
@@ -126,7 +144,7 @@ Some hosting platforms (e.g., Vercel) have their own function execution time lim
 
 ---
 
-## Web App Issues
+## Web App Issues (Development Only)
 
 ### Port 3000 already in use
 
@@ -177,6 +195,8 @@ PORT=3001 npm run dev
    ```
 
 ### CORS errors with embed widget
+
+`/api/embed` returns `404` in production.
 
 **Symptoms:** `Access-Control-Allow-Origin` errors in browser console.
 
@@ -252,7 +272,7 @@ The `npm run doctor` command verifies your development environment:
 
 | #   | Check                        | What it verifies             | Fix                                                   |
 | --- | ---------------------------- | ---------------------------- | ----------------------------------------------------- |
-| 1   | **Node.js ≥ 20**             | Major version is ≥ 20        | `nvm install 20` or [nodejs.org](https://nodejs.org)  |
+| 1   | **Node.js ≥ 22**             | Major version is ≥ 22        | `nvm install 22` or [nodejs.org](https://nodejs.org)  |
 | 2   | **npm ≥ 10**                 | npm version is ≥ 10          | `npm install -g npm@latest`                           |
 | 3   | **GitHub CLI installed**     | `gh --version` succeeds      | Install from [cli.github.com](https://cli.github.com) |
 | 4   | **GitHub CLI authenticated** | `gh auth status` succeeds    | Run `gh auth login`                                   |

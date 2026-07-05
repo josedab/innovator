@@ -8,35 +8,37 @@ sidebar_position: 3
 
 Innovator is configured via environment variables. Copy `.env.local.example` to `.env.local` in the project root and adjust values as needed.
 
+Production uses a strict **headless, single-process, single-tenant** profile. Development may enable the browser UI and experimental surfaces, but those surfaces return `404` in production.
+
 ## Environment Variables
 
-| Variable                   | Description                                                             | Default                  | Required |
-| -------------------------- | ----------------------------------------------------------------------- | ------------------------ | -------- |
-| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified at runtime                        | `gpt-4.1`                | No       |
-| `INNOVATOR_API_KEY`        | API key to protect web API routes via `X-API-Key` header (see below)    | _unset_                  | No       |
-| `INNOVATOR_API_KEYS`       | Comma-separated API keys for multi-key auth (`X-API-Key` or Bearer)     | _unset_                  | No       |
-| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for each LLM request in milliseconds                            | `90000`                  | No       |
-| `INNOVATOR_EXTRA_MODELS`   | Comma-separated list of additional model IDs to allow                   | _unset_                  | No       |
-| `INNOVATOR_EMBED_API_KEY`  | API key for the `/api/embed` widget endpoint (via `X-Embed-Key` header) | _unset_                  | No       |
-| `INNOVATOR_EMBED_ORIGINS`  | Comma-separated CORS origins for the `/api/embed` widget endpoint       | `*`                      | No       |
-| `OPENAI_API_KEY`           | OpenAI API key for direct OpenAI provider (non-Copilot usage)           | _unset_                  | No       |
-| `ANTHROPIC_API_KEY`        | Anthropic API key for direct Anthropic provider (non-Copilot usage)     | _unset_                  | No       |
-| `OLLAMA_BASE_URL`          | Base URL for local Ollama instance                                      | `http://localhost:11434` | No       |
-| `PLAYWRIGHT_BASE_URL`      | Base URL for Playwright E2E tests                                       | `http://localhost:3000`  | No       |
-| `MCP_PORT`                 | Port for the MCP server SSE transport                                   | `3100`                   | No       |
-| `GH_TOKEN`                 | GitHub token for Copilot SDK auth in non-interactive/CI environments    | _unset_                  | No       |
-| `ALGOLIA_APP_ID`           | Algolia application ID for documentation search                         | `PLACEHOLDER`            | No       |
-| `ALGOLIA_SEARCH_KEY`       | Algolia search-only API key for documentation search                    | `PLACEHOLDER`            | No       |
-| `ALGOLIA_INDEX_NAME`       | Algolia index name for documentation search                             | `innovator`              | No       |
-| `PORT`                     | Port for the Next.js dev server                                         | `3000`                   | No       |
-| `COPILOT_EXT_PORT`         | HTTP port for the Copilot Extension server                              | `3200`                   | No       |
-| `COPILOT_WEBHOOK_SECRET`   | Webhook secret for verifying incoming Copilot Extension requests        | _unset_                  | No       |
-| `DATABASE_URL`             | PostgreSQL connection string for persistent storage                     | _unset_                  | No       |
-| `STRIPE_SECRET_KEY`        | Stripe secret key for billing integration                               | _unset_                  | No       |
-| `STRIPE_WEBHOOK_SECRET`    | Stripe webhook signing secret                                           | _unset_                  | No       |
-| `GITHUB_CLIENT_ID`         | GitHub OAuth App client ID                                              | _unset_                  | No       |
-| `GITHUB_CLIENT_SECRET`     | GitHub OAuth App client secret                                          | _unset_                  | No       |
-| `GITHUB_REDIRECT_URI`      | GitHub OAuth callback URL                                               | _unset_                  | No       |
+### Required in production
+
+| Variable                       | Required value                                                                         |
+| ------------------------------ | -------------------------------------------------------------------------------------- |
+| `NODE_ENV`                     | `production`                                                                           |
+| `INNOVATOR_DEPLOYMENT_PROFILE` | `single-tenant`                                                                        |
+| `INNOVATOR_API_KEYS`           | One or more unique comma-separated keys; every key must contain at least 32 characters |
+| `GH_TOKEN`                     | Non-empty GitHub token for the production Copilot provider                             |
+
+### Optional or development-only
+
+| Variable                   | Description                                        | Default                   |
+| -------------------------- | -------------------------------------------------- | ------------------------- |
+| `INNOVATOR_DEFAULT_MODEL`  | LLM model used when none is specified              | `gpt-4.1`                 |
+| `INNOVATOR_API_KEY`        | Legacy single key; development/compatibility only  | _unset_                   |
+| `INNOVATOR_LLM_TIMEOUT_MS` | Timeout for each LLM request in milliseconds       | `90000`                   |
+| `INNOVATOR_EXTRA_MODELS`   | Comma-separated additional model IDs               | _unset_                   |
+| `MCP_ALLOWED_ROOT`         | Filesystem boundary for MCP code analysis          | Current working directory |
+| `PORT`                     | Next.js server port                                | `3000`                    |
+| `PLAYWRIGHT_BASE_URL`      | Base URL for Playwright E2E tests                  | `http://localhost:3000`   |
+| `OPENAI_API_KEY`           | Development/experimental direct OpenAI provider    | _unset_                   |
+| `ANTHROPIC_API_KEY`        | Development/experimental direct Anthropic provider | _unset_                   |
+| `OLLAMA_BASE_URL`          | Development/experimental local Ollama provider     | `http://localhost:11434`  |
+| `INNOVATOR_EMBED_API_KEY`  | Development-only `/api/embed` key                  | _unset_                   |
+| `INNOVATOR_EMBED_ORIGINS`  | Development-only `/api/embed` CORS origins         | `*`                       |
+
+OAuth, billing, PostgreSQL, Copilot Extension, portal, integration, and similar variables configure development/experimental code only. Their routes are not part of the production allowlist. The PostgreSQL adapter is not implemented for the first production profile.
 
 ## `INNOVATOR_DEFAULT_MODEL`
 
@@ -48,9 +50,9 @@ INNOVATOR_DEFAULT_MODEL=gpt-5
 
 ## `INNOVATOR_API_KEY`
 
-When set, all web API routes (`/api/investigate`, `/api/innovate`, `/api/auto`) require a matching `X-API-Key` header. Requests without the correct key receive a `401 Unauthorized` response.
+Legacy single-key authentication for development and compatibility. When set, API routes require a matching key.
 
-Leave unset during local development to allow unauthenticated access. **Always set this in production** to prevent unauthorized usage of your Copilot quota.
+Leave unset during local development to allow anonymous requests. Do not combine it with `INNOVATOR_API_KEYS`; production must use the plural variable.
 
 ```bash
 INNOVATOR_API_KEY=my-secret-api-key
@@ -67,17 +69,17 @@ curl -X POST http://localhost:3000/api/investigate \
 
 ## `INNOVATOR_API_KEYS`
 
-When set, enables multi-key authentication. Provide a comma-separated list of valid API keys. Clients authenticate via `Authorization: Bearer <key>` or `X-API-Key: <key>` headers. Each key is assigned a positional identifier (`key-0`, `key-1`, etc.) for audit logging.
+Required in production. Provide one or more comma-separated API keys. Every key must be unique and at least 32 characters long. Clients authenticate with `X-API-Key` or a bearer-scheme `Authorization` header. Each key is assigned a positional identifier (`key-0`, `key-1`, etc.) for logging.
 
-Takes precedence over `INNOVATOR_API_KEY` when both are set.
+Configuring both `INNOVATOR_API_KEYS` and legacy `INNOVATOR_API_KEY` is an error.
 
 ```bash
-INNOVATOR_API_KEYS=team-key-abc,ci-key-xyz,partner-key-123
+INNOVATOR_API_KEYS=replace-with-a-unique-32-character-or-longer-key
 ```
 
 ## `INNOVATOR_EMBED_API_KEY`
 
-When set, the `/api/embed` widget endpoint requires a matching `X-Embed-Key` header. Requests without the correct key receive a `401 Unauthorized` response. Leave unset to allow open access to the embed endpoint (CORS restrictions from `INNOVATOR_EMBED_ORIGINS` still apply).
+Development/experimental only. `/api/embed` returns `404` in production.
 
 ```bash
 INNOVATOR_EMBED_API_KEY=my-embed-secret
@@ -85,7 +87,7 @@ INNOVATOR_EMBED_API_KEY=my-embed-secret
 
 ## `INNOVATOR_EMBED_ORIGINS`
 
-Comma-separated list of allowed CORS origins for the `/api/embed` widget endpoint. Set to `*` (the default) to allow all origins, or restrict to specific domains for production deployments.
+Development/experimental comma-separated CORS origins for `/api/embed`. The endpoint returns `404` in production.
 
 ```bash
 INNOVATOR_EMBED_ORIGINS=https://mysite.com,https://docs.mysite.com
@@ -117,7 +119,7 @@ PORT=3001
 
 ## Alternative LLM Providers
 
-By default, Innovator uses the GitHub Copilot SDK. If you want to use a different LLM provider directly (without Copilot), set the corresponding environment variable.
+Alternative providers are development/experimental options. The first production profile requires `GH_TOKEN` and the GitHub Copilot provider.
 
 ### `OPENAI_API_KEY`
 
@@ -153,17 +155,17 @@ Base URL for Playwright E2E tests. Used by `apps/web/playwright.config.ts`. CI e
 PLAYWRIGHT_BASE_URL=http://localhost:3000
 ```
 
-### `MCP_PORT`
+### `MCP_ALLOWED_ROOT`
 
-Port for the MCP server when using SSE transport (`npx @innovator/mcp-server --sse`).
+Filesystem boundary for MCP code-analysis tools. It defaults to the MCP process working directory. The MCP server uses stdio only; `--sse` fails closed and there is no `MCP_PORT`.
 
 ```bash
-MCP_PORT=3100
+MCP_ALLOWED_ROOT=/absolute/path/to/repository
 ```
 
 ### `GH_TOKEN`
 
-GitHub personal access token used by the Copilot SDK when the GitHub CLI (`gh`) is not available — for example inside Docker containers, CI runners, or headless servers. When set, the SDK uses this token instead of the interactive `gh auth login` session.
+GitHub token used by the Copilot SDK in Docker, CI, and headless environments. It is required in the production profile.
 
 ```bash
 GH_TOKEN=ghp_your_token
@@ -201,7 +203,7 @@ ALGOLIA_INDEX_NAME=innovator
 
 ## API Rate Limits & Security
 
-The Next.js middleware (`apps/web/src/middleware.ts`) applies several security layers to all API routes. These are enforced at the edge before requests reach your route handlers.
+The Next.js proxy (`apps/web/src/proxy.ts`) applies production route policy, authentication, rate limiting, and security headers before requests reach route handlers.
 
 ### Rate Limiting
 
@@ -213,13 +215,13 @@ The Next.js middleware (`apps/web/src/middleware.ts`) applies several security l
 
 When a rate limit is exceeded, the API returns `429 Too Many Requests` with a `Retry-After` header indicating how many seconds to wait.
 
-### Concurrent Request Cap
+### LLM Backpressure
 
-Each IP address is limited to **2 simultaneous in-flight requests**. Additional requests while 2 are already processing receive a `429` response. This prevents a single client from monopolizing server resources.
+Copilot calls share a process-wide semaphore. `INNOVATOR_LLM_MAX_CONCURRENCY` defaults to `2`, and `INNOVATOR_LLM_MAX_QUEUE` defaults to `16`. The request timeout includes time spent waiting for a permit.
 
 ### Body Size Limit
 
-Request bodies are capped at **100 KB**. Requests exceeding this limit receive a `413 Payload Too Large` response. Mutation requests (`POST`, `PUT`, `PATCH`) must include a `Content-Length` header or they receive a `411 Length Required` response.
+Supported JSON request bodies are capped at **100 KB using the actual streamed byte count**. Requests exceeding this limit receive `413 Payload Too Large`. Chunked requests are supported; `Content-Length` is used only for an early rejection when present.
 
 ### Content Security Policy
 
@@ -231,19 +233,15 @@ Every API response includes an `X-Request-ID` header (a UUID) for tracing reques
 
 ### Authentication
 
-When `INNOVATOR_API_KEY` or `INNOVATOR_API_KEYS` is set, all `/api/*` routes require a valid key via the `X-API-Key` or `Authorization: Bearer` header. See the [API Key](#innovator_api_key) and [Multi-Key Auth](#innovator_api_keys) sections above.
+Production always requires `INNOVATOR_API_KEYS`, and every supported `/api/*` route requires a valid key via `X-API-Key` or `Authorization: Bearer`. Only `/healthz` and `/readyz` are public.
 
 ### Self-Hosting Considerations
 
-The built-in rate limiter uses an **in-memory Map** and is effective for single-instance deployments. In multi-instance environments (e.g., Vercel serverless, Kubernetes), each instance maintains its own map — making rate limits less effective. For production multi-instance deployments, consider:
-
-- [Vercel's built-in rate limiting](https://vercel.com/docs/functions/ratelimit)
-- [Upstash Redis-based rate limiting](https://upstash.com/docs/oss/sdks/ts/ratelimit/overview)
-- A shared Redis store behind a custom middleware
+The rate limiter, metering, and runtime state are process-local. Run one production replica only. Vercel/serverless deployments and horizontal scaling are unsupported for the first production profile.
 
 ## `.innovator/` Directory
 
-The `.innovator/` directory at the project root stores local workspace state managed by the storage layer. It is created automatically when workspaces are used.
+Innovator stores application state under `/home/innovator/.innovator` and Copilot session state under `/home/innovator/.copilot`. The production container backs these with `innovator_data` and `copilot_data`. Local development modules may also create repository-local `.innovator/` state.
 
 ### Directory Structure
 
@@ -290,21 +288,23 @@ The `.innovator/` directory is included in `.gitignore` by default. Workspace st
 
 ### Backup & Restore
 
-To back up workspace state, copy the entire `.innovator/` directory. To restore, replace it with the backup copy. The JSON files are self-contained and do not reference external state.
+For local development, copy the entire relevant `.innovator/` directory. For production, back up and restore both Docker volumes while the service is stopped. See the [Deployment guide](/docs/guides/deployment#state-replicas-and-backups).
 
 ### Resetting Workspace State
 
-To reset all workspace state, delete the `.innovator/` directory:
+This operation is for local development only. To reset local workspace state, delete the relevant `.innovator/` directory:
 
 ```bash
 rm -rf .innovator/
 ```
 
-Workspaces will be re-created as empty when the application next writes to the storage layer. This does not affect investigation history stored in other storage backends (e.g., SQLite).
+Do not delete the production volume as a troubleshooting shortcut; restore a known-good backup instead.
 
 ## Build & Test Configuration
 
 The monorepo uses shared configuration files at the repository root. Each package and app may extend these via local overrides.
+
+The supported runtime baseline is Node.js 22+, Next.js 16.2.12, `postcss` 8.5.23, and `sharp` 0.35.3.
 
 ### `tsconfig.base.json`
 
@@ -339,11 +339,11 @@ npm run lint
 
 Unit and integration test runner for the monorepo:
 
-- **Test files:** `packages/*/src/**/*.test.ts` and `apps/*/src/**/*.test.ts`
+- **Test files:** `packages/*/src/**/*.test.ts` and `apps/*/src/**/*.test.{ts,tsx}`
 - **Environment:** `jsdom` for web application tests (React component testing)
 - **Path alias:** `@` maps to `apps/web/src` for import convenience
-- **Coverage provider:** `v8` with 35% minimum thresholds for lines, functions, and branches
-- **Coverage reports:** `text` (terminal) and `json-summary`
+- **Coverage provider:** `v8` with thresholds of 72% lines, 73% functions, and 58% branches
+- **Coverage reports:** `text` (terminal) and `lcov`
 
 Run tests with:
 

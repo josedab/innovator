@@ -6,17 +6,23 @@ sidebar_position: 6
 
 # LLM Provider Setup
 
-Innovator uses GitHub Copilot as its default LLM provider — no extra API keys needed. If you want to use a different provider (OpenAI directly, Anthropic, or a local Ollama instance), this guide walks you through end-to-end setup.
+Innovator uses GitHub Copilot as its default LLM provider. Local development can reuse GitHub CLI authentication; production requires `GH_TOKEN`. This guide also covers development-only alternatives such as direct OpenAI, Anthropic, and local Ollama access.
+
+:::caution Production provider
+The first production profile requires GitHub Copilot and an explicit non-empty `GH_TOKEN`. Direct OpenAI, Anthropic, and Ollama providers in this guide are for development and experimentation.
+:::
 
 ## Default: GitHub Copilot
 
-No configuration is required. Innovator uses your GitHub Copilot subscription via the `@github/copilot-sdk`. As long as:
+For local development, Innovator can use your GitHub Copilot subscription via the `@github/copilot-sdk` and the authenticated GitHub CLI. Ensure:
 
 1. **GitHub CLI** is installed (`gh --version`)
 2. **GitHub CLI** is authenticated (`gh auth login`)
 3. You have an active **Copilot subscription** (Free, Pro, or Enterprise)
 
 …the default provider works out of the box. Run `npm run doctor` to verify.
+
+For production, pass a non-empty `GH_TOKEN` explicitly; do not rely on interactive GitHub CLI authentication inside the container.
 
 ---
 
@@ -246,7 +252,7 @@ When using Ollama with smaller models (7B–13B parameters), be aware of these l
 - **Speed** — Expect 30–120 seconds per angle on consumer hardware vs. 3–10 seconds with cloud providers.
 - **Concurrent requests** — Limited by local GPU/CPU. The default concurrency of 2 may cause slowdowns on modest hardware.
 
-**Recommendation:** For production use, cloud providers (Copilot, OpenAI, Anthropic) give the best results. Use Ollama for offline development, privacy-sensitive workloads, or experimentation.
+**Recommendation:** Use the Copilot provider with `GH_TOKEN` for the first production profile. OpenAI, Anthropic, and Ollama remain development/experimental options; Ollama is useful for offline or privacy-sensitive local experimentation.
 
 ---
 

@@ -8,14 +8,16 @@ sidebar_position: 6
 
 This page explains the technical architecture, key design decisions, and data flow of Innovator.
 
-## System Overview
+## Development System Overview
+
+The following diagram includes development and experimental adapters. It is not the production deployment topology.
 
 ```mermaid
 graph TB
     User([User])
 
     subgraph "Web App (apps/web)"
-        NextJS[Next.js 16 App Router]
+        NextJS[Next.js 16.2.12 App Router]
         Pages[React Pages & Components]
         Routes[API Routes]
         Pages --> Routes
@@ -84,6 +86,28 @@ graph TB
     Client --> Ollama
 ```
 
+## Production Topology
+
+The first production profile is a headless, single-process, single-tenant API:
+
+```mermaid
+flowchart LR
+    Client[Authenticated API client]
+    Proxy[Authenticated TLS reverse proxy]
+    API[Single Innovator process]
+    Copilot[GitHub Copilot via GH_TOKEN]
+    AppVolume[(innovator_data)]
+    CopilotVolume[(copilot_data)]
+
+    Client -->|HTTPS| Proxy
+    Proxy -->|X-API-Key or Bearer| API
+    API --> Copilot
+    API -->|/home/innovator/.innovator| AppVolume
+    API -->|/home/innovator/.copilot| CopilotVolume
+```
+
+Docker Compose binds the API to `127.0.0.1:3000`; only the reverse proxy should accept external traffic. Rate limiting and runtime coordination are process-local, so production supports one replica only. Browser pages and non-allowlisted API routes return `404`.
+
 ## Monorepo Structure
 
 ### Workspace Dependency Graph
@@ -144,7 +168,7 @@ Innovator supports multiple LLM providers through a unified `LLMProvider` interf
 | **Anthropic** | `ANTHROPIC_API_KEY` | —                        | Direct Anthropic API access     |
 | **Ollama**    | `OLLAMA_BASE_URL`   | `http://localhost:11434` | Local LLM inference             |
 
-The Copilot provider is the default and requires no API keys — it uses the authenticated GitHub CLI (`gh auth login`). Alternative providers are available for environments without Copilot access.
+The Copilot provider is the default. Interactive development can use `gh auth login`; production requires `GH_TOKEN`. Alternative providers are development/experimental and are not part of the first production profile.
 
 ## MCP Server
 
@@ -152,17 +176,18 @@ The MCP (Model Context Protocol) server (`packages/mcp-server/`) exposes Innovat
 
 ```
 AI Client (Claude Desktop / Cursor / VS Code)
-  ↕ stdio or SSE
+  ↕ stdio
 MCP Server → @innovator/core → LLM Provider → LLM
 ```
 
 **Architecture:**
 
-- `src/index.ts` — Server entry point, transport selection (stdio default, SSE via `--sse`)
-- `src/handlers.ts` — Tool implementations wrapping core functions (`handleInvestigate`, `handleGenerate`, `handleAutoPipeline`)
+- `src/index.ts` — Process entry point
+- `src/server.ts` — MCP server registration and stdio transport
+- `src/handlers.ts` — Tool implementations, input validation, and filesystem boundary checks
 - `src/schemas.ts` — Zod validation schemas for tool inputs
 
-**Exposed tools:** `investigate`, `innovate`, `auto`
+The legacy `--sse` flag fails closed. Filesystem tools are restricted to `MCP_ALLOWED_ROOT` (current working directory by default), and `innovate-from-code.maxFiles` is capped at `1000`.
 
 ## Bot
 
@@ -275,14 +300,11 @@ Safety guards:
 - All `controller.enqueue()` calls are wrapped in try/catch
 - The client detects premature EOF and shows a retry message
 
-## Stateless Design
+## State and Deployment Model
 
-V1 is deliberately **stateless** — no database, no sessions, no persistence. All state lives in:
+Production uses filesystem state in `/home/innovator/.innovator` and Copilot state in `/home/innovator/.copilot`, persisted by separate Docker volumes. The PostgreSQL adapter is not implemented, so production does not provision PostgreSQL or pgAdmin.
 
-- The browser (React state during a session)
-- The terminal (CLI output)
-
-This simplifies deployment (no database to provision) but means results are lost when you close the browser tab. Persistence is planned for v2.
+Rate limiting, metering, and runtime coordination remain in-process. This combination requires a single replica and makes Vercel/serverless or horizontal scaling unsupported. Operators must back up and restore the volume as a unit.
 
 ## Validation & Schemas
 

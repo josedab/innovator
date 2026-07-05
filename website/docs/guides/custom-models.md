@@ -8,6 +8,10 @@ sidebar_position: 4
 
 Innovator supports any model available through your GitHub Copilot subscription, plus direct access to OpenAI, Anthropic, and local Ollama models. You can switch models at runtime without changing any configuration.
 
+:::caution Production provider
+The first production profile requires the GitHub Copilot provider and a non-empty `GH_TOKEN`. Direct OpenAI, Anthropic, and Ollama providers are development/experimental options.
+:::
+
 ## Default Model
 
 The default model is configured via the `INNOVATOR_DEFAULT_MODEL` environment variable:

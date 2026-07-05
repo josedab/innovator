@@ -2356,6 +2356,36 @@ Run parallel investigations without synthesis.
 
 All API routes return JSON responses with consistent error shapes. See [Error Responses](#error-responses) below for details.
 
+### Production Availability
+
+The first production release is a headless, single-process, single-tenant API. Only these routes are available:
+
+| Access    | Method | Route                 |
+| --------- | ------ | --------------------- |
+| Public    | GET    | `/healthz`            |
+| Public    | GET    | `/readyz`             |
+| Protected | GET    | `/api/health`         |
+| Protected | GET    | `/api/angles`         |
+| Protected | GET    | `/api/presets`        |
+| Protected | POST   | `/api/investigate`    |
+| Protected | POST   | `/api/innovate`       |
+| Protected | POST   | `/api/auto`           |
+| Protected | POST   | `/api/nl-innovate`    |
+| Protected | POST   | `/api/v1/investigate` |
+| Protected | POST   | `/api/v1/innovate`    |
+| Protected | POST   | `/api/v1/auto`        |
+| Protected | GET    | `/api/v1/openapi`     |
+
+All protected routes require `X-API-Key` or `Authorization: Bearer`. Other route documentation on this page describes development/experimental handlers that return `404` in production. Using the wrong method on an allowlisted path returns `405`.
+
+### `GET /healthz`
+
+Public liveness probe. Returns `200` when the process can answer HTTP.
+
+### `GET /readyz`
+
+Public readiness probe. Validates production configuration, both writable state volumes, and Copilot provider model availability. Returns `503` when the instance is not ready.
+
 ### `POST /api/investigate`
 
 ```json
@@ -2468,14 +2498,7 @@ async function runAuto(subject) {
 
 ### `GET /api/health`
 
-Returns the service status and version.
-
-```json
-// Response (200)
-{ "status": "ok", "version": "0.2.0" }
-```
-
-The `version` value comes from `npm_package_version` (defaults to `"0.2.0"`).
+Authenticated detailed component health report. Returns `503` when the report is unhealthy.
 
 ---
 
@@ -2631,6 +2654,8 @@ Innovation analytics and event tracking.
 ### `GET /api/angles` · `POST /api/angles` · `DELETE /api/angles`
 
 Manage built-in and custom innovation angles.
+
+Only `GET /api/angles` is available in production. `POST` and `DELETE` are development/experimental and return `404`.
 
 ```json
 // GET — List all angles
@@ -2864,38 +2889,13 @@ Authenticated full pipeline with optional streaming.
 
 **Rate limit:** 10 req/min.
 
-### `POST /api/v1/keys` · `GET /api/v1/keys` · `DELETE /api/v1/keys`
+### Dynamic V1 Keys and Plugins
 
-API key management.
-
-```json
-// POST — Create key
-{ "name": "My Integration" }
-// Response (201)
-{ "id": "...", "name": "...", "key": "inv_...", ... }
-
-// GET — List keys
-// Response (200)
-{ "keys": [{ "id": "...", "name": "...", "enabled": true, ... }] }
-
-// DELETE — Revoke key
-{ "id": "key-id" }
-// Response (200)
-{ "success": true }
-```
+`/api/v1/keys` and `/api/v1/plugins` are development/experimental and return `404` in production. Production keys are configured statically through `INNOVATOR_API_KEYS`.
 
 ### `GET /api/v1/openapi`
 
-Returns the OpenAPI specification for the V1 API as JSON.
-
-### `GET /api/v1/plugins`
-
-List registered plugins. Requires API key authentication.
-
-```json
-// Response (200)
-{ "data": [{ "id": "...", "name": "...", "type": "...", "version": "...", "description": "..." }] }
-```
+Returns the OpenAPI specification for the V1 API as JSON. This route requires API-key authentication in production.
 
 ---
 
@@ -2983,6 +2983,8 @@ All API routes validate request bodies with [Zod](https://zod.dev/). These schem
 
 ### `POST /api/angles`
 
+Development/experimental only; returns `404` in production.
+
 | Field            | Type       | Required | Constraints                                 |
 | ---------------- | ---------- | -------- | ------------------------------------------- |
 | `id`             | `string`   | Yes      | 1–100 chars, lowercase `[a-z0-9-]`          |
@@ -3055,17 +3057,18 @@ Route-specific messages:
 
 ## Rate Limiting
 
-All API routes are protected by middleware-level rate limiting (see `apps/web/src/middleware.ts`). Limits are enforced per client IP using an in-memory store.
+Supported production API routes are protected by proxy-level rate limiting (see `apps/web/src/proxy.ts`). Limits are enforced per client IP using an in-memory store.
 
 ### Limits
 
-| Constraint            | Value      | Scope        |
-| --------------------- | ---------- | ------------ |
-| Global rate limit     | 10 req/min | All `/api/*` |
-| `/api/innovate` limit | 5 req/min  | Per IP       |
-| `/api/auto` limit     | 3 req/min  | Per IP       |
-| Concurrent requests   | 2 per IP   | All `/api/*` |
-| Max request body size | 100 KB     | All `/api/*` |
+| Constraint            | Value      | Scope         |
+| --------------------- | ---------- | ------------- |
+| Global rate limit     | 10 req/min | All `/api/*`  |
+| `/api/innovate` limit | 5 req/min  | Per IP        |
+| `/api/auto` limit     | 3 req/min  | Per IP        |
+| Copilot concurrency   | 2 active   | Per process   |
+| Copilot wait queue    | 16 calls   | Per process   |
+| Max JSON body size    | 100 KB     | Streamed body |
 
 ### 429 Response
 
@@ -3079,20 +3082,17 @@ Route-specific messages:
 
 - **`/api/innovate`**: `"Too many innovate requests. Please try again later."`
 - **`/api/auto`**: `"Too many auto requests. Please try again later."`
-- **Concurrent limit**: `"Too many concurrent requests. Please wait for existing requests to complete."`
 
-### 411 Response
+### Body Size Enforcement
 
-All mutation requests (`POST`, `PUT`, `PATCH`) require a `Content-Length` header. Requests without it receive a `411 Length Required` response:
+Supported JSON endpoints measure the actual streamed request body and reject payloads over 100 KB:
 
 ```json
-{ "error": "Content-Length header is required." }
+{ "error": "Request body too large" }
 ```
 
-### In-Flight Request Timeout
+Chunked requests are supported. Copilot work is bounded separately by the process-wide concurrency and queue settings.
 
-In-flight request slots are automatically freed after 3 minutes (`INFLIGHT_TIMEOUT_MS = 180000`) as a safety mechanism. This prevents permanent counter leaks when response completion cannot be detected (e.g., long-running `/api/auto` pipelines or dropped connections).
-
-:::note
-The in-memory rate limiter works for single-instance deployments only. For multi-instance environments (Vercel, Kubernetes), use Redis or a platform-provided rate limiting solution.
+:::caution Production replica count
+The rate limiter and related runtime state are process-local. The production profile supports exactly one replica; Vercel/serverless and horizontal scaling are unsupported.
 :::

@@ -6,51 +6,33 @@ sidebar_position: 3
 
 # MCP Server
 
-The Innovator MCP (Model Context Protocol) server exposes Innovator's capabilities as tools callable by any MCP-compatible AI client — Claude Desktop, Cursor, Windsurf, VS Code, and others.
+The Innovator MCP (Model Context Protocol) server exposes Innovator tools to MCP-compatible clients such as VS Code, Cursor, Windsurf, and Claude Desktop.
 
-## Installation
+## Transport
 
-From the monorepo root:
-
-```bash
-npm install
-npm run build -w packages/mcp-server
-```
-
-## Usage
-
-### stdio transport (default)
+The server supports **stdio only**:
 
 ```bash
 npx @innovator/mcp-server
 ```
 
-The server communicates over stdin/stdout, which is the standard MCP transport for local tool integrations.
-
-### SSE transport
-
-```bash
-npx @innovator/mcp-server --sse
-```
-
-Starts an HTTP server on port **3100** (configurable via `MCP_PORT` environment variable) that exposes MCP tools over Server-Sent Events.
-
-```bash
-MCP_PORT=4000 npx @innovator/mcp-server --sse
-```
+The legacy `--sse` flag fails closed with an error. Innovator does not start an MCP HTTP/SSE listener and does not use `MCP_PORT`.
 
 ## Client Configuration
 
 ### Claude Desktop
 
-Add to your `claude_desktop_config.json`:
+Add to `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "innovator": {
       "command": "npx",
-      "args": ["@innovator/mcp-server"]
+      "args": ["@innovator/mcp-server"],
+      "env": {
+        "MCP_ALLOWED_ROOT": "/absolute/path/to/repository"
+      }
     }
   }
 }
@@ -58,14 +40,17 @@ Add to your `claude_desktop_config.json`:
 
 ### VS Code / Cursor
 
-Add to `.vscode/mcp.json` in your project:
+Add to `.vscode/mcp.json`:
 
 ```json
 {
   "servers": {
     "innovator": {
       "command": "npx",
-      "args": ["@innovator/mcp-server"]
+      "args": ["@innovator/mcp-server"],
+      "env": {
+        "MCP_ALLOWED_ROOT": "${workspaceFolder}"
+      }
     }
   }
 }
@@ -73,61 +58,52 @@ Add to `.vscode/mcp.json` in your project:
 
 ## Available Tools
 
-| Tool          | Description                                                              |
-| ------------- | ------------------------------------------------------------------------ |
-| `investigate` | Analyze a subject to identify key aspects, challenges, and opportunities |
-| `innovate`    | Generate ideas using a specific creativity angle                         |
-| `auto`        | Run the full pipeline: investigate → generate → synthesize               |
+Core tools include:
 
-### `investigate`
+| Tool                    | Description                                                              |
+| ----------------------- | ------------------------------------------------------------------------ |
+| `investigate`           | Analyze a subject to identify key aspects, challenges, and opportunities |
+| `innovate`              | Generate ideas with a selected creativity angle                          |
+| `auto`                  | Run the investigate → generate → synthesize pipeline                     |
+| `nl-innovate`           | Execute an innovation workflow from a natural-language prompt            |
+| `innovate-from-code`    | Analyze a codebase for debt, gaps, bottlenecks, and opportunities        |
+| `innovate-file`         | Analyze one file for complexity, patterns, and opportunities             |
+| `innovate-architecture` | Analyze repository architecture and produce Innovation PR plans          |
 
-Analyzes a subject and returns structured findings including key aspects, state of the art, challenges, and opportunities.
+The server also exposes additional research, memory, persona, swarm, network, resource, and prompt capabilities. Inspect the tools advertised by your MCP client for the installed version.
 
-**Parameters:**
+## Filesystem Restrictions
 
-- `subject` (string, required) — the topic to investigate
-- `model` (string, optional) — LLM model override
+Filesystem analysis fails unless the requested real path remains inside `MCP_ALLOWED_ROOT`.
 
-### `innovate`
+- Default root: the MCP process working directory
+- Symlinks: resolved before the containment check
+- `innovate-from-code.maxFiles`: default `200`, minimum `1`, maximum `1000`
 
-Generates innovation ideas using a specified angle (e.g., SCAMPER, First Principles).
-
-**Parameters:**
-
-- `subject` (string, required) — the topic to innovate on
-- `angle` (string, required) — one of the 8 innovation angles
-- `investigation` (object, optional) — prior investigation results for context
-- `model` (string, optional) — LLM model override
-
-### `auto`
-
-Runs the complete pipeline: investigate → generate ideas across all angles → synthesize.
-
-**Parameters:**
-
-- `subject` (string, required) — the topic to analyze
-- `model` (string, optional) — LLM model override
+Set the narrowest practical root. Do not point `MCP_ALLOWED_ROOT` at an entire home directory when only one repository is needed.
 
 ## Environment Variables
 
-| Variable                  | Description            | Default   |
-| ------------------------- | ---------------------- | --------- |
-| `MCP_PORT`                | Port for SSE transport | `3100`    |
-| `INNOVATOR_DEFAULT_MODEL` | Default LLM model      | `gpt-4.1` |
+| Variable                   | Description                                             | Default                   |
+| -------------------------- | ------------------------------------------------------- | ------------------------- |
+| `MCP_ALLOWED_ROOT`         | Filesystem boundary for code-analysis tools             | Current working directory |
+| `INNOVATOR_DEFAULT_MODEL`  | Default LLM model                                       | `gpt-4.1`                 |
+| `INNOVATOR_LLM_TIMEOUT_MS` | LLM request timeout in milliseconds                     | `90000`                   |
+| `GH_TOKEN`                 | Copilot authentication for non-interactive environments | _unset_                   |
 
-The MCP server uses the same LLM provider configuration as the rest of Innovator. See [Configuration](/docs/configuration) for all environment variables.
+For local interactive use, the Copilot provider can use an authenticated GitHub CLI session (`gh auth login`).
 
 ## Architecture
 
-```
-AI Client (Claude Desktop / Cursor / VS Code)
-  ↕ stdio or SSE
-MCP Server
-  ├── index.ts      → transport selection and server setup
-  ├── handlers.ts   → tool implementations wrapping @innovator/core
-  └── schemas.ts    → Zod input validation schemas
+```text
+MCP client
+  ↕ stdio
+@innovator/mcp-server
+  ├── server.ts    → tools, resources, prompts, transport
+  ├── handlers.ts  → validation and filesystem boundary checks
+  └── schemas.ts   → Zod input schemas
         ↓
-  @innovator/core → LLM Provider → LLM
+@innovator/core → GitHub Copilot
 ```
 
-The MCP server is a thin wrapper around `@innovator/core`. All business logic lives in the core package.
+All business logic remains in `@innovator/core`; the MCP package is a transport and validation adapter.

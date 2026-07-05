@@ -18,6 +18,8 @@ Innovator ships with **217 feature modules** in `@innovator/core`. This catalog 
 
 > **Tip:** All modules are importable from `@innovator/core`. Some are also re-exported through higher-level APIs like the CLI, web app, and MCP server.
 
+> **Production scope:** Module maturity does not imply HTTP availability. The first production deployment exposes only the documented headless API allowlist; experimental web/SaaS routes return `404`.
+
 ---
 
 ## Core Pipeline
@@ -337,17 +339,17 @@ Getting innovation subjects into the system.
 
 Extensibility and marketplace.
 
-| Module                | Description                                                                                           |
-| --------------------- | ----------------------------------------------------------------------------------------------------- |
-| **plugins**           | Plugin system infrastructure — angle plugins, exporter plugins, visualizer plugins                    |
-| **marketplace**       | Plugin Marketplace & Registry — discover, install, publish, and manage community plugins              |
-| **extension**         | Copilot Extension development support                                                                 |
-| **presets**           | Pre-configured pipeline presets                                                                       |
-| **angle-studio**      | Visual pipeline editor for custom angle sequences with drag-and-drop, validation, and cycle detection |
-| **api-playground**    | Interactive API playground for testing core functions with live results                               |
-| **playground**        | General-purpose innovation playground for experimentation                                             |
-| **nl-pipeline**       | Natural language pipeline definition — describe innovation workflows in plain English                 |
-| **nl-innovation-api** | Natural language API — interact with the innovation engine via conversational commands                |
+| Module                | Description                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **plugins**           | Plugin system infrastructure — angle plugins, exporter plugins, visualizer plugins                             |
+| **marketplace**       | Plugin Marketplace & Registry — discover, install, publish, and manage community plugins                       |
+| **extension**         | Compatibility/migration helpers for the GitHub App-based Copilot Extensions platform retired November 10, 2025 |
+| **presets**           | Pre-configured pipeline presets                                                                                |
+| **angle-studio**      | Visual pipeline editor for custom angle sequences with drag-and-drop, validation, and cycle detection          |
+| **api-playground**    | Interactive API playground for testing core functions with live results                                        |
+| **playground**        | General-purpose innovation playground for experimentation                                                      |
+| **nl-pipeline**       | Natural language pipeline definition — describe innovation workflows in plain English                          |
+| **nl-innovation-api** | Natural language API — interact with the innovation engine via conversational commands                         |
 
 ---
 

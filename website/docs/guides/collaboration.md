@@ -8,6 +8,10 @@ sidebar_position: 13
 
 Innovator supports real-time collaborative innovation sessions where multiple users brainstorm together on a shared subject. A host creates a session, shares a room code, and participants submit ideas, vote, comment, and merge overlapping ideas.
 
+:::caution Production availability
+Collaboration and realtime multi-user surfaces are development/experimental. Their browser and API routes return `404` in the first production profile.
+:::
+
 ## Overview
 
 A collaborative session follows this lifecycle:

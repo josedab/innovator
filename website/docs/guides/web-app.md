@@ -1,12 +1,16 @@
 ---
 id: web-app
-title: Web App Guide
+title: Web App Development Guide
 sidebar_position: 1
 ---
 
-# Web App Guide
+# Web App Development Guide
 
-The web app is the primary interface for Innovator. It provides a visual, step-by-step flow for investigating subjects and exploring innovation angles.
+The browser UI provides a visual development experience for investigating subjects and exploring innovation angles.
+
+:::caution Production availability
+The first production release is a headless API. Browser pages, PWA features, dashboards, and experimental SaaS surfaces intentionally return `404` when `NODE_ENV=production`.
+:::
 
 ## Starting the app
 
@@ -72,9 +76,33 @@ The auto mode panel shows real-time progress:
 
 When complete, the app automatically transitions to the Results view with full synthesis.
 
-## API routes
+## API Routes
 
-The web app exposes the following API endpoints. All routes validate request bodies with Zod and return structured JSON error responses on failure.
+### Supported in Production
+
+Only these routes are available in the `single-tenant` production profile:
+
+| Access    | Method | Route                 |
+| --------- | ------ | --------------------- |
+| Public    | GET    | `/healthz`            |
+| Public    | GET    | `/readyz`             |
+| Protected | GET    | `/api/health`         |
+| Protected | GET    | `/api/angles`         |
+| Protected | GET    | `/api/presets`        |
+| Protected | POST   | `/api/investigate`    |
+| Protected | POST   | `/api/innovate`       |
+| Protected | POST   | `/api/auto`           |
+| Protected | POST   | `/api/nl-innovate`    |
+| Protected | POST   | `/api/v1/investigate` |
+| Protected | POST   | `/api/v1/innovate`    |
+| Protected | POST   | `/api/v1/auto`        |
+| Protected | GET    | `/api/v1/openapi`     |
+
+Protected routes accept `X-API-Key` or `Authorization: Bearer`. See the [Deployment guide](/docs/guides/deployment).
+
+### Development Route Catalog
+
+The remaining route catalog describes development and experimental surfaces. These routes can be exercised with `npm run dev`, but return `404` in production unless listed above.
 
 ### Core Pipeline
 
@@ -201,22 +229,22 @@ The web app exposes the following API endpoints. All routes validate request bod
 
 ### Authenticated API (v1)
 
-These routes require an `X-API-Key` header. See the [V1 API Guide](/docs/guides/v1-api) for details.
+These production routes require an API key. See the [V1 API Guide](/docs/guides/v1-api) for details.
 
-| Route                 | Method            | Description                                                  |
-| --------------------- | ----------------- | ------------------------------------------------------------ |
-| `/api/v1/investigate` | POST              | Programmatic investigation with API key auth + rate limiting |
-| `/api/v1/innovate`    | POST              | Generate ideas with API key auth + rate limiting             |
-| `/api/v1/auto`        | POST              | Run full pipeline with optional streaming + auth             |
-| `/api/v1/keys`        | GET, POST, DELETE | Manage API keys: list, create, or revoke                     |
-| `/api/v1/openapi`     | GET               | Serve OpenAPI specification in JSON format                   |
-| `/api/v1/plugins`     | GET               | List registered plugins with API key authentication          |
+| Route                 | Method | Description                                                  |
+| --------------------- | ------ | ------------------------------------------------------------ |
+| `/api/v1/investigate` | POST   | Programmatic investigation with API key auth + rate limiting |
+| `/api/v1/innovate`    | POST   | Generate ideas with API key auth + rate limiting             |
+| `/api/v1/auto`        | POST   | Run full pipeline with optional streaming + auth             |
+| `/api/v1/openapi`     | GET    | Serve the authenticated OpenAPI specification                |
+
+Dynamic key management and plugin-listing routes are development/experimental only and return `404` in production.
 
 For full request/response schemas, see the [API Reference](/docs/api-reference#web-api-routes).
 
 ## PWA Support
 
-The web app includes Progressive Web App (PWA) capabilities via the `usePWA()` hook in `apps/web/src/lib/use-pwa.ts`. This enables install-to-home-screen, offline detection, and service worker registration.
+PWA capabilities are development/experimental because browser routes are unavailable in production. The `usePWA()` hook in `apps/web/src/lib/use-pwa.ts` supports local UI development with install-to-home-screen, offline detection, and service worker registration.
 
 ### `usePWA()` Hook
 
@@ -257,11 +285,11 @@ function MyComponent() {
 
 ### Prerequisites
 
-For full PWA support, ensure your deployment includes:
+For PWA experiments on a development or staging browser host, provide:
 
 - A `public/manifest.json` (or `manifest.webmanifest`) with app name, icons, and display mode
 - A `public/sw.js` service worker for caching strategies
-- HTTPS (required for service workers in production)
+- HTTPS when not using localhost
 
 ### Offline Behavior
 
@@ -286,7 +314,7 @@ self.addEventListener("fetch", (event) => {
 });
 ```
 
-The service worker lifecycle follows standard patterns: `install` → `activate` → `fetch`. Updates are detected automatically — when a new `sw.js` is deployed, the browser installs it in the background and activates it on the next page load.
+The service worker lifecycle follows standard patterns: `install` → `activate` → `fetch`. Updates are detected automatically—when a new `sw.js` is published to the development or staging host, the browser installs it in the background and activates it on the next page load.
 
 ### Push Notifications
 
@@ -372,9 +400,12 @@ Link the manifest in your root layout (`apps/web/src/app/layout.tsx`):
 
 ### Example: Call the investigation API directly
 
+In development, authentication may be omitted when no key is configured. Production requests must include one configured API key.
+
 ```bash
 curl -X POST http://localhost:3000/api/investigate \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
   -d '{"subject": "remote work tools"}'
 ```
 
@@ -383,6 +414,7 @@ curl -X POST http://localhost:3000/api/investigate \
 ```bash
 curl -X POST http://localhost:3000/api/innovate \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
   -d '{
     "subject": "remote work tools",
     "investigation": { ... },

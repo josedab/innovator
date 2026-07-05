@@ -6,347 +6,227 @@ sidebar_position: 5
 
 # Deployment
 
-This guide covers deploying the Innovator web app to production.
+The first production release supports one deployment profile: a **headless, single-process, single-tenant API** running as one Docker Compose replica.
 
-## Prerequisites
+The browser UI and experimental SaaS surfaces are intentionally unavailable in production and return `404`.
 
-Before deploying, ensure:
+## Runtime Requirements
 
-1. **GitHub CLI** (`gh`) is authenticated on the deployment target — the Copilot SDK requires it
-2. **GitHub Copilot subscription** is active for the authenticated account
-3. **Node.js 20+** is available in the runtime
+- Node.js 22+ for local builds and repository tooling
+- Next.js 16.2.12
+- GitHub Copilot access through `GH_TOKEN`
+- Persistent Docker volumes for `/home/innovator/.innovator` and `/home/innovator/.copilot`
+- An authenticated TLS reverse proxy in front of the service
 
-## Environment Variables
+Root dependency overrides pin `postcss` 8.5.23 and `sharp` 0.35.3.
 
-Set these in your deployment platform's environment configuration:
+## Required Environment
 
-| Variable                   | Required | Description                                    |
-| -------------------------- | -------- | ---------------------------------------------- |
-| `INNOVATOR_DEFAULT_MODEL`  | No       | Default LLM model (default: `gpt-4.1`)         |
-| `INNOVATOR_API_KEY`        | **Yes**  | Protects API routes — always set in production |
-| `INNOVATOR_LLM_TIMEOUT_MS` | No       | LLM timeout in ms (default: `90000`)           |
-| `INNOVATOR_EXTRA_MODELS`   | No       | Additional model IDs (comma-separated)         |
-| `PORT`                     | No       | Server port (default: `3000`)                  |
+Production startup requires all of these variables:
 
-:::caution
-**Always set `INNOVATOR_API_KEY` in production.** Without it, anyone with access to your deployment URL can consume your Copilot quota.
+| Variable                       | Requirement                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| `NODE_ENV`                     | Exactly `production`                                                              |
+| `INNOVATOR_DEPLOYMENT_PROFILE` | Exactly `single-tenant`                                                           |
+| `INNOVATOR_API_KEYS`           | One or more unique comma-separated keys; every key must be at least 32 characters |
+| `GH_TOKEN`                     | Non-empty token used by the production Copilot provider                           |
+
+Generate a key with at least 32 characters:
+
+```bash
+export INNOVATOR_CLIENT_API_KEY="$(openssl rand -hex 32)"
+export INNOVATOR_API_KEYS="$INNOVATOR_CLIENT_API_KEY"
+export GH_TOKEN="$(gh auth token)"
+```
+
+For rotation, add a second unique key to the comma-separated list, deploy, update clients, and then remove the old key.
+
+:::caution Legacy key
+`INNOVATOR_API_KEY` is a legacy single-key setting. Do not configure it together with `INNOVATOR_API_KEYS`; that is a startup error. Production must use `INNOVATOR_API_KEYS`.
 :::
 
-See the [Configuration Reference](/docs/configuration) for full details on each variable.
+## Start with Docker Compose
 
-## Vercel
+From the repository root:
 
-The repository includes a `vercel.json` at the project root that pre-configures Vercel deployments:
+```bash
+export INNOVATOR_CLIENT_API_KEY="$(openssl rand -hex 32)"
+export INNOVATOR_API_KEYS="$INNOVATOR_CLIENT_API_KEY"
+export GH_TOKEN="$(gh auth token)"
 
-```json
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "apps/web/.next",
-  "installCommand": "npm install",
-  "framework": "nextjs",
-  "rewrites": [{ "source": "/api/:path*", "destination": "/api/:path*" }]
+docker compose config --quiet
+docker compose up -d --build
+docker compose ps
+```
+
+The Compose service:
+
+- binds `127.0.0.1:3000:3000`
+- requires `INNOVATOR_API_KEYS` and `GH_TOKEN`
+- sets `NODE_ENV=production`
+- sets `INNOVATOR_DEPLOYMENT_PROFILE=single-tenant`
+- mounts `innovator_data` at `/home/innovator/.innovator`
+- mounts `copilot_data` at `/home/innovator/.copilot`
+- runs with a read-only root filesystem and a restricted `/tmp`
+- enables `no-new-privileges`
+- rotates JSON logs at 10 MB with five retained files
+- allows a two-minute graceful shutdown period
+- applies CPU and memory limits
+
+PostgreSQL and pgAdmin are not included. The PostgreSQL adapter is not implemented for this production profile.
+
+## Reverse Proxy and Network Boundary
+
+**Never expose port 3000 directly.** It is bound to loopback so a TLS reverse proxy on the same host can be the only network entry point.
+
+The proxy must:
+
+1. Terminate TLS.
+2. Authenticate callers or forward a caller-supplied API key.
+3. Inject or forward one configured Innovator key as `X-API-Key` or `Authorization: Bearer`.
+4. Preserve long-lived streaming responses and allow at least a 180-second upstream timeout.
+
+Example Caddy upstream configuration that injects a key held by the proxy:
+
+```caddyfile
+api.example.com {
+  # Configure your organization-approved client authentication here.
+
+  reverse_proxy 127.0.0.1:3000 {
+    header_up X-API-Key {$INNOVATOR_UPSTREAM_API_KEY}
+    transport http {
+      response_header_timeout 180s
+    }
+  }
 }
 ```
 
-| Field             | Purpose                                                                 |
-| ----------------- | ----------------------------------------------------------------------- |
-| `buildCommand`    | Runs the full monorepo build (core → CLI → web) from the workspace root |
-| `outputDirectory` | Points Vercel to the Next.js build output inside `apps/web/.next`       |
-| `installCommand`  | Installs all workspace dependencies from the root                       |
-| `framework`       | Tells Vercel to use the Next.js adapter                                 |
-| `rewrites`        | Ensures API routes are forwarded correctly in the monorepo layout       |
+This snippet is incomplete until the comment is replaced with a working authentication policy. Do not deploy it as an unauthenticated public proxy.
 
-Because `vercel.json` handles build configuration, you generally do **not** need to set the Root Directory or Build Command manually in the Vercel dashboard — the file takes precedence.
+Set `INNOVATOR_UPSTREAM_API_KEY` in the proxy environment to one entry from `INNOVATOR_API_KEYS`. If clients send their own Innovator key, forward `X-API-Key` or `Authorization` unchanged instead of injecting a shared key.
 
-### Setup
+## Production Routes
 
-1. Import the repository in the [Vercel dashboard](https://vercel.com/new)
-2. Set the **Root Directory** to `apps/web`
-3. Set the **Build Command** to `npm run build` (from the workspace root)
-4. Set the **Output Directory** to `.next`
-5. Add environment variables (`INNOVATOR_API_KEY`, etc.) in the project settings
+### Public probes
 
-### Limitations
+| Method | Route      | Purpose                                                                  |
+| ------ | ---------- | ------------------------------------------------------------------------ |
+| GET    | `/healthz` | Liveness: confirms the process can answer HTTP                           |
+| GET    | `/readyz`  | Readiness: validates configuration, writable state, and Copilot provider |
 
-The Copilot SDK requires the GitHub CLI for authentication. Vercel's serverless functions do not include `gh` by default. You may need to:
+### Protected API
 
-- Use Vercel's **Edge Functions** or a custom runtime that includes `gh`
-- Pre-authenticate and pass tokens via environment variables
+| Method | Route                 |
+| ------ | --------------------- |
+| GET    | `/api/health`         |
+| GET    | `/api/angles`         |
+| GET    | `/api/presets`        |
+| POST   | `/api/investigate`    |
+| POST   | `/api/innovate`       |
+| POST   | `/api/auto`           |
+| POST   | `/api/nl-innovate`    |
+| POST   | `/api/v1/investigate` |
+| POST   | `/api/v1/innovate`    |
+| POST   | `/api/v1/auto`        |
+| GET    | `/api/v1/openapi`     |
 
-:::note
-Vercel deployment requires the Copilot SDK to support token-based auth. Check the latest `@github/copilot-sdk` docs for serverless deployment options.
-:::
+All protected routes require a configured key. OAuth, billing, tenant/workspace administration, uploads, webhooks, integrations, collaboration, dynamic API keys, the portal, and every other route return `404` in production. A method other than the one listed for an allowlisted path returns `405`.
 
-## Docker
-
-### Build and run
-
-````dockerfile
-# See Dockerfile in the repository root
-
-```dockerfile
-FROM node:20-slim
-
-# Install GitHub CLI
-RUN apt-get update && apt-get install -y curl && \
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
-    apt-get update && apt-get install -y gh && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-COPY . .
-RUN npm ci && npm run build
-
-ENV PORT=3000
-EXPOSE 3000
-CMD ["npm", "start"]
-````
+## Health Checks
 
 ```bash
-docker build -t innovator .
-docker run -p 3000:3000 \
-  -e INNOVATOR_API_KEY=your-secret-key \
-  -e INNOVATOR_DEFAULT_MODEL=gpt-4.1 \
-  innovator
+# Liveness: no API key
+curl --fail http://127.0.0.1:3000/healthz
+
+# Readiness: no API key; returns 503 when config, storage, or Copilot is not ready
+curl --fail http://127.0.0.1:3000/readyz
+
+# Detailed component health: authenticated
+curl --fail \
+  -H "X-API-Key: $INNOVATOR_CLIENT_API_KEY" \
+  http://127.0.0.1:3000/api/health
 ```
 
-### GitHub CLI auth in Docker
+Use `/healthz` for process restart decisions and `/readyz` before sending traffic. Use `/api/health` for operator diagnostics, not as a public probe.
 
-The Copilot SDK authenticates via `gh`. Mount a pre-authenticated config or set `GH_TOKEN`:
+## State, Replicas, and Backups
+
+Run **exactly one replica**. Rate limiting, metering, and runtime coordination are process-local. Application state lives in `innovator_data`; Copilot session state lives in `copilot_data`. Horizontal scaling or active-active replicas can bypass limits and diverge state.
+
+Back up the named volume before upgrades. Docker Compose commonly prefixes the actual volume name with the project name; find it with:
 
 ```bash
-docker run -p 3000:3000 \
-  -e GH_TOKEN=ghp_your_token \
-  -e INNOVATOR_API_KEY=your-secret-key \
-  innovator
+docker volume ls --filter label=com.docker.compose.project
 ```
 
-## Self-hosted (Node.js)
-
-For traditional server deployments:
+Back up both volumes, replacing the names with those reported by Docker:
 
 ```bash
-# Clone and install
-git clone https://github.com/josedab/innovator.git
-cd innovator
-npm ci
+docker run --rm \
+  -v innovator_innovator_data:/data:ro \
+  -v "$PWD":/backup \
+  alpine \
+  tar -czf /backup/innovator-data.tgz -C /data .
 
-# Authenticate GitHub CLI
-gh auth login
-
-# Build
-npm run build
-
-# Set production env vars
-export INNOVATOR_API_KEY=your-secret-key
-export INNOVATOR_DEFAULT_MODEL=gpt-4.1
-export PORT=3000
-
-# Start
-npm start
+docker run --rm \
+  -v innovator_copilot_data:/data:ro \
+  -v "$PWD":/backup \
+  alpine \
+  tar -czf /backup/copilot-data.tgz -C /data .
 ```
 
-Use a process manager like [PM2](https://pm2.keymetrics.io/) for production:
+Restore only while the application is stopped:
 
 ```bash
-pm2 start npm --name innovator -- start
+docker compose down
+
+docker run --rm \
+  -v innovator_innovator_data:/data \
+  -v "$PWD":/backup \
+  alpine \
+  sh -c 'find /data -mindepth 1 -maxdepth 1 -exec rm -rf {} + && tar -xzf /backup/innovator-data.tgz -C /data'
+
+docker run --rm \
+  -v innovator_copilot_data:/data \
+  -v "$PWD":/backup \
+  alpine \
+  sh -c 'find /data -mindepth 1 -maxdepth 1 -exec rm -rf {} + && tar -xzf /backup/copilot-data.tgz -C /data'
+
+docker compose up -d
+curl --fail http://127.0.0.1:3000/readyz
 ```
 
-## AWS
+Test restore procedures on a non-production host. A backup is not complete until it has been restored successfully.
 
-### EC2
-
-Deploy as a standard Node.js application on an EC2 instance:
+## Upgrades and Shutdown
 
 ```bash
-# On your EC2 instance (Amazon Linux 2023 or Ubuntu 22.04+)
-# Install Node.js 20
-curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-sudo yum install -y nodejs   # Amazon Linux
-# sudo apt install -y nodejs   # Ubuntu
-
-# Install GitHub CLI
-sudo yum install -y gh   # or: sudo apt install -y gh
-
-# Clone and build
-git clone https://github.com/josedab/innovator.git
-cd innovator
-npm ci && npm run build
-
-# Authenticate GitHub CLI
-gh auth login
-
-# Set environment variables
-export INNOVATOR_API_KEY=your-secret-key
-export PORT=3000
-
-# Run with PM2
-npm install -g pm2
-pm2 start npm --name innovator -- start
-pm2 save
-pm2 startup
+docker compose up -d --build
 ```
 
-Open port 3000 in your EC2 security group, or place behind an ALB with HTTPS.
-
-### ECS (Fargate)
-
-Use the Docker image from the [Docker section](#docker) with ECS Fargate:
-
-1. Push the Docker image to **Amazon ECR**
-2. Create an ECS **task definition** with the image, setting environment variables (`INNOVATOR_API_KEY`, `GH_TOKEN`)
-3. Create an ECS **service** with a Fargate launch type
-4. Attach an **Application Load Balancer** with HTTPS listener
-
-Pass `GH_TOKEN` as a secret via AWS Secrets Manager rather than plain environment variables.
-
-### Lambda (Experimental)
-
-Next.js can be deployed to Lambda via [OpenNext](https://open-next.js.org/) or the [Serverless Next.js Component](https://github.com/serverless-nextjs/serverless-next.js). However, the Copilot SDK's reliance on `gh` CLI makes serverless deployment challenging. Consider using an alternative LLM provider (OpenAI/Anthropic direct) with API key auth for Lambda deployments.
-
-## Azure App Service
-
-1. Create a **Node.js 20 LTS** App Service in the Azure Portal
-2. Configure deployment from your GitHub repository (or push the Docker image to Azure Container Registry)
-3. Set environment variables in **Configuration → Application settings**:
-   - `INNOVATOR_API_KEY`
-   - `INNOVATOR_DEFAULT_MODEL`
-   - `GH_TOKEN` (for Copilot SDK auth)
-4. Set the **Startup Command** to `npm start`
+Compose allows two minutes for shutdown so in-flight pipelines can finish. Monitor logs and readiness before declaring the upgrade complete:
 
 ```bash
-# Or deploy via Azure CLI
-az webapp up --name innovator-app --runtime "NODE:20-lts" --sku B1
-az webapp config appsettings set --name innovator-app \
-  --settings INNOVATOR_API_KEY=your-key GH_TOKEN=your-token
+docker compose logs --tail=100 innovator
+curl --fail http://127.0.0.1:3000/readyz
 ```
 
-## Railway
+## Unsupported Production Paths
 
-[Railway](https://railway.app/) auto-detects Node.js projects and provides simple deployments.
+The following are intentionally unsupported for the first production profile:
 
-1. Connect your GitHub repository in the Railway dashboard
-2. Railway detects the project and runs `npm install && npm run build` automatically
-3. Set environment variables in the Railway project settings:
-   - `INNOVATOR_API_KEY`
-   - `GH_TOKEN`
-   - `PORT` — Railway sets this automatically; Innovator reads it
-4. Deploy — Railway assigns a public URL with HTTPS
+- Vercel and other serverless runtimes
+- horizontal scaling or multiple replicas
+- a browser UI deployment
+- Kubernetes deployments that create more than one pod
+- PostgreSQL/pgAdmin-backed deployments
+- production OAuth, billing, tenant/workspace administration, uploads, webhooks, integrations, collaboration, dynamic API keys, or portal routes
 
-```bash
-# Or deploy via Railway CLI
-npm install -g @railway/cli
-railway login
-railway init
-railway up
-```
+Do not treat `vercel.json`, development UI routes, or experimental modules as recommended production paths.
 
-## Heroku
+## Release and Supply-Chain Gates
 
-1. Create a new Heroku app and connect your repository
-2. Add the **GitHub CLI buildpack** (Copilot SDK requires `gh`):
-   ```bash
-   heroku buildpacks:add --index 1 https://github.com/heroku/heroku-buildpack-github-cli
-   heroku buildpacks:add heroku/nodejs
-   ```
-3. Set config vars:
-   ```bash
-   heroku config:set INNOVATOR_API_KEY=your-key
-   heroku config:set GH_TOKEN=your-token
-   heroku config:set NPM_CONFIG_PRODUCTION=false
-   ```
-4. Deploy:
-   ```bash
-   git push heroku main
-   ```
-
-Add a `Procfile` to the repository root if not already present:
-
-```
-web: npm start
-```
-
-## Fly.io
-
-[Fly.io](https://fly.io/) runs Docker containers globally with low latency.
-
-1. Install the Fly CLI: `curl -L https://fly.io/install.sh | sh`
-2. Create the app:
-   ```bash
-   fly launch --name innovator --region iad
-   ```
-3. Set secrets:
-   ```bash
-   fly secrets set INNOVATOR_API_KEY=your-key GH_TOKEN=your-token
-   ```
-4. Create a `fly.toml` (or let `fly launch` generate one):
-
-   ```toml
-   [build]
-     dockerfile = "Dockerfile"
-
-   [env]
-     PORT = "3000"
-
-   [[services]]
-     internal_port = 3000
-     protocol = "tcp"
-     [services.concurrency]
-       hard_limit = 25
-       soft_limit = 20
-     [[services.ports]]
-       handlers = ["http"]
-       port = 80
-     [[services.ports]]
-       handlers = ["tls", "http"]
-       port = 443
-   ```
-
-5. Deploy:
-   ```bash
-   fly deploy
-   ```
-
-## Security Checklist
-
-- [ ] `INNOVATOR_API_KEY` is set and kept secret
-- [ ] API key is rotated periodically
-- [ ] HTTPS is enabled (via reverse proxy or platform)
-- [ ] Access logs are monitored for unusual Copilot quota usage
-- [ ] `gh auth` credentials are scoped to the minimum required permissions
-
-## Production Considerations
-
-The default deployment is designed for single-instance use. Before scaling to production, review these caveats:
-
-### Rate Limiting
-
-The built-in rate limiter (`apps/web/src/lib/rate-limit.ts`) uses an **in-memory Map**. In multi-instance deployments (e.g., Vercel serverless, Kubernetes), each instance maintains its own map, making rate limits less effective. For production, replace with a shared store:
-
-- [Upstash Redis rate limiting](https://upstash.com/docs/oss/sdks/ts/ratelimit/overview)
-- [Vercel's built-in rate limiting](https://vercel.com/docs/functions/ratelimit)
-- A shared Redis instance behind custom middleware
-
-### API Key Storage
-
-The API key authentication layer (`apps/web/src/lib/api-auth.ts`) reads keys from environment variables. For production deployments with many keys or key rotation requirements, consider using a database or secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault) instead.
-
-### Session & State Persistence
-
-Innovation sessions and history are stored in-memory by default. For multi-instance or long-running deployments, configure an external data store (e.g., PostgreSQL, Redis) to persist session data across restarts and instances.
-
-## Security Headers
-
-The Next.js app sets the following security headers on all responses via `apps/web/next.config.ts`. If you deploy behind a reverse proxy (e.g., nginx, Cloudflare), be aware these are already set to avoid duplicate or conflicting headers.
-
-| Header                      | Value                                                                              |
-| --------------------------- | ---------------------------------------------------------------------------------- |
-| `X-Frame-Options`           | `DENY`                                                                             |
-| `X-Content-Type-Options`    | `nosniff`                                                                          |
-| `Referrer-Policy`           | `strict-origin-when-cross-origin`                                                  |
-| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()` |
-| `X-DNS-Prefetch-Control`    | `off`                                                                              |
-| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload`                                     |
-
-Additionally, the middleware (`apps/web/src/middleware.ts`) applies a nonce-based `Content-Security-Policy` header on all non-API routes.
+- `npm run audit:production` audits runtime dependencies and fails on any production advisory.
+- Root `npm run build` and `npm run typecheck` cover all supported workspaces.
+- CI validates Docker Compose and builds the production image.
+- Release automation runs only after CI succeeds for the exact `main` revision being released.

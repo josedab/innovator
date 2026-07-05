@@ -8,6 +8,10 @@ sidebar_position: 9
 
 Subscribe to pipeline events and deliver them to external systems via webhooks.
 
+:::caution Production availability
+Webhook management, automation, and third-party integration routes are development/experimental and return `404` in the first production profile. Core-package examples in this guide are for local library development.
+:::
+
 ## Overview
 
 The event system provides a typed pub/sub event bus for pipeline lifecycle events, plus a webhook manager that delivers events to external URLs with HMAC-SHA256 signing and automatic retries.
