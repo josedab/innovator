@@ -21,7 +21,7 @@
     "cli": "npx tsx apps/cli/src/index.ts",
     "test": "vitest run",
     "test:ci": "npm run format:check && npm run lint && npm run typecheck && npm run audit:production && npm run build && npm run build:check && npm run build --workspace=website && npm run test:coverage",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage && node scripts/report-workspace-coverage.mjs",
     "test:watch": "vitest",
     "test:changed": "vitest run --changed",
     "validate": "npm run typecheck && npm test",

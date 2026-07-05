@@ -24,7 +24,7 @@ export default defineConfig({
     environmentMatchGlobs: [["apps/web/**", "jsdom"]],
     coverage: {
       provider: "v8",
-      reporter: ["text", "lcov"],
+      reporter: ["text", "lcov", "json-summary"],
       include: ["packages/*/src/**/*.ts", "apps/*/src/**/*.{ts,tsx}"],
       exclude: [
         "**/__tests__/**",
