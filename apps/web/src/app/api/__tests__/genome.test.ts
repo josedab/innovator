@@ -21,7 +21,7 @@ vi.mock("@innovator/core", () => ({
   gossipSync: vi.fn(),
 }));
 
-import { z } from "zod";
+import { GET, POST } from "../genome/route";
 
 const MOCK_NODE = { id: "node-1", name: "test" };
 const MOCK_DASHBOARD = {
@@ -42,46 +42,6 @@ function makePostRequest(body: unknown): Request {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-}
-
-// Inline simplified handlers
-async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const view = searchParams.get("view");
-  const nodes = mockListNodes();
-  const node = nodes.length > 0 ? nodes[0] : mockCreateFederationNode({ name: "test" });
-
-  if (view === "analytics") {
-    const analytics = mockComputeGenomeAnalytics(node.id);
-    return Response.json(analytics);
-  }
-  if (view === "insights") {
-    const domain = searchParams.get("domain") ?? undefined;
-    const insights = mockGenerateGenomeInsights(node.id, domain);
-    return Response.json({ insights });
-  }
-  return Response.json(mockGetNetworkDashboard(node.id));
-}
-
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    if (body.action === "contribute") {
-      const patterns = mockExtractPatterns({
-        nodeId: "node-1",
-        domain: body.domain,
-        angleResults: body.angleResults,
-      });
-      return Response.json({ message: "Patterns contributed", count: patterns.length });
-    }
-    if (body.action === "enrich") {
-      const result = mockEnrichAngleSelection("node-1", body.angles, body.domainHint);
-      return Response.json(result);
-    }
-    return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400 });
-  } catch {
-    return new Response(JSON.stringify({ error: "Failed" }), { status: 500 });
-  }
 }
 
 describe("GET /api/genome", () => {

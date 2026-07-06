@@ -10,53 +10,15 @@ vi.mock("@innovator/core", () => ({
   withRetry: vi.fn(),
 }));
 
-import { getSession } from "@innovator/core";
+import { findSimilarDocuments, getSession, indexDocument } from "@innovator/core";
+import { GET as routeGET } from "../idea-graph/[sessionId]/route";
+
 const mockGetSession = vi.mocked(getSession);
+const mockFindSimilarDocuments = vi.mocked(findSimilarDocuments);
+const mockIndexDocument = vi.mocked(indexDocument);
 
-// Inline a simplified GET handler to avoid Next.js module resolution issues
-async function GET(request: Request, sessionId: string) {
-  const session = mockGetSession(sessionId);
-  if (!session) {
-    return new Response(JSON.stringify({ error: "Session not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  // Extract all ideas
-  const ideas: Array<{
-    title: string;
-    description: string;
-    angleId: string;
-    nodeId: string;
-    feasibility: string;
-  }> = [];
-  let idx = 0;
-  for (const ar of (session as typeof MOCK_SESSION).angleResults) {
-    for (const idea of ar.ideas) {
-      ideas.push({
-        title: idea.title,
-        description: idea.description,
-        angleId: ar.angleId,
-        nodeId: `idea-${idx}`,
-        feasibility: "medium",
-      });
-      idx++;
-    }
-  }
-
-  const nodes = ideas.map((i) => ({
-    id: i.nodeId,
-    title: i.title,
-    description: i.description,
-    angleId: i.angleId,
-    feasibility: i.feasibility,
-  }));
-
-  return new Response(JSON.stringify({ nodes, edges: [], criticalPath: [] }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+function invokeGET(request: Request, sessionId: string) {
+  return routeGET(request, { params: Promise.resolve({ sessionId }) });
 }
 
 const MOCK_SESSION = {
@@ -97,12 +59,16 @@ function makeRequest(): Request {
 describe("GET /api/idea-graph/[sessionId]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFindSimilarDocuments.mockReturnValue([]);
+    mockIndexDocument.mockImplementation(
+      () => ({ id: `doc-${mockIndexDocument.mock.calls.length}` }) as never
+    );
   });
 
   it("returns graph with nodes for a valid session", async () => {
     mockGetSession.mockReturnValue(MOCK_SESSION as never);
 
-    const res = await GET(makeRequest(), "session-1");
+    const res = await invokeGET(makeRequest(), "session-1");
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -115,7 +81,7 @@ describe("GET /api/idea-graph/[sessionId]", () => {
   it("returns 404 when session is not found", async () => {
     mockGetSession.mockReturnValue(undefined as never);
 
-    const res = await GET(makeRequest(), "unknown-session");
+    const res = await invokeGET(makeRequest(), "unknown-session");
     const data = await res.json();
 
     expect(res.status).toBe(404);
@@ -143,7 +109,7 @@ describe("GET /api/idea-graph/[sessionId]", () => {
     };
     mockGetSession.mockReturnValue(singleIdeaSession as never);
 
-    const res = await GET(makeRequest(), "session-1");
+    const res = await invokeGET(makeRequest(), "session-1");
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -154,7 +120,7 @@ describe("GET /api/idea-graph/[sessionId]", () => {
   it("response includes criticalPath array", async () => {
     mockGetSession.mockReturnValue(MOCK_SESSION as never);
 
-    const res = await GET(makeRequest(), "session-1");
+    const res = await invokeGET(makeRequest(), "session-1");
     const data = await res.json();
 
     expect(data).toHaveProperty("criticalPath");
@@ -164,7 +130,7 @@ describe("GET /api/idea-graph/[sessionId]", () => {
   it("nodes have expected structure", async () => {
     mockGetSession.mockReturnValue(MOCK_SESSION as never);
 
-    const res = await GET(makeRequest(), "session-1");
+    const res = await invokeGET(makeRequest(), "session-1");
     const data = await res.json();
 
     const node = data.nodes[0];
@@ -185,7 +151,7 @@ describe("GET /api/idea-graph/[sessionId]", () => {
     };
     mockGetSession.mockReturnValue(emptySession as never);
 
-    const res = await GET(makeRequest(), "session-1");
+    const res = await invokeGET(makeRequest(), "session-1");
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -228,7 +194,7 @@ describe("GET /api/idea-graph/[sessionId]", () => {
     };
     mockGetSession.mockReturnValue(multiAngleSession as never);
 
-    const res = await GET(makeRequest(), "session-1");
+    const res = await invokeGET(makeRequest(), "session-1");
     const data = await res.json();
 
     expect(data.nodes).toHaveLength(2);
@@ -239,7 +205,7 @@ describe("GET /api/idea-graph/[sessionId]", () => {
   it("generates sequential node IDs", async () => {
     mockGetSession.mockReturnValue(MOCK_SESSION as never);
 
-    const res = await GET(makeRequest(), "session-1");
+    const res = await invokeGET(makeRequest(), "session-1");
     const data = await res.json();
 
     expect(data.nodes[0].id).toBe("idea-0");

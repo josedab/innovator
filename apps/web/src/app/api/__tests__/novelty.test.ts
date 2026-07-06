@@ -1,9 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockGenerateNoveltyReport = vi.fn();
-const mockNoveltyReportToMarkdown = vi.fn();
-const mockAddPriorArt = vi.fn();
-const mockGetPriorArtCount = vi.fn();
+const {
+  mockAddPriorArt,
+  mockGenerateNoveltyReport,
+  mockGetPriorArtCount,
+  mockNoveltyReportToMarkdown,
+} = vi.hoisted(() => ({
+  mockGenerateNoveltyReport: vi.fn(),
+  mockNoveltyReportToMarkdown: vi.fn(),
+  mockAddPriorArt: vi.fn(),
+  mockGetPriorArtCount: vi.fn(),
+}));
 
 vi.mock("@innovator/core", () => ({
   generateNoveltyReport: mockGenerateNoveltyReport,
@@ -13,66 +20,7 @@ vi.mock("@innovator/core", () => ({
   getPriorArtCount: mockGetPriorArtCount,
 }));
 
-import { z } from "zod";
-
-// Inline route handler
-const AssessRequestSchema = z.object({
-  ideas: z
-    .array(
-      z.object({ title: z.string().min(1).max(500), description: z.string().min(1).max(5000) })
-    )
-    .min(1)
-    .max(20),
-  domain: z.string().max(200).optional(),
-  format: z.enum(["json", "markdown"]).optional(),
-});
-
-const SeedRequestSchema = z.object({
-  action: z.literal("seed"),
-  entries: z
-    .array(
-      z.object({
-        id: z.string(),
-        source: z.enum(["patent", "academic", "product", "pattern", "internal"]),
-        title: z.string().max(500),
-        description: z.string().max(2000),
-        similarity: z.number().min(0).max(1).default(0),
-      })
-    )
-    .min(1)
-    .max(1000),
-});
-
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const seedResult = SeedRequestSchema.safeParse(body);
-    if (seedResult.success) {
-      mockAddPriorArt(seedResult.data.entries);
-      return Response.json({ message: "Prior art seeded", counts: mockGetPriorArtCount() });
-    }
-    const parsed = AssessRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid request" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    const report = mockGenerateNoveltyReport(parsed.data.ideas, { domain: parsed.data.domain });
-    if (parsed.data.format === "markdown") {
-      return new Response(mockNoveltyReportToMarkdown(report), {
-        headers: { "Content-Type": "text/markdown" },
-      });
-    }
-    return Response.json(report);
-  } catch {
-    return new Response(JSON.stringify({ error: "Failed" }), { status: 500 });
-  }
-}
-
-function GET() {
-  return Response.json({ counts: mockGetPriorArtCount() });
-}
+import { GET, POST } from "../novelty/route";
 
 const MOCK_REPORT = {
   id: "r1",
@@ -171,7 +119,7 @@ describe("GET /api/novelty", () => {
       products: 1,
       patterns: 0,
     });
-    const res = GET();
+    const res = await GET();
     const data = await res.json();
     expect(data.counts.total).toBe(5);
   });

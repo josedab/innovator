@@ -7,98 +7,12 @@ vi.mock("@innovator/core", () => ({
   clearEmbeddingsIndex: vi.fn(),
 }));
 
-import { getSession } from "@innovator/core";
+import { findSimilarDocuments, getSession, indexDocument } from "@innovator/core";
+import { POST } from "../session-compare/route";
+
 const mockGetSession = vi.mocked(getSession);
-
-// Inline the route handler to avoid Next.js module resolution issues
-import { z } from "zod";
-
-const RequestSchema = z.object({
-  sessionIds: z.array(z.string()).min(2).max(5),
-});
-
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = RequestSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    const { sessionIds } = parsed.data;
-
-    const sessions = [];
-    for (const id of sessionIds) {
-      const session = await getSession(id);
-      if (!session) {
-        return new Response(JSON.stringify({ error: `Session not found: ${id}` }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      sessions.push(session);
-    }
-
-    // Collect all themes per session
-    const allThemes = new Set<string>();
-    const sessionThemes: Record<string, Set<string>> = {};
-    for (const s of sessions) {
-      const themes = new Set(s.synthesis?.themes ?? []);
-      sessionThemes[s.id] = themes;
-      for (const t of themes) allThemes.add(t);
-    }
-
-    // Shared themes: present in ALL sessions
-    const sharedThemes = [...allThemes].filter((t) =>
-      sessions.every((s) => sessionThemes[s.id].has(t))
-    );
-
-    // Unique themes: present in only one session
-    const uniqueThemes: Record<string, string[]> = {};
-    for (const s of sessions) {
-      uniqueThemes[s.id] = [...sessionThemes[s.id]].filter((t) => !sharedThemes.includes(t));
-    }
-
-    // Angle comparison: which sessions used which angles
-    const angleComparison: Record<string, string[]> = {};
-    for (const s of sessions) {
-      for (const ar of s.angleResults ?? []) {
-        if (!angleComparison[ar.angleId]) angleComparison[ar.angleId] = [];
-        angleComparison[ar.angleId].push(s.id);
-      }
-    }
-
-    // Score delta from top ideas
-    const scoreDelta = sessions.map((s) => ({
-      sessionId: s.id,
-      topIdeasCount: s.synthesis?.topIdeas?.length ?? 0,
-    }));
-
-    // Timeline sorted chronologically
-    const timeline = sessions
-      .map((s) => ({ sessionId: s.id, createdAt: s.createdAt }))
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-    return Response.json({
-      sessions,
-      sharedThemes,
-      uniqueThemes,
-      ideaOverlaps: [],
-      angleComparison,
-      scoreDelta,
-      timeline,
-    });
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Comparison failed" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-}
+const mockFindSimilarDocuments = vi.mocked(findSimilarDocuments);
+const mockIndexDocument = vi.mocked(indexDocument);
 
 const MOCK_SESSION_1 = {
   id: "s1",
@@ -183,10 +97,14 @@ function makeRequest(body: unknown): Request {
 describe("POST /api/session-compare", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFindSimilarDocuments.mockReturnValue([]);
+    mockIndexDocument.mockImplementation(
+      () => ({ id: `doc-${mockIndexDocument.mock.calls.length}` }) as never
+    );
   });
 
   it("returns expected structure for valid 2-session comparison", async () => {
-    mockGetSession.mockImplementation(async (id: string) => {
+    mockGetSession.mockImplementation((id: string) => {
       if (id === "s1") return MOCK_SESSION_1 as never;
       if (id === "s2") return MOCK_SESSION_2 as never;
       return null as never;
@@ -210,7 +128,7 @@ describe("POST /api/session-compare", () => {
     const data = await res.json();
 
     expect(res.status).toBe(400);
-    expect(data.error).toBe("Invalid request");
+    expect(data.error).toBe("Provide 2-5 session IDs to compare.");
   });
 
   it("returns 400 for only 1 session ID", async () => {
@@ -226,7 +144,7 @@ describe("POST /api/session-compare", () => {
   });
 
   it("returns 404 when a session is not found", async () => {
-    mockGetSession.mockResolvedValue(null as never);
+    mockGetSession.mockReturnValue(null as never);
 
     const res = await POST(makeRequest({ sessionIds: ["s1", "s2"] }));
     const data = await res.json();
@@ -236,7 +154,7 @@ describe("POST /api/session-compare", () => {
   });
 
   it("includes shared themes across sessions", async () => {
-    mockGetSession.mockImplementation(async (id: string) => {
+    mockGetSession.mockImplementation((id: string) => {
       if (id === "s1") return MOCK_SESSION_1 as never;
       if (id === "s2") return MOCK_SESSION_2 as never;
       return null as never;
@@ -251,7 +169,7 @@ describe("POST /api/session-compare", () => {
   });
 
   it("returns timeline sorted chronologically", async () => {
-    mockGetSession.mockImplementation(async (id: string) => {
+    mockGetSession.mockImplementation((id: string) => {
       if (id === "s1") return MOCK_SESSION_1 as never;
       if (id === "s2") return MOCK_SESSION_2 as never;
       return null as never;

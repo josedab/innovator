@@ -7,99 +7,11 @@ vi.mock("@innovator/core", () => ({
 }));
 
 import { analyzeRepoHealth, generateBadgeMarkdown, getRepoHealthScore } from "@innovator/core";
+import { GET, POST } from "../github-health/route";
 
 const mockAnalyzeRepoHealth = vi.mocked(analyzeRepoHealth);
 const mockGenerateBadgeMarkdown = vi.mocked(generateBadgeMarkdown);
 const mockGetRepoHealthScore = vi.mocked(getRepoHealthScore);
-
-// ---- Inline schema and handlers ----
-
-import { z } from "zod";
-
-const RequestSchema = z.object({
-  repositoryUrl: z.string().min(1).max(500),
-  repositoryName: z.string().min(1).max(200),
-  description: z.string().max(1000).optional(),
-  language: z.string().max(100).optional(),
-  stars: z.number().int().min(0).optional(),
-  openIssues: z.number().int().min(0).optional(),
-  contributors: z.number().int().min(0).optional(),
-  lastCommitDate: z.string().optional(),
-  recentCommitMessages: z.array(z.string().max(500)).max(20).optional(),
-  model: z.string().optional(),
-});
-
-const API_RESPONSE_HEADERS = { "Content-Type": "application/json" };
-
-async function POST(request: Request) {
-  try {
-    const contentType = request.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
-        status: 415,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    const parsed = RequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid request. Please check your input." }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    const { model, ...repoData } = parsed.data;
-    const healthScore = await analyzeRepoHealth(repoData as any, model, request.signal);
-    const badgeMarkdown = generateBadgeMarkdown(healthScore as any);
-
-    return Response.json({ ...healthScore, badgeMarkdown }, { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Health analysis failed. Please try again." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
-
-async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const url = searchParams.get("url");
-
-    if (!url) {
-      return new Response(JSON.stringify({ error: "Missing 'url' query parameter" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    const score = getRepoHealthScore(url);
-    if (!score) {
-      return new Response(JSON.stringify({ error: "No health score found. Run POST first." }), {
-        status: 404,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    return Response.json(score, { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Failed to retrieve health score." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
 
 function makeRequest(body: unknown): Request {
   return new Request("http://localhost/api/github-health", {

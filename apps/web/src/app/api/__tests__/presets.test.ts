@@ -32,49 +32,10 @@ vi.mock("@innovator/core", () => {
 });
 
 import { getPresets, getPresetById } from "@innovator/core";
+import { GET } from "../presets/route";
+
 const mockGetPresets = vi.mocked(getPresets);
 const mockGetPresetById = vi.mocked(getPresetById);
-
-const API_RESPONSE_HEADERS = {
-  "Content-Type": "application/json",
-  "Cache-Control": "no-store, no-cache, must-revalidate, private",
-  Vary: "Accept-Encoding",
-  "X-Robots-Tag": "noindex, nofollow",
-  "X-Content-Type-Options": "nosniff",
-  "Content-Security-Policy": "default-src 'none'",
-  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
-  "X-Frame-Options": "DENY",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy":
-    "camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()",
-} as const;
-
-// Inline route handler to avoid Next.js module issues
-async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const category = searchParams.get("category");
-  const id = searchParams.get("id");
-
-  if (id) {
-    const preset = getPresetById(id);
-    if (!preset) {
-      return new Response(JSON.stringify({ error: `Preset "${id}" not found` }), {
-        status: 404,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-    return new Response(JSON.stringify({ data: preset }), { headers: API_RESPONSE_HEADERS });
-  }
-
-  let presets = getPresets();
-  if (category) {
-    presets = presets.filter(
-      (p: { category: string }) => p.category.toLowerCase() === category.toLowerCase()
-    );
-  }
-
-  return new Response(JSON.stringify({ data: presets }), { headers: API_RESPONSE_HEADERS });
-}
 
 describe("GET /api/presets", () => {
   beforeEach(() => {
@@ -136,7 +97,7 @@ describe("GET /api/presets", () => {
     mockGetPresets.mockImplementation(() => {
       throw new Error("DB error");
     });
-    // The actual route doesn't have try/catch for GET, so we test inline handler
+    // The route intentionally lets storage failures propagate to the framework boundary.
     try {
       await GET(new Request("http://localhost/api/presets"));
     } catch (err) {

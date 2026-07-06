@@ -6,60 +6,9 @@ vi.mock("@innovator/core", () => ({
 }));
 
 import { validateIdeas } from "@innovator/core";
+import { POST } from "../validate/route";
+
 const mockValidateIdeas = vi.mocked(validateIdeas);
-
-// Inline the route handler to avoid Next.js module resolution issues
-import { z } from "zod";
-
-const IdeaInputSchema = z.object({
-  title: z.string().min(1).max(500),
-  description: z.string().min(1).max(5000),
-  potentialImpact: z.string().max(2000).default(""),
-  implementationHint: z.string().max(2000).default(""),
-});
-
-const RequestSchema = z.object({
-  ideas: z.array(IdeaInputSchema).min(1).max(50),
-  domain: z.string().min(1).max(200),
-  model: z.string().optional(),
-});
-
-async function POST(request: Request) {
-  try {
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const parsed = RequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request. Please check your input and try again." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    const { ideas, domain, model } = parsed.data;
-    const scorecard = await validateIdeas(
-      ideas as Parameters<typeof validateIdeas>[0],
-      domain,
-      model,
-      request.signal
-    );
-
-    return Response.json(scorecard);
-  } catch (_err) {
-    return new Response(JSON.stringify({ error: "Validation failed. Please try again." }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}
 
 function makeRequest(body: unknown): Request {
   return new Request("http://localhost/api/validate", {

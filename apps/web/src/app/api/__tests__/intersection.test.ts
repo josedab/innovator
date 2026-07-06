@@ -15,37 +15,7 @@ vi.mock("@innovator/core", () => ({
   clearEmbeddingsIndex: vi.fn(),
 }));
 
-// Inline the route handler to avoid Next.js module resolution issues
-import { z } from "zod";
-
-const RequestSchema = z.object({
-  subjects: z.array(z.string().min(1).max(500)).min(2).max(3),
-  model: z.string().optional(),
-  anglesPerSubject: z.number().int().min(1).max(4).default(2),
-});
-
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = RequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Provide 2-3 subjects for intersection analysis." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-    // In real handler, this creates an SSE stream
-    return new Response(JSON.stringify({ status: "started", subjects: parsed.data.subjects }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: "Intersection analysis failed." }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}
+import { POST } from "../intersection/route";
 
 function makeRequest(body: unknown): Request {
   return new Request("http://localhost/api/intersection", {
@@ -68,11 +38,12 @@ describe("POST /api/intersection", () => {
         anglesPerSubject: 2,
       })
     );
-    const data = await res.json();
+    const data = await res.text();
 
     expect(res.status).toBe(200);
-    expect(data.status).toBe("started");
-    expect(data.subjects).toEqual(["AI testing", "Code review"]);
+    expect(res.headers.get("content-type")).toContain("text/event-stream");
+    expect(data).toContain('"stage":"investigating"');
+    expect(data).toContain('"subjects":["AI testing","Code review"]');
   });
 
   it("returns 400 for only 1 subject", async () => {

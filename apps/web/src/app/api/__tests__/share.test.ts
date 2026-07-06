@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { z } from "zod";
 
 vi.mock("@innovator/core", () => ({
   shareInvestigation: vi.fn(),
@@ -10,90 +9,11 @@ vi.mock("@innovator/core", () => ({
 }));
 
 import { shareInvestigation, listSharedInvestigations, buildShareUrl } from "@innovator/core";
+import { GET, POST } from "../share/route";
 
 const mockShareInvestigation = vi.mocked(shareInvestigation);
 const mockListShared = vi.mocked(listSharedInvestigations);
 const mockBuildShareUrl = vi.mocked(buildShareUrl);
-
-const API_RESPONSE_HEADERS = { "Content-Type": "application/json" };
-
-const ShareRequestSchema = z.object({
-  subject: z.string().min(1).max(500),
-  investigation: z.unknown().optional(),
-  angleResults: z.array(z.unknown()).optional(),
-  synthesis: z.unknown().optional(),
-  title: z.string().max(500).optional(),
-  isPublic: z.boolean().default(true),
-  expiresInDays: z.number().min(1).max(365).optional(),
-});
-
-// Inlined POST handler
-async function POST(request: Request) {
-  try {
-    // Validate content type
-    const ct = request.headers.get("content-type") ?? "";
-    if (!ct.includes("application/json")) {
-      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
-        status: 415,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    const parsed = ShareRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request. Please check your input and try again." }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
-    }
-
-    const { subject, investigation, angleResults, synthesis, title, isPublic, expiresInDays } =
-      parsed.data;
-
-    const shared = shareInvestigation(
-      subject,
-      {
-        investigation: investigation as any,
-        angleResults: angleResults as any,
-        synthesis: synthesis as any,
-      },
-      { title, isPublic, expiresInDays }
-    );
-
-    const baseUrl = request.headers.get("origin") ?? "https://innovator.dev";
-    const shareUrl = buildShareUrl((shared as any).slug, baseUrl);
-
-    return Response.json({ ...shared, shareUrl }, { headers: API_RESPONSE_HEADERS });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: "Failed to create share link." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
-
-// Inlined GET handler
-async function GET() {
-  try {
-    const shared = listSharedInvestigations(true);
-    return Response.json({ data: shared }, { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Failed to list shared investigations." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
 
 function makePostRequest(body: unknown, headers?: Record<string, string>): Request {
   return new Request("http://localhost/api/share", {

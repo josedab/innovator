@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { z } from "zod";
 
 const mockProcessFile = vi.fn().mockResolvedValue({
   fileId: "file-1",
@@ -21,193 +20,15 @@ vi.mock("@innovator/core", () => ({
   validateUploadedFile: vi.fn().mockReturnValue([]),
 }));
 
-import { UploadProcessor, resolveFileType, validateUploadedFile } from "@innovator/core";
+import { validateUploadedFile } from "@innovator/core";
+import { GET, POST } from "../upload/process/route";
+
 const mockValidateUploadedFile = vi.mocked(validateUploadedFile);
-
-const ACCEPTED_MIME_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/gif",
-  "image/webp",
-  "image/svg+xml",
-  "application/pdf",
-  "audio/mpeg",
-  "audio/wav",
-  "audio/ogg",
-  "audio/webm",
-  "audio/mp4",
-  "text/plain",
-  "text/markdown",
-];
-
-const MAX_FORM_SIZE = 50 * 1024 * 1024;
-
-// Inline simplified POST handler
-async function POST(request: Request) {
-  try {
-    const contentType = request.headers.get("content-type") ?? "";
-
-    let files: Array<{
-      id: string;
-      filename: string;
-      mimeType: string;
-      sizeBytes: number;
-      base64Content: string;
-      uploadedAt: string;
-    }>;
-
-    if (contentType.includes("multipart/form-data")) {
-      const formData = await request.formData();
-      files = [];
-      let totalSize = 0;
-      const entries = formData.getAll("files");
-      for (const entry of entries) {
-        if (!(entry instanceof File)) continue;
-        if (!ACCEPTED_MIME_TYPES.includes(entry.type)) {
-          throw new Error(`Unsupported file type: ${entry.type} (${entry.name})`);
-        }
-        totalSize += entry.size;
-        if (totalSize > MAX_FORM_SIZE) {
-          throw new Error("Total upload size exceeds 50MB limit");
-        }
-        const buffer = Buffer.from(await entry.arrayBuffer());
-        files.push({
-          id: `upload-${Date.now().toString(36)}-${files.length}`,
-          filename: entry.name,
-          mimeType: entry.type,
-          sizeBytes: entry.size,
-          base64Content: buffer.toString("base64"),
-          uploadedAt: new Date().toISOString(),
-        });
-      }
-      if (files.length === 0) {
-        throw new Error("No valid files found in upload");
-      }
-    } else if (contentType.includes("application/json")) {
-      const body = await request.json();
-      const parsed = z
-        .object({
-          files: z
-            .array(
-              z.object({
-                id: z.string().max(200),
-                filename: z.string().max(500),
-                mimeType: z.string().max(200),
-                sizeBytes: z.number().int().min(0),
-                base64Content: z.string(),
-                extractedText: z.string().optional(),
-                uploadedAt: z.string(),
-              })
-            )
-            .min(1)
-            .max(10),
-          model: z.string().max(100).optional(),
-        })
-        .safeParse(body);
-
-      if (!parsed.success) {
-        return new Response(
-          JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
-        );
-      }
-      files = parsed.data.files;
-    } else {
-      return new Response(
-        JSON.stringify({
-          error: "Unsupported content type. Use multipart/form-data or application/json.",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate all files
-    const validationErrors: Array<{ filename: string; errors: string[] }> = [];
-    for (const file of files) {
-      const errors = validateUploadedFile(file as never);
-      if (errors.length > 0) {
-        validationErrors.push({ filename: file.filename, errors });
-      }
-    }
-    if (validationErrors.length > 0) {
-      return new Response(JSON.stringify({ error: "File validation failed", validationErrors }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // Process files
-    const processor = new UploadProcessor();
-    const results = [];
-    for (const file of files) {
-      try {
-        const result = await (
-          processor as unknown as { processFile: (f: unknown) => Promise<unknown> }
-        ).processFile(file);
-        results.push(result);
-      } catch (err) {
-        results.push({
-          fileId: file.id,
-          type: resolveFileType(file.mimeType) ?? "document",
-          extractedContext: "",
-          suggestedSubject: file.filename,
-          confidence: 0,
-          metadata: { error: err instanceof Error ? err.message : String(err) },
-        });
-      }
-    }
-
-    return new Response(
-      JSON.stringify({
-        results,
-        suggestedSubjects: (results as Array<{ confidence: number; suggestedSubject: string }>)
-          .filter((r) => r.confidence > 0.5)
-          .map((r) => r.suggestedSubject),
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Upload processing failed";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}
-
-// Inline simplified GET handler
-const processingResults = new Map<string, unknown>();
-
-async function GET(request: Request) {
-  const url = new URL(request.url);
-  const fileId = url.searchParams.get("fileId");
-
-  if (!fileId) {
-    return new Response(JSON.stringify({ error: "Missing fileId query parameter" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const result = processingResults.get(fileId);
-  if (!result) {
-    return new Response(JSON.stringify({ error: "Processing result not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  return new Response(JSON.stringify({ result }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
-}
 
 describe("POST /api/upload/process", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockValidateUploadedFile.mockReturnValue([]);
-    processingResults.clear();
   });
 
   it("processes JSON body with valid file and returns results", async () => {
@@ -326,10 +147,6 @@ describe("POST /api/upload/process", () => {
 });
 
 describe("GET /api/upload/process", () => {
-  beforeEach(() => {
-    processingResults.clear();
-  });
-
   it("returns 400 when fileId is missing", async () => {
     const req = new Request("http://localhost/api/upload/process");
     const res = await GET(req);
@@ -347,7 +164,24 @@ describe("GET /api/upload/process", () => {
   });
 
   it("returns result when file exists", async () => {
-    processingResults.set("file-1", { fileId: "file-1", type: "image" });
+    await POST(
+      new Request("http://localhost/api/upload/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          files: [
+            {
+              id: "file-1",
+              filename: "chart.png",
+              mimeType: "image/png",
+              sizeBytes: 1024,
+              base64Content: "iVBOR...",
+              uploadedAt: new Date().toISOString(),
+            },
+          ],
+        }),
+      })
+    );
     const req = new Request("http://localhost/api/upload/process?fileId=file-1");
     const res = await GET(req);
     expect(res.status).toBe(200);

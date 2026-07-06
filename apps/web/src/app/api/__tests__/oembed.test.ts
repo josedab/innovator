@@ -5,80 +5,9 @@ vi.mock("@innovator/core", () => ({
 }));
 
 import { getSession } from "@innovator/core";
+import { GET } from "../oembed/route";
+
 const mockGetSession = vi.mocked(getSession);
-
-// Inline a simplified GET handler to avoid Next.js module resolution issues
-async function GET(request: Request) {
-  try {
-    const url = new URL(request.url);
-    const targetUrl = url.searchParams.get("url");
-    const format = url.searchParams.get("format") ?? "json";
-    const maxWidth = parseInt(url.searchParams.get("maxwidth") ?? "600", 10);
-    const maxHeight = parseInt(url.searchParams.get("maxheight") ?? "400", 10);
-
-    if (format !== "json") {
-      return new Response(JSON.stringify({ error: "Only JSON format is supported" }), {
-        status: 501,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (!targetUrl) {
-      return new Response(JSON.stringify({ error: "Missing 'url' parameter" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const shareMatch = targetUrl.match(/\/share\/([a-zA-Z0-9_-]+)/);
-    if (!shareMatch) {
-      return new Response(JSON.stringify({ error: "Invalid share URL format" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const sessionId = shareMatch[1];
-    const session = getSession(sessionId);
-    if (!session) {
-      return new Response(JSON.stringify({ error: "Session not found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const ideaCount = session.angleResults.reduce(
-      (sum: number, ar: { ideas: unknown[] }) => sum + ar.ideas.length,
-      0
-    );
-    const baseUrl = url.origin;
-    const embedUrl = `${baseUrl}/embed/${sessionId}`;
-    const width = Math.min(maxWidth, 600);
-    const height = Math.min(maxHeight, 400);
-
-    const oembedResponse = {
-      version: "1.0",
-      type: "rich",
-      provider_name: "Innovator",
-      provider_url: baseUrl,
-      title: `💡 ${session.subject}`,
-      author_name: "Innovator AI",
-      author_url: baseUrl,
-      html: `<iframe src="${embedUrl}" width="${width}" height="${height}" frameborder="0" style="border:1px solid #e5e5e5;border-radius:8px;" allowfullscreen></iframe>`,
-      width,
-      height,
-      thumbnail_url: undefined,
-      description: `${ideaCount} innovation ideas from ${session.angleResults.length} creativity angles`,
-    };
-
-    return Response.json(oembedResponse);
-  } catch {
-    return new Response(JSON.stringify({ error: "oEmbed lookup failed" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}
 
 const MOCK_SESSION = {
   id: "session-1",

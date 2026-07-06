@@ -20,97 +20,12 @@ import {
   recordAngleFeedback,
   getAngleFeedback,
 } from "@innovator/core";
+import { POST, PUT } from "../recommend-angles/route";
 
 const mockSmartRecommend = vi.mocked(smartRecommend);
 const mockClassifySubject = vi.mocked(classifySubject);
 const mockRecordAngleFeedback = vi.mocked(recordAngleFeedback);
 const mockGetAngleFeedback = vi.mocked(getAngleFeedback);
-
-// Inline simplified route handlers to avoid Next.js module resolution issues
-import { z } from "zod";
-
-const RecommendRequestSchema = z.object({
-  subject: z.string().min(1).max(500),
-  model: z.string().optional(),
-  count: z.number().int().min(1).max(8).default(4),
-  useThompsonSampling: z.boolean().default(true),
-});
-
-const FeedbackRequestSchema = z.object({
-  subject: z.string().min(1).max(500),
-  angleId: z.string().min(1).max(100),
-  qualityScore: z.number().min(0).max(10),
-  userRating: z.number().min(1).max(5).optional(),
-});
-
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = RecommendRequestSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid request. Provide a subject." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const { subject, model, count, useThompsonSampling } = parsed.data;
-
-    const classification = await classifySubject(subject, model, request.signal);
-    const baseResult = await smartRecommend(subject, count, model, request.signal);
-
-    let finalRecommendations = baseResult.recommendations.slice(0, count);
-
-    if (useThompsonSampling) {
-      const feedback = getAngleFeedback();
-      // Simplified: just use base recommendations for testing
-      finalRecommendations = baseResult.recommendations.slice(0, count);
-    }
-
-    return Response.json({
-      classification,
-      recommendations: finalRecommendations,
-      suggestedCount: count,
-    });
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Recommendation failed." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-}
-
-async function PUT(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = FeedbackRequestSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid feedback data." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const classification = await classifySubject(parsed.data.subject);
-
-    recordAngleFeedback({
-      domain: classification.domain,
-      angleId: parsed.data.angleId,
-      qualityScore: parsed.data.qualityScore,
-      userRating: parsed.data.userRating,
-      timestamp: Date.now(),
-    });
-
-    return Response.json({ success: true });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: "Failed to record feedback." }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}
 
 const MOCK_CLASSIFICATION = {
   domain: "technology",
@@ -161,8 +76,10 @@ describe("POST /api/recommend-angles", () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    expect(data.recommendations).toHaveLength(2);
-    expect(data.recommendations[0].angleId).toBe("scamper");
+    expect(data.recommendations).toHaveLength(3);
+    expect(data.recommendations.map(({ angleId }: { angleId: string }) => angleId)).toEqual(
+      expect.arrayContaining(["scamper", "first-principles", "cross-domain"])
+    );
     expect(mockSmartRecommend).toHaveBeenCalledWith("AI testing", 3, undefined, expect.anything());
   });
 
@@ -191,7 +108,7 @@ describe("POST /api/recommend-angles", () => {
     const data = await res.json();
 
     expect(res.status).toBe(500);
-    expect(data.error).toBe("LLM unavailable");
+    expect(data.error).toBe("Recommendation failed.");
   });
 });
 

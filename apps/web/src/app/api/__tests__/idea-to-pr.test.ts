@@ -17,123 +17,13 @@ import {
   extractJson,
   withRetry,
 } from "@innovator/core";
-import type { Synthesis, PRConfig, InnovationIdea } from "@innovator/core";
+import type { InnovationIdea } from "@innovator/core";
+import { POST } from "../idea-to-pr/route";
 
 const mockSelectTopIdea = vi.mocked(selectTopIdea);
 const mockInnovationToPR = vi.mocked(innovationToPR);
 const mockWorkflowToScript = vi.mocked(workflowToScript);
 const mockWithRetry = vi.mocked(withRetry);
-
-// Inline the route handler to avoid Next.js module resolution issues
-import { z } from "zod";
-
-const RequestSchema = z.object({
-  synthesis: z.object({
-    topIdeas: z
-      .array(
-        z.object({
-          title: z.string().max(500),
-          description: z.string().max(5000),
-          potentialImpact: z.string().max(2000),
-          sourceAngle: z.string().max(200).optional(),
-          feasibility: z.string().max(50).optional(),
-          implementationHint: z.string().max(2000).optional(),
-        })
-      )
-      .min(1)
-      .max(50),
-    themes: z.array(z.string().max(500)).max(20),
-    recommendation: z.string().max(5000),
-    connections: z.array(z.unknown()).optional(),
-  }),
-  config: z.object({
-    owner: z.string().min(1).max(200),
-    repo: z.string().min(1).max(200),
-    baseBranch: z.string().max(200).default("main"),
-    branchPrefix: z.string().max(100).default("innovation/"),
-    reviewers: z.array(z.string().max(200)).max(20).optional(),
-    labels: z.array(z.string().max(100)).max(20).default(["innovation", "auto-generated"]),
-    draft: z.boolean().default(true),
-    stack: z.enum(["typescript", "python", "go", "rust"]).default("typescript"),
-    license: z.enum(["MIT", "Apache-2.0", "GPL-3.0", "BSD-3-Clause", "ISC"]).default("MIT"),
-  }),
-  ideaIndex: z.number().int().min(0).max(49).optional(),
-  generatePlan: z.boolean().default(true),
-  model: z.string().optional(),
-});
-
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = RequestSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({
-          error: "Invalid request. Please check your input and try again.",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    const { synthesis, config, ideaIndex, generatePlan, model } = parsed.data;
-
-    // Phase 1: Select idea
-    let idea: InnovationIdea | undefined;
-    if (ideaIndex !== undefined && ideaIndex < synthesis.topIdeas.length) {
-      const selected = synthesis.topIdeas[ideaIndex];
-      idea = {
-        title: selected.title,
-        description: selected.description,
-        potentialImpact: selected.potentialImpact,
-        implementationHint: selected.implementationHint ?? "",
-      };
-    } else {
-      idea = selectTopIdea(synthesis as Synthesis);
-    }
-
-    if (!idea) {
-      return new Response(
-        JSON.stringify({
-          error: "No ideas found in synthesis to create PR from.",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // Phase 2: Generate implementation plan (optional)
-    let implementationPlan: unknown | undefined;
-    if (generatePlan) {
-      try {
-        implementationPlan = await withRetry(async () => {
-          const raw = await generateText({ prompt: expect.any(String), model });
-          return JSON.parse(extractJson(raw));
-        });
-      } catch {
-        // continue without plan
-      }
-    }
-
-    // Phase 3: Build PR workflow
-    const prResult = innovationToPR(synthesis as Synthesis, config as PRConfig);
-
-    const script =
-      prResult.status !== "failed" ? workflowToScript(prResult.workflowPlan) : undefined;
-
-    return Response.json({
-      ...prResult,
-      implementationPlan,
-      script,
-    });
-  } catch (err) {
-    return new Response(
-      JSON.stringify({
-        error: err instanceof Error ? err.message : "PR pipeline failed. Please try again.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-}
 
 // --- Test data ---
 
@@ -327,7 +217,7 @@ describe("POST /api/idea-to-pr", () => {
     const data = await res.json();
 
     expect(res.status).toBe(500);
-    expect(data.error).toBe("PR creation failed");
+    expect(data.error).toBe("PR pipeline failed. Please try again.");
   });
 
   it("generates implementation plan when generatePlan is true", async () => {

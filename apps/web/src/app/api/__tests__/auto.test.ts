@@ -2,87 +2,23 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@innovator/core", () => ({
   runAutoPipeline: vi.fn(),
+  ANGLE_IDS: [
+    "scamper",
+    "first-principles",
+    "cross-domain",
+    "constraints",
+    "inversion",
+    "perspectives",
+    "what-if",
+    "trend-collision",
+  ],
 }));
 
 import { runAutoPipeline } from "@innovator/core";
 import type { PipelineProgress } from "@innovator/core";
+import { POST } from "../auto/route";
+
 const mockRunAutoPipeline = vi.mocked(runAutoPipeline);
-
-import { z } from "zod";
-
-const RequestSchema = z.object({
-  subject: z.string().min(1).max(500),
-  model: z.string().optional(),
-});
-
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = RequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-    const { subject, model } = parsed.data;
-    const encoder = new TextEncoder();
-    let streamClosed = false;
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        const sendProgress = (progress: PipelineProgress) => {
-          if (streamClosed) return;
-          try {
-            const data = `data: ${JSON.stringify(progress)}\n\n`;
-            controller.enqueue(encoder.encode(data));
-          } catch {
-            streamClosed = true;
-          }
-        };
-        try {
-          await runAutoPipeline(subject, sendProgress, model);
-        } catch (err) {
-          if (!streamClosed) {
-            const errorProgress: PipelineProgress = {
-              stage: "error",
-              completedAngles: [],
-              totalAngles: 8,
-              angleResults: [],
-              error: err instanceof Error ? err.message : "Pipeline failed",
-            };
-            sendProgress(errorProgress);
-          }
-        } finally {
-          if (!streamClosed) {
-            try {
-              controller.close();
-            } catch {
-              // Already closed
-            }
-          }
-          streamClosed = true;
-        }
-      },
-      cancel() {
-        streamClosed = true;
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Auto mode failed" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-}
 
 async function readSSEStream(response: Response): Promise<PipelineProgress[]> {
   const reader = response.body!.getReader();
@@ -131,7 +67,13 @@ describe("POST /api/auto", () => {
     expect(res.headers.get("Content-Type")).toBe("text/event-stream");
     expect(res.headers.get("Cache-Control")).toBe("no-cache");
     expect(mockRunAutoPipeline).toHaveBeenCalledTimes(1);
-    expect(mockRunAutoPipeline).toHaveBeenCalledWith("testing", expect.any(Function), undefined);
+    expect(mockRunAutoPipeline).toHaveBeenCalledWith(
+      "testing",
+      expect.any(Function),
+      undefined,
+      undefined,
+      expect.any(AbortSignal)
+    );
   });
 
   it("streams progress events from pipeline", async () => {
@@ -187,7 +129,7 @@ describe("POST /api/auto", () => {
 
     const errorEvent = events.find((e) => e.stage === "error");
     expect(errorEvent).toBeDefined();
-    expect(errorEvent!.error).toBe("Pipeline crash");
+    expect(errorEvent!.error).toBe("Pipeline encountered an error. Please try again.");
   });
 
   it("passes model to runAutoPipeline", async () => {
@@ -201,6 +143,12 @@ describe("POST /api/auto", () => {
     const res = await POST(makeRequest({ subject: "testing", model: "gpt-5" }));
     await readSSEStream(res);
 
-    expect(mockRunAutoPipeline).toHaveBeenCalledWith("testing", expect.any(Function), "gpt-5");
+    expect(mockRunAutoPipeline).toHaveBeenCalledWith(
+      "testing",
+      expect.any(Function),
+      "gpt-5",
+      undefined,
+      expect.any(AbortSignal)
+    );
   });
 });

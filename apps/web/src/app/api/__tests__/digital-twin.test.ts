@@ -36,6 +36,7 @@ import {
   compareStrategies,
   runMonteCarloComparison,
 } from "@innovator/core";
+import { GET, POST } from "../digital-twin/route";
 
 const mockRegisterEcosystem = vi.mocked(registerEcosystem);
 const mockGetEcosystem = vi.mocked(getEcosystem);
@@ -43,111 +44,6 @@ const mockListEcosystems = vi.mocked(listEcosystems);
 const mockComputeEcosystemHealth = vi.mocked(computeEcosystemHealth);
 const mockCompareStrategies = vi.mocked(compareStrategies);
 const mockRunMonteCarloComparison = vi.mocked(runMonteCarloComparison as any);
-
-// ---- Inline schemas and handler ----
-
-const { EcosystemSnapshotSchema, StrategySchema } = await import("@innovator/core");
-
-const SimulateRequestSchema = z.object({
-  ecosystem: EcosystemSnapshotSchema as any,
-  strategies: z
-    .array(StrategySchema as any)
-    .min(1)
-    .max(10),
-  model: z.string().optional(),
-  mode: z.enum(["llm", "monte-carlo"]).optional(),
-  monteCarloConfig: z
-    .object({
-      iterations: z.number().int().min(100).max(100000).optional(),
-      timeHorizonWeeks: z.number().int().min(4).max(260).optional(),
-      randomSeed: z.number().optional(),
-    })
-    .optional(),
-});
-
-const API_RESPONSE_HEADERS = { "Content-Type": "application/json" };
-
-async function POST(request: Request) {
-  try {
-    const contentType = request.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
-        status: 415,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    const parsed = SimulateRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid request. Please check your input." }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    const { ecosystem, strategies, model, mode, monteCarloConfig } = parsed.data;
-
-    registerEcosystem(ecosystem);
-
-    if (mode === "monte-carlo") {
-      const comparison = (runMonteCarloComparison as any)(ecosystem, strategies, {
-        iterations: monteCarloConfig?.iterations ?? 1000,
-        timeHorizonWeeks: monteCarloConfig?.timeHorizonWeeks ?? 52,
-        randomSeed: monteCarloConfig?.randomSeed,
-      });
-      return Response.json(comparison, { headers: API_RESPONSE_HEADERS });
-    }
-
-    const comparison = await compareStrategies(
-      ecosystem as any,
-      strategies as any,
-      model,
-      request.signal
-    );
-    return Response.json(comparison, { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Simulation failed. Please try again." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
-
-async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    if (id) {
-      const ecosystem = getEcosystem(id);
-      if (!ecosystem) {
-        return new Response(JSON.stringify({ error: "Ecosystem not found" }), {
-          status: 404,
-          headers: API_RESPONSE_HEADERS,
-        });
-      }
-      const health = computeEcosystemHealth(ecosystem as any);
-      return Response.json({ ecosystem, health }, { headers: API_RESPONSE_HEADERS });
-    }
-
-    return Response.json(listEcosystems(), { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Failed to retrieve ecosystem data." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
 
 // ---- Test data ----
 

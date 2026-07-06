@@ -6,78 +6,10 @@ vi.mock("@innovator/core", () => ({
 }));
 
 import { routeRequest, getCostDashboard } from "@innovator/core";
+import { GET, POST } from "../distillation/route";
 
 const mockRouteRequest = vi.mocked(routeRequest);
 const mockGetCostDashboard = vi.mocked(getCostDashboard);
-
-// ---- Inline schema and handlers ----
-
-import { z } from "zod";
-
-const RouteRequestSchema = z.object({
-  input: z.string().min(1).max(10000),
-  premiumModel: z.string().max(100).default("gpt-4o"),
-  distilledModel: z.string().max(100).default("ollama-local"),
-  qualityThreshold: z.number().min(0).max(1).default(0.8),
-});
-
-const API_RESPONSE_HEADERS = { "Content-Type": "application/json" };
-
-async function POST(request: Request) {
-  try {
-    const contentType = request.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
-        status: 415,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    const parsed = RouteRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
-    }
-
-    const decision = routeRequest(
-      parsed.data.input,
-      parsed.data.premiumModel,
-      parsed.data.distilledModel,
-      parsed.data.qualityThreshold
-    );
-
-    return Response.json(decision, { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Routing failed." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
-
-async function GET() {
-  try {
-    const dashboard = getCostDashboard();
-    return Response.json(dashboard, { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Failed to get cost dashboard." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
 
 function makeRequest(body: unknown): Request {
   return new Request("http://localhost/api/distillation", {

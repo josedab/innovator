@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { z } from "zod";
 
 vi.mock("@innovator/core", async () => {
   const { z: zod } = await import("zod");
@@ -18,6 +17,9 @@ vi.mock("@innovator/core", async () => {
     generateText: vi.fn(),
     extractJson: vi.fn(),
     buildSynthesisPrompt: vi.fn(),
+    sanitizeLlmOutput: vi.fn((value: string) => value),
+    scoreIdeas: vi.fn(),
+    MAX_CONCURRENCY: 2,
     InvestigationSchema: zod.object({
       summary: zod.string(),
       keyAspects: zod.array(zod.object({ title: zod.string(), description: zod.string() })),
@@ -34,93 +36,11 @@ vi.mock("@innovator/core", async () => {
   };
 });
 
-import { generateForAngle, generateText, extractJson, buildSynthesisPrompt } from "@innovator/core";
+import { generateForAngle } from "@innovator/core";
+import type { AngleResult } from "@innovator/core";
+import { POST } from "../innovate/route";
+
 const mockGenerateForAngle = vi.mocked(generateForAngle);
-
-const ANGLE_IDS_CONST = [
-  "scamper",
-  "first-principles",
-  "cross-domain",
-  "constraints",
-  "inversion",
-  "perspectives",
-  "what-if",
-  "trend-collision",
-] as const;
-
-const InvestigationSchema = z.object({
-  summary: z.string(),
-  keyAspects: z.array(z.object({ title: z.string(), description: z.string() })),
-  currentState: z.string(),
-  challenges: z.array(z.string()),
-  opportunities: z.array(z.string()),
-});
-
-const SynthesisSchema = z.object({
-  topIdeas: z.array(z.any()),
-  themes: z.array(z.string()),
-  recommendation: z.string(),
-});
-
-type AngleId = (typeof ANGLE_IDS_CONST)[number];
-type AngleResult = {
-  angleId: string;
-  angleName: string;
-  ideas: {
-    title: string;
-    description: string;
-    potentialImpact: string;
-    implementationHint: string;
-  }[];
-  reasoning: string;
-};
-
-const RequestSchema = z.object({
-  subject: z.string().min(1).max(500),
-  investigation: InvestigationSchema,
-  angles: z.array(z.enum(ANGLE_IDS_CONST)).min(1).max(8),
-  model: z.string().optional(),
-  synthesize: z.boolean().optional(),
-});
-
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = RequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-    const { subject, investigation, angles, model, synthesize } = parsed.data;
-    const results: AngleResult[] = [];
-    const MAX_CONCURRENCY = 2;
-    for (let i = 0; i < angles.length; i += MAX_CONCURRENCY) {
-      const batch = angles.slice(i, i + MAX_CONCURRENCY);
-      const batchResults = await Promise.all(
-        batch.map((angleId) => generateForAngle(subject, investigation, angleId as AngleId, model))
-      );
-      results.push(...batchResults);
-    }
-    let synthesis = undefined;
-    if (synthesize && results.length >= 2) {
-      const angleResultsJson = JSON.stringify(results, null, 2);
-      const prompt = buildSynthesisPrompt(subject, investigation, angleResultsJson);
-      const raw = await generateText({ prompt, model, serverMode: true });
-      const jsonStr = extractJson(raw);
-      synthesis = SynthesisSchema.parse(JSON.parse(jsonStr));
-    }
-    return Response.json({ angleResults: results, synthesis });
-  } catch (err) {
-    return new Response(
-      JSON.stringify({
-        error: err instanceof Error ? err.message : "Innovation generation failed",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-}
 
 const MOCK_INVESTIGATION = {
   summary: "Test summary",
@@ -234,6 +154,6 @@ describe("POST /api/innovate", () => {
     const data = await res.json();
 
     expect(res.status).toBe(500);
-    expect(data.error).toBe("LLM error");
+    expect(data.error).toBe("All angle generations failed. Please try again.");
   });
 });

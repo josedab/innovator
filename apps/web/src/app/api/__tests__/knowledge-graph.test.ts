@@ -1,12 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Shared mock instances (reset in beforeEach)
-const mockComputeForceLayout = vi.fn();
-const mockSearchNodes = vi.fn();
-const mockGetNodeNeighborhood = vi.fn();
-const mockGetInsightSuggestions = vi.fn();
-const mockExtractFromInvestigation = vi.fn();
-const mockExtractFromIdeas = vi.fn();
+const {
+  mockComputeForceLayout,
+  mockExtractFromIdeas,
+  mockExtractFromInvestigation,
+  mockGetInsightSuggestions,
+  mockGetNodeNeighborhood,
+  mockSearchNodes,
+} = vi.hoisted(() => ({
+  mockComputeForceLayout: vi.fn(),
+  mockSearchNodes: vi.fn(),
+  mockGetNodeNeighborhood: vi.fn(),
+  mockGetInsightSuggestions: vi.fn(),
+  mockExtractFromInvestigation: vi.fn(),
+  mockExtractFromIdeas: vi.fn(),
+}));
 
 vi.mock("@innovator/core", () => ({
   getKnowledgeGraph: vi.fn(),
@@ -16,8 +24,16 @@ vi.mock("@innovator/core", () => ({
   getTemporalEvolution: vi.fn(),
   generateKnowledgeInsights: vi.fn(),
   toVisualizationData: vi.fn(),
-  EntityExtractor: vi.fn(),
-  GraphVisualizer: vi.fn(),
+  EntityExtractor: class {
+    extractFromInvestigation = mockExtractFromInvestigation;
+    extractFromIdeas = mockExtractFromIdeas;
+  },
+  GraphVisualizer: class {
+    computeForceLayout = mockComputeForceLayout;
+    searchNodes = mockSearchNodes;
+    getNodeNeighborhood = mockGetNodeNeighborhood;
+    getInsightSuggestions = mockGetInsightSuggestions;
+  },
 }));
 
 import {
@@ -26,203 +42,14 @@ import {
   getGraphStats,
   getTemporalEvolution,
   generateKnowledgeInsights,
-  EntityExtractor,
-  GraphVisualizer,
 } from "@innovator/core";
+import { POST } from "../knowledge-graph/route";
 
 const mockGetKnowledgeGraph = vi.mocked(getKnowledgeGraph);
 const mockFilterGraphNodes = vi.mocked(filterGraphNodes);
 const mockGetGraphStats = vi.mocked(getGraphStats);
 const mockGetTemporalEvolution = vi.mocked(getTemporalEvolution);
 const mockGenerateKnowledgeInsights = vi.mocked(generateKnowledgeInsights);
-
-// ---- Inline route handler (following existing test patterns) ----
-
-import { z } from "zod";
-
-const GetGraphSchema = z.object({
-  action: z.literal("get_graph"),
-  filters: z
-    .object({
-      type: z
-        .enum([
-          "concept",
-          "technology",
-          "challenge",
-          "opportunity",
-          "person",
-          "organization",
-          "domain",
-        ])
-        .optional(),
-      fromDate: z.string().optional(),
-      toDate: z.string().optional(),
-      minOccurrences: z.number().optional(),
-    })
-    .optional(),
-});
-
-const SearchSchema = z.object({
-  action: z.literal("search"),
-  query: z.string().min(1).max(500),
-});
-
-const ExpandSchema = z.object({
-  action: z.literal("expand"),
-  nodeId: z.string().min(1),
-  depth: z.number().min(1).max(5).optional(),
-});
-
-const InsightsSchema = z.object({ action: z.literal("insights") });
-
-const ExtractSchema = z.object({
-  action: z.literal("extract"),
-  sessionId: z.string().min(1),
-  investigation: z
-    .object({
-      summary: z.string(),
-      currentState: z.string(),
-      keyAspects: z.array(z.object({ title: z.string(), description: z.string() })),
-      challenges: z.array(z.string()),
-      opportunities: z.array(z.string()),
-    })
-    .optional(),
-  ideas: z
-    .array(z.object({ title: z.string(), description: z.string(), potentialImpact: z.string() }))
-    .optional(),
-});
-
-const TimelineSchema = z.object({
-  action: z.literal("timeline"),
-  entityId: z.string().min(1),
-});
-
-const RequestSchema = z.discriminatedUnion("action", [
-  GetGraphSchema,
-  SearchSchema,
-  ExpandSchema,
-  InsightsSchema,
-  ExtractSchema,
-  TimelineSchema,
-]);
-
-const API_RESPONSE_HEADERS = { "Content-Type": "application/json" };
-
-async function POST(request: Request) {
-  try {
-    const contentType = request.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
-        status: 415,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-
-    const parsed = RequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request. Please check your input and try again." }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
-    }
-
-    const data = parsed.data;
-
-    switch (data.action) {
-      case "get_graph": {
-        const graph = getKnowledgeGraph();
-        let nodes = (graph as any).nodes;
-
-        if (data.filters) {
-          nodes = filterGraphNodes(data.filters as any);
-        }
-
-        const edges = (graph as any).edges.filter((e: any) => {
-          const nodeIds = new Set(nodes.map((n: any) => n.id));
-          return nodeIds.has(e.source) && nodeIds.has(e.target);
-        });
-
-        const layout = mockComputeForceLayout(nodes, edges);
-        const stats = getGraphStats();
-
-        return Response.json({ layout, stats }, { headers: API_RESPONSE_HEADERS });
-      }
-
-      case "search": {
-        const graph = getKnowledgeGraph();
-        const layout = mockComputeForceLayout((graph as any).nodes, (graph as any).edges);
-        const results = mockSearchNodes(layout, data.query);
-        return Response.json({ results }, { headers: API_RESPONSE_HEADERS });
-      }
-
-      case "expand": {
-        const graph = getKnowledgeGraph();
-        const layout = mockComputeForceLayout((graph as any).nodes, (graph as any).edges);
-        const neighborhood = mockGetNodeNeighborhood(layout, data.nodeId, data.depth ?? 1);
-        return Response.json({ neighborhood }, { headers: API_RESPONSE_HEADERS });
-      }
-
-      case "insights": {
-        const graph = getKnowledgeGraph();
-        const layout = mockComputeForceLayout((graph as any).nodes, (graph as any).edges);
-        const knowledgeInsights = generateKnowledgeInsights(graph as any);
-        const structuralInsights = mockGetInsightSuggestions(layout);
-        return Response.json(
-          { knowledgeInsights, structuralInsights },
-          { headers: API_RESPONSE_HEADERS }
-        );
-      }
-
-      case "extract": {
-        let entities: { entities: unknown[]; relationships: unknown[] } = {
-          entities: [],
-          relationships: [],
-        };
-
-        if (data.investigation) {
-          entities = mockExtractFromInvestigation(data.investigation, data.sessionId);
-        }
-
-        if (data.ideas) {
-          const ideaEntities = mockExtractFromIdeas(data.ideas, data.sessionId);
-          entities.entities = [...entities.entities, ...ideaEntities.entities];
-          entities.relationships = [...entities.relationships, ...ideaEntities.relationships];
-        }
-
-        return Response.json(entities, { headers: API_RESPONSE_HEADERS });
-      }
-
-      case "timeline": {
-        const graph = getKnowledgeGraph();
-        const evolution = getTemporalEvolution(graph as any, data.entityId);
-
-        if (!evolution) {
-          return new Response(JSON.stringify({ error: "Entity not found" }), {
-            status: 404,
-            headers: API_RESPONSE_HEADERS,
-          });
-        }
-
-        return Response.json({ evolution }, { headers: API_RESPONSE_HEADERS });
-      }
-    }
-  } catch {
-    return new Response(
-      JSON.stringify({ error: "Knowledge graph operation failed. Please try again." }),
-      { status: 500, headers: API_RESPONSE_HEADERS }
-    );
-  }
-}
 
 function makeRequest(body: unknown, headers?: Record<string, string>): Request {
   return new Request("http://localhost/api/knowledge-graph", {

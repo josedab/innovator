@@ -15,7 +15,7 @@ vi.mock("@innovator/core", () => ({
   ideaToGitHubIssue: (...args: unknown[]) => mockIdeaToGitHubIssue(...args),
 }));
 
-import { z } from "zod";
+import { POST } from "../iac/route";
 
 const MOCK_SESSION = {
   version: "1.0",
@@ -54,54 +54,6 @@ function makeRequest(body: unknown): Request {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-}
-
-// Inline simplified handler
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-
-    if (body.action === "diff") {
-      const errA = mockValidateIaCSession(body.sessionA);
-      const errB = mockValidateIaCSession(body.sessionB);
-      if (errA || errB) {
-        return new Response(JSON.stringify({ error: "Invalid session data" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      const diff = mockDiffSessions(body.sessionA, body.sessionB);
-      if (body.format === "text") {
-        return new Response(mockFormatSessionDiff(diff), {
-          headers: { "Content-Type": "text/plain" },
-        });
-      }
-      return Response.json(diff);
-    }
-
-    if (body.action === "validate") {
-      const err =
-        body.type === "session"
-          ? mockValidateIaCSession(body.data)
-          : mockValidateIaCConfig(body.data);
-      return Response.json({ valid: err === null, error: err });
-    }
-
-    if (body.action === "issues") {
-      const sessionErr = mockValidateIaCSession(body.session);
-      if (sessionErr) {
-        return new Response(JSON.stringify({ error: "Invalid session" }), { status: 400 });
-      }
-      const topN = body.topN ?? 3;
-      const ideas = body.session.synthesis?.topIdeas?.slice(0, topN) ?? [];
-      const issues = ideas.map((idea: unknown) => mockIdeaToGitHubIssue(body.session, idea));
-      return Response.json({ issues });
-    }
-
-    return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400 });
-  } catch {
-    return new Response(JSON.stringify({ error: "Failed" }), { status: 500 });
-  }
 }
 
 describe("POST /api/iac", () => {

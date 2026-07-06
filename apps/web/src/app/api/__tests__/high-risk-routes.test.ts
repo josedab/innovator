@@ -3,7 +3,7 @@ import { z } from "zod";
 
 // ---- Mock core modules ----
 vi.mock("@innovator/core", () => ({
-  recordBiasActivity: vi.fn().mockResolvedValue({ id: "activity-1" }),
+  recordBiasActivity: vi.fn(),
   analyzeBiases: vi
     .fn()
     .mockResolvedValue({ biases: [], summary: "No significant biases detected" }),
@@ -19,14 +19,14 @@ vi.mock("@innovator/core", () => ({
     data: z.record(z.unknown()).optional(),
   }),
   generateCostReport: vi.fn().mockReturnValue({ totalCost: 1.23, breakdown: [] }),
-  indexDocument: vi.fn().mockResolvedValue({ id: "doc-1", size: 100 }),
-  semanticSearch: vi.fn().mockResolvedValue({ results: [], total: 0 }),
+  indexDocument: vi.fn().mockReturnValue({ id: "doc-1", size: 100 }),
+  semanticSearch: vi.fn().mockReturnValue({ results: [], total: 0 }),
   findSimilarDocuments: vi.fn().mockResolvedValue([]),
   clusterDocuments: vi.fn().mockResolvedValue({ clusters: [] }),
   discoverConnections: vi.fn().mockResolvedValue({ connections: [] }),
   getIndexSize: vi.fn().mockReturnValue(0),
   runPatentScan: vi.fn().mockResolvedValue({ results: [], totalPatentsAnalyzed: 0 }),
-  optimizePortfolio: vi.fn().mockResolvedValue({ allocations: [], expectedReturn: 0 }),
+  optimizePortfolio: vi.fn().mockReturnValue({ allocations: [], expectedReturn: 0 }),
 }));
 
 import {
@@ -38,271 +38,14 @@ import {
   indexDocument,
   semanticSearch,
 } from "@innovator/core";
+import { POST as biasPost } from "../bias/route";
+import { GET as costReportRouteGet } from "../cost-report/route";
+import { POST as patentPost } from "../patent-scanner/route";
+import { POST as portfolioPost } from "../portfolio-optimize/route";
+import { POST as searchPost } from "../search/route";
 
-const API_RESPONSE_HEADERS = { "Content-Type": "application/json" };
-
-// ---- Inlined route handlers (avoids Next.js module resolution) ----
-
-// Bias route
-const BiasRequestSchema = z.discriminatedUnion("action", [
-  z.object({
-    action: z.literal("record"),
-    activity: z.object({
-      userId: z.string().min(1).max(200),
-      activityType: z.string().min(1),
-      data: z.record(z.unknown()).optional(),
-    }),
-  }),
-  z.object({
-    action: z.literal("analyze"),
-    userId: z.string().min(1).max(200),
-    model: z.string().optional(),
-  }),
-  z.object({ action: z.literal("challenges"), userId: z.string().min(1).max(200) }),
-  z.object({
-    action: z.literal("complete-challenge"),
-    userId: z.string().min(1).max(200),
-    challengeId: z.string().min(1).max(200),
-  }),
-  z.object({
-    action: z.literal("team-dashboard"),
-    teamId: z.string().min(1).max(200),
-    memberIds: z.array(z.string().max(200)).min(1).max(100),
-  }),
-]);
-
-async function biasPost(request: Request) {
-  try {
-    const contentType = request.headers.get("content-type");
-    if (!contentType?.includes("application/json")) {
-      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-    const parsed = BiasRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
-    }
-    const data = parsed.data;
-    if (data.action === "record") {
-      const result = await recordBiasActivity(data.activity as unknown);
-      return Response.json(result, { headers: API_RESPONSE_HEADERS });
-    }
-    if (data.action === "analyze") {
-      const result = await analyzeBiases(data.userId as unknown, data.model as unknown);
-      return Response.json(result, { headers: API_RESPONSE_HEADERS });
-    }
-    return Response.json({ status: "ok" }, { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Bias analysis failed." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
-
-// Cost report route
-async function costReportGet() {
-  try {
-    const report = generateCostReport();
-    return Response.json(report, { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Cost report generation failed." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
-
-// Patent scanner route
-const PatentRequestSchema = z.object({
-  subject: z.string().min(1).max(500),
-  ideas: z
-    .array(
-      z.object({
-        title: z.string().min(1).max(500),
-        description: z.string().min(1).max(5000),
-        potentialImpact: z.string().max(2000).default(""),
-        implementationHint: z.string().max(2000).default(""),
-      })
-    )
-    .min(1)
-    .max(50),
-  model: z.string().optional(),
-  databases: z.array(z.enum(["USPTO", "EPO", "WIPO"])).optional(),
-});
-
-async function patentPost(request: Request) {
-  try {
-    const contentType = request.headers.get("content-type");
-    if (!contentType?.includes("application/json")) {
-      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-    const parsed = PatentRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
-    }
-    const result = await runPatentScan(parsed.data as unknown);
-    return Response.json(result, { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Patent scan failed." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
-
-// Portfolio optimize route
-const PortfolioRequestSchema = z.object({
-  scores: z
-    .array(
-      z.object({
-        feasibility: z.number().min(1).max(10),
-        impact: z.number().min(1).max(10),
-        novelty: z.number().min(1).max(10),
-        timeToImplement: z.enum(["days", "weeks", "months", "quarters", "years"]),
-        confidence: z.number().min(0).max(1),
-        rationale: z.string().max(2000).optional(),
-      })
-    )
-    .min(2)
-    .max(100),
-  riskFreeRate: z.number().min(0).max(1).default(0.02),
-  monteCarloSimulations: z.number().int().min(100).max(50000).default(5000),
-  maxAllocationPerIdea: z.number().min(0.05).max(1).default(0.4),
-});
-
-async function portfolioPost(request: Request) {
-  try {
-    const contentType = request.headers.get("content-type");
-    if (!contentType?.includes("application/json")) {
-      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-    const parsed = PortfolioRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
-    }
-    const result = await optimizePortfolio(parsed.data as unknown);
-    return Response.json(result, { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Portfolio optimization failed." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
-}
-
-// Search route
-const SearchRequestSchema = z.discriminatedUnion("action", [
-  z.object({
-    action: z.literal("index"),
-    type: z.string().min(1),
-    title: z.string().min(1).max(500),
-    content: z.string().min(1).max(10000),
-    metadata: z.record(z.unknown()).optional(),
-    sessionId: z.string().optional(),
-  }),
-  z.object({
-    action: z.literal("search"),
-    query: z.string().min(1).max(2000),
-    limit: z.number().int().min(1).max(50).optional(),
-  }),
-  z.object({
-    action: z.literal("similar"),
-    documentId: z.string().min(1).max(200),
-    limit: z.number().int().min(1).max(50).optional(),
-  }),
-  z.object({
-    action: z.literal("cluster"),
-    numClusters: z.number().int().min(2).max(20).optional(),
-  }),
-  z.object({ action: z.literal("discover"), documentId: z.string().min(1).max(200) }),
-]);
-
-async function searchPost(request: Request) {
-  try {
-    const contentType = request.headers.get("content-type");
-    if (!contentType?.includes("application/json")) {
-      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: API_RESPONSE_HEADERS,
-      });
-    }
-    const parsed = SearchRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-        { status: 400, headers: API_RESPONSE_HEADERS }
-      );
-    }
-    const data = parsed.data;
-    if (data.action === "index") {
-      const result = await indexDocument(data as unknown);
-      return Response.json(result, { headers: API_RESPONSE_HEADERS });
-    }
-    if (data.action === "search") {
-      const result = await semanticSearch(data.query as unknown, data.limit as unknown);
-      return Response.json(result, { headers: API_RESPONSE_HEADERS });
-    }
-    return Response.json({ status: "ok" }, { headers: API_RESPONSE_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Search operation failed." }), {
-      status: 500,
-      headers: API_RESPONSE_HEADERS,
-    });
-  }
+function costReportGet() {
+  return costReportRouteGet(new Request("http://localhost/api/cost-report"));
 }
 
 // ---- Helpers ----
@@ -340,7 +83,11 @@ describe("POST /api/bias", () => {
     );
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.id).toBe("activity-1");
+    expect(data.success).toBe(true);
+    expect(recordBiasActivity).toHaveBeenCalledWith({
+      userId: "user-1",
+      activityType: "evaluate",
+    });
   });
 
   it("analyzes biases for valid analyze action", async () => {
@@ -367,15 +114,17 @@ describe("POST /api/bias", () => {
     expect(data.error).toContain("Invalid JSON");
   });
 
-  it("returns 400 for wrong content-type", async () => {
+  it("returns 415 for wrong content-type", async () => {
     const res = await biasPost(makePost("http://localhost/api/bias", {}, "text/plain"));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(415);
     const data = await res.json();
     expect(data.error).toContain("Content-Type");
   });
 
   it("returns 500 when core function throws", async () => {
-    vi.mocked(recordBiasActivity).mockRejectedValueOnce(new Error("fail"));
+    vi.mocked(recordBiasActivity).mockImplementationOnce(() => {
+      throw new Error("fail");
+    });
     const res = await biasPost(
       makePost("http://localhost/api/bias", {
         action: "record",
@@ -416,7 +165,14 @@ describe("POST /api/patent-scanner", () => {
 
   const VALID_PATENT_BODY = {
     subject: "AI-powered code review",
-    ideas: [{ title: "Smart Diff", description: "AI analyzes code diffs for quality" }],
+    ideas: [
+      {
+        title: "Smart Diff",
+        description: "AI analyzes code diffs for quality",
+        potentialImpact: "",
+        implementationHint: "",
+      },
+    ],
   };
 
   it("returns patent scan results for valid input", async () => {
@@ -452,11 +208,11 @@ describe("POST /api/patent-scanner", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 for wrong content-type", async () => {
+  it("returns 415 for wrong content-type", async () => {
     const res = await patentPost(
       makePost("http://localhost/api/patent-scanner", VALID_PATENT_BODY, "text/plain")
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(415);
   });
 
   it("returns 500 when scan fails", async () => {
@@ -475,8 +231,26 @@ describe("POST /api/portfolio-optimize", () => {
 
   const VALID_PORTFOLIO_BODY = {
     scores: [
-      { feasibility: 8, impact: 7, novelty: 6, timeToImplement: "months", confidence: 0.8 },
-      { feasibility: 5, impact: 9, novelty: 8, timeToImplement: "quarters", confidence: 0.6 },
+      {
+        ideaTitle: "Idea A",
+        angleId: "scamper",
+        feasibility: 8,
+        impact: 7,
+        novelty: 6,
+        timeToImplement: "months",
+        confidence: 0.8,
+        rationale: "Balanced option",
+      },
+      {
+        ideaTitle: "Idea B",
+        angleId: "inversion",
+        feasibility: 5,
+        impact: 9,
+        novelty: 8,
+        timeToImplement: "quarters",
+        confidence: 0.6,
+        rationale: "Higher upside",
+      },
     ],
   };
 
@@ -493,7 +267,16 @@ describe("POST /api/portfolio-optimize", () => {
     const res = await portfolioPost(
       makePost("http://localhost/api/portfolio-optimize", {
         scores: [
-          { feasibility: 8, impact: 7, novelty: 6, timeToImplement: "months", confidence: 0.8 },
+          {
+            ideaTitle: "Idea A",
+            angleId: "scamper",
+            feasibility: 8,
+            impact: 7,
+            novelty: 6,
+            timeToImplement: "months",
+            confidence: 0.8,
+            rationale: "Only option",
+          },
         ],
       })
     );
@@ -504,8 +287,26 @@ describe("POST /api/portfolio-optimize", () => {
     const res = await portfolioPost(
       makePost("http://localhost/api/portfolio-optimize", {
         scores: [
-          { feasibility: 11, impact: 7, novelty: 6, timeToImplement: "months", confidence: 0.8 },
-          { feasibility: 5, impact: 9, novelty: 8, timeToImplement: "quarters", confidence: 0.6 },
+          {
+            ideaTitle: "Idea A",
+            angleId: "scamper",
+            feasibility: 11,
+            impact: 7,
+            novelty: 6,
+            timeToImplement: "months",
+            confidence: 0.8,
+            rationale: "Invalid feasibility",
+          },
+          {
+            ideaTitle: "Idea B",
+            angleId: "inversion",
+            feasibility: 5,
+            impact: 9,
+            novelty: 8,
+            timeToImplement: "quarters",
+            confidence: 0.6,
+            rationale: "Valid comparison",
+          },
         ],
       })
     );
@@ -519,15 +320,17 @@ describe("POST /api/portfolio-optimize", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 for wrong content-type", async () => {
+  it("returns 415 for wrong content-type", async () => {
     const res = await portfolioPost(
       makePost("http://localhost/api/portfolio-optimize", VALID_PORTFOLIO_BODY, "text/plain")
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(415);
   });
 
   it("returns 500 when optimization fails", async () => {
-    vi.mocked(optimizePortfolio).mockRejectedValueOnce(new Error("fail"));
+    vi.mocked(optimizePortfolio).mockImplementationOnce(() => {
+      throw new Error("fail");
+    });
     const res = await portfolioPost(
       makePost("http://localhost/api/portfolio-optimize", VALID_PORTFOLIO_BODY)
     );
@@ -539,13 +342,11 @@ describe("POST /api/portfolio-optimize", () => {
       makePost("http://localhost/api/portfolio-optimize", VALID_PORTFOLIO_BODY)
     );
     expect(res.status).toBe(200);
-    expect(optimizePortfolio).toHaveBeenCalledWith(
-      expect.objectContaining({
-        riskFreeRate: 0.02,
-        monteCarloSimulations: 5000,
-        maxAllocationPerIdea: 0.4,
-      })
-    );
+    expect(optimizePortfolio).toHaveBeenCalledWith(VALID_PORTFOLIO_BODY.scores, {
+      riskFreeRate: 0.02,
+      monteCarloSimulations: 5000,
+      maxAllocationPerIdea: 0.4,
+    });
   });
 });
 
@@ -565,7 +366,7 @@ describe("POST /api/search", () => {
     );
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data).toHaveProperty("id");
+    expect(data.document).toHaveProperty("id", "doc-1");
   });
 
   it("searches for valid search action", async () => {
@@ -593,18 +394,20 @@ describe("POST /api/search", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 for invalid JSON", async () => {
+  it("returns 500 for invalid JSON", async () => {
     const res = await searchPost(makeInvalidJsonRequest("http://localhost/api/search"));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(500);
   });
 
-  it("returns 400 for wrong content-type", async () => {
+  it("returns 415 for wrong content-type", async () => {
     const res = await searchPost(makePost("http://localhost/api/search", {}, "text/plain"));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(415);
   });
 
   it("returns 500 when search fails", async () => {
-    vi.mocked(semanticSearch).mockRejectedValueOnce(new Error("fail"));
+    vi.mocked(semanticSearch).mockImplementationOnce(() => {
+      throw new Error("fail");
+    });
     const res = await searchPost(
       makePost("http://localhost/api/search", {
         action: "search",

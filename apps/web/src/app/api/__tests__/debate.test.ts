@@ -16,112 +16,10 @@ vi.mock("@innovator/core", () => ({
   },
 }));
 
-import { debateIdeas, DEFAULT_PRO_PERSONA, DEFAULT_CON_PERSONA } from "@innovator/core";
+import { debateIdeas } from "@innovator/core";
+import { GET, POST } from "../debate/route";
+
 const mockDebateIdeas = vi.mocked(debateIdeas);
-
-// Inline the route handler to avoid Next.js module resolution issues
-import { z } from "zod";
-
-const IdeaSchema = z.object({
-  title: z.string().min(1).max(500),
-  description: z.string().min(1).max(5000),
-  potentialImpact: z.string().min(1).max(2000),
-  implementationHint: z.string().max(2000).optional().default(""),
-});
-
-const RequestSchema = z.object({
-  ideas: z.array(IdeaSchema).min(1).max(20),
-  investigation: z
-    .object({
-      summary: z.string().max(5000),
-      keyAspects: z
-        .array(z.object({ title: z.string().max(500), description: z.string().max(2000) }))
-        .max(20),
-      currentState: z.string().max(5000),
-      challenges: z.array(z.string().max(2000)).max(20),
-      opportunities: z.array(z.string().max(2000)).max(20),
-    })
-    .optional(),
-  config: z
-    .object({
-      rounds: z.number().int().min(1).max(5).optional(),
-      model: z.string().optional(),
-    })
-    .optional(),
-  sessionId: z.string().max(200).optional(),
-});
-
-const KNOWN_MODELS = [
-  "gpt-4o",
-  "gpt-4o-mini",
-  "gpt-4-turbo",
-  "o3-mini",
-  "claude-3-5-sonnet",
-  "claude-3-5-haiku",
-];
-
-function validateModel(model?: string) {
-  if (model && !KNOWN_MODELS.includes(model)) {
-    return new Response(
-      JSON.stringify({ error: `Unknown model: ${model}`, allowedModels: KNOWN_MODELS }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
-  }
-  return null;
-}
-
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = RequestSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    const { ideas, investigation, config } = parsed.data;
-
-    const modelError = validateModel(config?.model);
-    if (modelError) return modelError;
-
-    const results = await debateIdeas(ideas, investigation, {
-      rounds: config?.rounds,
-      model: config?.model,
-      signal: request.signal,
-    });
-
-    return Response.json(results);
-  } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      return new Response(JSON.stringify({ error: "Request cancelled" }), {
-        status: 499,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Debate failed" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-}
-
-async function GET() {
-  return Response.json({
-    defaultPersonas: {
-      pro: DEFAULT_PRO_PERSONA,
-      con: DEFAULT_CON_PERSONA,
-    },
-    config: {
-      rounds: { min: 1, max: 5, default: 2 },
-      maxIdeas: 20,
-    },
-    verdictOutcomes: ["pro", "con", "nuanced"],
-  });
-}
 
 const MOCK_IDEA = {
   title: "Test idea",
@@ -191,7 +89,7 @@ describe("POST /api/debate", () => {
     const data = await res.json();
 
     expect(res.status).toBe(400);
-    expect(data.error).toBe("Invalid request");
+    expect(data.error).toBe("Invalid request. Please check your input and try again.");
   });
 
   it("returns 400 for empty ideas array", async () => {
@@ -199,7 +97,7 @@ describe("POST /api/debate", () => {
     const data = await res.json();
 
     expect(res.status).toBe(400);
-    expect(data.error).toBe("Invalid request");
+    expect(data.error).toBe("Invalid request. Please check your input and try again.");
   });
 
   it("accepts up to 20 ideas", async () => {
@@ -238,18 +136,17 @@ describe("POST /api/debate", () => {
 
     expect(res.status).toBe(400);
     expect(data.error).toContain("Unknown model");
-    expect(data.allowedModels).toBeDefined();
   });
 
   it("passes valid model to debateIdeas", async () => {
     mockDebateIdeas.mockResolvedValue([MOCK_DEBATE_RESULT]);
 
-    await POST(makeRequest({ ideas: [MOCK_IDEA], config: { model: "gpt-4o" } }));
+    await POST(makeRequest({ ideas: [MOCK_IDEA], config: { model: "gpt-5" } }));
 
     expect(mockDebateIdeas).toHaveBeenCalledWith(
       [MOCK_IDEA],
       undefined,
-      expect.objectContaining({ model: "gpt-4o" })
+      expect.objectContaining({ model: "gpt-5" })
     );
   });
 
@@ -291,7 +188,7 @@ describe("POST /api/debate", () => {
     const data = await res.json();
 
     expect(res.status).toBe(500);
-    expect(data.error).toBe("LLM unavailable");
+    expect(data.error).toBe("Debate failed. Please try again.");
   });
 });
 

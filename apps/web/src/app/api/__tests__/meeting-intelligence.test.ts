@@ -36,127 +36,12 @@ vi.mock("@innovator/core", () => ({
   }),
 }));
 
-import {
-  ingestTranscript,
-  extractSignals,
-  getExtractionResult,
-  getHighConfidenceSignals,
-  getSuggestedInvestigations,
-  MeetingTranscriptSchema,
-} from "@innovator/core";
+import { ingestTranscript, extractSignals, getExtractionResult } from "@innovator/core";
+import { GET, POST } from "../meeting-intelligence/route";
 
 const mockExtractSignals = vi.mocked(extractSignals);
 const mockGetExtractionResult = vi.mocked(getExtractionResult);
 const mockIngestTranscript = vi.mocked(ingestTranscript);
-
-// Inline the discriminated union schema matching the route
-const IngestRequestSchema = z.object({
-  action: z.literal("ingest"),
-  transcript: MeetingTranscriptSchema as z.ZodType,
-});
-
-const ExtractRequestSchema = z.object({
-  action: z.literal("extract"),
-  transcriptId: z.string().min(1).max(200),
-  model: z.string().optional(),
-});
-
-const RequestSchema = z.discriminatedUnion("action", [IngestRequestSchema, ExtractRequestSchema]);
-
-// Simplified inline POST handler
-async function POST(request: Request) {
-  try {
-    const contentType = request.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
-        status: 415,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const parsed = RequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid request. Please check your input." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const data = parsed.data;
-
-    if (data.action === "ingest") {
-      ingestTranscript(data.transcript as never);
-      return Response.json(
-        { success: true, meetingId: (data.transcript as { id: string }).id },
-        { headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // action === "extract"
-    const result = await extractSignals(data.transcriptId, data.model, request.signal);
-    return Response.json(result, { headers: { "Content-Type": "application/json" } });
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Meeting intelligence failed. Please try again." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-}
-
-// Simplified inline GET handler
-async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const meetingId = searchParams.get("meetingId");
-    const suggestions = searchParams.get("suggestions");
-    const minConfidence = searchParams.get("minConfidence");
-
-    if (suggestions === "true") {
-      return Response.json(getSuggestedInvestigations(), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (minConfidence) {
-      return Response.json(getHighConfidenceSignals(parseFloat(minConfidence) || 0.7), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (meetingId) {
-      const result = getExtractionResult(meetingId);
-      if (!result) {
-        return new Response(
-          JSON.stringify({ error: "No extraction found. Run POST with action=extract first." }),
-          { status: 404, headers: { "Content-Type": "application/json" } }
-        );
-      }
-      return Response.json(result, { headers: { "Content-Type": "application/json" } });
-    }
-
-    return new Response(
-      JSON.stringify({
-        error: "Provide 'meetingId', 'suggestions=true', or 'minConfidence' query parameter",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
-  } catch {
-    return new Response(JSON.stringify({ error: "Failed to retrieve meeting data." }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}
 
 const validTranscript = {
   id: "meeting-1",
