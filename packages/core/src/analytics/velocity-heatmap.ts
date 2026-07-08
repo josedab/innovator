@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import type { AnalyticsEvent } from "./index.js";
+import type { AnalyticsEvent } from "./types.js";
 
 /** Innovation velocity — ideas per time period. */
 export const VelocityDataPointSchema = z.object({

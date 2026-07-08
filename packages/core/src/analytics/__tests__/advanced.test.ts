@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   generateSummary: vi.fn(),
 }));
 
-vi.mock("../index.js", () => ({
+vi.mock("../analytics.js", () => ({
   readEvents: mocks.readEvents,
   generateSummary: mocks.generateSummary,
 }));

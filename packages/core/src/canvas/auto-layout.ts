@@ -1,4 +1,4 @@
-import type { CanvasNode, CanvasEdge, InnovationCanvas } from "./index.js";
+import type { CanvasNode, CanvasEdge, InnovationCanvas } from "./types.js";
 
 export type LayoutAlgorithm = "force-directed" | "grid" | "radial" | "hierarchical";
 

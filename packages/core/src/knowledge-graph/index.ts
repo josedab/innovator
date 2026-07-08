@@ -10,61 +10,15 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { z } from "zod";
 import type { Investigation, AngleResult, Synthesis } from "../types.js";
+import { KnowledgeGraphSchema } from "./types.js";
+import type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./types.js";
+
+export { EntityNodeSchema, RelationshipEdgeSchema, KnowledgeGraphSchema } from "./types.js";
+export type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./types.js";
 
 const GRAPH_DIR = join(homedir(), ".innovator", "knowledge-graph");
 const GRAPH_FILE = join(GRAPH_DIR, "graph.json");
-
-// ---- Types ----
-
-export const EntityNodeSchema = z.object({
-  id: z.string(),
-  label: z.string().max(200),
-  type: z.enum([
-    "concept",
-    "technology",
-    "challenge",
-    "opportunity",
-    "person",
-    "organization",
-    "domain",
-  ]),
-  description: z.string().max(2000).optional(),
-  sourceSessionIds: z.array(z.string()),
-  firstSeen: z.string(),
-  lastSeen: z.string(),
-  occurrenceCount: z.number(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-});
-
-export const RelationshipEdgeSchema = z.object({
-  id: z.string(),
-  source: z.string(),
-  target: z.string(),
-  type: z.enum([
-    "related_to",
-    "enables",
-    "challenges",
-    "part_of",
-    "derived_from",
-    "contrasts_with",
-  ]),
-  weight: z.number().min(0).max(1),
-  sourceSessionIds: z.array(z.string()),
-  label: z.string().max(200).optional(),
-});
-
-export const KnowledgeGraphSchema = z.object({
-  nodes: z.array(EntityNodeSchema),
-  edges: z.array(RelationshipEdgeSchema),
-  lastUpdated: z.string(),
-  sessionCount: z.number(),
-});
-
-export type EntityNode = z.infer<typeof EntityNodeSchema>;
-export type RelationshipEdge = z.infer<typeof RelationshipEdgeSchema>;
-export type KnowledgeGraph = z.infer<typeof KnowledgeGraphSchema>;
 
 // ---- Persistence ----
 

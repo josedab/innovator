@@ -7,7 +7,7 @@
  * context-aware suggestions during new sessions.
  */
 
-import type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./index.js";
+import type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./types.js";
 
 // ---- NL Query Types ----
 

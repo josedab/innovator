@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import type { EntityNode, KnowledgeGraph } from "./index.js";
+import type { EntityNode, KnowledgeGraph } from "./types.js";
 
 // ---- Schemas ----
 

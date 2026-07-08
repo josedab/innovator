@@ -10,7 +10,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
-import { generateSummary, readEvents } from "./index.js";
+import { generateSummary, readEvents } from "./analytics.js";
 import { computeKPIs, kpiDashboardToMarkdown } from "./kpi-dashboard.js";
 import {
   analyzeTeamPatterns,

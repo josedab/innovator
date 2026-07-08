@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CanvasNode, InnovationCanvas } from "./index.js";
+import type { CanvasNode, InnovationCanvas } from "./types.js";
 
 /** Priority quadrant assignment for impact/effort matrix. */
 export const QuadrantSchema = z.enum(["quick-win", "strategic", "fill-in", "avoid"]);

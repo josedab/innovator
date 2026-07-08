@@ -7,7 +7,7 @@
  */
 
 import { z } from "zod";
-import type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./index.js";
+import type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./types.js";
 import { ConfigurationError } from "../errors.js";
 
 /** Minimal interface for Neo4j driver session (avoids `any` for dynamic import). */

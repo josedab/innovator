@@ -6,7 +6,7 @@
  * and insight suggestions for the graph explorer UI.
  */
 
-import type { EntityNode, RelationshipEdge } from "./index.js";
+import type { EntityNode, RelationshipEdge } from "./types.js";
 
 // ---- Types ----
 

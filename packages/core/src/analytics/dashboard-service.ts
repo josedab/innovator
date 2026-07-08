@@ -6,7 +6,7 @@
  * payloads for the Innovation Portfolio Dashboard.
  */
 
-import { generateSummary, readEvents } from "./index.js";
+import { generateSummary, readEvents } from "./analytics.js";
 import { getTimeSeries, generateReport, reportToMarkdown } from "./advanced.js";
 import { getEventAggregator } from "./standard-events.js";
 import type {

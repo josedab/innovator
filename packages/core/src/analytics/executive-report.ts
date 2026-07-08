@@ -7,7 +7,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { readEvents } from "./index.js";
+import { readEvents } from "./analytics.js";
 import { calculateROI } from "./roi.js";
 
 // ---- Executive Report Schema ----

@@ -6,7 +6,8 @@
  */
 
 import { z } from "zod";
-import { readEvents } from "./index.js";
+import { readEvents } from "./analytics.js";
+import type { AnalyticsEvent } from "./types.js";
 
 // ---- Schemas ----
 
@@ -58,10 +59,7 @@ export type ROIReport = z.infer<typeof ROIReportSchema>;
 /**
  * Calculate ROI metrics for innovation activities.
  */
-export function calculateROI(
-  config?: Partial<ROIConfig>,
-  events?: import("./index.js").AnalyticsEvent[]
-): ROIReport {
+export function calculateROI(config?: Partial<ROIConfig>, events?: AnalyticsEvent[]): ROIReport {
   const cfg = ROIConfigSchema.parse(config ?? {});
   events = events ?? readEvents();
 

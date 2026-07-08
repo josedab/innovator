@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./index.js";
+import type { EntityNode, RelationshipEdge, KnowledgeGraph } from "./types.js";
 
 // ---- Types ----
 
