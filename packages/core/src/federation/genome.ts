@@ -7,7 +7,7 @@
  */
 
 import { createHmac } from "node:crypto";
-import type { FederationPattern } from "./index.js";
+import type { FederationPattern } from "./federation.js";
 import {
   getNode,
   listNodes,
@@ -15,7 +15,7 @@ import {
   mergePatterns,
   publishPatterns,
   getNetworkDashboard,
-} from "./index.js";
+} from "./federation.js";
 
 // ---- Differential Privacy ----
 

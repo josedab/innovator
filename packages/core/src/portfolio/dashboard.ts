@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { listPortfolioItems } from "./index.js";
+import { listPortfolioItems } from "./portfolio.js";
 import type { PortfolioItem } from "./types.js";
 
 // Dashboard data aggregation for portfolio analytics

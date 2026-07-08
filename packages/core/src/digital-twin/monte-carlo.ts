@@ -7,7 +7,7 @@
  */
 
 import { z } from "zod";
-import type { EcosystemSnapshot, Strategy } from "./index.js";
+import type { EcosystemSnapshot, Strategy } from "./types.js";
 
 // ---- Schemas ----
 
