@@ -6,7 +6,7 @@ const { mockListPortfolioItems } = vi.hoisted(() => ({
   mockListPortfolioItems: vi.fn(),
 }));
 
-vi.mock("../portfolio/index.js", () => ({
+vi.mock("../portfolio/portfolio.js", () => ({
   listPortfolioItems: mockListPortfolioItems,
 }));
 

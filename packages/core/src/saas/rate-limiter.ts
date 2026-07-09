@@ -6,8 +6,8 @@
 
 import { z } from "zod";
 
-import { getTenant } from "./index.js";
-import type { PlanId } from "./index.js";
+import { getTenant } from "./saas.js";
+import type { PlanId } from "./types.js";
 
 /** Zod schema for rate-limit configuration. */
 export const RateLimitConfigSchema = z.object({

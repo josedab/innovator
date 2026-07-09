@@ -6,8 +6,8 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { Attachment, ParseResult, InvestigationInput, MultiModalContext } from "./index.js";
-import { parseAttachment, buildMultiModalContext, validateAttachment } from "./index.js";
+import { parseAttachment, buildMultiModalContext, validateAttachment } from "./multi-modal.js";
+import type { Attachment, ParseResult, InvestigationInput, MultiModalContext } from "./types.js";
 
 // ---- Types ----
 

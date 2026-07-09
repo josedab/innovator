@@ -6,7 +6,7 @@
  */
 
 import type { Synthesis, AngleResult } from "../types.js";
-import { assessNovelty } from "./index.js";
+import { assessNovelty } from "./novelty-oracle.js";
 
 export interface NoveltyEnrichedIdea {
   title: string;

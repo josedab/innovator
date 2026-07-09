@@ -11,14 +11,14 @@ import { z } from "zod";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
-import type { Tournament, TournamentParticipant } from "./index.js";
+import type { Tournament, TournamentParticipant } from "./types.js";
 import {
   getTournament,
   resolveMatch,
   getLeaderboard,
   createTournament,
   startTournament,
-} from "./index.js";
+} from "./tournament.js";
 
 // ---- LLM Judge Types ----
 

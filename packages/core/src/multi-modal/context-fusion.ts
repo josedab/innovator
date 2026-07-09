@@ -11,7 +11,7 @@ import { randomUUID } from "node:crypto";
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
 import { wrapUserInput, sanitizeLlmOutput } from "../prompts/sanitize.js";
-import type { Attachment } from "./index.js";
+import type { Attachment } from "./types.js";
 import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----

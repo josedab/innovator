@@ -19,8 +19,8 @@ vi.mock("../prompts/sanitize.js", () => ({
   wrapUserInput: vi.fn((label: string, value: string) => `${label}: ${value}`),
 }));
 
-// Mock tournament/index.js functions
-vi.mock("../tournament/index.js", () => ({
+// Mock the runtime leaf used by llm-judge.
+vi.mock("../tournament/tournament.js", () => ({
   getTournament: vi.fn(),
   resolveMatch: vi.fn(),
   getLeaderboard: vi.fn(),
@@ -35,7 +35,7 @@ import {
   getLeaderboard,
   createTournament,
   startTournament,
-} from "../tournament/index.js";
+} from "../tournament/tournament.js";
 
 import {
   judgeMatch,

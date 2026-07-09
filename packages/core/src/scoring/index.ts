@@ -7,8 +7,7 @@
  */
 
 import { z } from "zod";
-import { generateText, extractJson } from "../copilot/client.js";
-import { withRetry } from "../copilot/retry.js";
+import { generateStructured } from "../copilot/structured-generation.js";
 import { sanitizeLlmOutput, sanitizeUserInput, wrapUserInput } from "../prompts/sanitize.js";
 import type { AngleResult, Investigation } from "../types.js";
 import { LlmParseError } from "../errors.js";
@@ -133,23 +132,18 @@ export async function scoreIdeas(
 
   const prompt = buildScoringPrompt(subject, investigation, angleResults);
 
-  const parsed = await withRetry(
-    async () => {
-      const raw = await generateText({ prompt, model, serverMode: true, signal });
-      const jsonStr = extractJson(sanitizeLlmOutput(raw));
-      try {
-        return JSON.parse(jsonStr) as unknown;
-      } catch {
-        throw new LlmParseError(
-          `Failed to parse scoring response as JSON: ${jsonStr.slice(0, 200)}`,
-          jsonStr.slice(0, 200)
-        );
-      }
+  return generateStructured({
+    generateOptions: { prompt, model, serverMode: true, signal },
+    retryOptions: { signal },
+    schema: ScoringResultSchema,
+    sanitizeBeforeExtract: true,
+    createParseError: (jsonStr) => {
+      return new LlmParseError(
+        `Failed to parse scoring response as JSON: ${jsonStr.slice(0, 200)}`,
+        jsonStr.slice(0, 200)
+      );
     },
-    { signal }
-  );
-
-  return ScoringResultSchema.parse(parsed);
+  });
 }
 
 /**
@@ -510,15 +504,19 @@ Respond with valid JSON only:
   }>;
 
   try {
-    const raw = await withRetry(
-      async () => {
-        const result = await generateText({ prompt, model, serverMode: true, signal });
-        return extractJson(sanitizeLlmOutput(result));
+    rawScores = await generateStructured({
+      generateOptions: { prompt, model, serverMode: true, signal },
+      retryOptions: { signal },
+      sanitizeBeforeExtract: true,
+      parseMode: "outside-retry",
+      transformParsed: (parsed) => {
+        return (
+          parsed as {
+            scores: typeof rawScores;
+          }
+        ).scores;
       },
-      { signal }
-    );
-    const parsed = JSON.parse(raw) as { scores: typeof rawScores };
-    rawScores = parsed.scores;
+    });
   } catch (err) {
     // Fallback: generate uniform default scores when LLM is unavailable.
     // Confidence is set very low (0.1) to clearly signal these are defaults, not LLM-scored.

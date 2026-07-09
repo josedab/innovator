@@ -7,8 +7,8 @@
 
 import { z } from "zod";
 import type { PlaygroundSession } from "../playground/index.js";
-import type { Tenant, UsageRecord } from "./index.js";
 import { ConfigurationError } from "../errors.js";
+import type { Tenant, UsageRecord } from "./types.js";
 
 // ---- Storage Interface ----
 

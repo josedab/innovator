@@ -6,7 +6,7 @@
  * These providers search real databases and return structured prior art entries.
  */
 
-import type { PriorArtEntry, PriorArtProvider } from "./index.js";
+import type { PriorArtEntry, PriorArtProvider } from "./types.js";
 
 // ---- USPTO PatentsView Provider ----
 

@@ -6,8 +6,8 @@
  */
 
 import { z } from "zod";
-import type { BillingProvider, BillingEvent, Invoice, PlanId } from "./index.js";
 import { ConfigurationError, LlmError, ValidationError } from "../errors.js";
+import type { BillingEvent, BillingProvider, Invoice, PlanId } from "./types.js";
 
 /** Zod schema for Stripe configuration. */
 export const StripeConfigSchema = z.object({
