@@ -1,5 +1,4 @@
-import { generateText, extractJson } from "../copilot/client.js";
-import { withRetry } from "../copilot/retry.js";
+import { generateStructured, type TextGenerator } from "../copilot/structured-generation.js";
 import { LlmParseError, ValidationError } from "../errors.js";
 import { getEventBus } from "../events/emitter.js";
 import {
@@ -13,7 +12,7 @@ import {
   buildTrendCollisionPrompt,
 } from "../prompts/angles/index.js";
 import { investigationContext } from "../prompts/investigation.js";
-import { validateSubject, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { validateSubject } from "../prompts/sanitize.js";
 import { AngleResultSchema, type AngleId, type AngleResult, type Investigation } from "../types.js";
 import { buildCustomAnglePrompt, getCustomAngle } from "./custom-angles.js";
 
@@ -37,6 +36,8 @@ const ANGLE_PROMPT_MAP: Record<AngleId, PromptBuilder> = {
  * @param investigation - A previously generated {@link Investigation} providing context
  * @param angleId - The creativity angle to apply (e.g. `"scamper"`, `"inversion"`)
  * @param model - Optional LLM model override
+ * @param signal - Optional AbortSignal for cancellation
+ * @param textGenerator - Optional text-generation dependency (defaults to Copilot)
  * @returns A validated {@link AngleResult} containing generated ideas and reasoning
  * @throws {ValidationError} If the subject is invalid or the angle ID is unknown
  * @throws If the LLM call fails or the response is unparseable
@@ -50,12 +51,21 @@ const ANGLE_PROMPT_MAP: Record<AngleId, PromptBuilder> = {
  * }
  * ```
  */
+export function generateForAngle(
+  subject: string,
+  investigation: Investigation,
+  angleId: AngleId | string,
+  model?: string,
+  signal?: AbortSignal,
+  textGenerator?: TextGenerator
+): Promise<AngleResult>;
 export async function generateForAngle(
   subject: string,
   investigation: Investigation,
   angleId: AngleId | string,
   model?: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  ...[textGenerator]: [TextGenerator?]
 ): Promise<AngleResult> {
   const validation = validateSubject(subject);
   if (!validation.valid) {
@@ -84,22 +94,21 @@ export async function generateForAngle(
 
   let result: AngleResult;
   try {
-    const parsed = await withRetry(
-      async () => {
-        const raw = await generateText({ prompt, model, serverMode: true, signal });
-        const jsonStr = extractJson(sanitizeLlmOutput(raw));
-        try {
-          return JSON.parse(jsonStr) as unknown;
-        } catch {
-          throw new LlmParseError(
+    result = await generateStructured(
+      {
+        generateOptions: { prompt, model, serverMode: true, signal },
+        retryOptions: { signal },
+        schema: AngleResultSchema,
+        sanitizeBeforeExtract: true,
+        createParseError: (jsonStr) => {
+          return new LlmParseError(
             `Failed to parse ${angleId} response as JSON`,
             jsonStr.slice(0, 200)
           );
-        }
+        },
       },
-      { signal }
+      textGenerator
     );
-    result = AngleResultSchema.parse(parsed);
   } catch (err) {
     bus
       .emit("generation.failed", {

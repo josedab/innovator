@@ -1,9 +1,8 @@
-import { generateText, extractJson } from "../copilot/client.js";
-import { withRetry } from "../copilot/retry.js";
+import { generateStructured, type TextGenerator } from "../copilot/structured-generation.js";
 import { LlmParseError, ValidationError } from "../errors.js";
 import { getEventBus } from "../events/emitter.js";
 import { buildInvestigationPrompt } from "../prompts/investigation.js";
-import { validateSubject, sanitizeLlmOutput } from "../prompts/sanitize.js";
+import { validateSubject } from "../prompts/sanitize.js";
 import { InvestigationSchema, type Investigation } from "../types.js";
 
 /**
@@ -11,6 +10,8 @@ import { InvestigationSchema, type Investigation } from "../types.js";
  *
  * @param subject - The topic or domain to investigate
  * @param model - Optional LLM model override (defaults to `INNOVATOR_DEFAULT_MODEL` or `"gpt-4.1"`)
+ * @param signal - Optional AbortSignal for cancellation
+ * @param textGenerator - Optional text-generation dependency (defaults to Copilot)
  * @returns A validated {@link Investigation} with summary, key aspects, current state, challenges, and opportunities
  * @throws {ValidationError} If the subject is empty, too short, too long, or contains only unsafe characters
  * @throws If the LLM call fails or the response cannot be parsed as valid JSON
@@ -22,10 +23,17 @@ import { InvestigationSchema, type Investigation } from "../types.js";
  * console.log(result.challenges);
  * ```
  */
+export function investigate(
+  subject: string,
+  model?: string,
+  signal?: AbortSignal,
+  textGenerator?: TextGenerator
+): Promise<Investigation>;
 export async function investigate(
   subject: string,
   model?: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  ...[textGenerator]: [TextGenerator?]
 ): Promise<Investigation> {
   const validation = validateSubject(subject);
   if (!validation.valid) {
@@ -38,22 +46,21 @@ export async function investigate(
   let result: Investigation;
   try {
     const prompt = buildInvestigationPrompt(validation.sanitized!);
-    const parsed = await withRetry(
-      async () => {
-        const raw = await generateText({ prompt, model, serverMode: true, signal });
-        const jsonStr = extractJson(sanitizeLlmOutput(raw));
-        try {
-          return JSON.parse(jsonStr) as unknown;
-        } catch {
-          throw new LlmParseError(
+    result = await generateStructured(
+      {
+        generateOptions: { prompt, model, serverMode: true, signal },
+        retryOptions: { signal },
+        schema: InvestigationSchema,
+        sanitizeBeforeExtract: true,
+        createParseError: (jsonStr) => {
+          return new LlmParseError(
             "Failed to parse investigation response as JSON",
             jsonStr.slice(0, 200)
           );
-        }
+        },
       },
-      { signal }
+      textGenerator
     );
-    result = InvestigationSchema.parse(parsed);
   } catch (err) {
     bus
       .emit("investigation.failed", {

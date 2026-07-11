@@ -16,6 +16,7 @@ vi.mock("../prompts/investigation.js", () => ({
 
 import { generateText, extractJson } from "../copilot/client.js";
 import { investigate } from "../innovation/investigate.js";
+import type { TextGenerator } from "../copilot/structured-generation.js";
 import type { Investigation } from "../types.js";
 
 const mockGenerateText = vi.mocked(generateText);
@@ -59,10 +60,33 @@ describe("investigate", () => {
     });
   });
 
+  it("uses an injected text generator instead of Copilot", async () => {
+    const controller = new AbortController();
+    const textGenerator = vi.fn<TextGenerator>().mockResolvedValue("injected response");
+
+    await investigate("test", "gpt-5", controller.signal, textGenerator);
+
+    expect(textGenerator).toHaveBeenCalledWith({
+      prompt: "investigation prompt",
+      model: "gpt-5",
+      serverMode: true,
+      signal: controller.signal,
+    });
+    expect(mockGenerateText).not.toHaveBeenCalled();
+  });
+
   it("returns parsed investigation", async () => {
     const result = await investigate("test");
 
     expect(result).toEqual(MOCK_INVESTIGATION);
+  });
+
+  it("sanitizes the LLM output before JSON extraction", async () => {
+    mockGenerateText.mockResolvedValue("\u200Braw response");
+
+    await investigate("test");
+
+    expect(mockExtractJson).toHaveBeenCalledWith("raw response");
   });
 
   it("throws when JSON parsing fails", async () => {
@@ -75,6 +99,7 @@ describe("investigate", () => {
     mockExtractJson.mockReturnValue(JSON.stringify({ summary: "only summary" }));
 
     await expect(investigate("test")).rejects.toThrow();
+    expect(mockGenerateText).toHaveBeenCalledTimes(1);
   });
 
   it("propagates generateText errors", async () => {

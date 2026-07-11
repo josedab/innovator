@@ -29,6 +29,7 @@ vi.mock("../prompts/angles/index.js", () => ({
 import { generateText, extractJson } from "../copilot/client.js";
 import { generateForAngle } from "../innovation/generate.js";
 import { getCustomAngle, buildCustomAnglePrompt } from "../innovation/custom-angles.js";
+import type { TextGenerator } from "../copilot/structured-generation.js";
 import type { AngleId, AngleResult, Investigation } from "../types.js";
 
 const mockGenerateText = vi.mocked(generateText);
@@ -157,6 +158,36 @@ describe("generateForAngle", () => {
     });
   });
 
+  it("uses an injected text generator instead of Copilot", async () => {
+    const controller = new AbortController();
+    const textGenerator = vi.fn<TextGenerator>().mockResolvedValue("injected response");
+
+    await generateForAngle(
+      "test",
+      MOCK_INVESTIGATION,
+      "scamper",
+      "gpt-5",
+      controller.signal,
+      textGenerator
+    );
+
+    expect(textGenerator).toHaveBeenCalledWith({
+      prompt: "scamper prompt",
+      model: "gpt-5",
+      serverMode: true,
+      signal: controller.signal,
+    });
+    expect(mockGenerateText).not.toHaveBeenCalled();
+  });
+
+  it("sanitizes the LLM output before JSON extraction", async () => {
+    mockGenerateText.mockResolvedValue("\u200Braw response");
+
+    await generateForAngle("test", MOCK_INVESTIGATION, "scamper");
+
+    expect(mockExtractJson).toHaveBeenCalledWith("raw response");
+  });
+
   it("throws when JSON parsing fails", async () => {
     mockExtractJson.mockReturnValue("not valid json");
 
@@ -169,6 +200,7 @@ describe("generateForAngle", () => {
     mockExtractJson.mockReturnValue(JSON.stringify({ angleId: "scamper" }));
 
     await expect(generateForAngle("test", MOCK_INVESTIGATION, "scamper")).rejects.toThrow();
+    expect(mockGenerateText).toHaveBeenCalledTimes(1);
   });
 
   it("propagates generateText errors", async () => {

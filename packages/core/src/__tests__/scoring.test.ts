@@ -22,6 +22,7 @@ vi.mock("../prompts/sanitize.js", () => ({
 
 import { generateText, extractJson } from "../copilot/client.js";
 import { withRetry } from "../copilot/retry.js";
+import { sanitizeLlmOutput } from "../prompts/sanitize.js";
 
 import {
   computePriorityScore,
@@ -32,7 +33,9 @@ import {
   getIdeaSummaryStats,
   rankIdeas,
   scoreIdeas,
+  scoreWithEngine,
   IdeaScoreSchema,
+  ScoringEngineConfigSchema,
   TIME_TO_IMPLEMENT_ORDER,
   recordCalibrationFeedback,
   clearCalibration,
@@ -304,6 +307,12 @@ describe("scoring", () => {
   });
 
   describe("scoreIdeas", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.mocked(withRetry).mockImplementation((fn) => fn());
+      vi.mocked(sanitizeLlmOutput).mockImplementation((value) => value);
+    });
+
     it("returns empty scores for empty angle results", async () => {
       const result = await scoreIdeas("test subject", []);
       expect(result.scores).toEqual([]);
@@ -347,6 +356,133 @@ describe("scoring", () => {
       const result = await scoreIdeas("test", angleResults);
       expect(result.scores).toHaveLength(1);
       expect(result.scores[0].feasibility).toBe(7);
+    });
+
+    it("passes the exact Copilot generation options", async () => {
+      const mockResponse = JSON.stringify({ scores: [] });
+      const controller = new AbortController();
+      vi.mocked(generateText).mockResolvedValue(mockResponse);
+      vi.mocked(extractJson).mockReturnValue(mockResponse);
+
+      await scoreIdeas(
+        "test",
+        [
+          {
+            angleId: "a1",
+            angleName: "A1",
+            ideas: [
+              {
+                title: "Test",
+                description: "desc",
+                potentialImpact: "impact",
+                implementationHint: "hint",
+              },
+            ],
+            reasoning: "reason",
+          },
+        ],
+        undefined,
+        "gpt-5",
+        controller.signal
+      );
+
+      expect(generateText).toHaveBeenCalledWith({
+        prompt: expect.any(String),
+        model: "gpt-5",
+        serverMode: true,
+        signal: controller.signal,
+      });
+      expect(withRetry).toHaveBeenCalledWith(expect.any(Function), {
+        signal: controller.signal,
+      });
+    });
+
+    it("sanitizes the LLM output before JSON extraction", async () => {
+      const mockResponse = JSON.stringify({ scores: [] });
+      const rawResponse = `\u200B${mockResponse}`;
+      vi.mocked(sanitizeLlmOutput).mockImplementation((value) => value.replaceAll("\u200B", ""));
+      vi.mocked(generateText).mockResolvedValue(rawResponse);
+      vi.mocked(extractJson).mockReturnValue(mockResponse);
+
+      await scoreIdeas("test", [
+        {
+          angleId: "a1",
+          angleName: "A1",
+          ideas: [
+            {
+              title: "Test",
+              description: "desc",
+              potentialImpact: "impact",
+              implementationHint: "hint",
+            },
+          ],
+          reasoning: "reason",
+        },
+      ]);
+
+      expect(extractJson).toHaveBeenCalledWith(mockResponse);
+    });
+
+    it("preserves scoring parse error wording and raw-output truncation", async () => {
+      const malformed = "x".repeat(250);
+      vi.mocked(generateText).mockResolvedValue(malformed);
+      vi.mocked(extractJson).mockReturnValue(malformed);
+
+      const resultPromise = scoreIdeas("test", [
+        {
+          angleId: "a1",
+          angleName: "A1",
+          ideas: [
+            {
+              title: "Test",
+              description: "desc",
+              potentialImpact: "impact",
+              implementationHint: "hint",
+            },
+          ],
+          reasoning: "reason",
+        },
+      ]);
+
+      await expect(resultPromise).rejects.toMatchObject({
+        name: "LlmParseError",
+        message: `Failed to parse scoring response as JSON: ${malformed.slice(0, 200)}`,
+        rawOutput: malformed.slice(0, 200),
+      });
+    });
+
+    it("does not retry schema validation failures", async () => {
+      vi.mocked(withRetry).mockImplementation(async function retryOnce<T>(
+        fn: () => Promise<T>
+      ): Promise<T> {
+        try {
+          return await fn();
+        } catch {
+          return fn();
+        }
+      });
+      const invalidResponse = JSON.stringify({ scores: [{ ideaTitle: "missing fields" }] });
+      vi.mocked(generateText).mockResolvedValue(invalidResponse);
+      vi.mocked(extractJson).mockReturnValue(invalidResponse);
+
+      await expect(
+        scoreIdeas("test", [
+          {
+            angleId: "a1",
+            angleName: "A1",
+            ideas: [
+              {
+                title: "Test",
+                description: "desc",
+                potentialImpact: "impact",
+                implementationHint: "hint",
+              },
+            ],
+            reasoning: "reason",
+          },
+        ])
+      ).rejects.toThrow();
+      expect(generateText).toHaveBeenCalledTimes(1);
     });
 
     it("includes investigation context in prompt when provided", async () => {
@@ -435,6 +571,92 @@ describe("scoring", () => {
 
       await scoreIdeas("test", angleResults);
       expect(withRetry).toHaveBeenCalled();
+    });
+  });
+
+  describe("scoreWithEngine", () => {
+    const config = ScoringEngineConfigSchema.parse({
+      id: "test-engine",
+      name: "Test Engine",
+      dimensions: [
+        {
+          id: "feasibility",
+          name: "Feasibility",
+          description: "Can it be built?",
+          weight: 1,
+        },
+      ],
+    });
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.mocked(withRetry).mockImplementation((fn) => fn());
+      vi.mocked(sanitizeLlmOutput).mockImplementation((value) => value);
+    });
+
+    it("parses extracted JSON after retry and preserves generation options", async () => {
+      const response = JSON.stringify({
+        scores: [
+          {
+            ideaTitle: "Test Idea",
+            dimensions: [
+              {
+                dimensionId: "feasibility",
+                score: 8,
+                rationale: "Straightforward",
+              },
+            ],
+            confidence: 0.9,
+          },
+        ],
+      });
+      const controller = new AbortController();
+      vi.mocked(generateText).mockResolvedValue(response);
+      vi.mocked(extractJson).mockReturnValue(response);
+
+      const result = await scoreWithEngine(
+        "test",
+        [{ title: "Test Idea", description: "Description" }],
+        config,
+        "gpt-5",
+        controller.signal
+      );
+
+      expect(generateText).toHaveBeenCalledWith({
+        prompt: expect.any(String),
+        model: "gpt-5",
+        serverMode: true,
+        signal: controller.signal,
+      });
+      expect(withRetry).toHaveBeenCalledWith(expect.any(Function), {
+        signal: controller.signal,
+      });
+      expect(extractJson).toHaveBeenCalledWith(response);
+      expect(result[0].compositeScore).toBe(8);
+    });
+
+    it("does not retry malformed JSON because parsing occurs outside retry", async () => {
+      vi.mocked(withRetry).mockImplementation(async function retryOnce<T>(
+        fn: () => Promise<T>
+      ): Promise<T> {
+        try {
+          return await fn();
+        } catch {
+          return fn();
+        }
+      });
+      vi.mocked(generateText).mockResolvedValue("malformed");
+      vi.mocked(extractJson).mockReturnValue("malformed");
+
+      const result = await scoreWithEngine(
+        "test",
+        [{ title: "Test Idea", description: "Description" }],
+        config
+      );
+
+      expect(generateText).toHaveBeenCalledTimes(1);
+      expect(result[0].confidence).toBe(0.1);
+      expect(result[0].dimensions[0].rationale).toContain("Unexpected token");
     });
   });
 

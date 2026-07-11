@@ -468,8 +468,77 @@ export function saveConfig(config: InnovatorConfig): void {
 
 // ---- Provider Registry ----
 
-const providers = new Map<string, LLMProvider>();
-let activeProviderId: string | null = null;
+/** Instance-owned registry and active-provider selection. */
+export class ProviderRegistry {
+  private readonly providers = new Map<string, LLMProvider>();
+  private activeProviderId: string | null = null;
+
+  registerProvider(provider: LLMProvider): void {
+    this.providers.set(provider.id, provider);
+  }
+
+  getProvider(id: string): LLMProvider | undefined {
+    return this.providers.get(id);
+  }
+
+  getActiveProvider(): LLMProvider {
+    if (this.activeProviderId && this.providers.has(this.activeProviderId)) {
+      return this.providers.get(this.activeProviderId)!;
+    }
+    if (!this.providers.has("copilot")) {
+      this.registerProvider(new CopilotProvider());
+    }
+    return this.providers.get("copilot")!;
+  }
+
+  setActiveProvider(id: string): void {
+    if (!this.providers.has(id)) {
+      throw new ConfigurationError(`Provider "${id}" is not registered`, id);
+    }
+    this.activeProviderId = id;
+  }
+
+  listProviders(): LLMProvider[] {
+    return Array.from(this.providers.values());
+  }
+
+  initializeProviders(config?: InnovatorConfig): void {
+    const cfg = config ?? loadConfig();
+
+    this.registerProvider(new CopilotProvider());
+
+    const providerConfigs = cfg.providers ?? {};
+
+    if (providerConfigs.openai?.enabled !== false) {
+      const apiKey = providerConfigs.openai?.apiKeyEnv
+        ? process.env[providerConfigs.openai.apiKeyEnv]
+        : undefined;
+      this.registerProvider(new OpenAIProvider(apiKey, providerConfigs.openai?.baseUrl));
+    }
+
+    if (providerConfigs.anthropic?.enabled !== false) {
+      const apiKey = providerConfigs.anthropic?.apiKeyEnv
+        ? process.env[providerConfigs.anthropic.apiKeyEnv]
+        : undefined;
+      this.registerProvider(new AnthropicProvider(apiKey, providerConfigs.anthropic?.baseUrl));
+    }
+
+    if (providerConfigs.ollama?.enabled !== false) {
+      this.registerProvider(new OllamaProvider(providerConfigs.ollama?.baseUrl));
+    }
+
+    if (cfg.defaultProvider && this.providers.has(cfg.defaultProvider)) {
+      this.activeProviderId = cfg.defaultProvider;
+    }
+  }
+
+  clearProviders(): void {
+    this.providers.clear();
+    this.activeProviderId = null;
+  }
+}
+
+export const defaultProviderRegistry = new ProviderRegistry();
 
 /**
  * Register a provider instance in the global registry.
@@ -477,7 +546,7 @@ let activeProviderId: string | null = null;
  * @param provider - The LLM provider to register. Its `id` is used as the registry key.
  */
 export function registerProvider(provider: LLMProvider): void {
-  providers.set(provider.id, provider);
+  defaultProviderRegistry.registerProvider(provider);
 }
 
 /**
@@ -487,19 +556,12 @@ export function registerProvider(provider: LLMProvider): void {
  * @returns The provider instance, or `undefined` if not registered
  */
 export function getProvider(id: string): LLMProvider | undefined {
-  return providers.get(id);
+  return defaultProviderRegistry.getProvider(id);
 }
 
 /** Get the currently active provider. Falls back to CopilotProvider. */
 export function getActiveProvider(): LLMProvider {
-  if (activeProviderId && providers.has(activeProviderId)) {
-    return providers.get(activeProviderId)!;
-  }
-  // Default to copilot
-  if (!providers.has("copilot")) {
-    registerProvider(new CopilotProvider());
-  }
-  return providers.get("copilot")!;
+  return defaultProviderRegistry.getActiveProvider();
 }
 
 /**
@@ -511,10 +573,7 @@ export function getActiveProvider(): LLMProvider {
  * @throws {Error} If no provider with the given ID is registered
  */
 export function setActiveProvider(id: string): void {
-  if (!providers.has(id)) {
-    throw new ConfigurationError(`Provider "${id}" is not registered`, id);
-  }
-  activeProviderId = id;
+  defaultProviderRegistry.setActiveProvider(id);
 }
 
 /**
@@ -523,7 +582,7 @@ export function setActiveProvider(id: string): void {
  * @returns Array of all registered provider instances
  */
 export function listProviders(): LLMProvider[] {
-  return Array.from(providers.values());
+  return defaultProviderRegistry.listProviders();
 }
 
 /**
@@ -536,38 +595,10 @@ export function listProviders(): LLMProvider[] {
  * @param config - Optional configuration object. If omitted, loads from `~/.innovator/config.json`.
  */
 export function initializeProviders(config?: InnovatorConfig): void {
-  const cfg = config ?? loadConfig();
-
-  // Always register Copilot
-  registerProvider(new CopilotProvider());
-
-  const providerConfigs = cfg.providers ?? {};
-
-  if (providerConfigs.openai?.enabled !== false) {
-    const apiKey = providerConfigs.openai?.apiKeyEnv
-      ? process.env[providerConfigs.openai.apiKeyEnv]
-      : undefined;
-    registerProvider(new OpenAIProvider(apiKey, providerConfigs.openai?.baseUrl));
-  }
-
-  if (providerConfigs.anthropic?.enabled !== false) {
-    const apiKey = providerConfigs.anthropic?.apiKeyEnv
-      ? process.env[providerConfigs.anthropic.apiKeyEnv]
-      : undefined;
-    registerProvider(new AnthropicProvider(apiKey, providerConfigs.anthropic?.baseUrl));
-  }
-
-  if (providerConfigs.ollama?.enabled !== false) {
-    registerProvider(new OllamaProvider(providerConfigs.ollama?.baseUrl));
-  }
-
-  if (cfg.defaultProvider && providers.has(cfg.defaultProvider)) {
-    activeProviderId = cfg.defaultProvider;
-  }
+  defaultProviderRegistry.initializeProviders(config);
 }
 
 /** Clear all providers (for testing). */
 export function clearProviders(): void {
-  providers.clear();
-  activeProviderId = null;
+  defaultProviderRegistry.clearProviders();
 }
