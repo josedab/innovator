@@ -172,6 +172,10 @@ function validatePackSchema(pack: unknown): { valid: boolean; errors: string[] }
  * Registry for extended vertical packs with evaluation and compliance features.
  */
 export class VerticalPackRegistry {
+  constructor(
+    private readonly registry: Map<string, ExtendedVerticalPack> = extendedPackRegistry
+  ) {}
+
   /** Register and validate an extended vertical pack. */
   register(pack: ExtendedVerticalPack): { success: boolean; errors: string[] } {
     const validation = validatePackSchema(pack);
@@ -179,18 +183,18 @@ export class VerticalPackRegistry {
       return { success: false, errors: validation.errors };
     }
     const validated = ExtendedVerticalPackSchema.parse(pack);
-    extendedPackRegistry.set(validated.id, validated);
+    this.registry.set(validated.id, validated);
     return { success: true, errors: [] };
   }
 
   /** Retrieve a pack by ID. */
   get(packId: string): ExtendedVerticalPack | undefined {
-    return extendedPackRegistry.get(packId);
+    return this.registry.get(packId);
   }
 
   /** List packs with optional filtering. */
   list(filters?: { tag?: string; search?: string }): ExtendedVerticalPack[] {
-    let packs = Array.from(extendedPackRegistry.values());
+    let packs = Array.from(this.registry.values());
 
     if (filters?.tag) {
       const tag = filters.tag.toLowerCase();
@@ -212,7 +216,7 @@ export class VerticalPackRegistry {
 
   /** Remove a pack from the registry. */
   unregister(packId: string): boolean {
-    return extendedPackRegistry.delete(packId);
+    return this.registry.delete(packId);
   }
 
   /** Validate a pack against the schema and return any issues. */
@@ -226,7 +230,7 @@ export class VerticalPackRegistry {
    */
   evaluateWithRubric(ideas: string[], rubricId: string): RubricEvaluationResult | undefined {
     let rubric: EvaluationRubric | undefined;
-    for (const pack of extendedPackRegistry.values()) {
+    for (const pack of this.registry.values()) {
       rubric = pack.evaluationRubrics.find((r) => r.id === rubricId);
       if (rubric) break;
     }
@@ -271,7 +275,7 @@ export class VerticalPackRegistry {
    * Uses keyword heuristics (no LLM required).
    */
   checkCompliance(ideas: string[], packId: string): ComplianceCheckResult | undefined {
-    const pack = extendedPackRegistry.get(packId);
+    const pack = this.registry.get(packId);
     if (!pack) return undefined;
 
     const combined = ideas.join(" ").toLowerCase();
@@ -310,19 +314,19 @@ export class VerticalPackRegistry {
 
   /** Get the domain glossary for a pack. */
   getGlossary(packId: string): Record<string, string> | undefined {
-    const pack = extendedPackRegistry.get(packId);
+    const pack = this.registry.get(packId);
     return pack?.glossary;
   }
 
   /** Get example sessions for a pack. */
   getExampleSessions(packId: string): ExampleSession[] | undefined {
-    const pack = extendedPackRegistry.get(packId);
+    const pack = this.registry.get(packId);
     return pack?.exampleSessions;
   }
 
   /** Clear all packs from the registry. */
   reset(): void {
-    extendedPackRegistry.clear();
+    this.registry.clear();
   }
 }
 

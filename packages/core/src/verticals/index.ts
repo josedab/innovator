@@ -659,3 +659,27 @@ export function resetVerticalPacks(): void {
     packRegistry.set(pack.id, pack);
   }
 }
+
+export {
+  VerticalPackRegistry,
+  EvaluationRubricSchema as VerticalRubricSchema,
+  ComplianceRuleSchema as VerticalComplianceSchema,
+  ExtendedVerticalPackSchema,
+} from "./pack-schema.js";
+export type {
+  EvaluationRubric as VerticalEvaluationRubric,
+  ComplianceRule as VerticalComplianceRule,
+  ExtendedVerticalPack,
+} from "./pack-schema.js";
+export {
+  VerticalPackApiActionSchema,
+  VerticalPackApiContext,
+  createVerticalPackApiContext,
+} from "./api-service.js";
+export type {
+  VerticalPackApiAction,
+  VerticalPackApiOutcome,
+  VerticalPackApiResult,
+} from "./api-service.js";
+export { HEALTHCARE_PACK } from "./healthcare-pack.js";
+export { CLIMATE_PACK } from "./climate-pack.js";
