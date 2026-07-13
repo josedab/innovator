@@ -488,6 +488,31 @@ describe("innovation-monitor", () => {
       const state = stopMonitor();
       expect(state.status).toBe("idle");
     });
+
+    it("clears every owned poll timer and remains safe on repeated stop", () => {
+      vi.useFakeTimers();
+      try {
+        startMonitor({
+          sources: [
+            makeSource({ id: "src-1" }),
+            makeSource({ id: "src-2" }),
+            makeSource({ id: "disabled", enabled: false }),
+          ],
+          digestSchedule: "daily",
+          opportunityThreshold: 0.5,
+          maxSignalsPerDigest: 50,
+        });
+        expect(vi.getTimerCount()).toBe(2);
+
+        stopMonitor();
+        stopMonitor();
+
+        expect(vi.getTimerCount()).toBe(0);
+        expect(getMonitorState().status).toBe("idle");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   describe("getMonitorState", () => {

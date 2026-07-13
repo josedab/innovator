@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { InMemoryStorageProvider } from "../storage/memory.js";
 
 import type { SessionRecord } from "../types.js";
@@ -479,5 +479,27 @@ describe("storage index (getStorage/setStorage)", () => {
     const custom = new InMemoryStorageProvider();
     setStorage(custom);
     expect(getStorage()).toBe(custom);
+  });
+
+  it("shares provider selection and keeps initialize/close idempotent", async () => {
+    const { closeStorage, getStorage, initializeStorage, isStorageInitialized, setStorage } =
+      await import("../storage/index.js");
+    const provider = new InMemoryStorageProvider();
+    const initialize = vi.spyOn(provider, "initialize");
+    const close = vi.spyOn(provider, "close");
+
+    setStorage(provider);
+    expect(getStorage()).toBe(provider);
+    expect(isStorageInitialized()).toBe(false);
+
+    await initializeStorage();
+    await initializeStorage();
+    expect(initialize).toHaveBeenCalledOnce();
+    expect(isStorageInitialized()).toBe(true);
+
+    await closeStorage();
+    await closeStorage();
+    expect(close).toHaveBeenCalledOnce();
+    expect(isStorageInitialized()).toBe(false);
   });
 });

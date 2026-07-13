@@ -78,6 +78,19 @@ describe("providers", () => {
       expect(active.id).toBe("copilot");
     });
 
+    it("shares active selection through the compatibility singleton API", () => {
+      const first = makeFakeProvider("first", "First");
+      const second = makeFakeProvider("second", "Second");
+      registerProvider(first);
+      registerProvider(second);
+
+      setActiveProvider("second");
+
+      expect(getProvider("first")).toBe(first);
+      expect(getActiveProvider()).toBe(second);
+      expect(listProviders()).toEqual([first, second]);
+    });
+
     it("round-trips active provider", () => {
       const p = makeFakeProvider("custom", "Custom");
       registerProvider(p);

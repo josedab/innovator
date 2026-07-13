@@ -137,83 +137,222 @@ export interface TenantResolutionResult {
 
 // ---- In-Memory Store ----
 
-const tenants = new Map<string, TenantConfig>();
-const partners = new Map<string, PartnerProfile>();
-const domainIndex = new Map<string, string>(); // domain → tenantId
-let defaultTenantId: string | undefined;
+/** Instance-owned white-label tenant, domain, and partner state. */
+export class WhiteLabelContext {
+  private readonly tenants = new Map<string, TenantConfig>();
+  private readonly partners = new Map<string, PartnerProfile>();
+  private readonly domainIndex = new Map<string, string>();
+  private defaultTenantId: string | undefined;
+
+  registerTenant(config: TenantConfig): void {
+    TenantConfigSchema.parse(config);
+
+    if (config.customDomain) {
+      const existingTenant = this.domainIndex.get(config.customDomain);
+      if (existingTenant && existingTenant !== config.tenantId) {
+        throw new ValidationError(
+          `Domain "${config.customDomain}" is already registered to tenant "${existingTenant}"`
+        );
+      }
+    }
+
+    this.tenants.set(config.tenantId, config);
+    if (config.customDomain) {
+      this.domainIndex.set(config.customDomain, config.tenantId);
+    }
+  }
+
+  updateTenant(tenantId: string, updates: Partial<TenantConfig>): TenantConfig {
+    const existing = this.tenants.get(tenantId);
+    if (!existing) throw new ValidationError(`Tenant not found: ${tenantId}`);
+
+    if (updates.customDomain && updates.customDomain !== existing.customDomain) {
+      const existingOwner = this.domainIndex.get(updates.customDomain);
+      if (existingOwner && existingOwner !== tenantId) {
+        throw new ValidationError(
+          `Domain "${updates.customDomain}" is already registered to tenant "${existingOwner}"`
+        );
+      }
+    }
+
+    if (existing.customDomain) this.domainIndex.delete(existing.customDomain);
+
+    const updated = { ...existing, ...updates, tenantId, updatedAt: new Date().toISOString() };
+    TenantConfigSchema.parse(updated);
+    this.tenants.set(tenantId, updated);
+
+    if (updated.customDomain) {
+      this.domainIndex.set(updated.customDomain, tenantId);
+    }
+
+    return updated;
+  }
+
+  getTenantConfig(tenantId: string): TenantConfig | undefined {
+    return this.tenants.get(tenantId);
+  }
+
+  listWhiteLabelTenants(): TenantConfig[] {
+    return Array.from(this.tenants.values());
+  }
+
+  removeTenant(tenantId: string): boolean {
+    const config = this.tenants.get(tenantId);
+    if (config?.customDomain) this.domainIndex.delete(config.customDomain);
+    return this.tenants.delete(tenantId);
+  }
+
+  setDefaultTenant(tenantId: string): void {
+    if (!this.tenants.has(tenantId)) throw new ValidationError(`Tenant not found: ${tenantId}`);
+    this.defaultTenantId = tenantId;
+  }
+
+  resolveTenant(context: {
+    hostname?: string;
+    tenantHeader?: string;
+    apiKeyPrefix?: string;
+  }): TenantResolutionResult | undefined {
+    if (context.hostname) {
+      const tenantId = this.domainIndex.get(context.hostname);
+      if (tenantId) {
+        const config = this.tenants.get(tenantId);
+        if (config && config.status === "active") {
+          return { tenantId, config, resolvedBy: "domain" };
+        }
+      }
+      const subdomain = context.hostname.split(".")[0];
+      if (subdomain && this.tenants.has(subdomain)) {
+        const config = this.tenants.get(subdomain)!;
+        if (config.status === "active") {
+          return { tenantId: subdomain, config, resolvedBy: "subdomain" };
+        }
+      }
+    }
+
+    if (context.tenantHeader) {
+      const config = this.tenants.get(context.tenantHeader);
+      if (config && config.status === "active") {
+        return { tenantId: context.tenantHeader, config, resolvedBy: "header" };
+      }
+    }
+
+    if (context.apiKeyPrefix) {
+      for (const [id, config] of this.tenants) {
+        if (
+          config.apiKeyPrefix &&
+          context.apiKeyPrefix.startsWith(config.apiKeyPrefix) &&
+          config.status === "active"
+        ) {
+          return { tenantId: id, config, resolvedBy: "apiKey" };
+        }
+      }
+    }
+
+    if (this.defaultTenantId) {
+      const config = this.tenants.get(this.defaultTenantId);
+      if (config && config.status === "active") {
+        return { tenantId: this.defaultTenantId, config, resolvedBy: "default" };
+      }
+    }
+
+    return undefined;
+  }
+
+  isFeatureEnabled(tenantId: string, feature: keyof FeatureToggles): boolean {
+    const config = this.tenants.get(tenantId);
+    if (!config) return false;
+    const value = config.features[feature];
+    return typeof value === "boolean" ? value : false;
+  }
+
+  applyTerminology(tenantId: string, text: string): string {
+    const config = this.tenants.get(tenantId);
+    if (!config?.terminology) return text;
+
+    let result = text;
+    const map = config.terminology;
+    const defaultTerms: TerminologyMap = {
+      investigation: "Investigation",
+      angle: "Angle",
+      idea: "Idea",
+      pipeline: "Pipeline",
+      synthesis: "Synthesis",
+      artifact: "Artifact",
+      score: "Score",
+      subject: "Subject",
+      innovation: "Innovation",
+      workspace: "Workspace",
+    };
+
+    const entries = Object.entries(defaultTerms).sort(([, a], [, b]) => b.length - a.length);
+
+    for (const [key, defaultTerm] of entries) {
+      const customTerm = map[key as keyof TerminologyMap];
+      if (customTerm && customTerm !== defaultTerm) {
+        const escaped = defaultTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const pattern = new RegExp(`\\b${escaped}\\b`, "g");
+        const patternLower = new RegExp(`\\b${escaped.toLowerCase()}\\b`, "g");
+        result = result.replace(pattern, customTerm);
+        result = result.replace(patternLower, customTerm.toLowerCase());
+      }
+    }
+
+    return result;
+  }
+
+  registerPartner(profile: PartnerProfile): void {
+    PartnerProfileSchema.parse(profile);
+    this.partners.set(profile.partnerId, profile);
+  }
+
+  getPartner(partnerId: string): PartnerProfile | undefined {
+    return this.partners.get(partnerId);
+  }
+
+  listPartners(): PartnerProfile[] {
+    return Array.from(this.partners.values());
+  }
+
+  clearWhiteLabelData(): void {
+    this.tenants.clear();
+    this.partners.clear();
+    this.domainIndex.clear();
+    this.defaultTenantId = undefined;
+  }
+}
+
+export const defaultWhiteLabelContext = new WhiteLabelContext();
 
 // ---- Functions ----
 
 /** Register a new tenant configuration. */
 export function registerTenant(config: TenantConfig): void {
-  TenantConfigSchema.parse(config);
-
-  // Validate domain uniqueness
-  if (config.customDomain) {
-    const existingTenant = domainIndex.get(config.customDomain);
-    if (existingTenant && existingTenant !== config.tenantId) {
-      throw new ValidationError(
-        `Domain "${config.customDomain}" is already registered to tenant "${existingTenant}"`
-      );
-    }
-  }
-
-  tenants.set(config.tenantId, config);
-  if (config.customDomain) {
-    domainIndex.set(config.customDomain, config.tenantId);
-  }
+  defaultWhiteLabelContext.registerTenant(config);
 }
 
 /** Update an existing tenant configuration. */
 export function updateTenant(tenantId: string, updates: Partial<TenantConfig>): TenantConfig {
-  const existing = tenants.get(tenantId);
-  if (!existing) throw new ValidationError(`Tenant not found: ${tenantId}`);
-
-  // Validate domain uniqueness when changing domain
-  if (updates.customDomain && updates.customDomain !== existing.customDomain) {
-    const existingOwner = domainIndex.get(updates.customDomain);
-    if (existingOwner && existingOwner !== tenantId) {
-      throw new ValidationError(
-        `Domain "${updates.customDomain}" is already registered to tenant "${existingOwner}"`
-      );
-    }
-  }
-
-  // Remove old domain mapping
-  if (existing.customDomain) domainIndex.delete(existing.customDomain);
-
-  const updated = { ...existing, ...updates, tenantId, updatedAt: new Date().toISOString() };
-  TenantConfigSchema.parse(updated);
-  tenants.set(tenantId, updated);
-
-  if (updated.customDomain) {
-    domainIndex.set(updated.customDomain, tenantId);
-  }
-
-  return updated;
+  return defaultWhiteLabelContext.updateTenant(tenantId, updates);
 }
 
 /** Get a tenant configuration. */
 export function getTenantConfig(tenantId: string): TenantConfig | undefined {
-  return tenants.get(tenantId);
+  return defaultWhiteLabelContext.getTenantConfig(tenantId);
 }
 
 /** List all tenants. */
 export function listWhiteLabelTenants(): TenantConfig[] {
-  return Array.from(tenants.values());
+  return defaultWhiteLabelContext.listWhiteLabelTenants();
 }
 
 /** Remove a tenant. */
 export function removeTenant(tenantId: string): boolean {
-  const config = tenants.get(tenantId);
-  if (config?.customDomain) domainIndex.delete(config.customDomain);
-  return tenants.delete(tenantId);
+  return defaultWhiteLabelContext.removeTenant(tenantId);
 }
 
 /** Set the default tenant for requests that don't match any specific tenant. */
 export function setDefaultTenant(tenantId: string): void {
-  if (!tenants.has(tenantId)) throw new ValidationError(`Tenant not found: ${tenantId}`);
-  defaultTenantId = tenantId;
+  defaultWhiteLabelContext.setDefaultTenant(tenantId);
 }
 
 /** Resolve a tenant from request context. Priority: domain → header → apiKey → default. */
@@ -222,101 +361,17 @@ export function resolveTenant(context: {
   tenantHeader?: string;
   apiKeyPrefix?: string;
 }): TenantResolutionResult | undefined {
-  // 1. Domain match
-  if (context.hostname) {
-    const tenantId = domainIndex.get(context.hostname);
-    if (tenantId) {
-      const config = tenants.get(tenantId);
-      if (config && config.status === "active") {
-        return { tenantId, config, resolvedBy: "domain" };
-      }
-    }
-    // Subdomain match (e.g., "acme.innovator.app" → "acme")
-    const subdomain = context.hostname.split(".")[0];
-    if (subdomain && tenants.has(subdomain)) {
-      const config = tenants.get(subdomain)!;
-      if (config.status === "active") {
-        return { tenantId: subdomain, config, resolvedBy: "subdomain" };
-      }
-    }
-  }
-
-  // 2. Header match
-  if (context.tenantHeader) {
-    const config = tenants.get(context.tenantHeader);
-    if (config && config.status === "active") {
-      return { tenantId: context.tenantHeader, config, resolvedBy: "header" };
-    }
-  }
-
-  // 3. API key prefix match
-  if (context.apiKeyPrefix) {
-    for (const [id, config] of tenants) {
-      if (
-        config.apiKeyPrefix &&
-        context.apiKeyPrefix.startsWith(config.apiKeyPrefix) &&
-        config.status === "active"
-      ) {
-        return { tenantId: id, config, resolvedBy: "apiKey" };
-      }
-    }
-  }
-
-  // 4. Default tenant
-  if (defaultTenantId) {
-    const config = tenants.get(defaultTenantId);
-    if (config && config.status === "active") {
-      return { tenantId: defaultTenantId, config, resolvedBy: "default" };
-    }
-  }
-
-  return undefined;
+  return defaultWhiteLabelContext.resolveTenant(context);
 }
 
 /** Check if a feature is enabled for a tenant. */
 export function isFeatureEnabled(tenantId: string, feature: keyof FeatureToggles): boolean {
-  const config = tenants.get(tenantId);
-  if (!config) return false;
-  const value = config.features[feature];
-  return typeof value === "boolean" ? value : false;
+  return defaultWhiteLabelContext.isFeatureEnabled(tenantId, feature);
 }
 
 /** Apply terminology mapping to a string using word-boundary matching. */
 export function applyTerminology(tenantId: string, text: string): string {
-  const config = tenants.get(tenantId);
-  if (!config?.terminology) return text;
-
-  let result = text;
-  const map = config.terminology;
-  const defaultTerms: TerminologyMap = {
-    investigation: "Investigation",
-    angle: "Angle",
-    idea: "Idea",
-    pipeline: "Pipeline",
-    synthesis: "Synthesis",
-    artifact: "Artifact",
-    score: "Score",
-    subject: "Subject",
-    innovation: "Innovation",
-    workspace: "Workspace",
-  };
-
-  // Sort by longest term first to prevent partial replacements
-  const entries = Object.entries(defaultTerms).sort(([, a], [, b]) => b.length - a.length);
-
-  for (const [key, defaultTerm] of entries) {
-    const customTerm = map[key as keyof TerminologyMap];
-    if (customTerm && customTerm !== defaultTerm) {
-      // Use word-boundary regex to avoid corrupting nested terms
-      const escaped = defaultTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const pattern = new RegExp(`\\b${escaped}\\b`, "g");
-      const patternLower = new RegExp(`\\b${escaped.toLowerCase()}\\b`, "g");
-      result = result.replace(pattern, customTerm);
-      result = result.replace(patternLower, customTerm.toLowerCase());
-    }
-  }
-
-  return result;
+  return defaultWhiteLabelContext.applyTerminology(tenantId, text);
 }
 
 /** Generate CSS variables from branding config. */
@@ -337,24 +392,20 @@ ${branding.customCss ?? ""}`;
 
 /** Register a partner profile. */
 export function registerPartner(profile: PartnerProfile): void {
-  PartnerProfileSchema.parse(profile);
-  partners.set(profile.partnerId, profile);
+  defaultWhiteLabelContext.registerPartner(profile);
 }
 
 /** Get a partner profile. */
 export function getPartner(partnerId: string): PartnerProfile | undefined {
-  return partners.get(partnerId);
+  return defaultWhiteLabelContext.getPartner(partnerId);
 }
 
 /** List all partners. */
 export function listPartners(): PartnerProfile[] {
-  return Array.from(partners.values());
+  return defaultWhiteLabelContext.listPartners();
 }
 
 /** Clear all white-label data. */
 export function clearWhiteLabelData(): void {
-  tenants.clear();
-  partners.clear();
-  domainIndex.clear();
-  defaultTenantId = undefined;
+  defaultWhiteLabelContext.clearWhiteLabelData();
 }

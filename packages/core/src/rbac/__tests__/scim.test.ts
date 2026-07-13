@@ -213,5 +213,21 @@ describe("rbac/scim", () => {
     it("should reject when no token is set", () => {
       expect(validateScimToken("any")).toBe(false);
     });
+
+    it("shares credentials and user state through the compatibility singleton API", () => {
+      const user = scimCreateUser({
+        userName: "singleton",
+        displayName: "Singleton User",
+        emails: [{ value: "singleton@example.com" }],
+      });
+      setScimToken("shared-token");
+
+      expect(scimGetUser(user.id)).toBe(user);
+      expect(validateScimToken("shared-token")).toBe(true);
+
+      clearScimData();
+      expect(scimGetUser(user.id)).toBeUndefined();
+      expect(validateScimToken("shared-token")).toBe(false);
+    });
   });
 });

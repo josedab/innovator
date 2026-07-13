@@ -98,78 +98,224 @@ export type MonitorState = z.infer<typeof MonitorStateSchema>;
 
 // ---- In-Memory Stores ----
 
-const sources = new Map<string, MonitorSource>();
-const signals: OpportunitySignal[] = [];
-let monitorState: MonitorState = { status: "idle", signalCount: 0, digestCount: 0 };
-let pollTimers = new Map<string, ReturnType<typeof setInterval>>();
-let activeConfig: MonitorConfig | null = null;
+export interface InnovationMonitorPersistence {
+  loadSignals(): OpportunitySignal[];
+  saveSignals(signals: readonly OpportunitySignal[]): void;
+  loadState(): MonitorState;
+  saveState(state: MonitorState): void;
+}
+
+/** Existing file-backed monitor persistence, retained as the default backend. */
+export class FileInnovationMonitorPersistence implements InnovationMonitorPersistence {
+  loadSignals(): OpportunitySignal[] {
+    ensureDir();
+    if (!existsSync(SIGNALS_FILE)) return [];
+    try {
+      return z
+        .array(OpportunitySignalSchema)
+        .parse(JSON.parse(readFileSync(SIGNALS_FILE, "utf-8")));
+    } catch {
+      return [];
+    }
+  }
+
+  saveSignals(signals: readonly OpportunitySignal[]): void {
+    ensureDir();
+    writeFileSync(SIGNALS_FILE, JSON.stringify(signals, null, 2), "utf-8");
+  }
+
+  loadState(): MonitorState {
+    ensureDir();
+    if (!existsSync(STATE_FILE)) {
+      return { status: "idle", signalCount: 0, digestCount: 0 };
+    }
+    try {
+      return MonitorStateSchema.parse(JSON.parse(readFileSync(STATE_FILE, "utf-8")));
+    } catch {
+      return { status: "idle", signalCount: 0, digestCount: 0 };
+    }
+  }
+
+  saveState(state: MonitorState): void {
+    ensureDir();
+    writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), "utf-8");
+  }
+}
+
+interface OwnedMonitorState {
+  readonly sources: Map<string, MonitorSource>;
+  readonly signals: OpportunitySignal[];
+  monitorState: MonitorState;
+  readonly pollTimers: Map<string, ReturnType<typeof setInterval>>;
+  activeConfig: MonitorConfig | null;
+  readonly persistence: InnovationMonitorPersistence;
+}
+
+const ownedMonitorState = Symbol("ownedMonitorState");
+
+/** Instance-owned monitor source, signal, timer, and active-config state. */
+export class InnovationMonitorContext {
+  readonly [ownedMonitorState]: OwnedMonitorState;
+
+  constructor(persistence: InnovationMonitorPersistence = new FileInnovationMonitorPersistence()) {
+    this[ownedMonitorState] = {
+      sources: new Map(),
+      signals: [],
+      monitorState: { status: "idle", signalCount: 0, digestCount: 0 },
+      pollTimers: new Map(),
+      activeConfig: null,
+      persistence,
+    };
+  }
+
+  addMonitorSource(source: MonitorSource): MonitorSource {
+    return addMonitorSourceInContext(this, source);
+  }
+
+  removeMonitorSource(id: string): void {
+    removeMonitorSourceInContext(this, id);
+  }
+
+  listMonitorSources(): MonitorSource[] {
+    return listMonitorSourcesInContext(this);
+  }
+
+  updateMonitorSource(id: string, updates: Partial<Omit<MonitorSource, "id">>): MonitorSource {
+    return updateMonitorSourceInContext(this, id, updates);
+  }
+
+  detectOpportunities(
+    sourceId: string,
+    model?: string,
+    signal?: AbortSignal
+  ): Promise<OpportunitySignal[]> {
+    return detectOpportunitiesInContext(this, sourceId, model, signal);
+  }
+
+  scoreSignal(
+    signalToScore: OpportunitySignal,
+    model?: string,
+    signal?: AbortSignal
+  ): Promise<ScoredOpportunity> {
+    return scoreSignal(signalToScore, model, signal);
+  }
+
+  getRecentSignals(options?: {
+    sourceId?: string;
+    type?: OpportunitySignal["type"];
+    urgency?: OpportunitySignal["urgency"];
+    timeRange?: { from?: string; to?: string };
+    limit?: number;
+  }): OpportunitySignal[] {
+    return getRecentSignalsInContext(this, options);
+  }
+
+  generateDigest(
+    period: "daily" | "weekly",
+    model?: string,
+    signal?: AbortSignal
+  ): Promise<InnovationDigest> {
+    return generateDigestInContext(this, period, model, signal);
+  }
+
+  startMonitor(config: MonitorConfig): MonitorState {
+    return startMonitorInContext(this, config);
+  }
+
+  stopMonitor(): MonitorState {
+    return stopMonitorInContext(this);
+  }
+
+  getMonitorState(): MonitorState {
+    return getMonitorStateInContext(this);
+  }
+
+  clearMonitorData(): void {
+    clearMonitorDataInContext(this);
+  }
+
+  dispose(): void {
+    disposeMonitorContext(this);
+  }
+}
+
+export const defaultInnovationMonitorContext = new InnovationMonitorContext();
 
 // ---- Persistence Helpers ----
 
-function loadSignals(): OpportunitySignal[] {
-  ensureDir();
-  if (!existsSync(SIGNALS_FILE)) return [];
-  try {
-    return z.array(OpportunitySignalSchema).parse(JSON.parse(readFileSync(SIGNALS_FILE, "utf-8")));
-  } catch {
-    return [];
+function initFromDisk(context: InnovationMonitorContext): void {
+  const state = context[ownedMonitorState];
+  const persisted = state.persistence.loadSignals();
+  if (persisted.length > 0 && state.signals.length === 0) {
+    state.signals.push(...persisted);
   }
+  const persistedState = state.persistence.loadState();
+  state.monitorState = { ...persistedState, status: state.monitorState.status };
 }
 
-function saveSignals(): void {
-  ensureDir();
-  writeFileSync(SIGNALS_FILE, JSON.stringify(signals, null, 2), "utf-8");
+function saveSignals(context: InnovationMonitorContext): void {
+  const state = context[ownedMonitorState];
+  state.persistence.saveSignals(state.signals);
 }
 
-function loadState(): MonitorState {
-  ensureDir();
-  if (!existsSync(STATE_FILE)) {
-    return { status: "idle", signalCount: 0, digestCount: 0 };
-  }
-  try {
-    return MonitorStateSchema.parse(JSON.parse(readFileSync(STATE_FILE, "utf-8")));
-  } catch {
-    return { status: "idle", signalCount: 0, digestCount: 0 };
-  }
-}
-
-function saveState(): void {
-  ensureDir();
-  writeFileSync(STATE_FILE, JSON.stringify(monitorState, null, 2), "utf-8");
-}
-
-function initFromDisk(): void {
-  const persisted = loadSignals();
-  if (persisted.length > 0 && signals.length === 0) {
-    signals.push(...persisted);
-  }
-  const persistedState = loadState();
-  monitorState = { ...persistedState, status: monitorState.status };
+function saveState(context: InnovationMonitorContext): void {
+  const state = context[ownedMonitorState];
+  state.persistence.saveState(state.monitorState);
 }
 
 // ---- Source Management ----
 
+function addMonitorSourceInContext(
+  context: InnovationMonitorContext,
+  source: MonitorSource
+): MonitorSource {
+  const state = context[ownedMonitorState];
+  const validated = MonitorSourceSchema.parse(source);
+  state.sources.set(validated.id, validated);
+  return validated;
+}
+
+function removeMonitorSourceInContext(context: InnovationMonitorContext, id: string): void {
+  const state = context[ownedMonitorState];
+  if (!state.sources.has(id)) throw new ValidationError(`Monitor source ${id} not found`);
+  state.sources.delete(id);
+  const timer = state.pollTimers.get(id);
+  if (timer) {
+    clearInterval(timer);
+    state.pollTimers.delete(id);
+  }
+}
+
+function listMonitorSourcesInContext(context: InnovationMonitorContext): MonitorSource[] {
+  return Array.from(context[ownedMonitorState].sources.values());
+}
+
+function updateMonitorSourceInContext(
+  context: InnovationMonitorContext,
+  id: string,
+  updates: Partial<Omit<MonitorSource, "id">>
+): MonitorSource {
+  const state = context[ownedMonitorState];
+  const existing = state.sources.get(id);
+  if (!existing) throw new ValidationError(`Monitor source ${id} not found`);
+  const updated = MonitorSourceSchema.parse({ ...existing, ...updates });
+  state.sources.set(id, updated);
+  return updated;
+}
+
 /** Register a watchable monitor source. */
 export function addMonitorSource(source: MonitorSource): MonitorSource {
-  const validated = MonitorSourceSchema.parse(source);
-  sources.set(validated.id, validated);
-  return validated;
+  return defaultInnovationMonitorContext.addMonitorSource(source);
 }
 
 /** Unregister a monitor source by ID. */
 export function removeMonitorSource(id: string): void {
-  if (!sources.has(id)) throw new ValidationError(`Monitor source ${id} not found`);
-  sources.delete(id);
-  const timer = pollTimers.get(id);
-  if (timer) {
-    clearInterval(timer);
-    pollTimers.delete(id);
-  }
+  defaultInnovationMonitorContext.removeMonitorSource(id);
 }
 
 /** List all configured monitor sources. */
 export function listMonitorSources(): MonitorSource[] {
-  return Array.from(sources.values());
+  return defaultInnovationMonitorContext.listMonitorSources();
 }
 
 /** Update a monitor source's config. */
@@ -177,22 +323,19 @@ export function updateMonitorSource(
   id: string,
   updates: Partial<Omit<MonitorSource, "id">>
 ): MonitorSource {
-  const existing = sources.get(id);
-  if (!existing) throw new ValidationError(`Monitor source ${id} not found`);
-  const updated = MonitorSourceSchema.parse({ ...existing, ...updates });
-  sources.set(id, updated);
-  return updated;
+  return defaultInnovationMonitorContext.updateMonitorSource(id, updates);
 }
 
 // ---- Signal Detection ----
 
-/** Poll a source and detect opportunity signals using LLM analysis. */
-export async function detectOpportunities(
+async function detectOpportunitiesInContext(
+  context: InnovationMonitorContext,
   sourceId: string,
   model?: string,
   signal?: AbortSignal
 ): Promise<OpportunitySignal[]> {
-  const source = sources.get(sourceId);
+  const state = context[ownedMonitorState];
+  const source = state.sources.get(sourceId);
   if (!source) throw new ValidationError(`Monitor source ${sourceId} not found`);
   if (!source.enabled) return [];
 
@@ -242,7 +385,7 @@ Respond with valid JSON only:
   }
 
   const now = new Date().toISOString();
-  const threshold = activeConfig?.opportunityThreshold ?? 0.5;
+  const threshold = state.activeConfig?.opportunityThreshold ?? 0.5;
 
   const detected: OpportunitySignal[] = rawOpportunities
     .filter((o) => o.confidence >= threshold)
@@ -258,13 +401,22 @@ Respond with valid JSON only:
       metadata: o.metadata,
     }));
 
-  signals.push(...detected);
-  monitorState.signalCount += detected.length;
-  monitorState.lastPollAt = now;
-  saveSignals();
-  saveState();
+  state.signals.push(...detected);
+  state.monitorState.signalCount += detected.length;
+  state.monitorState.lastPollAt = now;
+  saveSignals(context);
+  saveState(context);
 
   return detected;
+}
+
+/** Poll a source and detect opportunity signals using LLM analysis. */
+export async function detectOpportunities(
+  sourceId: string,
+  model?: string,
+  signal?: AbortSignal
+): Promise<OpportunitySignal[]> {
+  return defaultInnovationMonitorContext.detectOpportunities(sourceId, model, signal);
 }
 
 /** Score a signal's innovation potential using LLM. */
@@ -314,16 +466,19 @@ Respond with valid JSON only:
   };
 }
 
-/** Retrieve signals with optional filters. */
-export function getRecentSignals(options?: {
-  sourceId?: string;
-  type?: OpportunitySignal["type"];
-  urgency?: OpportunitySignal["urgency"];
-  timeRange?: { from?: string; to?: string };
-  limit?: number;
-}): OpportunitySignal[] {
-  initFromDisk();
-  let result = [...signals];
+function getRecentSignalsInContext(
+  context: InnovationMonitorContext,
+  options?: {
+    sourceId?: string;
+    type?: OpportunitySignal["type"];
+    urgency?: OpportunitySignal["urgency"];
+    timeRange?: { from?: string; to?: string };
+    limit?: number;
+  }
+): OpportunitySignal[] {
+  const state = context[ownedMonitorState];
+  initFromDisk(context);
+  let result = [...state.signals];
 
   if (options?.sourceId) result = result.filter((s) => s.sourceId === options.sourceId);
   if (options?.type) result = result.filter((s) => s.type === options.type);
@@ -339,22 +494,34 @@ export function getRecentSignals(options?: {
   return result;
 }
 
+/** Retrieve signals with optional filters. */
+export function getRecentSignals(options?: {
+  sourceId?: string;
+  type?: OpportunitySignal["type"];
+  urgency?: OpportunitySignal["urgency"];
+  timeRange?: { from?: string; to?: string };
+  limit?: number;
+}): OpportunitySignal[] {
+  return defaultInnovationMonitorContext.getRecentSignals(options);
+}
+
 // ---- Digest Generation ----
 
-/** Compile recent signals into an innovation digest using LLM summarization. */
-export async function generateDigest(
+async function generateDigestInContext(
+  context: InnovationMonitorContext,
   period: "daily" | "weekly",
   model?: string,
   signal?: AbortSignal
 ): Promise<InnovationDigest> {
-  initFromDisk();
+  const state = context[ownedMonitorState];
+  initFromDisk(context);
 
   const now = new Date();
   const cutoffMs = period === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
   const cutoff = new Date(now.getTime() - cutoffMs).toISOString();
 
-  const periodSignals = signals.filter((s) => s.detectedAt >= cutoff);
-  const maxSignals = activeConfig?.maxSignalsPerDigest ?? 50;
+  const periodSignals = state.signals.filter((s) => s.detectedAt >= cutoff);
+  const maxSignals = state.activeConfig?.maxSignalsPerDigest ?? 50;
   const digestSignals = periodSignals.slice(0, maxSignals);
 
   // Score top signals
@@ -443,10 +610,19 @@ Respond with valid JSON only:
     stats,
   };
 
-  monitorState.digestCount++;
-  saveState();
+  state.monitorState.digestCount++;
+  saveState(context);
 
   return digest;
+}
+
+/** Compile recent signals into an innovation digest using LLM summarization. */
+export async function generateDigest(
+  period: "daily" | "weekly",
+  model?: string,
+  signal?: AbortSignal
+): Promise<InnovationDigest> {
+  return defaultInnovationMonitorContext.generateDigest(period, model, signal);
 }
 
 /** Convert an innovation digest to markdown. */
@@ -576,20 +752,23 @@ export function digestToHtml(digest: InnovationDigest): string {
 
 // ---- Monitor Lifecycle ----
 
-/** Start the monitoring loop with setInterval-based polling. */
-export function startMonitor(config: MonitorConfig): MonitorState {
-  if (monitorState.status === "running") {
+function startMonitorInContext(
+  context: InnovationMonitorContext,
+  config: MonitorConfig
+): MonitorState {
+  const state = context[ownedMonitorState];
+  if (state.monitorState.status === "running") {
     throw new ValidationError("Monitor is already running");
   }
 
   const validated = MonitorConfigSchema.parse(config);
-  activeConfig = validated;
+  state.activeConfig = validated;
 
-  initFromDisk();
+  initFromDisk(context);
 
   // Register sources
   for (const source of validated.sources) {
-    sources.set(source.id, source);
+    state.sources.set(source.id, source);
   }
 
   // Start poll timers for each enabled source
@@ -597,7 +776,7 @@ export function startMonitor(config: MonitorConfig): MonitorState {
     if (!source.enabled) continue;
 
     const timer = setInterval(() => {
-      detectOpportunities(source.id).catch(() => {
+      context.detectOpportunities(source.id).catch(() => {
         // Silently continue on poll failures
       });
     }, source.pollIntervalMs);
@@ -605,38 +784,66 @@ export function startMonitor(config: MonitorConfig): MonitorState {
     // Prevent timers from keeping the process alive
     if (timer.unref) timer.unref();
 
-    pollTimers.set(source.id, timer);
+    state.pollTimers.set(source.id, timer);
   }
 
-  monitorState.status = "running";
-  saveState();
-  return { ...monitorState };
+  state.monitorState.status = "running";
+  saveState(context);
+  return { ...state.monitorState };
+}
+
+function stopMonitorInContext(context: InnovationMonitorContext): MonitorState {
+  const state = context[ownedMonitorState];
+  state.pollTimers.forEach((timer) => {
+    clearInterval(timer);
+  });
+  state.pollTimers.clear();
+
+  state.monitorState.status = "idle";
+  state.activeConfig = null;
+  saveState(context);
+  return { ...state.monitorState };
+}
+
+function getMonitorStateInContext(context: InnovationMonitorContext): MonitorState {
+  return { ...context[ownedMonitorState].monitorState };
+}
+
+function clearMonitorDataInContext(context: InnovationMonitorContext): void {
+  const state = context[ownedMonitorState];
+  stopMonitorInContext(context);
+  state.sources.clear();
+  state.signals.length = 0;
+  state.monitorState = { status: "idle", signalCount: 0, digestCount: 0 };
+  saveState(context);
+  saveSignals(context);
+}
+
+function disposeMonitorContext(context: InnovationMonitorContext): void {
+  const state = context[ownedMonitorState];
+  if (state.pollTimers.size === 0 && state.monitorState.status !== "running") {
+    state.activeConfig = null;
+    return;
+  }
+  stopMonitorInContext(context);
+}
+
+/** Start the monitoring loop with setInterval-based polling. */
+export function startMonitor(config: MonitorConfig): MonitorState {
+  return defaultInnovationMonitorContext.startMonitor(config);
 }
 
 /** Stop the monitoring loop. */
 export function stopMonitor(): MonitorState {
-  pollTimers.forEach((timer) => {
-    clearInterval(timer);
-  });
-  pollTimers.clear();
-
-  monitorState.status = "idle";
-  activeConfig = null;
-  saveState();
-  return { ...monitorState };
+  return defaultInnovationMonitorContext.stopMonitor();
 }
 
 /** Get the current monitor state. */
 export function getMonitorState(): MonitorState {
-  return { ...monitorState };
+  return defaultInnovationMonitorContext.getMonitorState();
 }
 
 /** Clear all monitor data (for testing). */
 export function clearMonitorData(): void {
-  stopMonitor();
-  sources.clear();
-  signals.length = 0;
-  monitorState = { status: "idle", signalCount: 0, digestCount: 0 };
-  saveState();
-  saveSignals();
+  defaultInnovationMonitorContext.clearMonitorData();
 }

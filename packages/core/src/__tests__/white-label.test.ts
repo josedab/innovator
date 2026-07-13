@@ -198,6 +198,16 @@ describe("white-label", () => {
     expect(getTenantConfig("acme")).toBeUndefined();
   });
 
+  it("shares default tenant selection through the compatibility singleton API", () => {
+    registerTenant(makeTenantConfig("primary"));
+    setDefaultTenant("primary");
+
+    expect(resolveTenant({})?.tenantId).toBe("primary");
+
+    clearWhiteLabelData();
+    expect(resolveTenant({})).toBeUndefined();
+  });
+
   it("setDefaultTenant throws for non-existent tenant", () => {
     expect(() => setDefaultTenant("non-existent")).toThrow();
   });
