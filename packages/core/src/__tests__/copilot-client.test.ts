@@ -93,6 +93,15 @@ describe("copilot/client", () => {
       await stopCopilotClient();
       expect(mockStop).toHaveBeenCalledOnce();
     });
+
+    it("is idempotent when shutdown is requested repeatedly", async () => {
+      await getCopilotClient();
+
+      await stopCopilotClient();
+      await stopCopilotClient();
+
+      expect(mockStop).toHaveBeenCalledOnce();
+    });
   });
 
   describe("generateText", () => {

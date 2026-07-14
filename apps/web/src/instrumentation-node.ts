@@ -10,15 +10,22 @@ function isConnectionError(err: unknown): boolean {
 
 const globalForInstrumentation = globalThis as typeof globalThis & {
   __innovatorProcessHandlersRegistered?: boolean;
+  __innovatorRuntime?: { dispose(): Promise<void> };
 };
 
 export async function registerNodeInstrumentation(): Promise<void> {
   if (globalForInstrumentation.__innovatorProcessHandlersRegistered) return;
   globalForInstrumentation.__innovatorProcessHandlersRegistered = true;
 
-  const { stopCopilotClient } = await import("@innovator/core");
+  const { createDefaultInnovatorRuntime } = await import("@innovator/core/runtime");
+  const runtime = globalForInstrumentation.__innovatorRuntime ?? createDefaultInnovatorRuntime();
+  globalForInstrumentation.__innovatorRuntime = runtime;
 
-  const cleanup = () => stopCopilotClient().catch(() => {});
+  let cleanupPromise: Promise<void> | undefined;
+  const cleanup = () => {
+    cleanupPromise ??= runtime.dispose().catch(() => {});
+    return cleanupPromise;
+  };
   process.on("beforeExit", cleanup);
   process.on("SIGINT", () => void cleanup());
   process.on("SIGTERM", () => void cleanup());

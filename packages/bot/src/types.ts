@@ -1,3 +1,5 @@
+import type { InnovatorRuntime } from "@innovator/core/runtime";
+
 /** Represents a message from a bot platform. */
 export interface BotMessage {
   /** Platform-specific channel/room ID. */
@@ -56,6 +58,8 @@ export interface BotConfig {
   platform: BotPlatform;
   /** Optional default LLM model. */
   defaultModel?: string;
+  /** Optional runtime owner; defaults to the compatibility runtime. */
+  runtime?: InnovatorRuntime;
   /** Optional workspace-level settings. */
   workspace?: {
     id: string;

@@ -1,14 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockRunAutoPipeline = vi.fn();
+const mockDisposeRuntime = vi.fn().mockResolvedValue(undefined);
 
-vi.mock("@innovator/core", () => ({
+vi.mock("@innovator/core/innovation", () => ({
   runAutoPipeline: (...args: unknown[]) => mockRunAutoPipeline(...args),
+}));
+
+vi.mock("@innovator/core/runtime", () => ({
+  createDefaultInnovatorRuntime: vi.fn(() => ({
+    dispose: mockDisposeRuntime,
+  })),
 }));
 
 import { InnovatorBot } from "../bot.js";
 import type { BotPlatform, BotMessage, BotResponse, BotConfig } from "../types.js";
-import type { PipelineProgress } from "@innovator/core";
+import type { PipelineProgress } from "@innovator/core/innovation";
 
 function createMockPlatform(): BotPlatform & {
   handlers: Map<string, (message: BotMessage) => Promise<void>>;
@@ -104,9 +111,10 @@ describe("InnovatorBot", () => {
   });
 
   describe("stop", () => {
-    it("stops the platform", async () => {
+    it("stops the platform and disposes its runtime", async () => {
       await bot.stop();
       expect(platform.stop).toHaveBeenCalled();
+      expect(mockDisposeRuntime).toHaveBeenCalledOnce();
     });
   });
 
@@ -470,9 +478,11 @@ describe("InnovatorBot", () => {
   });
 
   describe("double stop", () => {
-    it("calling stop twice does not throw", async () => {
+    it("calling stop twice reuses one shutdown", async () => {
       await bot.stop();
       await expect(bot.stop()).resolves.toBeUndefined();
+      expect(platform.stop).toHaveBeenCalledOnce();
+      expect(mockDisposeRuntime).toHaveBeenCalledOnce();
     });
   });
 });

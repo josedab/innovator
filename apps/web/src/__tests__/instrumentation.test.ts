@@ -1,13 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+const runtimeMocks = vi.hoisted(() => ({
+  create: vi.fn(),
+  dispose: vi.fn(),
+}));
+
 // Mock the env module
 vi.mock("@/lib/env", () => ({
   validateEnv: vi.fn(),
 }));
 
-// Mock @innovator/core dynamic import
-vi.mock("@innovator/core", () => ({
-  stopCopilotClient: vi.fn().mockResolvedValue(undefined),
+// Mock the runtime subpath used by Node.js instrumentation.
+vi.mock("@innovator/core/runtime", () => ({
+  createDefaultInnovatorRuntime: runtimeMocks.create,
 }));
 
 describe("instrumentation — register()", () => {
@@ -15,13 +20,17 @@ describe("instrumentation — register()", () => {
   let processOnSpy: ReturnType<typeof vi.spyOn>;
   const originalGlobal = globalThis as typeof globalThis & {
     __innovatorProcessHandlersRegistered?: boolean;
+    __innovatorRuntime?: { dispose(): Promise<void> };
   };
 
   beforeEach(() => {
     vi.resetModules();
     vi.resetAllMocks();
+    runtimeMocks.dispose.mockResolvedValue(undefined);
+    runtimeMocks.create.mockReturnValue({ dispose: runtimeMocks.dispose });
     originalRuntime = process.env.NEXT_RUNTIME;
     delete originalGlobal.__innovatorProcessHandlersRegistered;
+    delete originalGlobal.__innovatorRuntime;
     processOnSpy = vi.spyOn(process, "on").mockImplementation(() => process);
   });
 
@@ -79,6 +88,20 @@ describe("instrumentation — register()", () => {
     await register();
     // No new handlers should be registered
     expect(processOnSpy.mock.calls.length).toBe(firstCallCount);
+  });
+
+  it("reuses one runtime disposal across repeated shutdown events", async () => {
+    process.env.NEXT_RUNTIME = "nodejs";
+    const { register } = await import("../instrumentation.js");
+    await register();
+
+    const cleanup = processOnSpy.mock.calls.find(
+      ([event]) => event === "beforeExit"
+    )?.[1] as () => Promise<void>;
+    await Promise.all([cleanup(), cleanup()]);
+
+    expect(runtimeMocks.create).toHaveBeenCalledOnce();
+    expect(runtimeMocks.dispose).toHaveBeenCalledOnce();
   });
 
   it("ECONNRESET errors are suppressed by uncaughtException handler", async () => {

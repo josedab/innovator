@@ -1,5 +1,7 @@
-import { runAutoPipeline } from "@innovator/core";
-import type { PipelineProgress } from "@innovator/core";
+import { runAutoPipeline } from "@innovator/core/innovation";
+import type { PipelineProgress } from "@innovator/core/innovation";
+import { createDefaultInnovatorRuntime } from "@innovator/core/runtime";
+import type { InnovatorRuntime } from "@innovator/core/runtime";
 import type { BotConfig, BotPlatform } from "./types.js";
 
 /**
@@ -8,10 +10,13 @@ import type { BotConfig, BotPlatform } from "./types.js";
 export class InnovatorBot {
   private platform: BotPlatform;
   private defaultModel?: string;
+  private runtime: InnovatorRuntime;
+  private stopPromise: Promise<void> | undefined;
 
   constructor(config: BotConfig) {
     this.platform = config.platform;
     this.defaultModel = config.defaultModel;
+    this.runtime = config.runtime ?? createDefaultInnovatorRuntime();
   }
 
   /** Start the bot and register command handlers. */
@@ -86,8 +91,26 @@ export class InnovatorBot {
   }
 
   /** Stop the bot. */
-  async stop(): Promise<void> {
-    await this.platform.stop();
+  stop(): Promise<void> {
+    this.stopPromise ??= (async () => {
+      let platformError: unknown;
+      try {
+        await this.platform.stop();
+      } catch (error) {
+        platformError = error;
+      }
+
+      let runtimeError: unknown;
+      try {
+        await this.runtime.dispose();
+      } catch (error) {
+        runtimeError = error;
+      }
+
+      if (platformError !== undefined) throw platformError;
+      if (runtimeError !== undefined) throw runtimeError;
+    })();
+    return this.stopPromise;
   }
 }
 
