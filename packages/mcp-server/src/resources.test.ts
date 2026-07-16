@@ -3,15 +3,6 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@innovator/core", () => ({
   listSessions: vi.fn().mockResolvedValue([]),
   getSession: vi.fn().mockResolvedValue(undefined),
-  ANGLES: [
-    { id: "scamper", name: "SCAMPER", shortDescription: "Substitute, Combine...", icon: "🔄" },
-    {
-      id: "first-principles",
-      name: "First Principles",
-      shortDescription: "Decompose to...",
-      icon: "🧱",
-    },
-  ],
   getPresets: vi.fn().mockReturnValue([
     {
       id: "saas",
@@ -24,6 +15,18 @@ vi.mock("@innovator/core", () => ({
     },
   ]),
   KNOWN_MODELS: ["gpt-4.1", "gpt-5"],
+}));
+
+vi.mock("@innovator/core/innovation", () => ({
+  ANGLES: [
+    { id: "scamper", name: "SCAMPER", shortDescription: "Substitute, Combine...", icon: "🔄" },
+    {
+      id: "first-principles",
+      name: "First Principles",
+      shortDescription: "Decompose to...",
+      icon: "🧱",
+    },
+  ],
 }));
 
 import {

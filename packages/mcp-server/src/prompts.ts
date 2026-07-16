@@ -6,7 +6,7 @@
  * to run specific innovation workflows with pre-built instructions.
  */
 
-import { ANGLES } from "@innovator/core";
+import { ANGLES } from "@innovator/core/innovation";
 
 /** Descriptor for an MCP prompt template. */
 export interface McpPrompt {

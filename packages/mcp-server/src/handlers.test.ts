@@ -48,10 +48,13 @@ const {
   }),
 }));
 
-vi.mock("@innovator/core", () => ({
+vi.mock("@innovator/core/innovation", () => ({
   investigate: mockInvestigate,
   generateForAngle: mockGenerateForAngle,
   runAutoPipeline: mockRunAutoPipeline,
+}));
+
+vi.mock("@innovator/core", () => ({
   analyzeCodebaseSync: mockAnalyzeCodebaseSync,
   deepAnalyze: mockDeepAnalyze,
   generateInnovationPRs: mockGenerateInnovationPRs,

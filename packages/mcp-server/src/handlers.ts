@@ -1,4 +1,4 @@
-import { investigate, generateForAngle, runAutoPipeline } from "@innovator/core";
+import { investigate, generateForAngle, runAutoPipeline } from "@innovator/core/innovation";
 import {
   analyzeCodebaseSync,
   deepAnalyze,
@@ -6,12 +6,26 @@ import {
   innovationPRToMarkdown,
   analysisToMarkdown,
 } from "@innovator/core";
-import type { AngleId, PipelineProgress, CodebaseAnalysis, InnovationPR } from "@innovator/core";
-import { InvestigateInputSchema, GenerateInputSchema, AutoPipelineInputSchema } from "./schemas.js";
+import type { AngleId, PipelineProgress } from "@innovator/core/innovation";
+import type { CodebaseAnalysis, InnovationPR } from "@innovator/core";
+import {
+  InvestigateInputSchema,
+  GenerateInputSchema,
+  AutoPipelineInputSchema,
+  InnovateFromCodeInputSchema,
+  InnovateFileInputSchema,
+  InnovateArchitectureInputSchema,
+  NLInnovateInputSchema,
+  MemorySearchInputSchema,
+  OrgDNAInputSchema,
+  PersonaEvalInputSchema,
+  AutonomousInnovateInputSchema,
+  SwarmInnovateInputSchema,
+  NetworkInsightsInputSchema,
+  NoveltyCheckInputSchema,
+} from "./schemas.js";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { existsSync, realpathSync, statSync } from "node:fs";
-
-const MAX_ANALYSIS_FILES = 1_000;
 
 /**
  * Resolve a requested path and ensure its real location remains inside the configured root.
@@ -131,15 +145,10 @@ export async function handleAutoPipeline(args: unknown): Promise<string> {
  * @throws {Error} If the path is invalid or inaccessible
  */
 export async function handleInnovateFromCode(args: unknown): Promise<string> {
-  const input = z
-    .object({
-      path: z.string().min(1).describe("Path to the repository or directory to analyze"),
-      maxFiles: z.number().int().min(1).max(MAX_ANALYSIS_FILES).optional().default(200),
-    })
-    .parse(args);
+  const input = InnovateFromCodeInputSchema.parse(args);
 
   const safePath = validatePath(input.path, "directory");
-  const analysis = analyzeCodebaseSync(safePath, { maxFiles: input.maxFiles });
+  const analysis = analyzeCodebaseSync(safePath, { maxFiles: input.maxFiles ?? 200 });
   const deepResult = deepAnalyze(analysis as CodebaseAnalysis);
   const prs = generateInnovationPRs(analysis as CodebaseAnalysis);
 
@@ -178,11 +187,7 @@ export async function handleInnovateFromCode(args: unknown): Promise<string> {
  * @throws {Error} If the path is invalid or inaccessible
  */
 export async function handleInnovateFile(args: unknown): Promise<string> {
-  const input = z
-    .object({
-      path: z.string().min(1).describe("Path to the specific file to analyze"),
-    })
-    .parse(args);
+  const input = InnovateFileInputSchema.parse(args);
 
   const safePath = validatePath(input.path, "file");
   const { dirname } = await import("node:path");
@@ -221,11 +226,7 @@ export async function handleInnovateFile(args: unknown): Promise<string> {
  * @throws {Error} If the path is invalid or inaccessible
  */
 export async function handleInnovateArchitecture(args: unknown): Promise<string> {
-  const input = z
-    .object({
-      path: z.string().min(1).describe("Path to the repository"),
-    })
-    .parse(args);
+  const input = InnovateArchitectureInputSchema.parse(args);
 
   const safePath = validatePath(input.path, "directory");
   const analysis = analyzeCodebaseSync(safePath, { maxFiles: 500 });
@@ -237,8 +238,6 @@ export async function handleInnovateArchitecture(args: unknown): Promise<string>
 
   return `${report}\n\n# Innovation PRs\n\n${prReports}`;
 }
-
-import { z } from "zod";
 
 // ---- New Feature Handlers ----
 
@@ -292,12 +291,7 @@ function getOrCreateDefaultNodeId(): string {
  * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleNLInnovate(args: unknown): Promise<string> {
-  const input = z
-    .object({
-      prompt: z.string().min(1).max(5000),
-      model: z.string().optional(),
-    })
-    .parse(args);
+  const input = NLInnovateInputSchema.parse(args);
   const result = await generateNLExecutionPlan(input.prompt, input.model);
   return JSON.stringify(result, null, 2);
 }
@@ -311,13 +305,7 @@ export async function handleNLInnovate(args: unknown): Promise<string> {
  * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleMemorySearch(args: unknown): Promise<string> {
-  const input = z
-    .object({
-      query: z.string().min(1).max(2000),
-      threshold: z.number().min(0).max(1).optional(),
-      limit: z.number().min(1).max(50).optional(),
-    })
-    .parse(args);
+  const input = MemorySearchInputSchema.parse(args);
   const { nodes, scores } = retrieveRelatedMemories(input.query, {
     threshold: input.threshold,
     limit: input.limit,
@@ -335,7 +323,7 @@ export async function handleMemorySearch(args: unknown): Promise<string> {
  * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleOrgDNA(args: unknown): Promise<string> {
-  const input = z.object({ format: z.enum(["json", "markdown"]).optional() }).parse(args);
+  const input = OrgDNAInputSchema.parse(args);
   const report = generateOrgDNA();
   if (input.format === "markdown") return orgDNAToMarkdown(report);
   return JSON.stringify(report, null, 2);
@@ -350,13 +338,7 @@ export async function handleOrgDNA(args: unknown): Promise<string> {
  * @throws {ZodError} If `args` fails schema validation
  */
 export async function handlePersonaEval(args: unknown): Promise<string> {
-  const input = z
-    .object({
-      idea: z.string().min(1).max(5000),
-      personaIds: z.array(z.string()).min(1).max(12),
-      model: z.string().optional(),
-    })
-    .parse(args);
+  const input = PersonaEvalInputSchema.parse(args);
   const assessment = await generateStakeholderAssessment(input.idea, input.personaIds, {
     model: input.model,
   });
@@ -375,15 +357,7 @@ export async function handlePersonaEval(args: unknown): Promise<string> {
  * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleAutonomousInnovate(args: unknown): Promise<string> {
-  const input = z
-    .object({
-      subject: z.string().min(1).max(500),
-      maxBranches: z.number().min(1).max(50).optional(),
-      maxDepth: z.number().min(1).max(10).optional(),
-      strategy: z.enum(["breadth-first", "depth-first", "adaptive"]).optional(),
-      model: z.string().optional(),
-    })
-    .parse(args);
+  const input = AutonomousInnovateInputSchema.parse(args);
 
   const progressUpdates: AutonomousProgress[] = [];
   const run = await runAutonomousAgent(
@@ -445,14 +419,7 @@ export async function handleAutonomousInnovate(args: unknown): Promise<string> {
  * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleSwarmInnovate(args: unknown): Promise<string> {
-  const input = z
-    .object({
-      subject: z.string().min(1).max(500),
-      agentCount: z.number().min(2).max(8).optional(),
-      maxIterations: z.number().min(1).max(10).optional(),
-      model: z.string().optional(),
-    })
-    .parse(args);
+  const input = SwarmInnovateInputSchema.parse(args);
 
   const config: SwarmConfig = {
     agentCount: input.agentCount,
@@ -491,12 +458,7 @@ export async function handleSwarmInnovate(args: unknown): Promise<string> {
  * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleNetworkInsights(args: unknown): Promise<string> {
-  const input = z
-    .object({
-      domainHint: z.string().min(1).max(200).optional(),
-      angleId: z.string().optional(),
-    })
-    .parse(args);
+  const input = NetworkInsightsInputSchema.parse(args);
 
   const dashboard = getNetworkDashboard(getOrCreateDefaultNodeId());
   let patterns = dashboard.topPatterns;
@@ -543,20 +505,7 @@ export async function handleNetworkInsights(args: unknown): Promise<string> {
  * @throws {ZodError} If `args` fails schema validation
  */
 export async function handleNoveltyCheck(args: unknown): Promise<string> {
-  const input = z
-    .object({
-      ideas: z
-        .array(
-          z.object({
-            title: z.string().max(500),
-            description: z.string().max(5000),
-          })
-        )
-        .min(1)
-        .max(20),
-      domain: z.string().max(200).optional(),
-    })
-    .parse(args);
+  const input = NoveltyCheckInputSchema.parse(args);
 
   // Compute novelty scores using existing scoring + federation patterns
   const dashboard = getNetworkDashboard(getOrCreateDefaultNodeId());

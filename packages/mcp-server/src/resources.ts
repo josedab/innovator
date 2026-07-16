@@ -6,7 +6,8 @@
  * as MCP resources accessible by any MCP-compatible client.
  */
 
-import { listSessions, getSession, ANGLES, getPresets, KNOWN_MODELS } from "@innovator/core";
+import { listSessions, getSession, getPresets, KNOWN_MODELS } from "@innovator/core";
+import { ANGLES } from "@innovator/core/innovation";
 import type { SessionRecord } from "@innovator/core";
 
 /** Format a session record as a readable markdown resource. */
