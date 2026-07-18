@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Command } from "commander";
 
+const runtimeMocks = vi.hoisted(() => ({
+  dispose: vi.fn(async () => undefined),
+  create: vi.fn(),
+}));
+
 vi.mock("@innovator/core", () => ({
   ANGLES: [
     {
@@ -14,7 +19,18 @@ vi.mock("@innovator/core", () => ({
   KNOWN_MODELS: [],
   MAX_CONCURRENCY: 4,
   loadCustomAngles: vi.fn(() => []),
-  stopCopilotClient: vi.fn(async () => undefined),
+}));
+
+vi.mock("@innovator/core/runtime", () => ({
+  createDefaultInnovatorRuntime: runtimeMocks.create.mockImplementation(() => ({
+    dispose: runtimeMocks.dispose,
+  })),
+}));
+
+vi.mock("@innovator/core/providers", () => ({
+  listProviders: vi.fn(() => []),
+  loadConfig: vi.fn(() => ({ defaultProvider: "copilot" })),
+  saveConfig: vi.fn(),
 }));
 
 import { parseCli, program } from "../program.js";
@@ -45,6 +61,8 @@ describe("CLI smoke tests", () => {
     consoleOutput = [];
     consoleErrors = [];
     process.exitCode = undefined;
+    runtimeMocks.create.mockClear();
+    runtimeMocks.dispose.mockClear();
 
     overrideExits(program);
     program.configureOutput({
@@ -108,5 +126,29 @@ describe("CLI smoke tests", () => {
     expect(error).toBeUndefined();
     expect(process.exitCode).toBe(1);
     expect(consoleErrors.join("\n")).toContain("Unknown angles");
+  });
+
+  it("disposes one runtime at the root command boundary", async () => {
+    const error = await execute("angles");
+
+    expect(error).toBeUndefined();
+    expect(runtimeMocks.create).toHaveBeenCalledOnce();
+    expect(runtimeMocks.dispose).toHaveBeenCalledOnce();
+  });
+
+  it("runs the composed command tree through the executable entrypoint", async () => {
+    const originalArgv = process.argv;
+    process.argv = ["node", "innovator", "angles"];
+
+    try {
+      await import("../index.js");
+      await vi.waitFor(() => {
+        expect(consoleOutput.join("\n")).toContain("Innovation Angles");
+      });
+      expect(consoleOutput.join("\n")).toContain("scamper");
+      expect(process.exitCode).toBeUndefined();
+    } finally {
+      process.argv = originalArgv;
+    }
   });
 });
