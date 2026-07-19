@@ -3,13 +3,9 @@
  */
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import type {
-  AngleResult,
-  Synthesis,
-  PipelineProgress,
-  PipelineStage,
-} from "@innovator/core/types";
+import { useState } from "react";
+import type { AngleResult, Synthesis } from "@innovator/core/types";
+import { useAutoModePipeline } from "@/lib/hooks/useAutoModePipeline";
 
 /** Props for the {@link AutoModePanel} component. */
 interface AutoModePanelProps {
@@ -17,28 +13,6 @@ interface AutoModePanelProps {
   onComplete: (results: AngleResult[], synthesis: Synthesis | null) => void;
   onReset: () => void;
 }
-
-const VALID_STAGES: readonly PipelineStage[] = [
-  "investigating",
-  "generating",
-  "synthesizing",
-  "complete",
-  "error",
-];
-
-function isValidPipelineProgress(data: unknown): data is PipelineProgress {
-  if (typeof data !== "object" || data === null) return false;
-  const d = data as Record<string, unknown>;
-  return (
-    typeof d.stage === "string" &&
-    (VALID_STAGES as readonly string[]).includes(d.stage) &&
-    Array.isArray(d.completedAngles) &&
-    typeof d.totalAngles === "number" &&
-    Array.isArray(d.angleResults)
-  );
-}
-
-const SSE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Auto mode panel that streams the full innovation pipeline via SSE.
@@ -53,141 +27,11 @@ const SSE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
  * @param props.onReset - Called when the user clicks "Start over" after an error
  */
 export function AutoModePanel({ subject, onComplete, onReset }: AutoModePanelProps) {
-  const [progress, setProgress] = useState<PipelineProgress>({
-    stage: "investigating",
-    completedAngles: [],
-    totalAngles: 8,
-    angleResults: [],
-  });
-  const [started, setStarted] = useState(false);
   const [showCompleted, setShowCompleted] = useState(true);
-  const [partialContent, setPartialContent] = useState<string>("");
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  const handleStopAndKeep = useCallback(() => {
-    abortControllerRef.current?.abort();
-    setProgress((prev) => {
-      if (prev.angleResults.length > 0) {
-        onComplete(prev.angleResults, prev.synthesis ?? null);
-      }
-      return { ...prev, stage: "complete", stoppedEarly: true };
-    });
-  }, [onComplete]);
-
-  const runPipeline = useCallback(
-    async (signal: AbortSignal) => {
-      try {
-        const res = await fetch("/api/auto", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ subject }),
-          signal,
-        });
-
-        if (!res.ok) {
-          const text = await res.text().then((t) => t.slice(0, 1000));
-          setProgress((prev) => ({
-            ...prev,
-            stage: "error",
-            error: text || "Auto mode failed",
-          }));
-          return;
-        }
-
-        const reader = res.body?.getReader();
-        const decoder = new TextDecoder();
-
-        if (!reader) {
-          setProgress((prev) => ({
-            ...prev,
-            stage: "error",
-            error: "No response stream",
-          }));
-          return;
-        }
-
-        // Accumulate chunks into a buffer; split on double-newline (SSE event boundary)
-        let buffer = "";
-        let receivedComplete = false;
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          // SSE events are delimited by double newlines; the last segment may be incomplete
-          const lines = buffer.split("\n\n");
-          buffer = lines.pop() || ""; // keep incomplete segment for next iteration
-
-          for (const line of lines) {
-            // SSE data lines start with "data: " prefix per the SSE spec
-            if (line.startsWith("data: ")) {
-              try {
-                const parsed = JSON.parse(line.slice(6));
-                // Validate shape before treating as PipelineProgress to guard against
-                // malformed or heartbeat-only events
-                if (!isValidPipelineProgress(parsed)) {
-                  continue; // skip invalid SSE data
-                }
-                const data: PipelineProgress = parsed;
-                setProgress(data);
-
-                // Track partial idea content for live streaming display while generating
-                if (data.partialIdea) {
-                  setPartialContent(data.partialIdea.content);
-                } else {
-                  setPartialContent("");
-                }
-
-                if (data.stage === "complete") {
-                  receivedComplete = true;
-                  onComplete(data.angleResults, data.synthesis ?? null);
-                  return;
-                }
-                if (data.stage === "error") {
-                  return;
-                }
-              } catch {
-                // ignore parse errors in SSE stream
-              }
-            }
-          }
-        }
-
-        // Stream ended without a complete/error event
-        if (!receivedComplete) {
-          setProgress((prev) => ({
-            ...prev,
-            stage: "error",
-            error: "Connection lost before pipeline completed. Please try again.",
-          }));
-        }
-      } catch (err) {
-        if (signal.aborted) return;
-        setProgress((prev) => ({
-          ...prev,
-          stage: "error",
-          error: err instanceof Error ? err.message : "Auto mode failed",
-        }));
-      }
-    },
-    [subject, onComplete]
-  );
-
-  useEffect(() => {
-    if (!started) {
-      setStarted(true);
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      const timeout = setTimeout(() => controller.abort(), SSE_TIMEOUT_MS);
-      runPipeline(controller.signal).finally(() => clearTimeout(timeout));
-
-      return () => {
-        clearTimeout(timeout);
-        controller.abort();
-      };
-    }
-  }, [started, runPipeline]);
+  const { progress, partialContent, handleStopAndKeep } = useAutoModePipeline({
+    subject,
+    onComplete,
+  });
 
   const stageLabels: Record<string, string> = {
     investigating: "🔍 Investigating subject...",
