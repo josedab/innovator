@@ -6,9 +6,17 @@
  * Also provides CodeLens annotations for contextual innovation suggestions.
  */
 import * as vscode from "vscode";
-import type { Investigation, AngleResult, InnovationIdea } from "@innovator/core" with {
+import type { AngleResult, InnovationIdea } from "@innovator/core/innovation" with {
   "resolution-mode": "import",
 };
+import { ChatSessionStore, type ChatSessionContext } from "./chat-session-store.js";
+import { createInnovationProposal } from "./innovation-pr-flow.js";
+import {
+  systemClock,
+  vscodeInnovationProposalFiles,
+  vscodeInnovationProposalUi,
+  vscodeInnovationPrTerminal,
+} from "./vscode-innovation-pr-adapters.js";
 
 const PARTICIPANT_ID = "innovator.chat";
 
@@ -17,45 +25,24 @@ function importCore() {
 }
 
 let coreModule: ReturnType<typeof importCore> | undefined;
+let coreRuntime: { dispose(): Promise<void> } | undefined;
+let deactivationPromise: Promise<void> | undefined;
 
 function loadCore(): ReturnType<typeof importCore> {
-  coreModule ??= importCore();
+  coreModule ??= importCore().then((core) => {
+    coreRuntime ??= core.createDefaultInnovatorRuntime();
+    return core;
+  });
   return coreModule;
 }
 
-interface ChatContext {
-  lastInvestigation?: Investigation;
-  lastIdeas?: InnovationIdea[];
-  lastSubject?: string;
-}
-
-// Per-conversation context; keyed by request thread so different chat
-// sessions don't leak state into each other.
-const sessionContexts = new Map<string, ChatContext>();
-const MAX_SESSIONS = 50;
-
-/**
- * Retrieve or create the per-conversation {@link ChatContext} for a chat request.
- *
- * Contexts are keyed by the request's thread ID so parallel conversations
- * don't share state. Evicts the oldest session when {@link MAX_SESSIONS} is reached.
- *
- * @param request - The incoming Copilot Chat request.
- * @returns The {@link ChatContext} associated with this conversation thread.
- */
-function getSessionContext(request: vscode.ChatRequest): ChatContext {
-  // Use the request's thread ID when available to scope context per conversation
-  const key = (request as unknown as { threadId?: string }).threadId ?? "default";
-  if (!sessionContexts.has(key)) {
-    // Evict oldest sessions if we hit the limit
-    if (sessionContexts.size >= MAX_SESSIONS) {
-      const firstKey = sessionContexts.keys().next().value;
-      if (firstKey !== undefined) sessionContexts.delete(firstKey);
-    }
-    sessionContexts.set(key, {});
-  }
-  return sessionContexts.get(key)!;
-}
+const sessionStore = new ChatSessionStore();
+const innovationProposalDependencies = {
+  files: vscodeInnovationProposalFiles,
+  ui: vscodeInnovationProposalUi,
+  terminal: vscodeInnovationPrTerminal,
+  clock: systemClock,
+};
 
 export function activate(context: vscode.ExtensionContext) {
   const participant = vscode.chat.createChatParticipant(PARTICIPANT_ID, chatHandler);
@@ -91,14 +78,14 @@ export function activate(context: vscode.ExtensionContext) {
   // Command: Generate Innovation PR
   context.subscriptions.push(
     vscode.commands.registerCommand("innovator.createInnovationPR", async () => {
-      const ideas = getLastSessionIdeas();
+      const ideas = sessionStore.getFirstIdeas();
       if (!ideas || ideas.length === 0) {
         vscode.window.showWarningMessage(
           "No innovation ideas available. Run @innovator /innovate first."
         );
         return;
       }
-      await createInnovationPR(ideas);
+      await createInnovationProposal(ideas, innovationProposalDependencies);
     })
   );
 
@@ -120,8 +107,13 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(statusBar);
 }
 
-export function deactivate() {
-  // Cleanup handled by VS Code disposables
+export function deactivate(): Promise<void> {
+  deactivationPromise ??= (async () => {
+    sessionStore.clear();
+    await coreModule?.catch(() => undefined);
+    await coreRuntime?.dispose();
+  })();
+  return deactivationPromise;
 }
 
 // ---- CodeLens Provider ----
@@ -173,97 +165,6 @@ class InnovatorCodeLensProvider implements vscode.CodeLensProvider {
   }
 }
 
-// ---- Innovation PR Generation ----
-
-/**
- * Search all active session contexts and return the first set of generated ideas found.
- *
- * @returns The most recent {@link InnovationIdea} array, or `undefined` if none exist.
- */
-function getLastSessionIdeas(): InnovationIdea[] | undefined {
-  for (const ctx of sessionContexts.values()) {
-    if (ctx.lastIdeas && ctx.lastIdeas.length > 0) return ctx.lastIdeas;
-  }
-  return undefined;
-}
-
-/**
- * Create an innovation proposal markdown file from generated ideas and optionally
- * open a Git branch + PR via the integrated terminal.
- *
- * Writes a `.github/innovations/innovation-<timestamp>.md` file to the first
- * workspace folder, then prompts the user to create a branch and pull request.
- *
- * @param ideas - The innovation ideas to include in the proposal (top 5 are used).
- */
-async function createInnovationPR(ideas: InnovationIdea[]): Promise<void> {
-  const topIdeas = ideas.slice(0, 5);
-
-  const prTitle = `💡 Innovation Ideas: ${topIdeas[0].title}`;
-  const prBody = [
-    "## 💡 Innovation Proposal",
-    "",
-    "Generated by **Innovator AI** — ideas from multiple creativity frameworks.",
-    "",
-    "### Top Ideas",
-    "",
-    ...topIdeas
-      .map((idea, i) => [
-        `#### ${i + 1}. ${idea.title}`,
-        "",
-        idea.description,
-        "",
-        `**Potential Impact:** ${idea.potentialImpact}`,
-        idea.implementationHint ? `**Implementation:** ${idea.implementationHint}` : "",
-        "",
-      ])
-      .flat(),
-    "---",
-    "*Generated by [Innovator](https://github.com/josedab/innovator)*",
-  ].join("\n");
-
-  // Create a new file with the innovation proposal
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders) {
-    vscode.window.showErrorMessage("No workspace folder open.");
-    return;
-  }
-
-  const dirPath = vscode.Uri.joinPath(workspaceFolders[0].uri, ".github", "innovations");
-  const filePath = vscode.Uri.joinPath(dirPath, `innovation-${Date.now()}.md`);
-
-  try {
-    await vscode.workspace.fs.createDirectory(dirPath);
-  } catch {
-    // Directory may already exist
-  }
-  await vscode.workspace.fs.writeFile(filePath, Buffer.from(prBody, "utf-8"));
-
-  const doc = await vscode.workspace.openTextDocument(filePath);
-  await vscode.window.showTextDocument(doc);
-
-  const createPR = await vscode.window.showInformationMessage(
-    `Innovation proposal saved to ${filePath.fsPath}`,
-    "Create Branch & PR",
-    "Just Keep File"
-  );
-
-  if (createPR === "Create Branch & PR") {
-    const terminal = vscode.window.createTerminal("Innovator PR");
-    const branchName = `innovation/${Date.now()}`;
-    // Escape shell special characters in user-derived values
-    const safePath = filePath.fsPath.replace(/'/g, "'\\''");
-    const safeTitle = prTitle.replace(/'/g, "'\\''");
-    terminal.show();
-    terminal.sendText(`git checkout -b ${branchName}`);
-    terminal.sendText(`git add '${safePath}'`);
-    terminal.sendText(`git commit -m '${safeTitle}'`);
-    terminal.sendText(
-      `gh pr create --title '${safeTitle}' --body 'See innovation proposal file' --fill`
-    );
-  }
-}
-
 /**
  * Main Copilot Chat request handler for the `@innovator` participant.
  *
@@ -285,7 +186,7 @@ async function chatHandler(
 ): Promise<vscode.ChatResult> {
   const command = request.command;
   const prompt = request.prompt.trim();
-  const ctx = getSessionContext(request);
+  const ctx = sessionStore.getContext(request);
 
   if (!prompt && command !== "score" && command !== "pr") {
     stream.markdown("Please provide a subject to investigate or innovate on.\n\n");
@@ -330,7 +231,7 @@ async function handleInvestigate(
   subject: string,
   stream: vscode.ChatResponseStream,
   token: vscode.CancellationToken,
-  ctx: ChatContext
+  ctx: ChatSessionContext
 ): Promise<vscode.ChatResult> {
   stream.progress("Investigating subject...");
 
@@ -393,7 +294,7 @@ async function handleInnovate(
   subject: string,
   stream: vscode.ChatResponseStream,
   token: vscode.CancellationToken,
-  ctx: ChatContext
+  ctx: ChatSessionContext
 ): Promise<vscode.ChatResult> {
   stream.progress("Generating innovation ideas...");
 
@@ -465,7 +366,7 @@ async function handleScore(
   _prompt: string,
   stream: vscode.ChatResponseStream,
   _token: vscode.CancellationToken,
-  ctx: ChatContext
+  ctx: ChatSessionContext
 ): Promise<vscode.ChatResult> {
   const ideas = ctx.lastIdeas;
   if (!ideas || ideas.length === 0) {
@@ -513,7 +414,7 @@ async function handleScore(
  */
 async function handlePR(
   stream: vscode.ChatResponseStream,
-  ctx: ChatContext
+  ctx: ChatSessionContext
 ): Promise<vscode.ChatResult> {
   const ideas = ctx.lastIdeas;
   if (!ideas || ideas.length === 0) {
@@ -549,7 +450,7 @@ async function handleDefault(
   prompt: string,
   stream: vscode.ChatResponseStream,
   _token: vscode.CancellationToken,
-  _ctx: ChatContext
+  _ctx: ChatSessionContext
 ): Promise<vscode.ChatResult> {
   stream.markdown(`### Innovator — AI Innovation Engine\n\n`);
   stream.markdown(`Available commands:\n\n`);

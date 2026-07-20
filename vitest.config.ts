@@ -8,6 +8,8 @@ export default defineConfig({
       "@": resolve(__dirname, "apps/web/src"),
       // Stub mermaid for tests — it's an optional runtime dependency
       mermaid: resolve(__dirname, "apps/web/src/__tests__/__mocks__/mermaid.ts"),
+      // VS Code only provides this module inside the extension host.
+      vscode: resolve(__dirname, "packages/vscode-extension/src/__tests__/__mocks__/vscode.ts"),
     },
   },
   test: {
