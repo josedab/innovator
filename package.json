@@ -20,6 +20,7 @@
     "docs:api": "npm run docs:api --workspace=packages/core",
     "cli": "npx tsx apps/cli/src/index.ts",
     "test": "vitest run",
+    "test:core-exports": "npm run build --workspace=packages/core && vitest run packages/core/src/__tests__/package-exports.test.ts",
     "test:ci": "npm run format:check && npm run lint && npm run typecheck && npm run audit:production && npm run build && npm run build:check && npm run build --workspace=website && npm run test:coverage",
     "test:coverage": "vitest run --coverage && node scripts/report-workspace-coverage.mjs",
     "test:watch": "vitest",

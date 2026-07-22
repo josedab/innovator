@@ -9,6 +9,18 @@ export { investigate } from "./investigate.js";
 export { generateForAngle } from "./generate.js";
 export { runAutoPipeline } from "./pipeline.js";
 export type { PipelineOptions } from "./pipeline.js";
+export type { TextGenerator } from "../copilot/structured-generation.js";
+export type {
+  AngleDefinition,
+  AngleId,
+  AngleResult,
+  CustomAngle,
+  InnovationIdea,
+  Investigation,
+  PipelineProgress,
+  PipelineStage,
+  Synthesis,
+} from "../types.js";
 export {
   loadCustomAngles,
   addCustomAngle,

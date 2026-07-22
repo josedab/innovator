@@ -90,6 +90,7 @@ export type {
   ParallelInvestigationResult,
   CompetitiveMap,
   PipelineOptions,
+  TextGenerator,
 } from "./innovation/index.js";
 
 /** Prompt builders for investigation and synthesis LLM calls.
@@ -124,6 +125,14 @@ export type { RetryOptions } from "./copilot/retry.js";
 
 /** Timeout utility — race a promise against a deadline. */
 export { withTimeout } from "./copilot/timeout.js";
+
+/** Runtime ownership — explicit contexts with bounded, idempotent disposal. */
+export {
+  InnovatorRuntime,
+  createDefaultInnovatorRuntime,
+  DEFAULT_RUNTIME_DISPOSE_TIMEOUT_MS,
+} from "./runtime/index.js";
+export type { InnovatorRuntimeOptions, DefaultInnovatorRuntimeOptions } from "./runtime/index.js";
 
 /** Bounded LRU cache with optional TTL and hit/miss statistics.
  * @see {@link file://docs/API.md#caching} for usage patterns
@@ -545,6 +554,7 @@ export {
   initializeProviders,
   clearProviders,
   InnovatorConfigSchema,
+  ProviderRegistry,
 } from "./providers/index.js";
 export type {
   LLMProvider,
@@ -3027,6 +3037,7 @@ export {
   closeStorage,
   isStorageInitialized,
   InMemoryStorageProvider,
+  StorageContext,
 } from "./storage/index.js";
 export type {
   StorageProvider,
@@ -3285,6 +3296,7 @@ export {
   ScimUserSchema,
   ScimGroupSchema,
   DataResidencyConfigSchema,
+  ScimContext,
 } from "./rbac/scim.js";
 export type { ScimUser, ScimGroup, DataResidencyConfig } from "./rbac/scim.js";
 
@@ -4920,6 +4932,8 @@ export {
   InnovationDigestSchema as MonitorInnovationDigestSchema,
   MonitorConfigSchema as InnovationMonitorConfigSchema,
   MonitorStateSchema,
+  InnovationMonitorContext,
+  FileInnovationMonitorPersistence,
 } from "./innovation-monitor/index.js";
 export type {
   MonitorSource,
@@ -4929,6 +4943,7 @@ export type {
   InnovationDigest as MonitorInnovationDigest,
   MonitorConfig as InnovationMonitorConfig,
   MonitorState,
+  InnovationMonitorPersistence,
 } from "./innovation-monitor/index.js";
 
 /** Patent Scanner — prior art detection and freedom-to-operate assessment. */
@@ -5230,6 +5245,7 @@ export {
   FeatureTogglesSchema,
   BillingPlanSchema,
   PartnerProfileSchema,
+  WhiteLabelContext,
 } from "./white-label/index.js";
 export type {
   TenantConfig,
@@ -8144,6 +8160,17 @@ export type {
   ComplianceRule as VerticalComplianceRule,
   ExtendedVerticalPack,
 } from "./verticals/pack-schema.js";
+
+export {
+  VerticalPackApiActionSchema,
+  VerticalPackApiContext,
+  createVerticalPackApiContext,
+} from "./verticals/api-service.js";
+export type {
+  VerticalPackApiAction,
+  VerticalPackApiOutcome,
+  VerticalPackApiResult,
+} from "./verticals/api-service.js";
 
 export { HEALTHCARE_PACK } from "./verticals/healthcare-pack.js";
 export { CLIMATE_PACK } from "./verticals/climate-pack.js";

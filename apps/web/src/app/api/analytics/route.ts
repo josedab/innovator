@@ -9,10 +9,10 @@ import {
   trackEvent,
   getTimeSeries,
   getActivityHeatmap,
-  getAnalyticsLeaderboard as getLeaderboard,
+  getLeaderboard,
   generateReport,
   reportToMarkdown,
-} from "@innovator/core";
+} from "@innovator/core/analytics";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";

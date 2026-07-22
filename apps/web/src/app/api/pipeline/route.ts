@@ -4,7 +4,7 @@
 export const runtime = "nodejs";
 
 import { parsePipelineRequest, resolveAngles, runAutoPipeline } from "@innovator/core";
-import type { PipelineProgress } from "@innovator/core";
+import type { PipelineProgress } from "@innovator/core/innovation";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType, validateModel } from "@/lib/validate-request";

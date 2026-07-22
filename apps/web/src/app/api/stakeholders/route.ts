@@ -8,7 +8,7 @@ import {
   computeReadinessScores,
   DEFAULT_PERSONAS,
 } from "@innovator/core";
-import type { InnovationIdea } from "@innovator/core";
+import type { InnovationIdea } from "@innovator/core/innovation";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType, validateModel } from "@/lib/validate-request";

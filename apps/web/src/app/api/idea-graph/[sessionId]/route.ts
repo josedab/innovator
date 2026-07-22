@@ -12,7 +12,7 @@ import {
   extractJson,
   withRetry,
 } from "@innovator/core";
-import type { InnovationIdea } from "@innovator/core";
+import type { InnovationIdea } from "@innovator/core/innovation";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";

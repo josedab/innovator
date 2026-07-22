@@ -24,7 +24,7 @@ async function checkCopilotProvider(): Promise<ProviderHealth> {
   try {
     const [auth, models] = await Promise.race([
       (async () => {
-        const { getCopilotClient } = await import("@innovator/core");
+        const { getCopilotClient } = await import("@innovator/core/copilot");
         const client = await getCopilotClient();
         return Promise.all([
           client.getAuthStatus(),
@@ -41,7 +41,7 @@ async function checkCopilotProvider(): Promise<ProviderHealth> {
     ]);
     const isHealthy = auth.isAuthenticated && models.length > 0;
     if (!isHealthy) {
-      const { resetCopilotClientIfIdle } = await import("@innovator/core");
+      const { resetCopilotClientIfIdle } = await import("@innovator/core/copilot");
       await resetCopilotClientIfIdle().catch(() => false);
     }
 
@@ -59,7 +59,7 @@ async function checkCopilotProvider(): Promise<ProviderHealth> {
       lastCheck: new Date().toISOString(),
     };
   } catch (error) {
-    const { resetCopilotClientIfIdle } = await import("@innovator/core");
+    const { resetCopilotClientIfIdle } = await import("@innovator/core/copilot");
     await resetCopilotClientIfIdle().catch(() => false);
     return {
       name: "llm-provider-copilot",

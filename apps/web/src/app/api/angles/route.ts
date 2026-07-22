@@ -3,8 +3,13 @@
  */
 export const runtime = "nodejs";
 
-import { loadCustomAngles, addCustomAngle, removeCustomAngle, ANGLES } from "@innovator/core";
-import type { CustomAngle } from "@innovator/core";
+import {
+  loadCustomAngles,
+  addCustomAngle,
+  removeCustomAngle,
+  ANGLES,
+} from "@innovator/core/innovation";
+import type { CustomAngle } from "@innovator/core/innovation";
 import { z } from "zod";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 

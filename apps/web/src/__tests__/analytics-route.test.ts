@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@innovator/core", () => ({
+vi.mock("@innovator/core/analytics", () => ({
   generateSummary: vi.fn(),
   generateInsights: vi.fn(),
   trackEvent: vi.fn(),
   getTimeSeries: vi.fn(),
   getActivityHeatmap: vi.fn(),
-  getAnalyticsLeaderboard: vi.fn(),
+  getLeaderboard: vi.fn(),
   generateReport: vi.fn(),
   reportToMarkdown: vi.fn(),
 }));
@@ -26,10 +26,10 @@ import {
   trackEvent,
   getTimeSeries,
   getActivityHeatmap,
-  getAnalyticsLeaderboard as getLeaderboard,
+  getLeaderboard,
   generateReport,
   reportToMarkdown,
-} from "@innovator/core";
+} from "@innovator/core/analytics";
 
 function makeGet(params: Record<string, string> = {}): Request {
   const url = new URL("http://localhost/api/analytics");

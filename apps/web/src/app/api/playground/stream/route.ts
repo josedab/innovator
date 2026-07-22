@@ -4,7 +4,7 @@
 export const runtime = "nodejs";
 
 import { runAutoPipeline, ANGLE_IDS, updatePlaygroundSession } from "@innovator/core";
-import type { PipelineProgress } from "@innovator/core";
+import type { PipelineProgress } from "@innovator/core/innovation";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { SECURITY_HEADERS, API_RESPONSE_HEADERS } from "@/lib/api-headers";

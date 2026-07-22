@@ -59,7 +59,7 @@ apps/web/src/
 
 ### Server/Client Boundary
 
-- **Server-side** code imports from `@innovator/core` (full module)
+- **Server-side** code prefers a supported feature subpath (for example, `@innovator/core/innovation`) when all imports belong to that feature; use the root for mixed groups
 - **Client components** import from `@innovator/core/types` only (client-safe subpath, types only)
 - Never import core functions in `"use client"` components
 
@@ -119,7 +119,7 @@ For SSE endpoints, document the event stream format in the `@response` section.
 
 - **Unit tests**: `src/__tests__/` and `src/components/__tests__/` — run via `vitest` from monorepo root (`npm test`)
 - **Test patterns**:
-  - Mock `@innovator/core` functions with `vi.mock()`
+  - Mock the exact core entry point used by production code with `vi.mock()`
   - Use `@testing-library/react` for component tests
   - API route tests create `Request` objects and call exported handler functions directly
   - Use `vi.stubEnv()` for environment variable tests

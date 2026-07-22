@@ -6,7 +6,7 @@ const mockPing = vi.fn();
 const mockGetCopilotClient = vi.fn();
 const mockResetCopilotClientIfIdle = vi.fn();
 
-vi.mock("@innovator/core", () => ({
+vi.mock("@innovator/core/copilot", () => ({
   getCopilotClient: (...args: unknown[]) => mockGetCopilotClient(...args),
   resetCopilotClientIfIdle: (...args: unknown[]) => mockResetCopilotClientIfIdle(...args),
 }));

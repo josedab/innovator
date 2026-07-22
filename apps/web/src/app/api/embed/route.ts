@@ -4,7 +4,7 @@
 export const runtime = "nodejs";
 
 import { runAutoPipeline, ANGLE_IDS } from "@innovator/core";
-import type { PipelineProgress, AngleId } from "@innovator/core";
+import type { PipelineProgress, AngleId } from "@innovator/core/innovation";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";

@@ -14,7 +14,7 @@ import {
   findSimilarDocuments,
   clearEmbeddingsIndex,
 } from "@innovator/core";
-import type { Investigation, AngleResult, InnovationIdea } from "@innovator/core";
+import type { Investigation, AngleResult, InnovationIdea } from "@innovator/core/innovation";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType, validateModel } from "@/lib/validate-request";

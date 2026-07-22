@@ -4,7 +4,7 @@
 export const runtime = "nodejs";
 
 import { ANGLE_IDS, generateForAngle, investigate, MAX_CONCURRENCY } from "@innovator/core";
-import type { AngleResult } from "@innovator/core";
+import type { AngleResult } from "@innovator/core/innovation";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import {

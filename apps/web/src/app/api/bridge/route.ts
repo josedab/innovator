@@ -9,7 +9,7 @@ import {
   projectBoardToMarkdown,
   artifactToGitHubIssue,
 } from "@innovator/core";
-import type { InnovationIdea } from "@innovator/core";
+import type { InnovationIdea } from "@innovator/core/innovation";
 import { z } from "zod";
 import { API_RESPONSE_HEADERS } from "@/lib/api-headers";
 

@@ -3,7 +3,7 @@
  */
 export const runtime = "nodejs";
 
-import { runParallelInvestigation } from "@innovator/core";
+import { runParallelInvestigation } from "@innovator/core/innovation";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { validateJsonContentType, validateModel } from "@/lib/validate-request";

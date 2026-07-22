@@ -1,14 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockAngles = [
-  { id: "scamper", name: "SCAMPER", shortDescription: "Creative technique", icon: "🔄" },
-  { id: "first-principles", name: "First Principles", shortDescription: "Decompose", icon: "🧱" },
-];
+const { customAngles, mockAngles } = vi.hoisted(() => ({
+  mockAngles: [
+    { id: "scamper", name: "SCAMPER", shortDescription: "Creative technique", icon: "🔄" },
+    { id: "first-principles", name: "First Principles", shortDescription: "Decompose", icon: "🧱" },
+  ],
+  customAngles: [] as Array<{
+    id: string;
+    name: string;
+    description: string;
+    promptTemplate: string;
+  }>,
+}));
 
-let customAngles: Array<{ id: string; name: string; description: string; promptTemplate: string }> =
-  [];
-
-vi.mock("@innovator/core", () => ({
+vi.mock("@innovator/core/innovation", () => ({
   ANGLES: mockAngles,
   loadCustomAngles: vi.fn(() => customAngles),
   addCustomAngle: vi.fn(
@@ -27,91 +32,7 @@ vi.mock("@innovator/core", () => ({
   }),
 }));
 
-// Inline route handlers to avoid Next.js resolution
-import { z } from "zod";
-
-const API_HEADERS = { "Content-Type": "application/json" };
-
-const CreateAngleSchema = z.object({
-  id: z
-    .string()
-    .min(1)
-    .max(100)
-    .regex(/^[a-z0-9-]+$/),
-  name: z.string().min(1).max(200),
-  description: z.string().min(1).max(2000),
-  promptTemplate: z.string().min(1).max(10000),
-  icon: z.string().max(10).optional(),
-  author: z.string().max(200).optional(),
-  tags: z.array(z.string().max(100)).max(20).optional(),
-});
-
-async function GET() {
-  const { ANGLES, loadCustomAngles } = await import("@innovator/core");
-  const builtIn = (ANGLES as Array<Record<string, unknown>>).map((a) => ({
-    ...a,
-    type: "built-in",
-  }));
-  const custom = (loadCustomAngles() as Array<Record<string, unknown>>).map((a) => ({
-    ...a,
-    type: "custom",
-  }));
-  return new Response(JSON.stringify({ angles: [...builtIn, ...custom] }), {
-    headers: API_HEADERS,
-  });
-}
-
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = CreateAngleSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid angle definition", details: parsed.error.flatten() }),
-        { status: 400, headers: API_HEADERS }
-      );
-    }
-    const { addCustomAngle } = await import("@innovator/core");
-    (addCustomAngle as (data: unknown) => void)(parsed.data);
-    return new Response(JSON.stringify({ success: true, angle: parsed.data }), {
-      status: 201,
-      headers: API_HEADERS,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to create angle";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 409,
-      headers: API_HEADERS,
-    });
-  }
-}
-
-async function DELETE(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-    if (!id) {
-      return new Response(JSON.stringify({ error: "Missing 'id' parameter" }), {
-        status: 400,
-        headers: API_HEADERS,
-      });
-    }
-    const { removeCustomAngle } = await import("@innovator/core");
-    const removed = (removeCustomAngle as (id: string) => boolean)(id);
-    if (!removed) {
-      return new Response(JSON.stringify({ error: `Angle "${id}" not found` }), {
-        status: 404,
-        headers: API_HEADERS,
-      });
-    }
-    return new Response(JSON.stringify({ success: true }), { headers: API_HEADERS });
-  } catch {
-    return new Response(JSON.stringify({ error: "Failed to delete angle" }), {
-      status: 500,
-      headers: API_HEADERS,
-    });
-  }
-}
+import { DELETE, GET, POST } from "../angles/route";
 
 function makeRequest(method: string, body?: unknown, url = "http://localhost/api/angles"): Request {
   const init: RequestInit = { method, headers: { "Content-Type": "application/json" } };
@@ -128,7 +49,7 @@ const VALID_ANGLE = {
 
 describe("GET /api/angles", () => {
   beforeEach(() => {
-    customAngles = [];
+    customAngles.length = 0;
     vi.clearAllMocks();
   });
 
@@ -151,7 +72,7 @@ describe("GET /api/angles", () => {
 
 describe("POST /api/angles", () => {
   beforeEach(() => {
-    customAngles = [];
+    customAngles.length = 0;
     vi.clearAllMocks();
   });
 
@@ -187,7 +108,7 @@ describe("POST /api/angles", () => {
 
 describe("DELETE /api/angles", () => {
   beforeEach(() => {
-    customAngles = [{ ...VALID_ANGLE }];
+    customAngles.splice(0, customAngles.length, { ...VALID_ANGLE });
     vi.clearAllMocks();
   });
 

@@ -1,42 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@innovator/core", () => ({
+vi.mock("@innovator/core/innovation", () => ({
   investigate: vi.fn(),
 }));
 
-import { investigate } from "@innovator/core";
+import { investigate } from "@innovator/core/innovation";
+import { POST } from "../investigate/route";
+
 const mockInvestigate = vi.mocked(investigate);
-
-// Inline the route handler to avoid Next.js module resolution issues
-import { z } from "zod";
-
-const RequestSchema = z.object({
-  subject: z.string().min(1).max(500),
-  model: z.string().optional(),
-});
-
-async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = RequestSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    const { subject, model } = parsed.data;
-    const investigation = await investigate(subject, model);
-    return Response.json(investigation);
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Investigation failed" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-}
 
 const MOCK_INVESTIGATION = {
   summary: "Test summary",
@@ -67,7 +38,7 @@ describe("POST /api/investigate", () => {
 
     expect(res.status).toBe(200);
     expect(data.summary).toBe("Test summary");
-    expect(mockInvestigate).toHaveBeenCalledWith("code review", undefined);
+    expect(mockInvestigate).toHaveBeenCalledWith("code review", undefined, expect.any(AbortSignal));
   });
 
   it("passes model parameter when provided", async () => {
@@ -75,7 +46,7 @@ describe("POST /api/investigate", () => {
 
     await POST(makeRequest({ subject: "testing", model: "gpt-5" }));
 
-    expect(mockInvestigate).toHaveBeenCalledWith("testing", "gpt-5");
+    expect(mockInvestigate).toHaveBeenCalledWith("testing", "gpt-5", expect.any(AbortSignal));
   });
 
   it("returns 400 for missing subject", async () => {
@@ -83,7 +54,7 @@ describe("POST /api/investigate", () => {
     const data = await res.json();
 
     expect(res.status).toBe(400);
-    expect(data.error).toBe("Invalid request");
+    expect(data.error).toBe("Invalid request. Please check your input and try again.");
   });
 
   it("returns 400 for empty subject", async () => {
@@ -105,6 +76,6 @@ describe("POST /api/investigate", () => {
     const data = await res.json();
 
     expect(res.status).toBe(500);
-    expect(data.error).toBe("LLM unavailable");
+    expect(data.error).toBe("Investigation failed. Please try again.");
   });
 });
