@@ -8,7 +8,7 @@
 import { z } from "zod";
 import { generateOpenApiSpec, type SdkLanguage, generateSdkSnippet } from "./api-spec.js";
 import { getPricingPlans, type PricingPlan } from "./billing.js";
-import { type BillingTier } from "./index.js";
+import type { BillingTier } from "./types.js";
 
 // ---- Schemas ----
 

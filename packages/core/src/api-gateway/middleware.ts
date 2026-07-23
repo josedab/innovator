@@ -7,7 +7,8 @@
  */
 
 import { z } from "zod";
-import { findApiKeyByValue, checkDailyLimit, recordUsage, type BillingTier } from "./index.js";
+import { checkDailyLimit, findApiKeyByValue, recordUsage } from "./api-keys.js";
+import type { BillingTier } from "./types.js";
 
 // ---- Schemas ----
 

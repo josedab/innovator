@@ -7,7 +7,7 @@
  */
 
 import { z } from "zod";
-import { type BillingTier } from "./index.js";
+import type { BillingTier } from "./types.js";
 import { ValidationError } from "../errors.js";
 
 // ---- Schemas ----
