@@ -28,7 +28,7 @@ We concentrate **all domain logic** in `@innovator/core` (`packages/core/`). Thi
 - Export to multiple formats (Markdown, JSON, Jira, Confluence, etc.)
 - Plugin system, presets, events, cost tracking, RAG, and 60+ other modules
 
-Consumers (`apps/web`, `apps/cli`, `packages/mcp-server`, `packages/bot`) are **thin adapters** that handle transport (HTTP, stdio, chat protocol), UI rendering, and user interaction — they never contain business logic directly. They import from `@innovator/core` and delegate.
+Consumers (`apps/web`, `apps/cli`, `packages/mcp-server`, `packages/bot`) are **thin adapters** that handle transport (HTTP, stdio, chat protocol), UI rendering, and user interaction — they never contain business logic directly. They delegate through the compatibility `@innovator/core` root or a supported cohesive feature subpath such as `@innovator/core/innovation`.
 
 The dependency graph enforces a strict unidirectional flow:
 
@@ -51,5 +51,5 @@ packages/core ← packages/bot
 **Negative:**
 
 - **Core becomes a monolith** — With 60+ modules, `@innovator/core` is large. As it grows, internal cohesion may decrease and build times may increase. Future refactoring could split it into `@innovator/core`, `@innovator/analytics`, `@innovator/collaboration`, etc.
-- **Tight coupling to core API surface** — All consumers depend on the same exports. Breaking changes to core's public API require updating every consumer simultaneously (mitigated by the monorepo's atomic commits).
+- **Core API compatibility burden** — The root barrel remains supported, while stable feature subpaths reduce coupling for adapters that use one cohesive area. Breaking changes still require coordinated updates.
 - **Node.js runtime assumption** — Core uses Node.js APIs (file system, `process.env`) which prevents direct use in browsers. This is addressed by the client-safe subpath export (see ADR-0009).

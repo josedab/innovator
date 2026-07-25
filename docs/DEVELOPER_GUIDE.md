@@ -7,6 +7,7 @@ Practical recipes and patterns for working with the Innovator codebase. For setu
 ## Table of Contents
 
 - [Quick Reference](#quick-reference)
+- [Core Package Entry Points](#core-package-entry-points)
 - [Running the Pipeline Programmatically](#running-the-pipeline-programmatically)
 - [Environment Variables](#environment-variables)
 - [Creating Custom Angles](#creating-custom-angles)
@@ -49,6 +50,27 @@ Practical recipes and patterns for working with the Innovator codebase. For setu
 
 ---
 
+## Core Package Entry Points
+
+The root `@innovator/core` barrel remains supported for compatibility. New server-side adapter
+code should prefer a stable feature subpath when all of its imports belong to one cohesive area:
+
+| Feature                   | Import path                  |
+| ------------------------- | ---------------------------- |
+| Innovation pipeline       | `@innovator/core/innovation` |
+| Runtime ownership         | `@innovator/core/runtime`    |
+| Copilot client lifecycle  | `@innovator/core/copilot`    |
+| LLM providers             | `@innovator/core/providers`  |
+| Industry vertical packs   | `@innovator/core/verticals`  |
+| Innovation analytics      | `@innovator/core/analytics`  |
+| Browser-safe shared types | `@innovator/core/types`      |
+
+Feature subpaths are package entry points backed by built leaf barrels; do not import arbitrary
+`@innovator/core/dist/...` files. React client components must continue to use
+`@innovator/core/types` only.
+
+---
+
 ## Running the Pipeline Programmatically
 
 > 📖 **API Reference:** [`investigate()`](./API.md#investigate), [`runAutoPipeline()`](./API.md#runautopipeline), [`ModelRouting`](./API.md#modelrouting)
@@ -56,7 +78,7 @@ Practical recipes and patterns for working with the Innovator codebase. For setu
 ### Minimal example
 
 ```typescript
-import { investigate, runAutoPipeline } from "@innovator/core";
+import { investigate, runAutoPipeline } from "@innovator/core/innovation";
 
 // Stage 1: Just investigation
 const investigation = await investigate("sustainable packaging");
@@ -271,7 +293,12 @@ export OLLAMA_BASE_URL="http://localhost:11434"
 ### Programmatic provider switching
 
 ```typescript
-import { initializeProviders, setActiveProvider, getActiveProvider } from "@innovator/core";
+import {
+  initializeProviders,
+  setActiveProvider,
+  getActiveProvider,
+  saveConfig,
+} from "@innovator/core/providers";
 
 // Initialize all providers based on env vars / config
 initializeProviders();
@@ -281,8 +308,6 @@ setActiveProvider("openai");
 console.log(getActiveProvider().name); // "OpenAI"
 
 // Or configure via ~/.innovator/config.json
-import { saveConfig } from "@innovator/core";
-
 saveConfig({
   defaultProvider: "openai",
   providers: {
