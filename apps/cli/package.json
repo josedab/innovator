@@ -27,13 +27,13 @@
   },
   "dependencies": {
     "@innovator/core": "*",
-    "chalk": "^5.4.0",
-    "commander": "^13.0.0",
-    "ora": "^8.1.0"
+    "chalk": "^6.0.0",
+    "commander": "^15.0.0",
+    "ora": "^9.4.1"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.1.2",
     "tsx": "^4.23.1",
-    "typescript": "^5.6.0"
+    "typescript": "^7.0.2"
   }
 }
